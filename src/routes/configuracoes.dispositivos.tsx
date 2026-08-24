@@ -49,34 +49,13 @@ function DevicesSettingsPage() {
     setError(null);
     // Imported CRM tables are not represented in the generated Supabase types yet.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error: requestError } = await (supabase as any)
-      .from("mob_dispositivos")
-      .select(
-        "id,legacy_id,auth_contratos_id_con,client_id,device_uuid,utilizador,codrep,tipo,sistema,status,active,build_version,db_version,last_checked_at,crm_created_at,crm_updated_at",
-      )
-      .order("last_checked_at", { ascending: false, nullsFirst: false });
+    const { data, error: requestError } = await (supabase as any).rpc("configuration_devices_list");
 
     if (requestError) {
       setError(requestError.message || "Falha ao consultar os dispositivos.");
       setDevices([]);
     } else {
-      const rawDevices = (data ?? []) as Omit<DeviceRow, "client_acronym">[];
-      const clientIds = [...new Set(rawDevices.map((item) => item.client_id).filter(Boolean))];
-      const acronyms = new Map<string, string>();
-      if (clientIds.length) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: clients } = await (supabase as any)
-          .from("clients")
-          .select("id,acronym")
-          .in("id", clientIds);
-        for (const client of clients ?? []) acronyms.set(client.id, client.acronym ?? "");
-      }
-      setDevices(
-        rawDevices.map((item) => ({
-          ...item,
-          client_acronym: item.client_id ? (acronyms.get(item.client_id) ?? "") : "",
-        })),
-      );
+      setDevices((Array.isArray(data) ? data : []) as DeviceRow[]);
     }
     setLoading(false);
   }

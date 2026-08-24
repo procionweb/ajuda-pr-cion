@@ -165,13 +165,28 @@ export function AppSidebar() {
 
             return (
               <li key={item.to}>
-                <div className="relative">
+                <div
+                  className="relative"
+                  onMouseEnter={() => {
+                    if (!collapsed && item.children) {
+                      setOpenGroups((current) => ({ ...current, [item.to]: true }));
+                    }
+                  }}
+                >
                   {collapsed && item.children ? (
                     <button
                       type="button"
                       title={item.label}
                       aria-label={`Abrir opções de ${item.label}`}
                       aria-expanded={collapsedFlyout?.item.to === item.to}
+                      onMouseEnter={(event) => {
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        const height = item.children!.length * 40 + 58;
+                        setCollapsedFlyout({
+                          item,
+                          top: Math.max(12, Math.min(rect.top, window.innerHeight - height - 12)),
+                        });
+                      }}
                       onClick={(event) => {
                         if (collapsedFlyout?.item.to === item.to) {
                           setCollapsedFlyout(null);

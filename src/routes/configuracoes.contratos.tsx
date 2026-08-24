@@ -47,36 +47,16 @@ function ContractsSettingsPage() {
     setError(null);
     // Imported CRM tables are not represented in the generated Supabase types yet.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error: requestError } = await (supabase as any)
-      .from("auth_contratos")
-      .select(
-        "id,legacy_id,client_id,contract_key,name,status,active,crm_created_at,crm_updated_at,source_payload",
-      )
-      .order("crm_updated_at", { ascending: false, nullsFirst: false });
+    const { data, error: requestError } = await (supabase as any).rpc(
+      "configuration_contracts_list",
+    );
     if (requestError) {
       setError(requestError.message);
       setContracts([]);
       setLoading(false);
       return;
     }
-    const raw = (data ?? []) as Omit<ContractRow, "acronym">[];
-    const ids = [...new Set(raw.map((item) => item.client_id).filter(Boolean))];
-    const acronyms = new Map<string, string>();
-    if (ids.length) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: clients } = await (supabase as any)
-        .from("clients")
-        .select("id,acronym")
-        .in("id", ids);
-      for (const client of clients ?? []) acronyms.set(client.id, client.acronym ?? "");
-    }
-    setContracts(
-      raw.map((item) => ({
-        ...item,
-        acronym:
-          acronyms.get(item.client_id) ?? payloadText(item.source_payload, "con_cliente_sigla"),
-      })),
-    );
+    setContracts((Array.isArray(data) ? data : []) as ContractRow[]);
     setLoading(false);
   }
   useEffect(() => {
