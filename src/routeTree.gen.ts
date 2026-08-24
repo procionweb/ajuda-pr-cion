@@ -28,6 +28,7 @@ import { Route as BaseDeConhecimentoIndexRouteImport } from './routes/base-de-co
 import { Route as KanbanBoardIdRouteImport } from './routes/kanban.$boardId'
 import { Route as FrotaVehicleIdRouteImport } from './routes/frota.$vehicleId'
 import { Route as ConfiguracoesDispositivosRouteImport } from './routes/configuracoes.dispositivos'
+import { Route as ConfiguracoesContratosRouteImport } from './routes/configuracoes.contratos'
 import { Route as ConfiguracoesColaboradoresRouteImport } from './routes/configuracoes.colaboradores'
 import { Route as ComercialContatosRouteImport } from './routes/comercial.contatos'
 import { Route as ComercialAtividadesRouteImport } from './routes/comercial.atividades'
@@ -135,6 +136,11 @@ const ConfiguracoesDispositivosRoute =
     path: '/configuracoes/dispositivos',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ConfiguracoesContratosRoute = ConfiguracoesContratosRouteImport.update({
+  id: '/configuracoes/contratos',
+  path: '/configuracoes/contratos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConfiguracoesColaboradoresRoute =
   ConfiguracoesColaboradoresRouteImport.update({
     id: '/configuracoes/colaboradores',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/comercial/atividades': typeof ComercialAtividadesRoute
   '/comercial/contatos': typeof ComercialContatosRouteWithChildren
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
+  '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
   '/frota/$vehicleId': typeof FrotaVehicleIdRoute
   '/kanban/$boardId': typeof KanbanBoardIdRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/comercial/atividades': typeof ComercialAtividadesRoute
   '/comercial/contatos': typeof ComercialContatosRouteWithChildren
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
+  '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
   '/frota/$vehicleId': typeof FrotaVehicleIdRoute
   '/kanban/$boardId': typeof KanbanBoardIdRoute
@@ -269,6 +277,7 @@ export interface FileRoutesById {
   '/comercial/atividades': typeof ComercialAtividadesRoute
   '/comercial/contatos': typeof ComercialContatosRouteWithChildren
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
+  '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
   '/frota/$vehicleId': typeof FrotaVehicleIdRoute
   '/kanban/$boardId': typeof KanbanBoardIdRoute
@@ -302,6 +311,7 @@ export interface FileRouteTypes {
     | '/comercial/atividades'
     | '/comercial/contatos'
     | '/configuracoes/colaboradores'
+    | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
     | '/frota/$vehicleId'
     | '/kanban/$boardId'
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/comercial/atividades'
     | '/comercial/contatos'
     | '/configuracoes/colaboradores'
+    | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
     | '/frota/$vehicleId'
     | '/kanban/$boardId'
@@ -362,6 +373,7 @@ export interface FileRouteTypes {
     | '/comercial/atividades'
     | '/comercial/contatos'
     | '/configuracoes/colaboradores'
+    | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
     | '/frota/$vehicleId'
     | '/kanban/$boardId'
@@ -392,6 +404,7 @@ export interface RootRouteChildren {
   ComercialAtividadesRoute: typeof ComercialAtividadesRoute
   ComercialContatosRoute: typeof ComercialContatosRouteWithChildren
   ConfiguracoesColaboradoresRoute: typeof ConfiguracoesColaboradoresRoute
+  ConfiguracoesContratosRoute: typeof ConfiguracoesContratosRoute
   ConfiguracoesDispositivosRoute: typeof ConfiguracoesDispositivosRoute
   ClientesIndexRoute: typeof ClientesIndexRoute
   ApiPublicTestPlacesRoute: typeof ApiPublicTestPlacesRoute
@@ -531,6 +544,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes/dispositivos'
       fullPath: '/configuracoes/dispositivos'
       preLoaderRoute: typeof ConfiguracoesDispositivosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes/contratos': {
+      id: '/configuracoes/contratos'
+      path: '/configuracoes/contratos'
+      fullPath: '/configuracoes/contratos'
+      preLoaderRoute: typeof ConfiguracoesContratosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes/colaboradores': {
@@ -684,6 +704,7 @@ const rootRouteChildren: RootRouteChildren = {
   ComercialAtividadesRoute: ComercialAtividadesRoute,
   ComercialContatosRoute: ComercialContatosRouteWithChildren,
   ConfiguracoesColaboradoresRoute: ConfiguracoesColaboradoresRoute,
+  ConfiguracoesContratosRoute: ConfiguracoesContratosRoute,
   ConfiguracoesDispositivosRoute: ConfiguracoesDispositivosRoute,
   ClientesIndexRoute: ClientesIndexRoute,
   ApiPublicTestPlacesRoute: ApiPublicTestPlacesRoute,

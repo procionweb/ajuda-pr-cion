@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ProcionLogo } from "./ProcionLogo";
 import {
   CalendarDays,
+  FileKey2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -103,6 +104,7 @@ const nav: NavItem[] = [
     children: [
       { to: "/configuracoes/colaboradores", label: "Colaboradores", icon: Users },
       { to: "/configuracoes/dispositivos", label: "Dispositivos", icon: Smartphone },
+      { to: "/configuracoes/contratos", label: "Contratos", icon: FileKey2 },
     ],
   },
 ];
