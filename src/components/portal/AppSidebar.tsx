@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MessageSquare,
+  Smartphone,
   Settings,
   Users,
 } from "lucide-react";
@@ -76,6 +77,7 @@ const nav: NavItem[] = [
     children: [
       { to: "/chamados", label: "Chamados", icon: TicketsIcon },
       { to: "/calendario", label: "Calendário", icon: CalendarIcon },
+      { to: "/frota", label: "Frota", icon: FleetIcon },
     ],
   },
   {
@@ -88,7 +90,6 @@ const nav: NavItem[] = [
       { to: "/comercial/agendamentos", label: "Agendamentos", icon: CalendarDays },
     ],
   },
-  { to: "/frota", label: "Frota", icon: FleetIcon },
   { to: "/iniciar-hadron", label: "Hadron", icon: HadronIcon },
   { to: "/base-de-conhecimento", label: "Base", icon: BaseIcon },
   { to: "/atualizacoes", label: "Atualizações", icon: UpdatesIcon },
@@ -99,7 +100,10 @@ const nav: NavItem[] = [
     to: "/configuracoes/colaboradores",
     label: "Configurações",
     icon: Settings,
-    children: [{ to: "/configuracoes/colaboradores", label: "Colaboradores", icon: Users }],
+    children: [
+      { to: "/configuracoes/colaboradores", label: "Colaboradores", icon: Users },
+      { to: "/configuracoes/dispositivos", label: "Dispositivos", icon: Smartphone },
+    ],
   },
 ];
 
