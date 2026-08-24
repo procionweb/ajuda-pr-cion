@@ -56,7 +56,37 @@ as $$
   ) as device_row;
 $$;
 
+create or replace function public.configuration_applications_list()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    jsonb_agg(to_jsonb(application_row) order by application_row.name, application_row.legacy_id),
+    '[]'::jsonb
+  )
+  from (
+    select
+      application.id,
+      application.legacy_id,
+      application.name,
+      application.app_type,
+      coalesce(application.source_payload ->> 'app_build_version', application.version) as build_version,
+      application.source_payload ->> 'app_db_version' as db_version,
+      application.source_payload ->> 'app_image' as image_name,
+      application.status,
+      application.active,
+      application.crm_created_at,
+      application.crm_updated_at
+    from public.auth_aplicativos as application
+  ) as application_row;
+$$;
+
 revoke all on function public.configuration_contracts_list() from public;
 revoke all on function public.configuration_devices_list() from public;
+revoke all on function public.configuration_applications_list() from public;
 grant execute on function public.configuration_contracts_list() to anon, authenticated;
 grant execute on function public.configuration_devices_list() to anon, authenticated;
+grant execute on function public.configuration_applications_list() to anon, authenticated;

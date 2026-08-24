@@ -30,6 +30,7 @@ import { Route as FrotaVehicleIdRouteImport } from './routes/frota.$vehicleId'
 import { Route as ConfiguracoesDispositivosRouteImport } from './routes/configuracoes.dispositivos'
 import { Route as ConfiguracoesContratosRouteImport } from './routes/configuracoes.contratos'
 import { Route as ConfiguracoesColaboradoresRouteImport } from './routes/configuracoes.colaboradores'
+import { Route as ConfiguracoesAplicativosRouteImport } from './routes/configuracoes.aplicativos'
 import { Route as ComercialContatosRouteImport } from './routes/comercial.contatos'
 import { Route as ComercialAtividadesRouteImport } from './routes/comercial.atividades'
 import { Route as ComercialAgendamentosRouteImport } from './routes/comercial.agendamentos'
@@ -147,6 +148,12 @@ const ConfiguracoesColaboradoresRoute =
     path: '/configuracoes/colaboradores',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ConfiguracoesAplicativosRoute =
+  ConfiguracoesAplicativosRouteImport.update({
+    id: '/configuracoes/aplicativos',
+    path: '/configuracoes/aplicativos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ComercialContatosRoute = ComercialContatosRouteImport.update({
   id: '/comercial/contatos',
   path: '/comercial/contatos',
@@ -213,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/comercial/agendamentos': typeof ComercialAgendamentosRoute
   '/comercial/atividades': typeof ComercialAtividadesRoute
   '/comercial/contatos': typeof ComercialContatosRouteWithChildren
+  '/configuracoes/aplicativos': typeof ConfiguracoesAplicativosRoute
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
@@ -243,6 +251,7 @@ export interface FileRoutesByTo {
   '/comercial/agendamentos': typeof ComercialAgendamentosRoute
   '/comercial/atividades': typeof ComercialAtividadesRoute
   '/comercial/contatos': typeof ComercialContatosRouteWithChildren
+  '/configuracoes/aplicativos': typeof ConfiguracoesAplicativosRoute
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
@@ -276,6 +285,7 @@ export interface FileRoutesById {
   '/comercial/agendamentos': typeof ComercialAgendamentosRoute
   '/comercial/atividades': typeof ComercialAtividadesRoute
   '/comercial/contatos': typeof ComercialContatosRouteWithChildren
+  '/configuracoes/aplicativos': typeof ConfiguracoesAplicativosRoute
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/comercial/agendamentos'
     | '/comercial/atividades'
     | '/comercial/contatos'
+    | '/configuracoes/aplicativos'
     | '/configuracoes/colaboradores'
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/comercial/agendamentos'
     | '/comercial/atividades'
     | '/comercial/contatos'
+    | '/configuracoes/aplicativos'
     | '/configuracoes/colaboradores'
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
@@ -372,6 +384,7 @@ export interface FileRouteTypes {
     | '/comercial/agendamentos'
     | '/comercial/atividades'
     | '/comercial/contatos'
+    | '/configuracoes/aplicativos'
     | '/configuracoes/colaboradores'
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
@@ -403,6 +416,7 @@ export interface RootRouteChildren {
   ComercialAgendamentosRoute: typeof ComercialAgendamentosRoute
   ComercialAtividadesRoute: typeof ComercialAtividadesRoute
   ComercialContatosRoute: typeof ComercialContatosRouteWithChildren
+  ConfiguracoesAplicativosRoute: typeof ConfiguracoesAplicativosRoute
   ConfiguracoesColaboradoresRoute: typeof ConfiguracoesColaboradoresRoute
   ConfiguracoesContratosRoute: typeof ConfiguracoesContratosRoute
   ConfiguracoesDispositivosRoute: typeof ConfiguracoesDispositivosRoute
@@ -560,6 +574,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesColaboradoresRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/configuracoes/aplicativos': {
+      id: '/configuracoes/aplicativos'
+      path: '/configuracoes/aplicativos'
+      fullPath: '/configuracoes/aplicativos'
+      preLoaderRoute: typeof ConfiguracoesAplicativosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/comercial/contatos': {
       id: '/comercial/contatos'
       path: '/comercial/contatos'
@@ -703,6 +724,7 @@ const rootRouteChildren: RootRouteChildren = {
   ComercialAgendamentosRoute: ComercialAgendamentosRoute,
   ComercialAtividadesRoute: ComercialAtividadesRoute,
   ComercialContatosRoute: ComercialContatosRouteWithChildren,
+  ConfiguracoesAplicativosRoute: ConfiguracoesAplicativosRoute,
   ConfiguracoesColaboradoresRoute: ConfiguracoesColaboradoresRoute,
   ConfiguracoesContratosRoute: ConfiguracoesContratosRoute,
   ConfiguracoesDispositivosRoute: ConfiguracoesDispositivosRoute,
