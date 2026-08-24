@@ -3,6 +3,7 @@ import { ProcionLogo } from "./ProcionLogo";
 import {
   CalendarDays,
   AppWindow,
+  Building2,
   FileKey2,
   ChevronDown,
   ChevronLeft,
@@ -105,6 +106,7 @@ const nav: NavItem[] = [
     children: [
       { to: "/configuracoes/colaboradores", label: "Colaboradores", icon: Users },
       { to: "/configuracoes/aplicativos", label: "Aplicativos", icon: AppWindow },
+      { to: "/configuracoes/empresas", label: "Empresas", icon: Building2 },
       { to: "/configuracoes/dispositivos", label: "Dispositivos", icon: Smartphone },
       { to: "/configuracoes/contratos", label: "Contratos", icon: FileKey2 },
     ],
