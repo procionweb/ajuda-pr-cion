@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Smartphone,
   Settings,
+  ScrollText,
   Users,
 } from "lucide-react";
 import { useState, type ComponentType } from "react";
@@ -109,6 +110,7 @@ const nav: NavItem[] = [
       { to: "/configuracoes/empresas", label: "Empresas", icon: Building2 },
       { to: "/configuracoes/dispositivos", label: "Dispositivos", icon: Smartphone },
       { to: "/configuracoes/contratos", label: "Contratos", icon: FileKey2 },
+      { to: "/configuracoes/logs", label: "Logs", icon: ScrollText },
     ],
   },
 ];

@@ -27,6 +27,7 @@ import { Route as ClientesIndexRouteImport } from './routes/clientes.index'
 import { Route as BaseDeConhecimentoIndexRouteImport } from './routes/base-de-conhecimento.index'
 import { Route as KanbanBoardIdRouteImport } from './routes/kanban.$boardId'
 import { Route as FrotaVehicleIdRouteImport } from './routes/frota.$vehicleId'
+import { Route as ConfiguracoesLogsRouteImport } from './routes/configuracoes.logs'
 import { Route as ConfiguracoesEmpresasRouteImport } from './routes/configuracoes.empresas'
 import { Route as ConfiguracoesDispositivosRouteImport } from './routes/configuracoes.dispositivos'
 import { Route as ConfiguracoesContratosRouteImport } from './routes/configuracoes.contratos'
@@ -132,6 +133,11 @@ const FrotaVehicleIdRoute = FrotaVehicleIdRouteImport.update({
   path: '/$vehicleId',
   getParentRoute: () => FrotaRoute,
 } as any)
+const ConfiguracoesLogsRoute = ConfiguracoesLogsRouteImport.update({
+  id: '/configuracoes/logs',
+  path: '/configuracoes/logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConfiguracoesEmpresasRoute = ConfiguracoesEmpresasRouteImport.update({
   id: '/configuracoes/empresas',
   path: '/configuracoes/empresas',
@@ -231,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
   '/configuracoes/empresas': typeof ConfiguracoesEmpresasRoute
+  '/configuracoes/logs': typeof ConfiguracoesLogsRoute
   '/frota/$vehicleId': typeof FrotaVehicleIdRoute
   '/kanban/$boardId': typeof KanbanBoardIdRoute
   '/base-de-conhecimento/': typeof BaseDeConhecimentoIndexRoute
@@ -263,6 +270,7 @@ export interface FileRoutesByTo {
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
   '/configuracoes/empresas': typeof ConfiguracoesEmpresasRoute
+  '/configuracoes/logs': typeof ConfiguracoesLogsRoute
   '/frota/$vehicleId': typeof FrotaVehicleIdRoute
   '/kanban/$boardId': typeof KanbanBoardIdRoute
   '/base-de-conhecimento': typeof BaseDeConhecimentoIndexRoute
@@ -298,6 +306,7 @@ export interface FileRoutesById {
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
   '/configuracoes/empresas': typeof ConfiguracoesEmpresasRoute
+  '/configuracoes/logs': typeof ConfiguracoesLogsRoute
   '/frota/$vehicleId': typeof FrotaVehicleIdRoute
   '/kanban/$boardId': typeof KanbanBoardIdRoute
   '/base-de-conhecimento/': typeof BaseDeConhecimentoIndexRoute
@@ -334,6 +343,7 @@ export interface FileRouteTypes {
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
     | '/configuracoes/empresas'
+    | '/configuracoes/logs'
     | '/frota/$vehicleId'
     | '/kanban/$boardId'
     | '/base-de-conhecimento/'
@@ -366,6 +376,7 @@ export interface FileRouteTypes {
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
     | '/configuracoes/empresas'
+    | '/configuracoes/logs'
     | '/frota/$vehicleId'
     | '/kanban/$boardId'
     | '/base-de-conhecimento'
@@ -400,6 +411,7 @@ export interface FileRouteTypes {
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
     | '/configuracoes/empresas'
+    | '/configuracoes/logs'
     | '/frota/$vehicleId'
     | '/kanban/$boardId'
     | '/base-de-conhecimento/'
@@ -433,6 +445,7 @@ export interface RootRouteChildren {
   ConfiguracoesContratosRoute: typeof ConfiguracoesContratosRoute
   ConfiguracoesDispositivosRoute: typeof ConfiguracoesDispositivosRoute
   ConfiguracoesEmpresasRoute: typeof ConfiguracoesEmpresasRoute
+  ConfiguracoesLogsRoute: typeof ConfiguracoesLogsRoute
   ClientesIndexRoute: typeof ClientesIndexRoute
   ApiPublicTestPlacesRoute: typeof ApiPublicTestPlacesRoute
   ComercialContatoLeadIdRoute: typeof ComercialContatoLeadIdRoute
@@ -565,6 +578,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/frota/$vehicleId'
       preLoaderRoute: typeof FrotaVehicleIdRouteImport
       parentRoute: typeof FrotaRoute
+    }
+    '/configuracoes/logs': {
+      id: '/configuracoes/logs'
+      path: '/configuracoes/logs'
+      fullPath: '/configuracoes/logs'
+      preLoaderRoute: typeof ConfiguracoesLogsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/configuracoes/empresas': {
       id: '/configuracoes/empresas'
@@ -749,6 +769,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesContratosRoute: ConfiguracoesContratosRoute,
   ConfiguracoesDispositivosRoute: ConfiguracoesDispositivosRoute,
   ConfiguracoesEmpresasRoute: ConfiguracoesEmpresasRoute,
+  ConfiguracoesLogsRoute: ConfiguracoesLogsRoute,
   ClientesIndexRoute: ClientesIndexRoute,
   ApiPublicTestPlacesRoute: ApiPublicTestPlacesRoute,
   ComercialContatoLeadIdRoute: ComercialContatoLeadIdRoute,
