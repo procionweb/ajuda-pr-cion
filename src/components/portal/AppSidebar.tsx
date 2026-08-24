@@ -28,6 +28,8 @@ import fleetIconUrl from "@/assets/menu-fleet-solid.png";
 import hadronIconUrl from "@/assets/menu-hadron-solid.png";
 import commercialIconUrl from "@/assets/menu-commercial-solid.png";
 import contactsIconUrl from "@/assets/menu-contacts-solid.png";
+import commercialActivitiesIconUrl from "@/assets/menu-commercial-activities.png";
+import commercialScheduleIconUrl from "@/assets/menu-commercial-schedule.png";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { sidebarStore, useSidebarCollapsed } from "@/lib/sidebar-store";
@@ -71,6 +73,8 @@ const FleetIcon = createMaskedMenuIcon(fleetIconUrl);
 const HadronIcon = createMaskedMenuIcon(hadronIconUrl);
 const CommercialIcon = createMaskedMenuIcon(commercialIconUrl, "opacity-60");
 const ContactsIcon = createMaskedMenuIcon(contactsIconUrl, "opacity-60");
+const CommercialActivitiesIcon = createMaskedMenuIcon(commercialActivitiesIconUrl);
+const CommercialScheduleIcon = createMaskedMenuIcon(commercialScheduleIconUrl);
 
 const nav: NavItem[] = [
   { to: "/", label: "Dashboard", icon: DashboardIcon, exact: true },
@@ -90,8 +94,8 @@ const nav: NavItem[] = [
     icon: CommercialIcon,
     children: [
       { to: "/comercial/contatos", label: "Contatos", icon: ContactsIcon },
-      { to: "/comercial/atividades", label: "Atividades", icon: CalendarDays },
-      { to: "/comercial/agendamentos", label: "Agendamentos", icon: CalendarDays },
+      { to: "/comercial/atividades", label: "Atividades", icon: CommercialActivitiesIcon },
+      { to: "/comercial/agendamentos", label: "Agendamentos", icon: CommercialScheduleIcon },
     ],
   },
   { to: "/iniciar-hadron", label: "Hadron", icon: HadronIcon },
