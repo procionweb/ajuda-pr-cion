@@ -14,7 +14,7 @@ import {
   ScrollText,
   Users,
 } from "lucide-react";
-import { useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import dashboardIconUrl from "@/assets/menu-dashboard-solid.png";
 import ticketsIconUrl from "@/assets/menu-tickets-solid.png";
 import baseIconUrl from "@/assets/menu-base-solid.png";
@@ -129,6 +129,26 @@ export function AppSidebar() {
     item: NavItem;
     top: number;
   } | null>(null);
+  const collapsedFlyoutCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelCollapsedFlyoutClose = () => {
+    if (collapsedFlyoutCloseTimer.current) {
+      clearTimeout(collapsedFlyoutCloseTimer.current);
+      collapsedFlyoutCloseTimer.current = null;
+    }
+  };
+
+  const scheduleCollapsedFlyoutClose = () => {
+    cancelCollapsedFlyoutClose();
+    collapsedFlyoutCloseTimer.current = setTimeout(() => {
+      setCollapsedFlyout(null);
+      collapsedFlyoutCloseTimer.current = null;
+    }, 120);
+  };
+
+  useEffect(() => {
+    return () => cancelCollapsedFlyoutClose();
+  }, []);
 
   return (
     <aside
@@ -186,6 +206,7 @@ export function AppSidebar() {
                       aria-label={`Abrir opções de ${item.label}`}
                       aria-expanded={collapsedFlyout?.item.to === item.to}
                       onMouseEnter={(event) => {
+                        cancelCollapsedFlyoutClose();
                         const rect = event.currentTarget.getBoundingClientRect();
                         const height = item.children!.length * 40 + 58;
                         setCollapsedFlyout({
@@ -193,6 +214,7 @@ export function AppSidebar() {
                           top: Math.max(12, Math.min(rect.top, window.innerHeight - height - 12)),
                         });
                       }}
+                      onMouseLeave={scheduleCollapsedFlyoutClose}
                       onClick={(event) => {
                         if (collapsedFlyout?.item.to === item.to) {
                           setCollapsedFlyout(null);
@@ -295,6 +317,8 @@ export function AppSidebar() {
           style={{ top: collapsedFlyout.top }}
           role="menu"
           aria-label={collapsedFlyout.item.label}
+          onMouseEnter={cancelCollapsedFlyoutClose}
+          onMouseLeave={scheduleCollapsedFlyoutClose}
         >
           <div className="border-b border-border px-4 py-3 text-sm font-semibold">
             {collapsedFlyout.item.label}
