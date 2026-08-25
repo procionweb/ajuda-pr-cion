@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -7,6 +7,7 @@ import {
   ChevronDown,
   FileText,
   Info,
+  ImagePlus,
   Mail,
   MessageSquarePlus,
   Minus,
@@ -14,6 +15,7 @@ import {
   Send,
   Sparkles,
   UserRound,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
@@ -47,6 +49,7 @@ import {
 } from "@/lib/client-contacts";
 import type { ClientRow } from "@/routes/clientes.index";
 import { cn } from "@/lib/utils";
+import { modulesMap, moduleOptions } from "@/lib/modules-map";
 
 export const Route = createFileRoute("/chamados/novo")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -68,17 +71,6 @@ export const Route = createFileRoute("/chamados/novo")({
 // -----------------------------------------------------------------------------
 // Metadados fixos do formulário (não são dados de cliente).
 // -----------------------------------------------------------------------------
-
-const modulesMap: Record<string, string[]> = {
-  "Vendas": ["NFE", "Pedidos", "Orçamentos", "Devoluções"],
-  "Fiscal": ["Apuração", "SPED", "ECF", "ICMS"],
-  "Financeiro": ["Contas a pagar", "Contas a receber", "Fluxo de caixa", "Conciliação"],
-  "Basico": ["Terceiros", "Produtos", "Filiais", "Usuários"],
-  "Estoque": ["Movimentação", "Inventário", "Transferência"],
-  "Hadron Web": ["Portal", "Integrações", "Relatórios"],
-  "Impressoras": ["Configuração", "Etiquetas"],
-};
-
 
 const ticketTypes: ClosurePayload["type"][] = [
   "Não definido",
@@ -177,7 +169,7 @@ const initialForm: FormState = {
   emailValue: "",
   phoneContactId: "",
   phoneValue: "",
-  module: "Vendas",
+  module: "VENDAS",
   submodule: "NFE",
   operator: "",
   operatorId: "",
@@ -188,13 +180,16 @@ const initialForm: FormState = {
   source: "Portal do cliente",
 };
 
-
 function NewTicketPage() {
   const navigate = useNavigate();
   const { cliente: prefillClientCode, empresa: prefillCompanyId } = Route.useSearch();
   const [form, setForm] = useState<FormState>(initialForm);
   const [client, setClient] = useState<ClientRow | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [attachments, setAttachments] = useState<
+    Array<{ name: string; type: string; dataUrl: string }>
+  >([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Contatos vinculados ao cliente (carregados do Supabase).
   const [clientUuid, setClientUuid] = useState<string | null>(null);
@@ -202,7 +197,6 @@ function NewTicketPage() {
   const [phones, setPhones] = useState<ClientContact[]>([]);
   const [companies, setCompanies] = useState<ClientCompanySummary[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
-  
 
   // Garante que a fonte única de clientes esteja carregada.
   useEffect(() => {
@@ -239,9 +233,7 @@ function NewTicketPage() {
     const me = findCollaborator(activeCollaborators, currentUser.operator);
     if (me) {
       setForm((prev) =>
-        prev.operator
-          ? prev
-          : { ...prev, operator: me.acronym ?? me.name, operatorId: me.id },
+        prev.operator ? prev : { ...prev, operator: me.acronym ?? me.name, operatorId: me.id },
       );
     }
   }, [activeCollaborators, form.operator]);
@@ -343,6 +335,39 @@ function NewTicketPage() {
     }));
   };
 
+  const addImageFiles = (files: File[]) => {
+    files
+      .filter((file) => file.type.startsWith("image/"))
+      .forEach((file) => {
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`${file.name}: a imagem deve ter no máximo 5 MB.`);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          if (typeof dataUrl === "string") {
+            setAttachments((current) => [
+              ...current,
+              { name: file.name, type: file.type, dataUrl },
+            ]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+  };
+
+  const handlePasteImage = (event: React.ClipboardEvent<HTMLDivElement>) => {
+    const files = Array.from(event.clipboardData.items)
+      .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => Boolean(file));
+    if (files.length) {
+      event.preventDefault();
+      addImageFiles(files);
+    }
+  };
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (requiredMissing || !client) {
@@ -387,6 +412,7 @@ function NewTicketPage() {
       companyName: selectedCompany?.tradeName || selectedCompany?.legalName || undefined,
       companyDocument: selectedCompany?.document || undefined,
     });
+    attachments.forEach((attachment) => ticketsStore.addAttachment(ticket.id, attachment));
     toast.success("Chamado criado", {
       description: `${ticket.protocol} foi adicionado na fila de suporte.`,
     });
@@ -465,11 +491,7 @@ function NewTicketPage() {
                           const name = co.tradeName || co.legalName || "Empresa";
                           const location = [co.city, co.state].filter(Boolean).join(" / ");
                           return (
-                            <SelectItem
-                              key={co.id}
-                              value={co.id}
-                              className="cursor-pointer"
-                            >
+                            <SelectItem key={co.id} value={co.id} className="cursor-pointer">
                               <span className="inline-flex flex-col">
                                 <span className="text-[12.5px]">
                                   <span className="font-semibold">{number}</span>
@@ -504,9 +526,7 @@ function NewTicketPage() {
               <Field label="Nome do contato" required>
                 <Input
                   value={form.contactName}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, contactName: e.target.value }))
-                  }
+                  onChange={(e) => setForm((prev) => ({ ...prev, contactName: e.target.value }))}
                   placeholder="Nome completo"
                   className="h-11 rounded-xl"
                 />
@@ -573,7 +593,7 @@ function NewTicketPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.keys(modulesMap).map((m) => (
+                    {moduleOptions.map((m) => (
                       <SelectItem key={m} value={m}>
                         {m}
                       </SelectItem>
@@ -635,15 +655,73 @@ function NewTicketPage() {
                 <Field label="Descrição" required>
                   <SmartTextarea
                     value={form.description}
-                    onValueChange={(description) =>
-                      setForm((prev) => ({ ...prev, description }))
-                    }
+                    onValueChange={(description) => setForm((prev) => ({ ...prev, description }))}
                     rows={7}
                     placeholder="Descreva o que o cliente relatou, mensagens de erro, tela onde ocorreu e o que já foi conferido..."
                     className="min-h-[180px] resize-none rounded-xl"
                   />
                 </Field>
 
+                <div
+                  tabIndex={0}
+                  onPaste={handlePasteImage}
+                  className="rounded-xl border border-dashed border-border bg-muted/20 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => addImageFiles(Array.from(event.target.files ?? []))}
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">Imagens do chamado</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Cole uma captura aqui ou importe arquivos de até 5 MB.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <ImagePlus className="mr-1.5 h-4 w-4" />
+                      Importar imagem
+                    </Button>
+                  </div>
+                  {attachments.length > 0 && (
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {attachments.map((attachment, index) => (
+                        <div
+                          key={`${attachment.name}-${index}`}
+                          className="relative overflow-hidden rounded-lg border border-border bg-card"
+                        >
+                          <img
+                            src={attachment.dataUrl}
+                            alt={attachment.name}
+                            className="aspect-video w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            aria-label={`Remover ${attachment.name}`}
+                            title="Remover imagem"
+                            onClick={() =>
+                              setAttachments((current) =>
+                                current.filter((_, itemIndex) => itemIndex !== index),
+                              )
+                            }
+                            className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-md bg-background/90 text-foreground shadow-sm"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -668,11 +746,7 @@ function NewTicketPage() {
                 </Field>
 
                 <Field label="Prioridade">
-                  <div
-                    role="radiogroup"
-                    aria-label="Prioridade"
-                    className="grid grid-cols-3 gap-2"
-                  >
+                  <div role="radiogroup" aria-label="Prioridade" className="grid grid-cols-3 gap-2">
                     {priorityOptions.map((opt) => {
                       const active = form.priority === opt.value;
                       const Icon = opt.icon;
@@ -682,9 +756,7 @@ function NewTicketPage() {
                           type="button"
                           role="radio"
                           aria-checked={active}
-                          onClick={() =>
-                            setForm((prev) => ({ ...prev, priority: opt.value }))
-                          }
+                          onClick={() => setForm((prev) => ({ ...prev, priority: opt.value }))}
                           className={cn(
                             "relative flex h-11 w-full items-center justify-center gap-2 rounded-xl border text-xs font-medium transition cursor-pointer",
                             "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
@@ -700,9 +772,7 @@ function NewTicketPage() {
                           >
                             <Icon className="h-3 w-3" strokeWidth={3} />
                           </span>
-                          <span className={cn("font-medium", opt.textClass)}>
-                            {opt.label}
-                          </span>
+                          <span className={cn("font-medium", opt.textClass)}>{opt.label}</span>
                         </button>
                       );
                     })}
@@ -832,20 +902,18 @@ function NewTicketPage() {
               <div className="flex gap-2">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <p>
-                  Clientes carregados diretamente da base do CRM. O chamado é registrado com o
-                  ID real do cliente selecionado.
+                  Clientes carregados diretamente da base do CRM. O chamado é registrado com o ID
+                  real do cliente selecionado.
                 </p>
               </div>
             </div>
 
             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              O chamado entrará como Em Aberto.
+              <Sparkles className="h-3.5 w-3.5 text-primary" />O chamado entrará como Em Aberto.
             </div>
           </Card>
         </aside>
       </form>
-
     </AppShell>
   );
 }
@@ -939,11 +1007,7 @@ function ContactSelectField({
   return (
     <div className="relative w-full">
       <Icon className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Select
-        value={value}
-        onValueChange={onChange}
-        disabled={disabled || loading || !hasOptions}
-      >
+      <Select value={value} onValueChange={onChange} disabled={disabled || loading || !hasOptions}>
         <SelectTrigger className="h-11 w-full rounded-xl pl-9 cursor-pointer">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>

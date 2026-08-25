@@ -29,7 +29,10 @@ export const ticketsApi = {
   update(
     ticketKey: string,
     patch: Partial<SupportTicket>,
-    eventPayload?: Omit<TicketEvent, "id" | "when"> & { title?: string; metadata?: unknown },
+    eventPayload?: Omit<TicketEvent, "id" | "when" | "attachment"> & {
+      title?: string;
+      metadata?: unknown;
+    },
   ) {
     const normalizedPatch: Record<string, unknown> = { ...patch };
     if (Object.prototype.hasOwnProperty.call(patch, "lockedBy") && patch.lockedBy === undefined) {

@@ -138,11 +138,7 @@ export function TicketTimelineList({
   }, [events, limit]);
 
   if (sorted.length === 0) {
-    return (
-      <p className="py-10 text-center text-[13px] text-muted-foreground">
-        {emptyLabel}
-      </p>
-    );
+    return <p className="py-10 text-center text-[13px] text-muted-foreground">{emptyLabel}</p>;
   }
 
   const isCompact = variant === "compact";
@@ -152,11 +148,17 @@ export function TicketTimelineList({
   const colTemplate = isCompact
     ? "grid-cols-[60px_minmax(0,1fr)] gap-3"
     : "grid-cols-[76px_minmax(0,1fr)] gap-4 sm:grid-cols-[94px_minmax(0,1fr)] sm:gap-6";
-  const ringSize = isCompact ? "h-[58px] w-[58px] border-[5px]" : "h-[76px] w-[76px] border-[7px] sm:h-[88px] sm:w-[88px]";
-  const iconWrap = isCompact ? "mt-[13px] h-8 w-8" : "mt-[19px] h-10 w-10 sm:mt-[22px] sm:h-11 sm:w-11";
+  const ringSize = isCompact
+    ? "h-[58px] w-[58px] border-[5px]"
+    : "h-[76px] w-[76px] border-[7px] sm:h-[88px] sm:w-[88px]";
+  const iconWrap = isCompact
+    ? "mt-[13px] h-8 w-8"
+    : "mt-[19px] h-10 w-10 sm:mt-[22px] sm:h-11 sm:w-11";
   const iconSize = isCompact ? "h-4 w-4" : "h-5 w-5";
   const connectorLeft = isCompact ? "left-[29px]" : "left-[37px] sm:left-[47px]";
-  const connectorTop = isCompact ? "top-[52px] h-[calc(100%-32px)]" : "top-[66px] h-[calc(100%-42px)]";
+  const connectorTop = isCompact
+    ? "top-[52px] h-[calc(100%-32px)]"
+    : "top-[66px] h-[calc(100%-42px)]";
   const topDot = isCompact ? "h-2 w-2" : "h-2.5 w-2.5";
   const bottomDotTop = isCompact ? "top-[54px]" : "top-[72px] sm:top-[84px]";
   const dateBadge = isCompact
@@ -265,6 +267,20 @@ export function TicketTimelineList({
               <p className={`mt-1 ${metaSize} text-muted-foreground`}>
                 {event.actor} · {event.actorType}
               </p>
+              {event.attachment?.dataUrl && (
+                <a
+                  href={event.attachment.dataUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 block max-w-[760px]"
+                >
+                  <img
+                    src={event.attachment.dataUrl}
+                    alt={event.attachment.name}
+                    className="max-h-[420px] w-auto max-w-full rounded-lg border border-border object-contain"
+                  />
+                </a>
+              )}
               {isSelectable && (
                 <div className={`mt-2 flex flex-wrap items-center gap-3 ${metaSize}`}>
                   <button

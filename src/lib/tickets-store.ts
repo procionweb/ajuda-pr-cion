@@ -23,6 +23,11 @@ export type TicketEvent = {
   actor: string;
   actorType: "cliente" | "suporte" | "sistema";
   description: string;
+  attachment?: {
+    name: string;
+    type: string;
+    dataUrl: string;
+  };
 };
 
 export type PastAttendance = {
@@ -173,7 +178,10 @@ function attendancePatch(
   return {};
 }
 
-function restoreAttendanceTiming(ticket: SupportTicket, ticketEvents: TicketEvent[]): SupportTicket {
+function restoreAttendanceTiming(
+  ticket: SupportTicket,
+  ticketEvents: TicketEvent[],
+): SupportTicket {
   const ordered = [...ticketEvents].sort((a, b) => a.when.localeCompare(b.when));
   const closedEvent = [...ordered]
     .reverse()
@@ -401,9 +409,7 @@ const FINALIZADO_STATUSES = new Set([
  * Retorna a mensagem de bloqueio quando o chamado não pode ser transferido,
  * ou `null` quando a transferência é permitida.
  */
-export function getTransferBlockReason(
-  ticket: SupportTicket | null | undefined,
-): string | null {
+export function getTransferBlockReason(ticket: SupportTicket | null | undefined): string | null {
   if (!ticket) return TRANSFER_BLOCKED_OCUPADO_MESSAGE;
   const status = normalizeStatus(ticket.status ?? "");
   if (OCUPADO_STATUSES.has(status)) return TRANSFER_BLOCKED_OCUPADO_MESSAGE;
@@ -416,11 +422,10 @@ export function canTransferTicket(ticket: SupportTicket | null | undefined): boo
   return getTransferBlockReason(ticket) === null;
 }
 
-
 function persistUpdate(
   id: string,
   patch: Partial<SupportTicket>,
-  event?: Omit<TicketEvent, "id" | "when">,
+  event?: Omit<TicketEvent, "id" | "when" | "attachment"> & { metadata?: unknown },
 ) {
   void ticketsApi.update(id, patch, event).catch((error) => {
     console.error(`[tickets-store] Falha ao persistir o chamado ${id}.`, error);
@@ -491,6 +496,32 @@ export const ticketsStore = {
     return ticket;
   },
 
+  addAttachment(id: string, attachment: NonNullable<TicketEvent["attachment"]>) {
+    const op = operator();
+    const event: TicketEvent = {
+      id: nextEventId(),
+      kind: "attached",
+      when: nowIso(),
+      actor: op,
+      actorType: "suporte",
+      description: attachment.name,
+      attachment,
+    };
+    pushEvent(id, event);
+    emit();
+    persistUpdate(
+      id,
+      {},
+      {
+        kind: "attached",
+        actor: op,
+        actorType: "suporte",
+        description: attachment.name,
+        metadata: { attachment },
+      },
+    );
+  },
+
   assumeTicket(id: string) {
     const op = operator();
     updateTicket(id, { owner: op, lockedBy: undefined });
@@ -515,11 +546,11 @@ export const ticketsStore = {
   },
 
   attendTicket(id: string) {
-      const op = operator();
-      const existing = tickets.find((ticket) => ticket.id === id);
-      if (!existing || existing.attendanceStartedAt) return;
-      const description = `${op} iniciou atendimento.`;
-      const patch: Partial<SupportTicket> = {
+    const op = operator();
+    const existing = tickets.find((ticket) => ticket.id === id);
+    if (!existing || existing.attendanceStartedAt) return;
+    const description = `${op} iniciou atendimento.`;
+    const patch: Partial<SupportTicket> = {
       owner: op,
       status: "Ocupado",
       lockedBy: op,
@@ -527,23 +558,19 @@ export const ticketsStore = {
     };
     updateTicket(id, patch);
     pushEvent(id, {
-        kind: "attend",
-        when: nowIso(),
-        actor: op,
-        actorType: "suporte",
-        description,
+      kind: "attend",
+      when: nowIso(),
+      actor: op,
+      actorType: "suporte",
+      description,
     });
     emit();
-    persistUpdate(
-      id,
-      patch,
-      {
-          kind: "attend",
-          actor: op,
-          actorType: "suporte",
-          description,
-      },
-    );
+    persistUpdate(id, patch, {
+      kind: "attend",
+      actor: op,
+      actorType: "suporte",
+      description,
+    });
   },
 
   updateTicketStatus(id: string, status: TicketStatus) {
@@ -598,18 +625,13 @@ export const ticketsStore = {
       description: `Chamado finalizado por ${op} — ${payload.type}. ${payload.solution}`.trim(),
     });
     emit();
-    persistUpdate(
-      id,
-      patch,
-      {
-        kind: "closed",
-        actor: op,
-        actorType: "suporte",
-        description: `Chamado finalizado por ${op} — ${payload.type}. ${payload.solution}`.trim(),
-      },
-    );
+    persistUpdate(id, patch, {
+      kind: "closed",
+      actor: op,
+      actorType: "suporte",
+      description: `Chamado finalizado por ${op} — ${payload.type}. ${payload.solution}`.trim(),
+    });
   },
-
 
   addInternalNote(id: string, note: string) {
     const op = operator();
@@ -676,18 +698,14 @@ export const ticketsStore = {
     };
     updateTicket(id, patch);
     emit();
-    persistUpdate(
-      id,
-      patch,
-      {
-        kind: "scheduled",
-        actor: op,
-        actorType: "suporte",
-        description:
-          `Evento agendado para ${input.date}, das ${input.startTime} às ${input.endTime} — ${input.type}. ` +
-          `Responsável: ${input.responsible}. Módulo: ${input.module} / ${input.submodule}.`,
-      },
-    );
+    persistUpdate(id, patch, {
+      kind: "scheduled",
+      actor: op,
+      actorType: "suporte",
+      description:
+        `Evento agendado para ${input.date}, das ${input.startTime} às ${input.endTime} — ${input.type}. ` +
+        `Responsável: ${input.responsible}. Módulo: ${input.module} / ${input.submodule}.`,
+    });
   },
 
   forwardToSpecialist(
@@ -732,16 +750,12 @@ export const ticketsStore = {
         `Mensagem: ${input.reason}`,
     });
     emit();
-    persistUpdate(
-      id,
-      patch,
-      {
-        kind: "forwarded",
-        actor: op,
-        actorType: "suporte",
-        description: `Encaminhado para especialistas — ${input.waitingArea}. ${input.reason}`,
-      },
-    );
+    persistUpdate(id, patch, {
+      kind: "forwarded",
+      actor: op,
+      actorType: "suporte",
+      description: `Encaminhado para especialistas — ${input.waitingArea}. ${input.reason}`,
+    });
   },
 
   transferTicket(

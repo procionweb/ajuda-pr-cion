@@ -475,6 +475,12 @@ export function TicketDetailSheet({
   };
   const handleClose = (payload: ClosurePayload) => {
     ticketsStore.closeTicket(ticket.id, payload);
+    localCalendarEvents
+      .filter(
+        (event) =>
+          String(event.ticketId ?? "") === String(ticket.id) && event.status === "Agendado",
+      )
+      .forEach((event) => updateLocalEvent(event.id, { ...event, status: "Concluído" }));
     setCloseOpen(false);
     toast.success("Chamado encerrado");
   };
@@ -630,18 +636,16 @@ export function TicketDetailSheet({
                       Ações
                     </p>
                   )}
-                  {isFinalized && (
-                    <SideItem
-                      icon={Plus}
-                      label="Criar outro chamado"
-                      collapsed={navCollapsed}
-                      active={activeAction === "novo"}
-                      onClick={() => {
-                        setActiveAction("novo");
-                        createAnotherTicket();
-                      }}
-                    />
-                  )}
+                  <SideItem
+                    icon={Plus}
+                    label="Adicionar chamado"
+                    collapsed={navCollapsed}
+                    active={activeAction === "novo"}
+                    onClick={() => {
+                      setActiveAction("novo");
+                      createAnotherTicket();
+                    }}
+                  />
                   <SideItem
                     icon={TicketCloseIcon}
                     label="Finalizar"
@@ -731,14 +735,12 @@ export function TicketDetailSheet({
 
               {/* Mobile action bar (topo, rolável) */}
               <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border bg-card px-3 py-2 md:hidden">
-                {isFinalized && (
-                  <MobileAction
-                    icon={Plus}
-                    label="Criar outro chamado"
-                    onClick={createAnotherTicket}
-                    highlight
-                  />
-                )}
+                <MobileAction
+                  icon={Plus}
+                  label="Adicionar chamado"
+                  onClick={createAnotherTicket}
+                  highlight
+                />
                 <MobileAction
                   icon={TicketCloseIcon}
                   label="Finalizar"

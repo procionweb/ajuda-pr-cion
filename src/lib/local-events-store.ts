@@ -9,6 +9,7 @@ import {
   getUsageByAppointment,
   removeFleetRecordsForAppointments,
 } from "@/lib/fleet-store";
+import { ticketsStore } from "@/lib/tickets-store";
 
 const STORAGE_KEY = "procion.local-calendar-events.v2";
 const CHANGE_EVENT = "procion:calendar-events-changed";
@@ -86,8 +87,7 @@ function syncFleetReservation(event: CalendarEvent) {
 
   const hasReservation = getReservationsSnapshot().some(
     (reservation) =>
-      String(reservation.eventId) === String(event.id) &&
-      reservation.status === "pre_agendado",
+      String(reservation.eventId) === String(event.id) && reservation.status === "pre_agendado",
   );
   if (!hasReservation) {
     createReservation({
@@ -164,6 +164,14 @@ export function updateLocalEvent(
   if (index >= 0) next[index] = updated;
   else next.push(updated);
   write(next);
+  if (updated.ticketId && updated.status === "Concluído") {
+    const linkedTicket = ticketsStore
+      .getTickets()
+      .find((ticket) => String(ticket.id) === String(updated.ticketId));
+    if (linkedTicket && linkedTicket.status !== "Finalizado") {
+      ticketsStore.updateTicketStatus(linkedTicket.id, "Finalizado");
+    }
+  }
   void saveCrmCalendarEvent(updated).catch((error) => {
     write(current);
     console.error("[calendar] Nao foi possivel atualizar o agendamento no Supabase.", error);
