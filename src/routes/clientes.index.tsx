@@ -73,7 +73,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { listClients } from "@/lib/clients-api";
+import { listClients, searchClientsByCompanies } from "@/lib/clients-api";
 import type {
   ClientCompany,
   ClientContact,
@@ -165,18 +165,10 @@ function BankMark({ name }: { name: string }) {
 
   return (
     <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-md border border-border bg-white">
-      <img
-        src={mark.src}
-        alt={mark.label}
-        loading="lazy"
-        className="h-5 w-5 object-contain"
-      />
+      <img src={mark.src} alt={mark.label} loading="lazy" className="h-5 w-5 object-contain" />
     </span>
   );
 }
-
-
-
 
 function ConfigInput({
   label,
@@ -635,6 +627,7 @@ function ClientsPage() {
   const loaderData = Route.useLoaderData() as { clients: ClientRow[]; loadFailed?: boolean };
   const [clients, setClients] = useState<ClientRow[]>(loaderData.clients);
   const [clientsLoading, setClientsLoading] = useState(Boolean(loaderData.loadFailed));
+  const [companySearchResults, setCompanySearchResults] = useState<ClientRow[] | null>(null);
   const { grupo, origem, q, sigla: siglaParam, status: statusParam } = Route.useSearch();
   const navigate = useNavigate();
   const grupoParam = (grupo ?? "").trim().toUpperCase();
@@ -686,6 +679,36 @@ function ClientsPage() {
   useEffect(() => {
     setPage(1);
   }, [quickQuery, quickAcronym]);
+
+  useEffect(() => {
+    const term = quickQuery.trim();
+    if (!term) {
+      setCompanySearchResults(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setClientsLoading(true);
+      searchClientsByCompanies(term)
+        .then((rows) => {
+          if (!cancelled) setCompanySearchResults(rows);
+        })
+        .catch((error) => {
+          console.error("Não foi possível pesquisar em tab_cli_empresas", error);
+          if (!cancelled) {
+            setCompanySearchResults(null);
+            toast.error("Não foi possível pesquisar nas empresas. Usando a lista de clientes.");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setClientsLoading(false);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [quickQuery]);
 
   // Sincroniza URL <-> filtro de grupo. Ao entrar via ?grupo=XXX, descarta qualquer
   // filtro anterior (sigla, busca etc.) para exibir todas as empresas do grupo.
@@ -761,7 +784,8 @@ function ClientsPage() {
       return digits(c.cnpj).includes(quickDigits) || digits(c.cep).includes(quickDigits);
     };
     const acronymQuery = quickAcronym.trim();
-    return clients.filter((c) => {
+    const searchSource = quick ? (companySearchResults ?? []) : clients;
+    return searchSource.filter((c) => {
       if (acronymQuery && !normalize(c.acronym).includes(normalize(acronymQuery))) return false;
       if (!quickMatches(c)) return false;
 
@@ -801,7 +825,7 @@ function ClientsPage() {
       }
       return true;
     });
-  }, [clients, filters, quickQuery, quickAcronym]);
+  }, [clients, companySearchResults, filters, quickQuery, quickAcronym]);
 
   const sizes = useMemo(() => Array.from(new Set(clients.map((c) => c.size))).sort(), [clients]);
   const segments = useMemo(
@@ -971,259 +995,265 @@ function ClientsPage() {
         <CompanyLeadsTab />
       ) : (
         <>
-      <div className="mb-3">
-        <div className="mb-2 flex justify-end">
-          <Button
-            type="button"
-            onClick={() => setFiltersOpen(true)}
-            className="h-9 w-full cursor-pointer justify-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:w-40"
-          >
-            <Filter className="h-4 w-4" />
-            Filtros
-            {activeCount > 0 && (
-              <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/95 px-1.5 text-[11px] font-semibold text-blue-700">
-                {activeCount}
-              </span>
-            )}
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="shrink-0 text-xs font-medium text-muted-foreground">Filtros:</span>
-
-          {chips.map((chip) => (
-            <span
-              key={chip.key}
-              className="inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-foreground"
-            >
-              <span className="truncate">{chip.label}</span>
-              <button
+          <div className="mb-3">
+            <div className="mb-2 flex justify-end">
+              <Button
                 type="button"
-                onClick={chip.onRemove}
-                aria-label={`Remover filtro ${chip.label}`}
-                className="grid h-4 w-4 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground"
+                onClick={() => setFiltersOpen(true)}
+                className="h-9 w-full cursor-pointer justify-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:w-40"
               >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          ))}
+                <Filter className="h-4 w-4" />
+                Filtros
+                {activeCount > 0 && (
+                  <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/95 px-1.5 text-[11px] font-semibold text-blue-700">
+                    {activeCount}
+                  </span>
+                )}
+              </Button>
+            </div>
 
-          <label className="relative block w-full min-w-0 sm:w-[200px]">
-            <span className="sr-only">Pesquisar por sigla</span>
-            <input
-              value={quickAcronym}
-              onChange={(event) => setQuickAcronym(event.target.value.toUpperCase())}
-              type="search"
-              placeholder="Sigla"
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm uppercase outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
-            />
-          </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="shrink-0 text-xs font-medium text-muted-foreground">Filtros:</span>
 
-          <label className="relative block min-w-[240px] flex-1">
-            <span className="sr-only">Pesquisa geral</span>
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={quickDraft}
-              onChange={(event) => {
-                setQuickDraft(event.target.value);
-                setQuickQuery(event.target.value);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") setQuickQuery(quickDraft);
-              }}
-              type="search"
-              placeholder="Pesquisa geral"
-              className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
-            />
-          </label>
-
-          <label className="w-full sm:w-[170px]">
-            <span className="sr-only">Status do cliente</span>
-            <select
-              value={filters.status}
-              onChange={(event) =>
-                setFilters((previous) => ({
-                  ...previous,
-                  status: event.target.value as StatusFilter,
-                }))
-              }
-              className="h-9 w-full cursor-pointer rounded-md border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
-            >
-              {QUICK_STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
+              {chips.map((chip) => (
+                <span
+                  key={chip.key}
+                  className="inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-foreground"
+                >
+                  <span className="truncate">{chip.label}</span>
+                  <button
+                    type="button"
+                    onClick={chip.onRemove}
+                    aria-label={`Remover filtro ${chip.label}`}
+                    className="grid h-4 w-4 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
               ))}
-            </select>
-          </label>
-        </div>
-      </div>
 
-      {grupoParam && (
-        <div className="mb-3 flex items-baseline gap-2">
-          <h2 className="text-base font-medium">Clientes do grupo {grupoParam}</h2>
-          <span className="text-sm text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? "cliente" : "clientes"}
-          </span>
-        </div>
-      )}
+              <label className="relative block w-full min-w-0 sm:w-[200px]">
+                <span className="sr-only">Pesquisar por sigla</span>
+                <input
+                  value={quickAcronym}
+                  onChange={(event) => setQuickAcronym(event.target.value.toUpperCase())}
+                  type="search"
+                  placeholder="Sigla"
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm uppercase outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+              </label>
 
-      <Card className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/35 text-xs uppercase text-muted-foreground">
-              <tr>
-                {[
-                  { label: "Cadastro", key: "registered" as SortKey },
-                  { label: "Sigla", key: "acronym" as SortKey },
-                  { label: "Nome / perfil", key: "name" as SortKey },
-                  { label: "Versão / setup", key: "version" as SortKey },
-                  { label: "Cidade / UF", key: "city" as SortKey },
-                  { label: "CNPJ", key: "cnpj" as SortKey },
-                  { label: "Status", key: "status" as SortKey },
-                ].map(({ label, key }) => {
-                  const active = sort?.key === key;
-                  const dir = active ? sort!.dir : null;
-                  return (
-                    <th
-                      key={label}
+              <label className="relative block min-w-[240px] flex-1">
+                <span className="sr-only">Pesquisa geral</span>
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={quickDraft}
+                  onChange={(event) => {
+                    setQuickDraft(event.target.value);
+                    setQuickQuery(event.target.value);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") setQuickQuery(quickDraft);
+                  }}
+                  type="search"
+                  placeholder="Pesquisa geral"
+                  className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
+                />
+              </label>
+
+              <label className="w-full sm:w-[170px]">
+                <span className="sr-only">Status do cliente</span>
+                <select
+                  value={filters.status}
+                  onChange={(event) =>
+                    setFilters((previous) => ({
+                      ...previous,
+                      status: event.target.value as StatusFilter,
+                    }))
+                  }
+                  className="h-9 w-full cursor-pointer rounded-md border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+                >
+                  {QUICK_STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          {grupoParam && (
+            <div className="mb-3 flex items-baseline gap-2">
+              <h2 className="text-base font-medium">Clientes do grupo {grupoParam}</h2>
+              <span className="text-sm text-muted-foreground">
+                {filtered.length} {filtered.length === 1 ? "cliente" : "clientes"}
+              </span>
+            </div>
+          )}
+
+          <Card className="overflow-hidden p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/35 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    {[
+                      { label: "Cadastro", key: "registered" as SortKey },
+                      { label: "Sigla", key: "acronym" as SortKey },
+                      { label: "Nome / perfil", key: "name" as SortKey },
+                      { label: "Versão / setup", key: "version" as SortKey },
+                      { label: "Cidade / UF", key: "city" as SortKey },
+                      { label: "CNPJ", key: "cnpj" as SortKey },
+                      { label: "Status", key: "status" as SortKey },
+                    ].map(({ label, key }) => {
+                      const active = sort?.key === key;
+                      const dir = active ? sort!.dir : null;
+                      return (
+                        <th
+                          key={label}
+                          onClick={() =>
+                            setSort((prev) => {
+                              if (!prev || prev.key !== key) return { key, dir: "asc" };
+                              if (prev.dir === "asc") return { key, dir: "desc" };
+                              return null;
+                            })
+                          }
+                          aria-sort={
+                            dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"
+                          }
+                          className="cursor-pointer whitespace-nowrap px-2.5 py-3 text-left font-medium select-none hover:text-foreground transition-colors"
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            {label}
+                            {dir === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : dir === "desc" ? (
+                              <ArrowDown className="h-3 w-3" />
+                            ) : (
+                              <ArrowUpDown className="h-3 w-3 opacity-40" />
+                            )}
+                          </span>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {pageRows.map((client) => (
+                    <tr
+                      key={client.id}
                       onClick={() =>
-                        setSort((prev) => {
-                          if (!prev || prev.key !== key) return { key, dir: "asc" };
-                          if (prev.dir === "asc") return { key, dir: "desc" };
-                          return null;
+                        navigate({
+                          to: "/clientes/$clienteId",
+                          params: { clienteId: client.id },
                         })
                       }
-                      aria-sort={
-                        dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"
-                      }
-                      className="cursor-pointer whitespace-nowrap px-2.5 py-3 text-left font-medium select-none hover:text-foreground transition-colors"
+                      className="cursor-pointer transition-colors hover:bg-primary/[0.04]"
                     >
-                      <span className="inline-flex items-center gap-1">
-                        {label}
-                        {dir === "asc" ? (
-                          <ArrowUp className="h-3 w-3" />
-                        ) : dir === "desc" ? (
-                          <ArrowDown className="h-3 w-3" />
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3 opacity-40" />
-                        )}
-                      </span>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {pageRows.map((client) => (
-                <tr
-                  key={client.id}
-                  onClick={() =>
-                    navigate({
-                      to: "/clientes/$clienteId",
-                      params: { clienteId: client.id },
-                    })
-                  }
-                  className="cursor-pointer transition-colors hover:bg-primary/[0.04]"
-                >
-                  <td className="whitespace-nowrap px-2.5 py-4 text-muted-foreground">
-                    {client.registered}
-                  </td>
-                  <td className="whitespace-nowrap px-2.5 py-4">
-                    <div className="font-medium text-primary">{client.acronym}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {client.group || "Sem grupo"}
-                    </div>
-                  </td>
-                  <td className="min-w-[240px] px-2.5 py-4">
-                    <div className="text-[12px] font-normal leading-[1.2] [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden">
-                      {client.name}
-                    </div>
-                    <div className="mt-1 truncate text-[11px] font-normal leading-[1.2] text-foreground/80">
-                      {client.razaoSocial}
-                    </div>
-                    <div className="text-[11px] font-normal text-muted-foreground">
-                      {client.segment} - Porte: {client.size}
-                    </div>
-                  </td>
-                  <ClientVersionCell client={client} />
-                  <td className="whitespace-nowrap px-2.5 py-4">
-                    <div className="flex flex-col items-start">
-                      <span>{normalizeCityUf(client.city)}</span>
-                      {client.cep && client.cep.replace(/\D+/g, "").length > 0 && (
-                        <span className="text-[11px] text-muted-foreground">
-                          {formatCep(client.cep)}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-2.5 py-4 text-muted-foreground">
-                    <ClientCnpjCell client={client} />
-                  </td>
-                  <td className="px-2.5 py-4">
-                    <div className="flex flex-col items-start gap-1">
-                      <Badge
-                        className={cn(
-                          client.status === "Ativo"
-                            ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
-                            : "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
-                        )}
+                      <td className="whitespace-nowrap px-2.5 py-4 text-muted-foreground">
+                        {client.registered}
+                      </td>
+                      <td className="whitespace-nowrap px-2.5 py-4">
+                        <div className="font-medium text-primary">{client.acronym}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {client.group || "Sem grupo"}
+                        </div>
+                      </td>
+                      <td className="min-w-[240px] px-2.5 py-4">
+                        <div className="text-[12px] font-normal leading-[1.2] [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden">
+                          {client.name}
+                        </div>
+                        <div className="mt-1 truncate text-[11px] font-normal leading-[1.2] text-foreground/80">
+                          {client.razaoSocial}
+                        </div>
+                        <div className="text-[11px] font-normal text-muted-foreground">
+                          {client.segment} - Porte: {client.size}
+                        </div>
+                      </td>
+                      <ClientVersionCell client={client} />
+                      <td className="whitespace-nowrap px-2.5 py-4">
+                        <div className="flex flex-col items-start">
+                          <span>{normalizeCityUf(client.city)}</span>
+                          {client.cep && client.cep.replace(/\D+/g, "").length > 0 && (
+                            <span className="text-[11px] text-muted-foreground">
+                              {formatCep(client.cep)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-2.5 py-4 text-muted-foreground">
+                        <ClientCnpjCell client={client} />
+                      </td>
+                      <td className="px-2.5 py-4">
+                        <div className="flex flex-col items-start gap-1">
+                          <Badge
+                            className={cn(
+                              client.status === "Ativo"
+                                ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
+                                : "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
+                            )}
+                          >
+                            {client.status}
+                          </Badge>
+                          <div className="flex items-center gap-1 whitespace-nowrap text-[11px] text-muted-foreground">
+                            <RefreshCw className="h-3 w-3 shrink-0" />
+                            <span>{client.updatedAt}</span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {clientsLoading && (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-4 py-10 text-center text-sm text-muted-foreground"
                       >
-                        {client.status}
-                      </Badge>
-                      <div className="flex items-center gap-1 whitespace-nowrap text-[11px] text-muted-foreground">
-                        <RefreshCw className="h-3 w-3 shrink-0" />
-                        <span>{client.updatedAt}</span>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        Carregando todos os clientes...
+                      </td>
+                    </tr>
+                  )}
 
-              {clientsLoading && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                    Carregando todos os clientes...
-                  </td>
-                </tr>
-              )}
+                  {!clientsLoading && filtered.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-4 py-10 text-center text-sm text-muted-foreground"
+                      >
+                        Nenhum cliente encontrado com os filtros atuais.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {totalItems > 0 && (
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                start={startIndex + 1}
+                end={endIndex}
+                total={totalItems}
+                onChange={setPage}
+              />
+            )}
+          </Card>
 
-              {!clientsLoading && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                    Nenhum cliente encontrado com os filtros atuais.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {totalItems > 0 && (
-          <Pagination
-            page={currentPage}
-            totalPages={totalPages}
-            start={startIndex + 1}
-            end={endIndex}
-            total={totalItems}
-            onChange={setPage}
+          <FiltersPanel
+            open={filtersOpen}
+            onOpenChange={setFiltersOpen}
+            draft={draft}
+            setDraft={setDraft}
+            sizes={sizes}
+            segments={segments}
+            ufs={ufs}
+            onApply={() => {
+              setFilters(draft);
+              setFiltersOpen(false);
+            }}
+            onClear={() => setDraft(emptyFilters)}
           />
-        )}
-      </Card>
-
-      <FiltersPanel
-        open={filtersOpen}
-        onOpenChange={setFiltersOpen}
-        draft={draft}
-        setDraft={setDraft}
-        sizes={sizes}
-        segments={segments}
-        ufs={ufs}
-        onApply={() => {
-          setFilters(draft);
-          setFiltersOpen(false);
-        }}
-        onClear={() => setDraft(emptyFilters)}
-      />
         </>
       )}
     </AppShell>
@@ -2174,8 +2204,7 @@ function RecentActivityCard({
       timestamp: event.startsAtIso,
       ticketActivity: false,
     })),
-  ]
-    .sort((left, right) => String(right.timestamp).localeCompare(String(left.timestamp)));
+  ].sort((left, right) => String(right.timestamp).localeCompare(String(left.timestamp)));
   const visibleItems = items.slice(0, 3);
 
   return (
@@ -2183,20 +2212,20 @@ function RecentActivityCard({
       {items.length ? (
         <>
           <ul className="space-y-2.5">
-          {visibleItems.map((item) => (
-            <li key={item.id} className="flex min-w-0 items-start gap-2">
-              <span
-                className={cn(
-                  "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
-                  item.ticketActivity ? "bg-primary" : "bg-muted-foreground",
-                )}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-foreground">{item.title}</p>
-                <p className="text-[11px] text-muted-foreground">{item.detail}</p>
-              </div>
-            </li>
-          ))}
+            {visibleItems.map((item) => (
+              <li key={item.id} className="flex min-w-0 items-start gap-2">
+                <span
+                  className={cn(
+                    "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
+                    item.ticketActivity ? "bg-primary" : "bg-muted-foreground",
+                  )}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-foreground">{item.title}</p>
+                  <p className="text-[11px] text-muted-foreground">{item.detail}</p>
+                </div>
+              </li>
+            ))}
           </ul>
           {items.length > 3 && (
             <Button
@@ -2398,7 +2427,9 @@ function SupportRowsCompact({
           size="sm"
           className="h-8 cursor-pointer rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90"
         >
-          <Link to="/chamados/novo" search={() => ({ cliente: undefined, empresa: undefined })}>Novo chamado</Link>
+          <Link to="/chamados/novo" search={() => ({ cliente: undefined, empresa: undefined })}>
+            Novo chamado
+          </Link>
         </Button>
       </div>
     );
@@ -2428,26 +2459,26 @@ function SupportRowsCompact({
   return (
     <>
       <ul className="space-y-2">
-      {visibleRows.map((row) => (
-        <li
-          key={row.id}
-          className="rounded-md border border-border bg-card px-3 py-2 dark:border-border"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <p className="truncate text-[13px] font-medium text-foreground" title={row.title}>
-              {row.title}
+        {visibleRows.map((row) => (
+          <li
+            key={row.id}
+            className="rounded-md border border-border bg-card px-3 py-2 dark:border-border"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <p className="truncate text-[13px] font-medium text-foreground" title={row.title}>
+                {row.title}
+              </p>
+              <Badge variant="secondary" className="shrink-0 text-[10px] font-medium">
+                {row.type}
+              </Badge>
+            </div>
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{row.detail || "—"}</p>
+            <p className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>{row.operator || "—"}</span>
+              <span>{row.date}</span>
             </p>
-            <Badge variant="secondary" className="shrink-0 text-[10px] font-medium">
-              {row.type}
-            </Badge>
-          </div>
-          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{row.detail || "—"}</p>
-          <p className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>{row.operator || "—"}</span>
-            <span>{row.date}</span>
-          </p>
-        </li>
-      ))}
+          </li>
+        ))}
       </ul>
       {rows.length > 2 && (
         <Button
@@ -2467,10 +2498,7 @@ function SupportRowsCompact({
           </DialogHeader>
           <ul className="space-y-2">
             {rows.map((row) => (
-              <li
-                key={row.id}
-                className="rounded-md border border-border bg-card px-4 py-3"
-              >
+              <li key={row.id} className="rounded-md border border-border bg-card px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm font-medium text-foreground">{row.title}</p>
                   <Badge variant="secondary" className="shrink-0 text-[10px] font-medium">
@@ -2846,7 +2874,10 @@ function HadronCompanyDetails({
   const networkLabel =
     ({ cabo: "Cabo", wireless: "Wireless", wifi: "Wi-Fi", "wi-fi": "Wi-Fi", "0": "Não informada" }[
       networkValue
-    ] ?? text("cli_config_rede") ?? "Não informada") || "Não informada";
+    ] ??
+      text("cli_config_rede") ??
+      "Não informada") ||
+    "Não informada";
   const terminalCount = text("cli_nterminais") || String(terminalFallback);
   const bankEntries = legacyEntries(parseLegacyValue("cli_boleto_dados"))
     .filter(([name]) => name.replace(/[.\s-]/g, "").length > 0)
@@ -2880,7 +2911,9 @@ function HadronCompanyDetails({
               >
                 {entry.active ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                 <span className={cn(entry.active && "font-medium")}>{entry.label}</span>
-                {entry.detail ? <span className="text-xs text-muted-foreground">({entry.detail})</span> : null}
+                {entry.detail ? (
+                  <span className="text-xs text-muted-foreground">({entry.detail})</span>
+                ) : null}
               </span>
             ))}
           </div>
@@ -2942,7 +2975,9 @@ function HadronCompanyDetails({
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-foreground">{bank.name}</span>
                   {bank.detail ? (
-                    <span className="block truncate text-xs text-muted-foreground">{bank.detail}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {bank.detail}
+                    </span>
                   ) : null}
                 </span>
               </span>
@@ -2983,9 +3018,7 @@ function ModuleColumn({
   contracted?: boolean;
 }) {
   const StatusIcon = contracted ? CheckCircle2 : MinusCircle;
-  const accent = contracted
-    ? "text-emerald-600 dark:text-emerald-400"
-    : "text-muted-foreground";
+  const accent = contracted ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground";
   return (
     <div className="rounded-lg border border-border bg-card/40">
       <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
@@ -3008,9 +3041,7 @@ function ModuleColumn({
             return (
               <li key={item.id} className="flex items-center gap-2.5 px-4 py-2">
                 <Icon className={cn("h-4 w-4 shrink-0", accent)} />
-                <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                  {item.name}
-                </span>
+                <span className="min-w-0 flex-1 truncate text-sm text-foreground">{item.name}</span>
                 {contracted ? (
                   <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 ) : (
@@ -3135,7 +3166,6 @@ export function ClientHadronTab({
       detail: detail.replace(/^[.\s-]+$/, ""),
     }));
 
-
   return (
     <Section title="Hádron" icon={HadronMenuIcon}>
       <div className="mb-5">
@@ -3154,7 +3184,6 @@ export function ClientHadronTab({
       ) : (
         <EmptyState text="Nenhum módulo cadastrado para este cliente." />
       )}
-
 
       <div className="hidden">
         <section className="py-6">
@@ -3221,9 +3250,7 @@ export function ClientHadronTab({
                       key={key}
                       className={cn(
                         "flex items-center gap-1.5 text-sm",
-                        active
-                          ? "text-emerald-700 dark:text-emerald-400"
-                          : "text-muted-foreground",
+                        active ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground",
                       )}
                     >
                       {active ? (
@@ -3308,8 +3335,7 @@ export function ClientHadronTab({
             if (digits.length === 14 && digits.slice(8, 12) === "0001") return true;
             return co.companyNumber === 1;
           };
-          const defaultOpen =
-            (companies.find(isPrincipal) ?? companies[0])?.id ?? null;
+          const defaultOpen = (companies.find(isPrincipal) ?? companies[0])?.id ?? null;
           const activeId = openCompanyId === undefined ? defaultOpen : openCompanyId;
 
           return companies.map((company) => {
@@ -3373,9 +3399,6 @@ export function ClientHadronTab({
           });
         })()}
       </div>
-
-
-
     </Section>
   );
 }
@@ -3388,15 +3411,30 @@ export function ClientUsersTab({ users }: { users: ClientHadronUser[] }) {
           rows={users}
           initialSort={{ key: "dates", dir: "desc" }}
           columns={[
-            { key: "name", label: "Nome", value: (u) => u.name || "", render: (u) => u.name || "-" },
-            { key: "email", label: "E-mail", value: (u) => u.email || "", render: (u) => u.email || "-" },
+            {
+              key: "name",
+              label: "Nome",
+              value: (u) => u.name || "",
+              render: (u) => u.name || "-",
+            },
+            {
+              key: "email",
+              label: "E-mail",
+              value: (u) => u.email || "",
+              render: (u) => u.email || "-",
+            },
             {
               key: "operator",
               label: "Operador",
               value: (u) => u.operator || "",
               render: (u) => u.operator || "-",
             },
-            { key: "role", label: "Perfil", value: (u) => u.role || "", render: (u) => u.role || "-" },
+            {
+              key: "role",
+              label: "Perfil",
+              value: (u) => u.role || "",
+              render: (u) => u.role || "-",
+            },
             {
               key: "status",
               label: "Situação",
@@ -3457,7 +3495,12 @@ export function ClientTerminalsTab({ terminals }: { terminals: ClientTerminal[] 
               value: (t) => (t.terminalNumber == null ? Number.NaN : Number(t.terminalNumber)),
               render: (t) => (t.terminalNumber == null ? "-" : String(t.terminalNumber)),
             },
-            { key: "ip", label: "IP", value: (t) => t.ipAddress || "", render: (t) => t.ipAddress || "-" },
+            {
+              key: "ip",
+              label: "IP",
+              value: (t) => t.ipAddress || "",
+              render: (t) => t.ipAddress || "-",
+            },
             {
               key: "path",
               label: "Pasta",
@@ -3490,7 +3533,6 @@ export function ClientTerminalsTab({ terminals }: { terminals: ClientTerminal[] 
     </Section>
   );
 }
-
 
 export function ClientLogsTab({ logs }: { logs: ClientLogs["logs"] }) {
   return (
@@ -3632,7 +3674,6 @@ export function ClientParametersTab({ parameters }: { parameters: ClientParamete
   );
 }
 
-
 const deviceTypeLabel: Record<string, string> = {
   M: "Mobile",
   S: "Servidor",
@@ -3655,15 +3696,30 @@ export function ClientDevicesTab({ internet }: { internet: ClientInternet }) {
           minWidthClass="min-w-[900px]"
           initialSort={{ key: "lastChecked", dir: "desc" }}
           columns={[
-            { key: "user", label: "Utilizador", value: (d) => d.user || "", render: (d) => d.user || "-" },
+            {
+              key: "user",
+              label: "Utilizador",
+              value: (d) => d.user || "",
+              render: (d) => d.user || "-",
+            },
             {
               key: "type",
               label: "Tipo",
               value: (d) => deviceTypeLabel[d.type] || d.type || "",
               render: (d) => deviceTypeLabel[d.type] || d.type || "-",
             },
-            { key: "system", label: "Sistema", value: (d) => d.system || "", render: (d) => d.system || "-" },
-            { key: "app", label: "App", value: (d) => d.appType || "", render: (d) => d.appType || "-" },
+            {
+              key: "system",
+              label: "Sistema",
+              value: (d) => d.system || "",
+              render: (d) => d.system || "-",
+            },
+            {
+              key: "app",
+              label: "App",
+              value: (d) => d.appType || "",
+              render: (d) => d.appType || "-",
+            },
             {
               key: "build",
               label: "Build",
@@ -3703,7 +3759,6 @@ export function ClientDevicesTab({ internet }: { internet: ClientInternet }) {
       )}
     </Section>
   );
-
 }
 
 const HADRON_APP_CATALOG: {
@@ -3762,8 +3817,7 @@ export function ClientInternetTab({
   };
   const selectedApps = contracts.flatMap(contractApps);
   const databaseUser = webContract
-    ? contractText(webContract, "con_username_db") ||
-      contractText(webContract, "con_database_user")
+    ? contractText(webContract, "con_username_db") || contractText(webContract, "con_database_user")
     : "";
   const deviceLimit = webContract ? contractText(webContract, "con_qtd_dispositivos") : "";
   const webUrl =
@@ -3792,8 +3846,7 @@ export function ClientInternetTab({
       client.fantasia ||
       client.razaoSocial ||
       client.name,
-    acronym:
-      (webContract && contractText(webContract, "con_cliente_sigla")) || client.acronym,
+    acronym: (webContract && contractText(webContract, "con_cliente_sigla")) || client.acronym,
     contractKey: webContract?.contractKey || "",
     deviceLimit,
     webUrl,
@@ -3805,10 +3858,8 @@ export function ClientInternetTab({
   };
   const [config, setConfig] = useState(initialConfig);
 
-  const updateConfig = <Key extends keyof typeof config>(
-    key: Key,
-    value: (typeof config)[Key],
-  ) => setConfig((current) => ({ ...current, [key]: value }));
+  const updateConfig = <Key extends keyof typeof config>(key: Key, value: (typeof config)[Key]) =>
+    setConfig((current) => ({ ...current, [key]: value }));
   const openConfiguration = () => {
     setConfig(initialConfig);
     setConfigOpen(true);
@@ -3823,7 +3874,9 @@ export function ClientInternetTab({
               const contractDevices = contract.devices.length
                 ? contract.devices
                 : internet.devices.filter((d) => d.contractLegacyId === contract.legacyId);
-              const activeContractDevices = contractDevices.filter((device) => device.active).length;
+              const activeContractDevices = contractDevices.filter(
+                (device) => device.active,
+              ).length;
               const isActive = contract.active;
               const deviceLimit = contractText(contract, "con_qtd_dispositivos");
               const contractUrl =
@@ -3937,11 +3990,7 @@ export function ClientInternetTab({
             <HadronMenuIcon className="h-5 w-5 shrink-0 text-primary" />
             <div>
               <p className="mb-2 text-sm font-medium">Hádron Web</p>
-              <Button
-                size="sm"
-                className="h-8 cursor-pointer"
-                onClick={openConfiguration}
-              >
+              <Button size="sm" className="h-8 cursor-pointer" onClick={openConfiguration}>
                 Configurar
               </Button>
             </div>
@@ -4025,9 +4074,7 @@ export function ClientInternetTab({
                       }
                     />
                     <span
-                      className={
-                        !config.modules[app.key] ? "text-muted-foreground" : undefined
-                      }
+                      className={!config.modules[app.key] ? "text-muted-foreground" : undefined}
                     >
                       {app.label}
                     </span>
@@ -4359,7 +4406,6 @@ export function ClientTechnicalCompaniesTab({
     ] as TerminalInfoRow[]
   ).filter((row) => Boolean(row[1]));
 
-
   return (
     <Section title="Empresas" icon={Server}>
       <div className="overflow-hidden rounded-md border border-border bg-background">
@@ -4426,7 +4472,12 @@ function ClientHadronInfoCards({ rows }: { rows: ClientHadronInfo[] }) {
   const [openId, setOpenId] = useState<string | null>(rows[0]?.id || null);
 
   const status = (active: boolean) => (
-    <span className={cn("inline-flex items-center gap-1.5", active ? "text-emerald-600" : "text-muted-foreground")}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5",
+        active ? "text-emerald-600" : "text-muted-foreground",
+      )}
+    >
       {active ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
       {active ? "Sim" : "Não"}
     </span>
@@ -4473,11 +4524,7 @@ function ClientHadronInfoCards({ rows }: { rows: ClientHadronInfo[] }) {
                   <div className="grid gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
                     <TechnicalValue icon={Monitor} label="Terminal" value={info.terminalNumber} />
                     <TechnicalValue icon={Building2} label="Filial" value={info.branchNumber} />
-                    <TechnicalValue
-                      icon={CalendarDays}
-                      label="Versão"
-                      value={info.versionDate}
-                    />
+                    <TechnicalValue icon={CalendarDays} label="Versão" value={info.versionDate} />
                     <TechnicalValue
                       icon={Cpu}
                       label="Sistema operacional"
@@ -4519,16 +4566,8 @@ function ClientHadronInfoCards({ rows }: { rows: ClientHadronInfo[] }) {
                       label="Total incompatível"
                       value={info.totalIncompatible}
                     />
-                    <TechnicalValue
-                      icon={RefreshCw}
-                      label="Atualizado em"
-                      value={info.updatedAt}
-                    />
-                    <TechnicalValue
-                      icon={Clock3}
-                      label="Registrado em"
-                      value={info.registeredAt}
-                    />
+                    <TechnicalValue icon={RefreshCw} label="Atualizado em" value={info.updatedAt} />
+                    <TechnicalValue icon={Clock3} label="Registrado em" value={info.registeredAt} />
                   </div>
 
                   {info.drives.length > 0 && (

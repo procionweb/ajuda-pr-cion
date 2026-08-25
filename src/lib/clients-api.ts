@@ -415,6 +415,17 @@ export async function listClients(): Promise<ClientRow[]> {
   return rows.map(mapDatabaseClient);
 }
 
+export async function searchClientsByCompanies(query: string): Promise<ClientRow[]> {
+  const term = query.trim();
+  if (!term) return [];
+  const { data, error } = await supabase.rpc("search_crm_client_companies", {
+    search_term: term,
+    result_limit: 200,
+  });
+  if (error) throw error;
+  return ((data || []) as DatabaseClient[]).map(mapDatabaseClient);
+}
+
 export async function getClient(acronym: string): Promise<ClientRow | null> {
   const { data, error } = await supabase.rpc("get_crm_client", { client_acronym: acronym });
   if (error) throw error;
@@ -587,9 +598,7 @@ export async function getClientDetail(acronym: string): Promise<ClientDetail | n
       notesIssued: Number(info.notes_issued || 0),
       memoryUsed: String(info.memory_used ?? ""),
       memoryTotal: String(info.memory_total ?? ""),
-      drives: Array.isArray(info.drives)
-        ? (info.drives as ClientHadronInfo["drives"])
-        : [],
+      drives: Array.isArray(info.drives) ? (info.drives as ClientHadronInfo["drives"]) : [],
       certificateType: String(info.certificate_type || ""),
       certificateExpiresAt: legacyDate(info.certificate_expires_at),
       environment: String(info.environment || ""),
