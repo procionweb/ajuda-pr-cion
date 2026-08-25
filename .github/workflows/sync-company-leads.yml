@@ -1,0 +1,36 @@
+name: Atualizar prospeccao da Receita
+
+on:
+  schedule:
+    - cron: "20 9 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: company-leads-receita-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Baixar o projeto
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Consultar e importar a competencia mais recente
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CNPJ_IMPORT_BATCH: 1000
+        run: npm run sync:company-leads

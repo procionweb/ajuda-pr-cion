@@ -38,8 +38,28 @@ function runImporter(competence) {
 }
 
 const competence = await latestCompetence();
-const client = new pg.Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });
-await client.connect();
+async function connectDatabase() {
+  let lastError;
+  for (let attempt = 1; attempt <= 8; attempt += 1) {
+    const database = new pg.Client({
+      connectionString: DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    });
+    database.on("error", (error) =>
+      console.warn(`Conexão de controle interrompida: ${error.message}.`),
+    );
+    try {
+      await database.connect();
+      return database;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, attempt * 5000));
+    }
+  }
+  throw lastError;
+}
+
+let client = await connectDatabase();
 
 let runId;
 try {
@@ -59,7 +79,10 @@ try {
     );
     runId = inserted.rows[0].id;
     console.log(`Iniciando atualização da competência ${competence}.`);
+    await client.end();
+    client = null;
     await runImporter(competence);
+    client = await connectDatabase();
     const totals = await client.query(
       `select count(*)::bigint as leads,
               count(*) filter (where coalesce((raw_payload->>'simple')::boolean, false))::bigint as simples,
@@ -78,6 +101,7 @@ try {
   }
 } catch (error) {
   if (runId) {
+    if (!client) client = await connectDatabase();
     await client.query(
       `update public.company_lead_sync_runs
           set status = 'failed', finished_at = now(), error_message = left($2, 2000)
@@ -87,5 +111,5 @@ try {
   }
   throw error;
 } finally {
-  await client.end();
+  if (client) await client.end();
 }

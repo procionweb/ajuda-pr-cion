@@ -15,7 +15,7 @@ const BASE_URL = (
 ).replace(/\/$/, "");
 let competence = process.env.CNPJ_COMPETENCE || "";
 const CACHE_DIR = path.resolve(process.env.CNPJ_CACHE_DIR || ".cache/cnpj");
-const BATCH_SIZE = Math.max(100, Number(process.env.CNPJ_IMPORT_BATCH || 1000));
+const BATCH_SIZE = Math.min(1000, Math.max(100, Number(process.env.CNPJ_IMPORT_BATCH || 1000)));
 const DRY_RUN = process.argv.includes("--dry-run");
 const SKIP_PARTNERS = process.argv.includes("--skip-partners");
 const EXPANSION_ONLY = process.argv.includes("--expansion-only");
@@ -256,17 +256,13 @@ async function upsertBatch(client, rows) {
     "existing_client_id",
     "existing_client_company_id",
   ];
-  const values = [];
-  const placeholders = rows.map((row, rowIndex) => {
-    const start = rowIndex * columns.length;
-    for (const column of columns) {
-      values.push(column === "raw_payload" ? JSON.stringify(row[column]) : row[column]);
-    }
-    return `(${columns.map((_, index) => `$${start + index + 1}`).join(",")})`;
-  });
+  const payload = rows.map((row) =>
+    Object.fromEntries(columns.map((column) => [column, row[column] ?? null])),
+  );
   await client.query(
     `insert into public.company_leads (${columns.join(",")})
-     values ${placeholders.join(",")}
+     select ${columns.map((column) => `incoming.${column}`).join(",")}
+       from jsonb_populate_recordset(null::public.company_leads, $1::jsonb) incoming
      on conflict (cnpj) do update set
        legal_name = excluded.legal_name,
        trade_name = excluded.trade_name,
@@ -304,7 +300,7 @@ async function upsertBatch(client, rows) {
        existing_client_id = coalesce(excluded.existing_client_id, public.company_leads.existing_client_id),
        existing_client_company_id = coalesce(excluded.existing_client_company_id, public.company_leads.existing_client_company_id),
        updated_at = now()`,
-    values,
+    [JSON.stringify(payload)],
   );
 }
 
@@ -486,20 +482,56 @@ console.log(`Registros nacionais lidos: ${scannedEstablishments.toLocaleString("
 console.log(`Leads ativos preparados: ${leads.length.toLocaleString("pt-BR")}`);
 if (DRY_RUN) process.exit(0);
 
-const client = new pg.Client({
-  connectionString: DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
-await client.connect();
+async function connectDatabase() {
+  let lastError;
+  for (let attempt = 1; attempt <= 8; attempt += 1) {
+    const database = new pg.Client({
+      connectionString: DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    });
+    database.on("error", (error) => {
+      console.warn(`Conexão com o banco interrompida: ${error.message}. Reconectando no próximo lote.`);
+    });
+    try {
+      await database.connect();
+      await database.query("set default_transaction_read_only = off");
+      await database.query("set transaction_read_only = off");
+      return database;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, attempt * 5000));
+    }
+  }
+  throw lastError;
+}
+
+let client = await connectDatabase();
+async function withReconnect(operation, attempts = 4) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation(client);
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
+      try {
+        await client.end();
+      } catch {
+        // A conexão já pode ter sido encerrada pelo servidor.
+      }
+      await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+      client = await connectDatabase();
+    }
+  }
+  throw lastError;
+}
 try {
-  await client.query("set default_transaction_read_only = off");
-  await client.query("set transaction_read_only = off");
-  const clientAliases = await client.query(
+  const clientAliases = await withReconnect((database) => database.query(
     `select id, client_id,
             regexp_replace(coalesce(document, ''), '\\D', '', 'g') cnpj,
             nullif(trim(concat_ws(' ', legal_name, trade_name)), '') search_alias
        from public.client_companies`,
-  );
+  ));
   const aliasesByCnpj = new Map(
     clientAliases.rows
       .filter(({ cnpj }) => cnpj)
@@ -522,17 +554,17 @@ try {
       values.push(code, description);
       return `($${index * 2 + 1}, $${index * 2 + 2})`;
     });
-    await client.query(
+    await withReconnect((database) => database.query(
       `insert into public.cnae_labels (cnae_code, cnae_description)
        values ${placeholders.join(",")}
        on conflict (cnae_code) do update
        set cnae_description = excluded.cnae_description`,
       values,
-    );
+    ));
   }
 
   for (const [index, batch] of splitBatches(leads, BATCH_SIZE).entries()) {
-    await upsertBatch(client, batch);
+    await withReconnect((database) => upsertBatch(database, batch));
     console.log(
       `Gravando empresas: ${Math.min((index + 1) * BATCH_SIZE, leads.length)}/${leads.length}`,
     );
@@ -560,7 +592,7 @@ try {
           );
           return `(${Array.from({ length: 7 }, (_, index) => `$${start + index + 1}`).join(",")})`;
         });
-        await client.query(
+        await withReconnect((database) => database.query(
           `insert into public.company_lead_partners
             (company_root, source_key, partner_name, partner_type, qualification, joined_at, country)
            values ${placeholders.join(",")}
@@ -572,7 +604,7 @@ try {
              country = excluded.country,
              updated_at = now()`,
           values,
-        );
+        ));
         importedPartners += uniquePartners.length;
         partnerBatch.length = 0;
       };
