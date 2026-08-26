@@ -1,8 +1,6 @@
 name: Atualizar prospeccao da Receita
 
 on:
-  schedule:
-    - cron: "20 9 * * *"
   workflow_dispatch:
 
 concurrency:
