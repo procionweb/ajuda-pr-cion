@@ -38,7 +38,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -375,7 +380,8 @@ function ApplicationsSettingsPage() {
                       </div>
                     </dl>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
+                  <TooltipProvider delayDuration={300}>
+                    <div className="flex shrink-0 items-center gap-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -403,7 +409,8 @@ function ApplicationsSettingsPage() {
                       </TooltipTrigger>
                       <TooltipContent>Excluir aplicativo</TooltipContent>
                     </Tooltip>
-                  </div>
+                    </div>
+                  </TooltipProvider>
                 </li>
               );
             })}
