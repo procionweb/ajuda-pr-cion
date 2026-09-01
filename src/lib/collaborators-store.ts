@@ -22,6 +22,8 @@ export type Collaborator = {
   operatorCode: string | null;
   active: boolean;
   terminatedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 };
 
 type RawCollaborator = {
@@ -37,6 +39,8 @@ type RawCollaborator = {
   operator_code: string | null;
   active: boolean | null;
   terminated_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 };
 
 export const DEPARTMENT_LABEL: Record<string, string> = {
@@ -74,6 +78,8 @@ function mapRow(row: RawCollaborator): Collaborator {
     // Inativo quando o status vem falso OU quando há data de rescisão preenchida.
     active: row.active !== false && !row.terminated_at,
     terminatedAt: row.terminated_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 

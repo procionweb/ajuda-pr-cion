@@ -1,26 +1,38 @@
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Check,
   ChevronLeft,
   ChevronRight,
   Eye,
-  Mail,
+  Pencil,
   RefreshCw,
   Search,
-  UserRound,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 import {
   type Collaborator,
   collaboratorMatches,
@@ -36,6 +48,35 @@ export const Route = createFileRoute("/configuracoes/colaboradores")({
 
 const PAGE_SIZE = 25;
 
+type CollaboratorDetail = {
+  id: string;
+  legacy_id: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  full_name: string | null;
+  email: string | null;
+  department: string | null;
+  job_title: string | null;
+  operator_acronym: string | null;
+  operator_code: string | null;
+  active: boolean;
+  phone: string | null;
+  personal_mobile: string | null;
+  business_mobile: string | null;
+  birth_date: string | null;
+  cpf: string | null;
+  pis: string | null;
+  work_card: string | null;
+  admitted_at: string | null;
+  terminated_at: string | null;
+  driver_license_type: string | null;
+  driver_license_expires_at: string | null;
+  company_legacy_id: string | null;
+  company_name: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
 function CollaboratorsSettingsPage() {
   const { allCollaborators, loading, error, reload } = useCollaborators({ onlyActive: false });
   const [acronym, setAcronym] = useState("");
@@ -44,6 +85,8 @@ function CollaboratorsSettingsPage() {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Collaborator | null>(null);
+  const [editorMode, setEditorMode] = useState<"view" | "edit">("view");
+  const [deactivating, setDeactivating] = useState<Collaborator | null>(null);
 
   const departments = useMemo(
     () =>
@@ -126,13 +169,14 @@ function CollaboratorsSettingsPage() {
 
       <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[1120px] table-fixed text-left text-sm">
             <colgroup>
+              <col className="w-[14%]" />
+              <col className="w-[9%]" />
               <col className="w-[15%]" />
-              <col className="w-[10%]" />
-              <col className="w-[17%]" />
-              <col className="w-[23%]" />
-              <col className="w-[27%]" />
+              <col className="w-[20%]" />
+              <col className="w-[20%]" />
+              <col className="w-[14%]" />
               <col className="w-[8%]" />
             </colgroup>
             <thead className="border-b bg-muted/35 text-xs uppercase text-muted-foreground">
@@ -142,25 +186,26 @@ function CollaboratorsSettingsPage() {
                 <th className="px-4 py-3 font-medium">Departamento</th>
                 <th className="px-4 py-3 font-medium">Nome</th>
                 <th className="px-4 py-3 font-medium">E-mail</th>
+                <th className="px-4 py-3 font-medium">Datas</th>
                 <th className="px-4 py-3 text-center font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="h-52 text-center text-muted-foreground">
+                  <td colSpan={7} className="h-52 text-center text-muted-foreground">
                     Carregando colaboradores...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={6} className="h-52 px-6 text-center text-destructive">
+                  <td colSpan={7} className="h-52 px-6 text-center text-destructive">
                     Não foi possível carregar os colaboradores: {error}
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="h-52 text-center text-muted-foreground">
+                  <td colSpan={7} className="h-52 text-center text-muted-foreground">
                     Nenhum colaborador encontrado.
                   </td>
                 </tr>
@@ -195,15 +240,45 @@ function CollaboratorsSettingsPage() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {item.email || "Não informado"}
                     </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      <p>{formatDateTime(item.createdAt)}</p>
+                      <p className="mt-1">{formatDateTime(item.updatedAt)}</p>
+                    </td>
                     <td className="px-4 py-3 text-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Visualizar colaborador"
-                        onClick={() => setSelected(item)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Visualizar colaborador"
+                          onClick={() => {
+                            setEditorMode("view");
+                            setSelected(item);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Editar colaborador"
+                          onClick={() => {
+                            setEditorMode("edit");
+                            setSelected(item);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-destructive"
+                          title="Desativar colaborador"
+                          disabled={!item.active}
+                          onClick={() => setDeactivating(item)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -243,50 +318,314 @@ function CollaboratorsSettingsPage() {
         </footer>
       </div>
 
-      <CollaboratorDetails collaborator={selected} onClose={() => setSelected(null)} />
+      <CollaboratorDetails
+        collaborator={selected}
+        mode={editorMode}
+        onClose={() => setSelected(null)}
+        onSaved={() => {
+          setSelected(null);
+          reload();
+        }}
+      />
+
+      <DeactivateCollaboratorDialog
+        collaborator={deactivating}
+        onClose={() => setDeactivating(null)}
+        onDone={() => {
+          setDeactivating(null);
+          reload();
+        }}
+      />
     </AppShell>
   );
 }
 
 function CollaboratorDetails({
   collaborator,
+  mode,
   onClose,
+  onSaved,
+}: {
+  collaborator: Collaborator | null;
+  mode: "view" | "edit";
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [detail, setDetail] = useState<CollaboratorDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!collaborator) {
+      setDetail(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    // Imported CRM tables are not represented in the generated Supabase types yet.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    void (supabase as any)
+      .rpc("configuration_collaborator_get", { collaborator_id: collaborator.id })
+      .then(({ data, error }: { data: unknown; error: { message: string } | null }) => {
+        if (cancelled) return;
+        if (error) {
+          toast.error(error.message);
+          setDetail(null);
+        } else {
+          setDetail(data as CollaboratorDetail);
+        }
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [collaborator]);
+
+  async function save() {
+    if (!detail) return;
+    if (!detail.first_name?.trim()) {
+      toast.error("Informe o nome do colaborador.");
+      return;
+    }
+    setSaving(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("configuration_collaborator_save", {
+      collaborator_id: detail.id,
+      collaborator_payload: {
+        first_name: detail.first_name,
+        last_name: detail.last_name,
+        operator_acronym: detail.operator_acronym,
+        operator_code: detail.operator_code,
+        active: detail.active,
+        department: detail.department,
+        job_title: detail.job_title,
+        email: detail.email,
+        phone: detail.phone,
+        personal_mobile: detail.personal_mobile,
+        business_mobile: detail.business_mobile,
+        birth_date: detail.birth_date,
+        cpf: detail.cpf,
+        pis: detail.pis,
+        work_card: detail.work_card,
+        admitted_at: detail.admitted_at,
+        terminated_at: detail.terminated_at,
+        driver_license_type: detail.driver_license_type,
+        driver_license_expires_at: detail.driver_license_expires_at,
+      },
+    });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Colaborador atualizado.");
+    onSaved();
+  }
+
+  const update = (field: keyof CollaboratorDetail, value: string | boolean) =>
+    setDetail((current) => (current ? { ...current, [field]: value || null } : current));
+
+  return (
+    <Dialog open={Boolean(collaborator)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{mode === "edit" ? "Editar colaborador" : "Visualizar colaborador"}</DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <div className="grid min-h-64 place-items-center text-sm text-muted-foreground">
+            Carregando cadastro...
+          </div>
+        ) : detail ? (
+          <div className="space-y-5">
+            <DetailSection title="Geral">
+              <DetailField label="Nome" field="first_name" detail={detail} editing={mode === "edit"} update={update} />
+              <DetailField label="Sobrenome" field="last_name" detail={detail} editing={mode === "edit"} update={update} />
+              <DetailField label="Sigla" field="operator_acronym" detail={detail} editing={mode === "edit"} update={update} />
+              <SelectField
+                label="Status"
+                value={detail.active ? "active" : "inactive"}
+                editing={mode === "edit"}
+                options={[{ value: "active", label: "Ativo" }, { value: "inactive", label: "Inativo" }]}
+                onChange={(value) => update("active", value === "active")}
+              />
+              <SelectField
+                label="Departamento"
+                value={detail.department ?? ""}
+                editing={mode === "edit"}
+                options={Object.entries({ admin: "Administrativo", support: "Suporte", development: "Desenvolvimento", commercial: "Comercial", cob: "Cobrança", tester: "Testes" }).map(([value, label]) => ({ value, label }))}
+                onChange={(value) => update("department", value)}
+              />
+              <DetailField label="Função" field="job_title" detail={detail} editing={mode === "edit"} update={update} />
+              <DetailField label="CPF" field="cpf" detail={detail} editing={mode === "edit"} update={update} />
+              <DetailField label="Nascimento" field="birth_date" type="date" detail={detail} editing={mode === "edit"} update={update} />
+              <DetailField label="Admissão" field="admitted_at" type="date" detail={detail} editing={mode === "edit"} update={update} />
+            </DetailSection>
+
+            <DetailSection title="Usuário Web">
+              <DetailField label="Sigla" field="operator_acronym" detail={detail} editing={mode === "edit"} update={update} />
+              <Detail label="Senha" value="Protegida e não exibida" />
+              <DetailField label="Código Hádron" field="operator_code" detail={detail} editing={mode === "edit"} update={update} />
+              <Detail label="Nome completo" value={detail.full_name || [detail.first_name, detail.last_name].filter(Boolean).join(" ") || "Não informado"} />
+              <DetailField label="E-mail" field="email" type="email" detail={detail} editing={mode === "edit"} update={update} />
+              <Detail label="Perfil" value="PRC" />
+            </DetailSection>
+
+            <DetailSection title="Contato">
+              <DetailField label="E-mail" field="email" type="email" detail={detail} editing={mode === "edit"} update={update} />
+              <DetailField label="Telefone" field="phone" detail={detail} editing={mode === "edit"} update={update} />
+              <DetailField label="Celular pessoal" field="personal_mobile" detail={detail} editing={mode === "edit"} update={update} />
+              <DetailField label="Celular comercial" field="business_mobile" detail={detail} editing={mode === "edit"} update={update} />
+            </DetailSection>
+
+            <DetailSection title="Operacional">
+              <Detail label="Empresa" value={detail.company_name || "Não informado"} />
+              <DetailField label="PIS" field="pis" detail={detail} editing={mode === "edit"} update={update} />
+              <DetailField label="Carteira de trabalho" field="work_card" detail={detail} editing={mode === "edit"} update={update} />
+              <DetailField label="Tipo de CNH" field="driver_license_type" detail={detail} editing={mode === "edit"} update={update} />
+              <DetailField label="Vencimento CNH" field="driver_license_expires_at" type="date" detail={detail} editing={mode === "edit"} update={update} />
+              <Detail label="Cód. operador" value={detail.operator_code || "Não informado"} />
+            </DetailSection>
+
+            <div className="grid gap-4 border-t pt-4 sm:grid-cols-2">
+              <Detail label="Criado" value={formatDateTime(detail.created_at)} />
+              <Detail label="Modificado" value={formatDateTime(detail.updated_at)} />
+            </div>
+          </div>
+        ) : (
+          <div className="grid min-h-40 place-items-center text-sm text-destructive">
+            Não foi possível carregar o cadastro.
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Fechar</Button>
+          {mode === "edit" && (
+            <Button onClick={() => void save()} disabled={saving || loading || !detail}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DetailSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <h3 className="mb-3 rounded-sm bg-muted px-3 py-2 text-sm font-semibold text-foreground">
+        {title}
+      </h3>
+      <div className="grid gap-x-5 gap-y-4 sm:grid-cols-3">{children}</div>
+    </section>
+  );
+}
+
+function DetailField({
+  label,
+  field,
+  detail,
+  editing,
+  update,
+  type = "text",
+}: {
+  label: string;
+  field: keyof CollaboratorDetail;
+  detail: CollaboratorDetail;
+  editing: boolean;
+  update: (field: keyof CollaboratorDetail, value: string) => void;
+  type?: string;
+}) {
+  const value = String(detail[field] ?? "");
+  if (!editing) return <Detail label={label} value={type === "date" ? formatDate(value) : value || "Não informado"} />;
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={`collaborator-${String(field)}`} className="text-xs text-muted-foreground">{label}</Label>
+      <Input
+        id={`collaborator-${String(field)}`}
+        type={type}
+        value={value}
+        onChange={(event) => update(field, event.target.value)}
+        className="h-9"
+      />
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  editing,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  editing: boolean;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+}) {
+  const labelValue = options.find((option) => option.value === value)?.label || value || "Não informado";
+  if (!editing) return <Detail label={label} value={labelValue} />;
+  return (
+    <div className="grid gap-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <select className={cn(selectClass, "h-9")} value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">Não informado</option>
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function DeactivateCollaboratorDialog({
+  collaborator,
+  onClose,
+  onDone,
 }: {
   collaborator: Collaborator | null;
   onClose: () => void;
+  onDone: () => void;
 }) {
+  const [saving, setSaving] = useState(false);
+  async function deactivate() {
+    if (!collaborator) return;
+    setSaving(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("configuration_collaborator_deactivate", {
+      collaborator_id: collaborator.id,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Colaborador desativado.");
+    onDone();
+  }
   return (
-    <Dialog open={Boolean(collaborator)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-md bg-primary/10 text-primary">
-            <UserRound className="h-5 w-5" />
-          </div>
-          <DialogTitle>{collaborator?.name}</DialogTitle>
-          <DialogDescription>
-            {collaborator?.acronym || "Colaborador sem sigla cadastrada"}
-          </DialogDescription>
-        </DialogHeader>
-        {collaborator && (
-          <div className="grid gap-x-6 gap-y-5 border-t pt-5 sm:grid-cols-2">
-            <Detail label="Status" value={collaborator.active ? "Ativo" : "Inativo"} />
-            <Detail label="Código Hádron" value={collaborator.operatorCode || "Não informado"} />
-            <Detail
-              label="Departamento"
-              value={departmentLabel(collaborator.department) || "Não informado"}
-            />
-            <Detail label="Função" value={collaborator.jobTitle || "Não informado"} />
-            <div className="sm:col-span-2">
-              <p className="text-xs uppercase text-muted-foreground">E-mail</p>
-              <p className="mt-1 flex items-center gap-2 text-sm">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                {collaborator.email || "Não informado"}
-              </p>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+    <AlertDialog open={Boolean(collaborator)} onOpenChange={(open) => !open && onClose()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Desativar colaborador?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {collaborator?.name} ficará inativo, mas seu histórico será preservado.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={saving}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={(event) => {
+              event.preventDefault();
+              void deactivate();
+            }}
+          >
+            {saving ? "Desativando..." : "Desativar"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -297,6 +636,25 @@ function Detail({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-sm text-foreground">{value}</p>
     </div>
   );
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "Não informado";
+  const [year, month, day] = value.slice(0, 10).split("-");
+  return year && month && day ? `${day}/${month}/${year}` : value;
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "Não informado";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Não informado";
+  return parsed.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 const selectClass =
