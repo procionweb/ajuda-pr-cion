@@ -24,11 +24,15 @@ export function TicketNotesModal({
   onOpenChange,
   notes,
   protocol,
+  clientName,
+  clientCode,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   notes: InternalNote[];
   protocol?: string;
+  clientName?: string;
+  clientCode?: string;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -37,9 +41,14 @@ export function TicketNotesModal({
 
         <DetailModalHeader
           icon={NotebookText}
-          title="Nota interna"
+          title={clientName || "Cliente não vinculado"}
           protocol={protocol}
           onClose={() => onOpenChange(false)}
+          meta={
+            <span className="text-foreground">
+              Nota interna{clientCode ? ` · ${clientCode}` : ""}
+            </span>
+          }
         />
 
         <div className="flex-1 overflow-y-auto bg-card px-5 py-4">

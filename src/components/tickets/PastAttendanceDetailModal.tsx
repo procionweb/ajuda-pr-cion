@@ -263,7 +263,7 @@ export function PastAttendanceDetailModal({
 
         <DetailModalHeader
           icon={ModuleIcon}
-          title={attendance.title}
+          title={ticket?.clientName || attendance.title}
           protocol={attendance.protocol}
           onClose={() => onOpenChange(false)}
           chips={
@@ -285,9 +285,9 @@ export function PastAttendanceDetailModal({
             <>
               {ticket && (
                 <span className="inline-flex items-center gap-1">
-                  <span className="font-semibold text-primary">{ticket.clientCode}</span>
+                  <span className="truncate text-foreground">Detalhes do atendimento</span>
                   <span aria-hidden className="text-border">·</span>
-                  <span className="truncate text-foreground">{ticket.clientName}</span>
+                  <span className="font-semibold text-primary">{ticket.clientCode}</span>
                 </span>
               )}
               <span aria-hidden className="hidden h-3 w-px bg-border sm:block" />

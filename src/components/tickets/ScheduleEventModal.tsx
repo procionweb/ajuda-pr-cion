@@ -211,14 +211,14 @@ export function ScheduleEventModal({
         <DialogTitle className="sr-only">Agendar evento {ticket.protocol}</DialogTitle>
         <DetailModalHeader
           icon={CalendarClock}
-          title="Agendar evento"
+          title={ticket.clientName || "Cliente não vinculado"}
           protocol={ticket.protocol}
           onClose={() => onOpenChange(false)}
           meta={
             <span className="inline-flex items-center gap-1">
-              <span className="text-primary">{ticket.clientCode || "—"}</span>
+              <span className="truncate text-foreground">Agendar evento</span>
               <span className="text-border">·</span>
-              <span>{ticket.clientName || "Cliente não vinculado"}</span>
+              <span className="text-primary">{ticket.clientCode || "—"}</span>
             </span>
           }
         />

@@ -261,14 +261,14 @@ function ForwardSpecialistModalContent({
         <DetailModalHeader
           dense
           icon={UserCheck}
-          title="Enviar a especialista"
+          title={ticket.clientName || "Cliente não vinculado"}
           protocol={ticket.protocol}
           onClose={() => onOpenChange(false)}
           meta={
             <span className="inline-flex items-center gap-1">
-              <span className="text-primary">{ticket.clientCode}</span>
+              <span className="truncate text-foreground">Enviar a especialista</span>
               <span className="text-border">·</span>
-              <span>{ticket.clientName}</span>
+              <span className="text-primary">{ticket.clientCode}</span>
             </span>
           }
         />

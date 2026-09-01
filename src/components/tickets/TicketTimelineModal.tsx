@@ -33,18 +33,18 @@ export function TicketTimelineModal({
 
         <DetailModalHeader
           icon={Clock}
-          title="Timeline completa"
+          title={ticket.clientName || "Cliente não vinculado"}
           protocol={ticket.protocol}
           onClose={() => onOpenChange(false)}
           meta={
             <>
-              <span className="truncate text-foreground">{ticket.subject}</span>
-              <span aria-hidden className="hidden h-3 w-px bg-border sm:block" />
+              <span className="truncate text-foreground">Timeline completa</span>
+              <span aria-hidden className="text-border">·</span>
               <span className="inline-flex items-center gap-1">
                 <span className="font-semibold text-primary">{ticket.clientCode || "—"}</span>
-                <span aria-hidden className="text-border">·</span>
-                <span className="truncate text-foreground">{ticket.clientName || "Cliente não vinculado"}</span>
               </span>
+              <span aria-hidden className="hidden h-3 w-px bg-border sm:block" />
+              <span className="truncate text-muted-foreground">{ticket.subject}</span>
             </>
           }
         />

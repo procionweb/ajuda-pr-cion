@@ -214,11 +214,17 @@ export function EventDetailsModal({
           <DetailModalHeader
             dense
             icon={Icon}
-            title={event.title}
+            title={event.client || ticket?.clientName || event.title}
             protocol={protocol ?? ticket?.protocol}
             onClose={() => onOpenChange(false)}
             meta={
               <>
+                {(event.client || ticket?.clientName) && (
+                  <>
+                    <span className="text-foreground">{event.title}</span>
+                    <span>·</span>
+                  </>
+                )}
                 <span>{formatDate(event.date)}</span>
                 <span>·</span>
                 <span className="tabular-nums">

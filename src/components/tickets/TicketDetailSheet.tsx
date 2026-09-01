@@ -1050,6 +1050,8 @@ export function TicketDetailSheet({
         onOpenChange={setNotesOpen}
         notes={notes}
         protocol={ticket.protocol}
+        clientName={ticket.clientName}
+        clientCode={ticket.clientCode}
       />
 
       <Dialog open={descriptionOpen} onOpenChange={setDescriptionOpen}>
@@ -1057,9 +1059,10 @@ export function TicketDetailSheet({
           <DialogTitle className="sr-only">Descrição original {ticket.protocol}</DialogTitle>
           <DetailModalHeader
             icon={FileText}
-            title="Descrição original"
+            title={ticket.clientName || "Cliente não vinculado"}
             protocol={ticket.protocol}
             onClose={() => setDescriptionOpen(false)}
+            meta={<span className="text-foreground">Descrição original</span>}
           />
           <div className="max-h-[60vh] overflow-y-auto px-5 py-4">
             <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground">
@@ -1230,11 +1233,18 @@ function CloseTicketDialog({
 
         <DetailModalHeader
           icon={CheckCircle2}
-          title="Finalizar chamado"
+          title={ticket.clientName || "Cliente não vinculado"}
           protocol={ticket.protocol}
           onClose={() => onOpenChange(false)}
           accentClassName="bg-success"
           iconWrapClassName="bg-success text-success-foreground"
+          meta={
+            <span className="inline-flex items-center gap-1">
+              <span className="text-foreground">Finalizar chamado</span>
+              <span aria-hidden className="text-border">·</span>
+              <span className="font-semibold text-primary">{ticket.clientCode || "—"}</span>
+            </span>
+          }
           chips={
             <>
               <Badge

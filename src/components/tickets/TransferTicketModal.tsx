@@ -28,8 +28,7 @@ import { CalendarClock } from "lucide-react";
 import { CorrectionHint } from "@/components/ui/smart-text";
 import { useSpellCorrection } from "@/lib/spellcheck";
 
-const TYPE_OPTIONS = ["Transferir", "Encaminhar", "Devolver para fila"] as const;
-type TransferType = (typeof TYPE_OPTIONS)[number];
+type TransferType = "Transferir";
 const PERMISSIONS = ["Público", "Clientes", "Empresa"] as const;
 
 const HADRON_OPTIONS = [
@@ -188,7 +187,7 @@ export function TransferTicketModal({
   const [priority, setPriority] = useState<TicketPriority>(ticket.priority);
   const [message, setMessage] = useState("");
   const messageCorrection = useSpellCorrection({ value: message, onChange: setMessage });
-  const [type, setType] = useState<TransferType>("Transferir");
+  const type: TransferType = "Transferir";
   const [operatorQuery, setOperatorQuery] = useState("");
   const [operator, setOperator] = useState("");
   const [operatorOpen, setOperatorOpen] = useState(false);
@@ -198,7 +197,7 @@ export function TransferTicketModal({
   const [relatedForms, setRelatedForms] = useState<string[]>([]);
 
   const operatorAcronyms = useOperatorAcronyms();
-  const needsOperator = type !== "Devolver para fila";
+  const needsOperator = true;
 
   const availableOperators = operatorAcronyms.filter((op) => op !== ticket.owner);
   const filteredOperators = availableOperators.filter((op) =>
@@ -225,7 +224,6 @@ export function TransferTicketModal({
     setPermission("Clientes");
     setPriority(ticket.priority);
     setMessage("");
-    setType("Transferir");
     setOperatorQuery("");
     setOperator("");
     setOperatorOpen(false);
@@ -266,10 +264,7 @@ export function TransferTicketModal({
         relatedForms,
       });
       toast.success("Chamado transferido", {
-        description:
-          type === "Devolver para fila"
-            ? "Devolvido para a fila."
-            : `Novo responsável: ${operator}`,
+        description: `Novo responsável: ${operator}`,
       });
       reset();
       onOpenChange(false);
@@ -296,7 +291,7 @@ export function TransferTicketModal({
 
         <DetailModalHeader
           icon={Repeat}
-          title="Transferir chamado"
+          title={ticket.clientName || "Cliente não vinculado"}
           protocol={ticket.protocol}
           onClose={() => onOpenChange(false)}
           chips={
@@ -335,13 +330,9 @@ export function TransferTicketModal({
           }
           meta={
             <span className="inline-flex items-center gap-1">
+              <span className="truncate text-foreground">Transferir chamado</span>
+              <span aria-hidden className="text-border">·</span>
               <span className="font-semibold text-primary">{ticket.clientCode || "—"}</span>
-              <span aria-hidden className="text-border">
-                ·
-              </span>
-              <span className="truncate text-foreground">
-                {ticket.clientName || "Cliente não vinculado"}
-              </span>
             </span>
           }
         />
@@ -405,16 +396,12 @@ export function TransferTicketModal({
           </Field>
 
           <Field label="Tipo" required>
-            <Select value={type} onValueChange={(value) => setType(value as TransferType)}>
-              <SelectTrigger className="h-9 w-full cursor-pointer rounded-lg bg-card text-sm">
+            <Select value={type} disabled>
+              <SelectTrigger className="h-9 w-full cursor-not-allowed rounded-lg bg-muted/50 text-sm opacity-100">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {TYPE_OPTIONS.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
-                  </SelectItem>
-                ))}
+                <SelectItem value="Transferir">Transferir</SelectItem>
               </SelectContent>
             </Select>
           </Field>

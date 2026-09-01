@@ -56,7 +56,7 @@ export function ClientTicketsHistoryModal({
 
         <DetailModalHeader
           icon={History}
-          title="Histórico de chamados"
+          title={client.razaoSocial || client.fantasia || client.acronym}
           onClose={() => onOpenChange(false)}
           chips={
             client.status ? (
@@ -67,9 +67,9 @@ export function ClientTicketsHistoryModal({
           }
           meta={
             <span className="inline-flex items-center gap-1">
-              <span className="font-semibold text-primary">{client.acronym}</span>
+              <span className="truncate text-foreground">Histórico de chamados</span>
               <span aria-hidden className="text-border">·</span>
-              <span className="truncate text-foreground">{client.razaoSocial}</span>
+              <span className="font-semibold text-primary">{client.acronym}</span>
             </span>
           }
         />

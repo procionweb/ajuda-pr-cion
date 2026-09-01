@@ -63,7 +63,7 @@ export function TicketHistoryModal({
 
         <DetailModalHeader
           icon={Clock}
-          title="Histórico"
+          title={ticket.clientName || "Cliente não vinculado"}
           protocol={ticket.protocol}
           onClose={() => onOpenChange(false)}
           chips={
@@ -78,9 +78,9 @@ export function TicketHistoryModal({
           }
           meta={
             <span className="inline-flex items-center gap-1">
-              <span className="font-semibold text-primary">{ticket.clientCode || "—"}</span>
+              <span className="truncate text-foreground">Histórico</span>
               <span aria-hidden className="text-border">·</span>
-              <span className="truncate text-foreground">{ticket.clientName || "Cliente não vinculado"}</span>
+              <span className="font-semibold text-primary">{ticket.clientCode || "—"}</span>
             </span>
           }
         />
