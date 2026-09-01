@@ -4,6 +4,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Eye,
   Pencil,
   RefreshCw,
@@ -422,16 +423,24 @@ function CollaboratorDetails({
 
   return (
     <Dialog open={Boolean(collaborator)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[92vh] overflow-y-auto p-0 sm:max-w-[640px]">
         <DialogHeader>
-          <DialogTitle>{mode === "edit" ? "Editar colaborador" : "Visualizar colaborador"}</DialogTitle>
+          <div className="border-b px-6 py-5 pr-12">
+            <DialogTitle className="text-lg font-normal text-foreground">
+              {detail?.operator_acronym || collaborator?.acronym || collaborator?.name || "Colaborador"}
+            </DialogTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {mode === "edit" ? "Editar cadastro" : "Visualizar cadastro"}
+            </p>
+          </div>
         </DialogHeader>
+        <div className="px-6 py-5">
         {loading ? (
           <div className="grid min-h-64 place-items-center text-sm text-muted-foreground">
             Carregando cadastro...
           </div>
         ) : detail ? (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <DetailSection title="Geral">
               <DetailField label="Nome" field="first_name" detail={detail} editing={mode === "edit"} update={update} />
               <DetailField label="Sobrenome" field="last_name" detail={detail} editing={mode === "edit"} update={update} />
@@ -481,7 +490,7 @@ function CollaboratorDetails({
               <Detail label="Cód. operador" value={detail.operator_code || "Não informado"} />
             </DetailSection>
 
-            <div className="grid gap-4 border-t pt-4 sm:grid-cols-2">
+            <div className="grid gap-x-5 gap-y-4 border-t pt-4 sm:grid-cols-2">
               <Detail label="Criado" value={formatDateTime(detail.created_at)} />
               <Detail label="Modificado" value={formatDateTime(detail.updated_at)} />
             </div>
@@ -491,7 +500,8 @@ function CollaboratorDetails({
             Não foi possível carregar o cadastro.
           </div>
         )}
-        <DialogFooter>
+        </div>
+        <DialogFooter className="border-t px-6 py-4">
           <Button variant="outline" onClick={onClose} disabled={saving}>Fechar</Button>
           {mode === "edit" && (
             <Button onClick={() => void save()} disabled={saving || loading || !detail}>
@@ -507,10 +517,11 @@ function CollaboratorDetails({
 function DetailSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h3 className="mb-3 rounded-sm bg-muted px-3 py-2 text-sm font-semibold text-foreground">
-        {title}
-      </h3>
-      <div className="grid gap-x-5 gap-y-4 sm:grid-cols-3">{children}</div>
+      <div className="mb-3 flex items-center justify-between bg-muted px-4 py-2.5 text-sm text-foreground">
+        <h3 className="font-normal">{title}</h3>
+        <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+      </div>
+      <div className="grid gap-x-7 gap-y-1 px-4 sm:grid-cols-3">{children}</div>
     </section>
   );
 }
@@ -533,14 +544,14 @@ function DetailField({
   const value = String(detail[field] ?? "");
   if (!editing) return <Detail label={label} value={type === "date" ? formatDate(value) : value || "Não informado"} />;
   return (
-    <div className="grid gap-1.5">
+    <div className="grid min-w-0 gap-0.5 border-b border-border pb-1">
       <Label htmlFor={`collaborator-${String(field)}`} className="text-xs text-muted-foreground">{label}</Label>
       <Input
         id={`collaborator-${String(field)}`}
         type={type}
         value={value}
         onChange={(event) => update(field, event.target.value)}
-        className="h-9"
+        className="h-8 rounded-none border-0 bg-transparent px-1 text-sm shadow-none focus-visible:ring-0"
       />
     </div>
   );
@@ -562,9 +573,9 @@ function SelectField({
   const labelValue = options.find((option) => option.value === value)?.label || value || "Não informado";
   if (!editing) return <Detail label={label} value={labelValue} />;
   return (
-    <div className="grid gap-1.5">
+    <div className="grid min-w-0 gap-0.5 border-b border-border pb-1">
       <Label className="text-xs text-muted-foreground">{label}</Label>
-      <select className={cn(selectClass, "h-9")} value={value} onChange={(event) => onChange(event.target.value)}>
+      <select className="h-8 w-full border-0 bg-transparent px-1 text-sm text-foreground outline-none" value={value} onChange={(event) => onChange(event.target.value)}>
         <option value="">Não informado</option>
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
@@ -625,9 +636,9 @@ function DeactivateCollaboratorDialog({
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <p className="text-xs uppercase text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm text-foreground">{value}</p>
+    <div className="min-w-0 border-b border-border pb-2 pt-1">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1.5 break-words text-sm font-normal text-foreground">{value}</p>
     </div>
   );
 }
