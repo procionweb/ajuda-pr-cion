@@ -16,7 +16,6 @@ import {
   History,
   Info,
   ListChecks,
-  LockKeyhole,
   MapPin,
   MessageSquare,
   NotebookText,
@@ -509,7 +508,7 @@ export function TicketDetailSheet({
           <div className="relative flex max-h-[90vh] min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
             <DetailModalHeader
               icon={getModuleIcon(ticket.module, ticket.source, ticket.subject)}
-              title={ticket.subject}
+              title={ticket.clientName || "Cliente não vinculado"}
               protocol={ticket.protocol}
               onClose={() => onOpenChange(false)}
               chips={
@@ -530,12 +529,6 @@ export function TicketDetailSheet({
                   >
                     Prioridade {ticket.priority}
                   </Badge>
-                  {ticket.lockedBy && (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-warning/15 px-2 py-0.5 text-[10.5px] font-medium text-warning-foreground">
-                      <LockKeyhole className="h-3 w-3" />
-                      {ticket.lockedBy}
-                    </span>
-                  )}
                 </>
               }
               trailing={
@@ -570,6 +563,10 @@ export function TicketDetailSheet({
 
               meta={
                 <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                  <span className="truncate text-foreground">{ticket.subject}</span>
+                  <span aria-hidden className="text-border">
+                    ·
+                  </span>
                   {clientSlug ? (
                     <Link
                       to="/clientes/$clienteId"
@@ -580,23 +577,9 @@ export function TicketDetailSheet({
                       title="Ver detalhes do cliente"
                     >
                       <span className="font-semibold text-primary">{ticket.clientCode || "—"}</span>
-                      <span aria-hidden className="text-border">
-                        ·
-                      </span>
-                      <span className="truncate text-foreground">
-                        {ticket.clientName || "Cliente não vinculado"}
-                      </span>
                     </Link>
                   ) : (
-                    <>
-                      <span className="font-semibold text-primary">{ticket.clientCode || "—"}</span>
-                      <span aria-hidden className="text-border">
-                        ·
-                      </span>
-                      <span className="truncate text-foreground">
-                        {ticket.clientName || "Cliente não vinculado"}
-                      </span>
-                    </>
+                    <span className="font-semibold text-primary">{ticket.clientCode || "—"}</span>
                   )}
 
                   {(ticket.companyName || ticket.companyNumber || ticket.companyDocument) && (
@@ -880,12 +863,12 @@ export function TicketDetailSheet({
                       );
                     })()}
 
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      Código {ticket.clientCode || "—"}
+                    </p>
                     <p className="mt-0.5 text-[11.5px] text-muted-foreground">
                       <MapPin className="mr-1 inline h-3 w-3" />
                       {resolvedClient?.city || "Localização não informada"}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      Código {ticket.clientCode || "—"}
                     </p>
                   </Section>
 
