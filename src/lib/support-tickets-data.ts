@@ -47,6 +47,10 @@ export type SupportTicket = {
   companyNumber?: number | null;
   companyName?: string;
   companyDocument?: string;
+  hadronOption?: string;
+  permission?: "Público" | "Clientes" | "Empresa";
+  relatedArticles?: string[];
+  relatedForms?: string[];
 };
 
 export const ticketStatuses: TicketStatus[] = [

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -12,6 +12,8 @@ import {
   MessageSquarePlus,
   Minus,
   Phone,
+  Plus,
+  Search,
   Send,
   Sparkles,
   UserRound,
@@ -50,6 +52,8 @@ import {
 import type { ClientRow } from "@/routes/clientes.index";
 import { cn } from "@/lib/utils";
 import { modulesMap, moduleOptions } from "@/lib/modules-map";
+import { cvsArticles } from "@/lib/cvs-catalogs-imported";
+import { normalizeSearch, searchHadronForms, searchHadronOptions } from "@/lib/hadron-options";
 
 export const Route = createFileRoute("/chamados/novo")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -159,6 +163,10 @@ type FormState = {
   subject: string;
   description: string;
   source: SupportTicket["source"];
+  hadronOption: string;
+  permission: "Público" | "Clientes" | "Empresa";
+  relatedArticles: string[];
+  relatedForms: string[];
 };
 
 const initialForm: FormState = {
@@ -178,6 +186,10 @@ const initialForm: FormState = {
   subject: "",
   description: "",
   source: "Portal do cliente",
+  hadronOption: "",
+  permission: "Clientes",
+  relatedArticles: [],
+  relatedForms: [],
 };
 
 function NewTicketPage() {
@@ -190,6 +202,26 @@ function NewTicketPage() {
     Array<{ name: string; type: string; dataUrl: string }>
   >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [articleQuery, setArticleQuery] = useState("");
+  const [formQuery, setFormQuery] = useState("");
+
+  const articleSuggestions = useMemo(() => {
+    const query = normalizeSearch(articleQuery);
+    if (!query) return [];
+    return cvsArticles
+      .filter((article) => article.status === "1")
+      .filter((article) => normalizeSearch(`${article.id} ${article.title}`).includes(query))
+      .filter((article) => !form.relatedArticles.includes(article.title))
+      .slice(0, 10)
+      .map((article) => article.title);
+  }, [articleQuery, form.relatedArticles]);
+  const formSuggestions = useMemo(
+    () =>
+      searchHadronForms(formQuery)
+        .map((option) => option.label)
+        .filter((label) => !form.relatedForms.includes(label)),
+    [formQuery, form.relatedForms],
+  );
 
   // Contatos vinculados ao cliente (carregados do Supabase).
   const [clientUuid, setClientUuid] = useState<string | null>(null);
@@ -404,6 +436,14 @@ function NewTicketPage() {
         `${form.description}\n\n` +
         `Tipo: ${form.type}. Operador: ${form.operator}. ` +
         `Contato: ${form.emailValue} · ${form.phoneValue}.` +
+        (form.hadronOption ? `\nOpção Hádron: ${form.hadronOption}.` : "") +
+        `\nPermissão: ${form.permission}.` +
+        (form.relatedArticles.length
+          ? `\nArtigos relacionados: ${form.relatedArticles.join("; ")}.`
+          : "") +
+        (form.relatedForms.length
+          ? `\nOpções/Formulários relacionados: ${form.relatedForms.join("; ")}.`
+          : "") +
         (selectedCompany
           ? `\nEmpresa: ${selectedCompany.companyNumber ? String(selectedCompany.companyNumber).padStart(3, "0") + " · " : ""}${selectedCompany.tradeName || selectedCompany.legalName}${selectedCompany.document ? " · " + selectedCompany.document : ""}`
           : ""),
@@ -411,6 +451,10 @@ function NewTicketPage() {
       companyNumber: selectedCompany?.companyNumber ?? null,
       companyName: selectedCompany?.tradeName || selectedCompany?.legalName || undefined,
       companyDocument: selectedCompany?.document || undefined,
+      hadronOption: form.hadronOption,
+      permission: form.permission,
+      relatedArticles: form.relatedArticles,
+      relatedForms: form.relatedForms,
     });
     attachments.forEach((attachment) => ticketsStore.addAttachment(ticket.id, attachment));
     toast.success("Chamado criado", {
@@ -800,6 +844,55 @@ function NewTicketPage() {
                 </Field>
               </div>
             </div>
+
+            <div className="mt-5 border-t border-border pt-5">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
+                <HadronOptionField
+                  value={form.hadronOption}
+                  onChange={(hadronOption) => setForm((prev) => ({ ...prev, hadronOption }))}
+                />
+                <Field label="Permissão">
+                  <Select
+                    value={form.permission}
+                    onValueChange={(permission: FormState["permission"]) =>
+                      setForm((prev) => ({ ...prev, permission }))
+                    }
+                  >
+                    <SelectTrigger className="h-11 rounded-xl cursor-pointer">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["Público", "Clientes", "Empresa"].map((permission) => (
+                        <SelectItem key={permission} value={permission}>
+                          {permission}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <RelatedField
+                  label="Artigos relacionados"
+                  query={articleQuery}
+                  onQuery={setArticleQuery}
+                  suggestions={articleSuggestions}
+                  selected={form.relatedArticles}
+                  onSelected={(relatedArticles) =>
+                    setForm((prev) => ({ ...prev, relatedArticles }))
+                  }
+                />
+                <RelatedField
+                  label="Opções/Formulários relacionados"
+                  query={formQuery}
+                  onQuery={setFormQuery}
+                  suggestions={formSuggestions}
+                  selected={form.relatedForms}
+                  onSelected={(relatedForms) => setForm((prev) => ({ ...prev, relatedForms }))}
+                />
+              </div>
+            </div>
           </Card>
 
           {/* 5. Ações */}
@@ -961,6 +1054,136 @@ function Field({
       </Label>
       {children}
     </div>
+  );
+}
+
+function HadronOptionField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const suggestions = useMemo(() => searchHadronOptions(value).slice(0, 10), [value]);
+  return (
+    <Field label="Opção Hádron">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={value}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+          placeholder="Pesquisar opção Hádron"
+          className="h-11 rounded-xl pl-9"
+        />
+        {open && value.trim() && suggestions.length > 0 && (
+          <div className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
+            {suggestions.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onChange(option.label);
+                  setOpen(false);
+                }}
+                className="block w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs text-foreground hover:bg-accent"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </Field>
+  );
+}
+
+function RelatedField({
+  label,
+  query,
+  onQuery,
+  suggestions,
+  selected,
+  onSelected,
+}: {
+  label: string;
+  query: string;
+  onQuery: (value: string) => void;
+  suggestions: string[];
+  selected: string[];
+  onSelected: (items: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const add = (item?: string) => {
+    const value = (item || suggestions[0] || query).trim();
+    if (!value || selected.includes(value)) return;
+    onSelected([...selected, value]);
+    onQuery("");
+    setOpen(false);
+  };
+
+  return (
+    <Field label={label}>
+      <div className="relative flex gap-2">
+        <Input
+          value={query}
+          onChange={(event) => {
+            onQuery(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              add();
+            }
+          }}
+          className="h-11 rounded-xl"
+        />
+        <Button
+          type="button"
+          size="icon"
+          onClick={() => add()}
+          disabled={!query.trim() && suggestions.length === 0}
+          title={`Adicionar ${label.toLowerCase()}`}
+          aria-label={`Adicionar ${label.toLowerCase()}`}
+          className="h-11 w-11 shrink-0 rounded-xl"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+        {open && query.trim() && suggestions.length > 0 && (
+          <div className="absolute left-0 right-[52px] top-full z-30 mt-1 max-h-56 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => add(suggestion)}
+                className="block w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs text-foreground hover:bg-accent"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {selected.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {selected.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => onSelected(selected.filter((selectedItem) => selectedItem !== item))}
+              title="Remover"
+              className="max-w-full cursor-pointer truncate rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] text-primary hover:bg-primary/15"
+            >
+              {item} ×
+            </button>
+          ))}
+        </div>
+      )}
+    </Field>
   );
 }
 

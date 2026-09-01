@@ -91,6 +91,10 @@ export type CreateTicketInput = {
   companyNumber?: number | null;
   companyName?: string;
   companyDocument?: string;
+  hadronOption?: string;
+  permission?: "Público" | "Clientes" | "Empresa";
+  relatedArticles?: string[];
+  relatedForms?: string[];
 };
 
 let tickets: SupportTicket[] = supportTickets.map((t) => ({ ...t }));
@@ -470,6 +474,10 @@ export const ticketsStore = {
       companyNumber: input.companyNumber ?? null,
       companyName: input.companyName?.trim() || undefined,
       companyDocument: input.companyDocument?.trim() || undefined,
+      hadronOption: input.hadronOption?.trim() || undefined,
+      permission: input.permission,
+      relatedArticles: input.relatedArticles ?? [],
+      relatedForms: input.relatedForms ?? [],
     };
 
     tickets = [ticket, ...tickets];
