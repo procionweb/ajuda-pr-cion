@@ -15,7 +15,6 @@ import {
   Headphones,
   History,
   Info,
-  LayoutGrid,
   ListChecks,
   LockKeyhole,
   MapPin,
@@ -540,20 +539,32 @@ export function TicketDetailSheet({
                 </>
               }
               trailing={
-                <div
-                  className={cn(
-                    "inline-flex max-w-full items-center gap-2 rounded-lg border px-2.5 py-1.5",
-                    statusTone[ticket.status],
-                  )}
-                  title={`Situação atual: ${ticket.status}`}
-                >
-                  <CalendarClock className="h-3.5 w-3.5 shrink-0" />
-                  <span className="flex min-w-0 flex-col leading-tight">
-                    <span className="truncate text-[11px] font-semibold">{ticket.status}</span>
-                    <span className="truncate text-[10px] font-normal opacity-80">
-                      Atualizado em {formatDateTime(ticket.updatedAt)}
+                <div className="grid grid-cols-2 gap-2">
+                  <HeaderSlaStat label="SLA de espera" tone={sla.tone} icon={Clock3}>
+                    <span className={cn("text-base font-bold leading-none", slaTextTone[sla.tone])}>
+                      {sla.pct}%
                     </span>
-                  </span>
+                    <span className="text-[9px] text-muted-foreground">{sla.minutes}min decorridos</span>
+                  </HeaderSlaStat>
+                  <HeaderSlaStat
+                    label="Tempo de atendimento"
+                    tone={attendanceTime.running ? "ok" : "neutral"}
+                    icon={attendanceTime.running ? PlayCircle : Clock3}
+                  >
+                    <span className="text-base font-bold leading-none text-foreground">
+                      {attendanceTime.started
+                        ? formatElapsedTime(attendanceTime.seconds)
+                        : "Não iniciado"}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[9px]",
+                        attendanceTime.running ? "text-success" : "text-muted-foreground",
+                      )}
+                    >
+                      {attendanceTime.running ? "Em atendimento" : "Aguardando início"}
+                    </span>
+                  </HeaderSlaStat>
                 </div>
               }
 
@@ -817,116 +828,6 @@ export function TicketDetailSheet({
                   />
                 </div>
 
-                {/* Resumo */}
-                <Section title="Resumo do chamado" icon={LayoutGrid}>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <MiniStat label="Status">
-                      <Badge
-                        className={cn(
-                          "rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium",
-                          statusTone[ticket.status],
-                        )}
-                      >
-                        {ticket.status}
-                      </Badge>
-                    </MiniStat>
-                    <MiniStat label="Prioridade">
-                      <Badge
-                        className={cn(
-                          "rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium",
-                          priorityTone[ticket.priority],
-                        )}
-                      >
-                        {ticket.priority}
-                      </Badge>
-                    </MiniStat>
-                    <MiniStat label="SLA de espera">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 flex-col">
-                          <span
-                            className={cn(
-                              "text-[18px] font-bold leading-none sm:text-[20px]",
-                              slaTextTone[sla.tone],
-                            )}
-                          >
-                            {sla.pct}%
-                          </span>
-                          <span className="mt-1 text-[10px] text-muted-foreground">
-                            {sla.minutes}min decorridos
-                          </span>
-                          <span
-                            className={cn(
-                              "mt-0.5 text-[9px] font-medium leading-tight",
-                              sla.tone === "ok"
-                                ? "text-success"
-                                : sla.tone === "warn"
-                                  ? "text-warning-foreground"
-                                  : "text-destructive",
-                            )}
-                          >
-                            {sla.tone === "ok"
-                              ? "Dentro do prazo"
-                              : sla.tone === "warn"
-                                ? "Próximo do limite"
-                                : "Fora do prazo"}
-                          </span>
-                        </div>
-                        <div
-                          className={cn(
-                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border sm:h-9 sm:w-9",
-                            sla.tone === "ok"
-                              ? "border-success/25 bg-success/10 text-success"
-                              : sla.tone === "warn"
-                                ? "border-warning/25 bg-warning/15 text-warning-foreground"
-                                : "border-destructive/25 bg-destructive/10 text-destructive",
-                          )}
-                          aria-hidden
-                        >
-                          <Clock3 className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-                        </div>
-                      </div>
-                    </MiniStat>
-                    <MiniStat label="Tempo de atendimento">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 flex-col">
-                          <span className="text-[18px] font-bold leading-none text-foreground sm:text-[20px]">
-                            {attendanceTime.started
-                              ? formatElapsedTime(attendanceTime.seconds)
-                              : "Não iniciado"}
-                          </span>
-                          <span
-                            className={cn(
-                              "mt-1 text-[10px] font-medium",
-                              attendanceTime.running ? "text-success" : "text-muted-foreground",
-                            )}
-                          >
-                            {attendanceTime.running
-                              ? "Em atendimento"
-                              : attendanceTime.started
-                                ? "Contagem pausada"
-                                : "Aguardando início"}
-                          </span>
-                        </div>
-                        <div
-                          className={cn(
-                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border sm:h-9 sm:w-9",
-                            attendanceTime.running
-                              ? "border-success/25 bg-success/10 text-success"
-                              : "border-border bg-muted text-muted-foreground",
-                          )}
-                          aria-hidden
-                        >
-                          {attendanceTime.running ? (
-                            <PlayCircle className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-                          ) : (
-                            <Clock3 className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-                          )}
-                        </div>
-                      </div>
-                    </MiniStat>
-                  </div>
-                </Section>
-
                 <Section title="Resumo do problema" icon={FileText}>
                   {ticketDescription ? (
                     <div key={ticket.id} className="space-y-2">
@@ -992,12 +893,12 @@ export function TicketDetailSheet({
                     <p className="text-[13px] font-normal text-foreground truncate">
                       {ticket.contact}
                     </p>
-                    {ticket.contactPhone && (
-                      <p className="mt-0.5 inline-flex items-center gap-1 text-[11.5px] text-muted-foreground">
-                        <Phone className="h-3 w-3" />
-                        {formatPhoneDisplay(ticket.contactPhone)}
-                      </p>
-                    )}
+                    <p className="mt-0.5 inline-flex items-center gap-1 text-[11.5px] text-muted-foreground">
+                      <Phone className="h-3 w-3" />
+                      {ticket.contactPhone
+                        ? formatPhoneDisplay(ticket.contactPhone)
+                        : "Telefone não informado"}
+                    </p>
                   </Section>
 
                   <Section title="Módulo" icon={Folder} compact>
@@ -1579,13 +1480,34 @@ const Section = forwardRef<
   );
 });
 
-function MiniStat({ label, children }: { label: string; children: React.ReactNode }) {
+function HeaderSlaStat({
+  label,
+  tone,
+  icon: Icon,
+  children,
+}: {
+  label: string;
+  tone: "ok" | "warn" | "late" | "neutral";
+  icon: typeof Info;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-xl border border-border bg-background/60 p-3">
-      <p className="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <div>{children}</div>
+    <div className="flex min-w-[150px] items-center justify-between gap-2 rounded-lg border border-border bg-background/70 px-2.5 py-1.5">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="truncate text-[9px] font-medium uppercase text-muted-foreground">{label}</span>
+        {children}
+      </div>
+      <span
+        className={cn(
+          "grid h-8 w-8 shrink-0 place-items-center rounded-full border",
+          tone === "ok" && "border-success/25 bg-success/10 text-success",
+          tone === "warn" && "border-warning/25 bg-warning/15 text-warning-foreground",
+          tone === "late" && "border-destructive/25 bg-destructive/10 text-destructive",
+          tone === "neutral" && "border-border bg-muted text-muted-foreground",
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
     </div>
   );
 }
