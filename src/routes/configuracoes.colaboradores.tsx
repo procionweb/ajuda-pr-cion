@@ -32,11 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  deactivateCollaborator,
-  getCollaboratorDetail,
-  saveCollaboratorDetail,
-} from "@/lib/collaborator-admin.functions";
+import { supabase } from "@/integrations/supabase/client";
 import {
   type Collaborator,
   collaboratorMatches,
@@ -364,15 +360,16 @@ function CollaboratorDetails({
     }
     let cancelled = false;
     setLoading(true);
-    void getCollaboratorDetail({ data: { id: collaborator.id } })
-      .then((data) => {
+    void (supabase as any)
+      .rpc("configuration_collaborator_get", { collaborator_id: collaborator.id })
+      .then(({ data, error }: { data: unknown; error: { message: string } | null }) => {
         if (cancelled) return;
-        setDetail(data as CollaboratorDetail);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        toast.error(error instanceof Error ? error.message : "Não foi possível carregar o cadastro.");
-        setDetail(null);
+        if (error) {
+          toast.error(error.message);
+          setDetail(null);
+        } else {
+          setDetail(data as CollaboratorDetail);
+        }
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -387,9 +384,9 @@ function CollaboratorDetails({
       return;
     }
     setSaving(true);
-    try {
-      await saveCollaboratorDetail({ data: {
-        id: detail.id,
+    const { error } = await (supabase as any).rpc("configuration_collaborator_save", {
+      collaborator_id: detail.id,
+      collaborator_payload: {
         first_name: detail.first_name,
         last_name: detail.last_name,
         operator_acronym: detail.operator_acronym,
@@ -409,13 +406,13 @@ function CollaboratorDetails({
         terminated_at: detail.terminated_at,
         driver_license_type: detail.driver_license_type,
         driver_license_expires_at: detail.driver_license_expires_at,
-      } });
-    } catch (error) {
-      setSaving(false);
-      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o colaborador.");
+      },
+    });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
       return;
     }
-    setSaving(false);
     toast.success("Colaborador atualizado.");
     onSaved();
   }
@@ -588,14 +585,14 @@ function DeactivateCollaboratorDialog({
   async function deactivate() {
     if (!collaborator) return;
     setSaving(true);
-    try {
-      await deactivateCollaborator({ data: { id: collaborator.id } });
-    } catch (error) {
-      setSaving(false);
-      toast.error(error instanceof Error ? error.message : "Não foi possível desativar o colaborador.");
+    const { error } = await (supabase as any).rpc("configuration_collaborator_deactivate", {
+      collaborator_id: collaborator.id,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
       return;
     }
-    setSaving(false);
     toast.success("Colaborador desativado.");
     onDone();
   }
