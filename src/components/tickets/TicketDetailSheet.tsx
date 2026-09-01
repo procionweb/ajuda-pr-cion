@@ -24,6 +24,7 @@ import {
   Plus,
   PlayCircle,
   ReceiptText,
+  ScrollText,
   Send,
   ShieldCheck,
   Sparkles,
@@ -43,6 +44,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -94,6 +96,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { clientRows } from "@/routes/clientes.index";
 import { useClients } from "@/lib/clients-store";
+import { getClientLogs, type ClientExternalLog } from "@/lib/clients-api";
 import { snapshotCurrentChamadosForTicket } from "@/lib/return-to-ticket";
 import { formatPhoneDisplay } from "@/lib/client-contacts";
 import { EventDetailsModal } from "@/components/calendar/EventDetailsModal";
@@ -260,6 +263,9 @@ export function TicketDetailSheet({
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(true);
   const [selectedHistory, setSelectedHistory] = useState<PastAttendance | null>(null);
+  const [clientLogs, setClientLogs] = useState<ClientExternalLog[]>([]);
+  const [clientLogsLoading, setClientLogsLoading] = useState(false);
+  const [clientLogsError, setClientLogsError] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<
     "encerrar" | "assumir" | "agendar" | "encaminhar" | "atender" | "timeline" | "novo"
   >("atender");
@@ -314,6 +320,34 @@ export function TicketDetailSheet({
     return null;
   }, [ticket?.clientCode, ticket?.clientName, loadedClients]);
   const clientSlug = resolvedClient?.id ?? null;
+  useEffect(() => {
+    const acronym = resolvedClient?.acronym || ticket?.clientCode;
+    if (!open || !acronym) {
+      setClientLogs([]);
+      setClientLogsError(null);
+      return;
+    }
+
+    let active = true;
+    setClientLogsLoading(true);
+    setClientLogsError(null);
+    getClientLogs(acronym)
+      .then((logs) => {
+        if (active) setClientLogs(logs.externalLogs);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setClientLogs([]);
+        setClientLogsError(error instanceof Error ? error.message : "Não foi possível carregar os logs.");
+      })
+      .finally(() => {
+        if (active) setClientLogsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, resolvedClient?.acronym, ticket?.clientCode]);
   const appointmentHistory = useMemo(() => {
     if (!ticket) return [];
 
@@ -915,40 +949,60 @@ export function TicketDetailSheet({
                   </Section>
                 </div>
 
-                {/* Timeline do chamado atual — embutida */}
+                {/* Atividade do chamado e logs do cliente */}
                 <div className="mt-4">
-                  <Section title="Timeline do chamado" icon={History}>
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-[12.5px] font-medium text-foreground">
-                          Eventos do atendimento
-                        </span>
-                        <span className="text-[11.5px] font-medium text-muted-foreground">
-                          ({timelineEvents.length})
-                        </span>
-                      </div>
-                      {timelineEvents.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setTimelineOpen(true)}
-                          className="inline-flex cursor-pointer items-center gap-1 text-[11.5px] font-medium text-primary hover:underline"
+                  <Section title="Atividade" icon={History}>
+                    <Tabs defaultValue="timeline">
+                      <TabsList className="mb-3 h-auto w-full justify-start rounded-none border-b border-border bg-transparent p-0">
+                        <TabsTrigger
+                          value="timeline"
+                          className="rounded-none border-b-2 border-transparent px-3 py-2 text-[12px] shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
                         >
-                          Ver completa
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                    <div className="rounded-xl border border-border bg-card px-3 py-3">
-                      <TicketTimelineList
-                        events={timelineEvents}
-                        variant="compact"
-                        limit={5}
-                        onEventSelect={openScheduledEvent}
-                        onEventCancel={cancelScheduledEvent}
-                        onEventReport={reportScheduledEvent}
-                        getScheduledEventStatus={getScheduledEventStatus}
-                      />
-                    </div>
+                          Timeline ({timelineEvents.length})
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="logs"
+                          className="gap-1.5 rounded-none border-b-2 border-transparent px-3 py-2 text-[12px] shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
+                        >
+                          <ScrollText className="h-3.5 w-3.5" />
+                          Logs ({clientLogs.length})
+                        </TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="timeline" className="m-0">
+                        <div className="mb-3 flex justify-end">
+                          {timelineEvents.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setTimelineOpen(true)}
+                              className="inline-flex cursor-pointer items-center gap-1 text-[11.5px] font-medium text-primary hover:underline"
+                            >
+                              Ver completa
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="rounded-xl border border-border bg-card px-3 py-3">
+                          <TicketTimelineList
+                            events={timelineEvents}
+                            variant="compact"
+                            limit={5}
+                            onEventSelect={openScheduledEvent}
+                            onEventCancel={cancelScheduledEvent}
+                            onEventReport={reportScheduledEvent}
+                            getScheduledEventStatus={getScheduledEventStatus}
+                          />
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="logs" className="m-0">
+                        <ClientLogsTable
+                          rows={clientLogs}
+                          loading={clientLogsLoading}
+                          error={clientLogsError}
+                        />
+                      </TabsContent>
+                    </Tabs>
                   </Section>
                 </div>
 
@@ -1462,6 +1516,68 @@ const Section = forwardRef<
     </section>
   );
 });
+
+function ClientLogsTable({
+  rows,
+  loading,
+  error,
+}: {
+  rows: ClientExternalLog[];
+  loading: boolean;
+  error: string | null;
+}) {
+  if (loading) {
+    return <p className="py-6 text-center text-[12px] text-muted-foreground">Carregando logs...</p>;
+  }
+  if (error) {
+    return <p className="py-6 text-center text-[12px] text-destructive">{error}</p>;
+  }
+  if (!rows.length) {
+    return (
+      <p className="py-6 text-center text-[12px] text-muted-foreground">
+        Nenhum log encontrado para este cliente.
+      </p>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-border">
+      <table className="w-full min-w-[760px] border-collapse text-left text-[11px]">
+        <thead className="bg-muted/50 text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2 font-medium">Controlador / ação</th>
+            <th className="px-3 py-2 font-medium">URL / informação</th>
+            <th className="px-3 py-2 font-medium">Operador / IP</th>
+            <th className="px-3 py-2 font-medium">Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.slice(0, 30).map((log) => (
+            <tr key={log.id} className="border-t border-border align-top">
+              <td className="px-3 py-2">
+                <p className="font-medium text-foreground">{log.controller || "-"}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">{log.action || "-"}</p>
+              </td>
+              <td className="max-w-[340px] px-3 py-2">
+                <p className="truncate text-foreground" title={log.info || log.url}>
+                  {log.info || "-"}
+                </p>
+                <p className="mt-0.5 truncate text-[10px] italic text-muted-foreground" title={log.url}>
+                  {log.url || "-"}
+                </p>
+              </td>
+              <td className="px-3 py-2">
+                <p className="font-medium text-foreground">{log.operator || "-"}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">{log.ipAddress || "-"}</p>
+              </td>
+              <td className="whitespace-nowrap px-3 py-2 text-foreground">{log.occurredAt || "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 function HeaderSlaStat({
   label,

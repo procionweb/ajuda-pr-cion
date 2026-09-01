@@ -432,6 +432,50 @@ export async function getClient(acronym: string): Promise<ClientRow | null> {
   return data?.client ? mapDatabaseClient(data.client) : null;
 }
 
+function mapClientLogs(logData: unknown): ClientLogs {
+  const rawLogs = (logData || {}) as Record<string, unknown>;
+  return {
+    authorized: rawLogs.authorized === true,
+    logs: (Array.isArray(rawLogs.logs) ? rawLogs.logs : []).map(
+      (log: Record<string, unknown>): ClientHadronLog => ({
+        id: String(log.id || log.legacy_id || ""),
+        level: String(log.level || ""),
+        terminalCode: String(log.terminal_code || ""),
+        operation: String(log.operation || ""),
+        operatorCode: String(log.new_operator_code || log.previous_operator_code || ""),
+        parentOption: String(log.parent_option || ""),
+        childOption: String(log.child_option || ""),
+        serialNumber: String(log.serial_number || ""),
+        userCode: String(log.user_code || ""),
+        ipAddress: String(log.ip_address || ""),
+        occurredAt: date(log.crm_created_at, true),
+      }),
+    ),
+    externalLogs: (Array.isArray(rawLogs.external_logs) ? rawLogs.external_logs : []).map(
+      (log: Record<string, unknown>): ClientExternalLog => ({
+        id: String(log.id || log.legacy_id || ""),
+        action: String(log.action || ""),
+        controller: String(log.controller || ""),
+        operator: String(log.operator || ""),
+        agent: String(log.agent || ""),
+        device: String(log.device || ""),
+        ipAddress: String(log.ip_address || ""),
+        url: String(log.url || ""),
+        info: String(log.info || ""),
+        occurredAt: date(log.crm_created_at, true),
+      }),
+    ),
+  };
+}
+
+export async function getClientLogs(acronym: string): Promise<ClientLogs> {
+  const { data, error } = await supabase.rpc("get_crm_client_logs", {
+    client_acronym: acronym,
+  });
+  if (error) throw error;
+  return mapClientLogs(data);
+}
+
 export async function getClientDetail(acronym: string): Promise<ClientDetail | null> {
   const [
     { data, error },
@@ -762,39 +806,7 @@ export async function getClientDetail(acronym: string): Promise<ClientDetail | n
     },
   );
 
-  const rawLogs = (logData || {}) as Record<string, unknown>;
-  const logs: ClientLogs = {
-    authorized: rawLogs.authorized === true,
-    logs: (Array.isArray(rawLogs.logs) ? rawLogs.logs : []).map(
-      (log: Record<string, unknown>): ClientHadronLog => ({
-        id: String(log.id || log.legacy_id || ""),
-        level: String(log.level || ""),
-        terminalCode: String(log.terminal_code || ""),
-        operation: String(log.operation || ""),
-        operatorCode: String(log.new_operator_code || log.previous_operator_code || ""),
-        parentOption: String(log.parent_option || ""),
-        childOption: String(log.child_option || ""),
-        serialNumber: String(log.serial_number || ""),
-        userCode: String(log.user_code || ""),
-        ipAddress: String(log.ip_address || ""),
-        occurredAt: date(log.crm_created_at, true),
-      }),
-    ),
-    externalLogs: (Array.isArray(rawLogs.external_logs) ? rawLogs.external_logs : []).map(
-      (log: Record<string, unknown>): ClientExternalLog => ({
-        id: String(log.id || log.legacy_id || ""),
-        action: String(log.action || ""),
-        controller: String(log.controller || ""),
-        operator: String(log.operator || ""),
-        agent: String(log.agent || ""),
-        device: String(log.device || ""),
-        ipAddress: String(log.ip_address || ""),
-        url: String(log.url || ""),
-        info: String(log.info || ""),
-        occurredAt: date(log.crm_created_at, true),
-      }),
-    ),
-  };
+  const logs = mapClientLogs(logData);
 
   return {
     client: mapDatabaseClient(data.client),
