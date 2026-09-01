@@ -1,6 +1,9 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
+  CalendarIcon,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -11,6 +14,7 @@ import {
   Search,
   X,
 } from "lucide-react";
+import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import {
@@ -24,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +38,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import {
   type Collaborator,
@@ -83,6 +89,8 @@ function CollaboratorsSettingsPage() {
   const [acronym, setAcronym] = useState("");
   const [status, setStatus] = useState("all");
   const [department, setDepartment] = useState("");
+  const [dateStart, setDateStart] = useState<Date | undefined>();
+  const [dateEnd, setDateEnd] = useState<Date | undefined>();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Collaborator | null>(null);
@@ -97,21 +105,36 @@ function CollaboratorsSettingsPage() {
     [allCollaborators],
   );
 
+  const acronyms = useMemo(
+    () =>
+      [...new Set(allCollaborators.map((item) => item.acronym).filter(Boolean))]
+        .map(String)
+        .sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [allCollaborators],
+  );
+
   const filtered = useMemo(
     () =>
       allCollaborators.filter((item) => {
-        if (acronym && !(item.acronym ?? "").toUpperCase().includes(acronym.toUpperCase())) {
+        if (acronym && item.acronym !== acronym) {
           return false;
         }
         if (status === "active" && !item.active) return false;
         if (status === "inactive" && item.active) return false;
         if (department && item.department !== department) return false;
+        if (dateStart || dateEnd) {
+          if (!item.createdAt) return false;
+          const createdAt = new Date(item.createdAt);
+          if (Number.isNaN(createdAt.getTime())) return false;
+          if (dateStart && createdAt < startOfDay(dateStart)) return false;
+          if (dateEnd && createdAt > endOfDay(dateEnd)) return false;
+        }
         return collaboratorMatches(item, query);
       }),
-    [acronym, allCollaborators, department, query, status],
+    [acronym, allCollaborators, dateEnd, dateStart, department, query, status],
   );
 
-  useEffect(() => setPage(0), [acronym, department, query, status]);
+  useEffect(() => setPage(0), [acronym, dateEnd, dateStart, department, query, status]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
   const rows = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
@@ -124,14 +147,18 @@ function CollaboratorsSettingsPage() {
         breadcrumbs={[{ label: "Configurações" }, { label: "Colaboradores" }]}
       />
 
-      <section className="mb-5 grid gap-3 lg:grid-cols-[180px_190px_240px_minmax(260px,1fr)_auto]">
-        <Input
+      <section className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-[180px_190px_240px_230px_minmax(260px,1fr)_auto]">
+        <select
           value={acronym}
-          onChange={(event) => setAcronym(event.target.value.toUpperCase())}
-          placeholder="Sigla"
-          className="h-10 uppercase"
+          onChange={(event) => setAcronym(event.target.value)}
+          className={selectClass}
           aria-label="Filtrar por sigla"
-        />
+        >
+          <option value="">Todas as siglas</option>
+          {acronyms.map((item) => (
+            <option key={item} value={item}>{item}</option>
+          ))}
+        </select>
         <select
           value={status}
           onChange={(event) => setStatus(event.target.value)}
@@ -141,6 +168,14 @@ function CollaboratorsSettingsPage() {
           <option value="active">Ativos</option>
           <option value="inactive">Inativos</option>
         </select>
+        <DateRangeFilter
+          start={dateStart}
+          end={dateEnd}
+          onChange={({ start, end }) => {
+            setDateStart(start);
+            setDateEnd(end);
+          }}
+        />
         <select
           value={department}
           onChange={(event) => setDepartment(event.target.value)}
@@ -225,7 +260,7 @@ function CollaboratorsSettingsPage() {
                       <span
                         className={cn(
                           "inline-flex items-center gap-1.5",
-                          item.active ? "text-foreground" : "text-muted-foreground",
+                          item.active ? "text-foreground" : "text-destructive",
                         )}
                       >
                         {item.active ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
@@ -337,6 +372,91 @@ function CollaboratorsSettingsPage() {
       />
     </AppShell>
   );
+}
+
+function DateRangeFilter({
+  start,
+  end,
+  onChange,
+}: {
+  start?: Date;
+  end?: Date;
+  onChange: (range: { start?: Date; end?: Date }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<DateRange | undefined>(
+    start || end ? { from: start, to: end } : undefined,
+  );
+
+  useEffect(() => {
+    setDraft(start || end ? { from: start, to: end } : undefined);
+  }, [start, end]);
+
+  const label = start && end
+    ? `${format(start, "dd/MM/yyyy")} - ${format(end, "dd/MM/yyyy")}`
+    : start
+      ? `A partir de ${format(start, "dd/MM/yyyy")}`
+      : end
+        ? `Até ${format(end, "dd/MM/yyyy")}`
+        : "Período de cadastro";
+
+  function apply() {
+    let from = draft?.from;
+    let to = draft?.to;
+    if (from && to && from > to) [from, to] = [to, from];
+    onChange({ start: from, end: to });
+    setOpen(false);
+  }
+
+  function clear() {
+    setDraft(undefined);
+    onChange({ start: undefined, end: undefined });
+    setOpen(false);
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "inline-flex h-10 w-full items-center gap-2 truncate rounded-md border border-input bg-background px-3 text-left text-sm text-foreground shadow-sm outline-none focus:ring-2 focus:ring-ring/20",
+            !start && !end && "text-muted-foreground",
+          )}
+        >
+          <CalendarIcon className="h-4 w-4 shrink-0" />
+          <span className="truncate">{label}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-auto p-0">
+        <Calendar
+          mode="range"
+          numberOfMonths={2}
+          selected={draft}
+          onSelect={setDraft}
+          locale={ptBR}
+          initialFocus
+          className="pointer-events-auto p-3"
+        />
+        <div className="flex items-center justify-end gap-2 border-t px-3 py-2">
+          <Button type="button" variant="ghost" size="sm" onClick={clear}>Limpar</Button>
+          <Button type="button" size="sm" onClick={apply}>Aplicar</Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function startOfDay(value: Date): Date {
+  const result = new Date(value);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+function endOfDay(value: Date): Date {
+  const result = new Date(value);
+  result.setHours(23, 59, 59, 999);
+  return result;
 }
 
 function CollaboratorDetails({
