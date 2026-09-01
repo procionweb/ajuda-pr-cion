@@ -20,6 +20,9 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const SKIP_PARTNERS = process.argv.includes("--skip-partners");
 const EXPANSION_ONLY = process.argv.includes("--expansion-only");
 const EXPAND_RADIUS = EXPANSION_ONLY || process.argv.includes("--expand-radius");
+const INSERT_ONLY = process.argv.includes("--insert-only");
+const OPENED_FROM = nullableDate(process.env.CNPJ_OPENED_FROM);
+const OPENED_TO = nullableDate(process.env.CNPJ_OPENED_TO);
 const TARGET_CITY_FILTER = new Set(
   String(process.env.CNPJ_TARGET_CITIES || "")
     .split(",")
@@ -42,6 +45,15 @@ const isoDate = (value) => {
   if (!/^\d{8}$/.test(raw) || raw === "00000000") return null;
   return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
 };
+
+function nullableDate(value) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    throw new Error(`Data inválida: ${normalized}. Use AAAA-MM-DD.`);
+  }
+  return normalized;
+}
 
 function parseCsvLine(line) {
   const values = [];
@@ -259,6 +271,16 @@ async function upsertBatch(client, rows) {
   const payload = rows.map((row) =>
     Object.fromEntries(columns.map((column) => [column, row[column] ?? null])),
   );
+  if (INSERT_ONLY) {
+    await client.query(
+      `insert into public.company_leads (${columns.join(",")})
+       select ${columns.map((column) => `incoming.${column}`).join(",")}
+         from jsonb_populate_recordset(null::public.company_leads, $1::jsonb) incoming
+       on conflict (cnpj) do nothing`,
+      [JSON.stringify(payload)],
+    );
+    return;
+  }
   await client.query(
     `insert into public.company_leads (${columns.join(",")})
      select ${columns.map((column) => `incoming.${column}`).join(",")}
@@ -307,6 +329,10 @@ async function upsertBatch(client, rows) {
 const files = await sourceFiles();
 console.log(`Fonte: ${SOURCE_DIR || `${BASE_URL}/${competence}`}`);
 console.log(`Municípios-alvo: ${TARGET_CITIES.length}`);
+if (OPENED_FROM || OPENED_TO) {
+  console.log(`Abertura filtrada: ${OPENED_FROM || "início"} até ${OPENED_TO || "hoje"}`);
+}
+if (INSERT_ONLY) console.log("Modo incremental: somente CNPJs ainda inexistentes.");
 
 const municipalityLookup = await loadLookup(files.municipalities);
 const cnaeLookup = await loadLookup(files.cnaes);
@@ -345,6 +371,8 @@ for (const file of files.establishments) {
     if (TARGET_CITY_FILTER.size && !TARGET_CITY_FILTER.has(normalizeCity(municipality.name)))
       return;
     const openedAt = isoDate(row[10]);
+    if (OPENED_FROM && (!openedAt || openedAt < OPENED_FROM)) return;
+    if (OPENED_TO && (!openedAt || openedAt > OPENED_TO)) return;
     if (!EXPAND_RADIUS && municipality.distanceKm > 80) return;
     if (EXPANSION_ONLY && municipality.distanceKm <= 80) return;
     // Mantém o histórico do núcleo e limita a expansão a leads comerciais recentes.
