@@ -339,8 +339,8 @@ function ApplicationsSettingsPage() {
                 >
                   <div
                     className={cn(
-                      "grid h-16 w-16 shrink-0 place-items-center rounded-lg",
-                      presentation.backgroundClass,
+                      "grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg",
+                      !application.image_name?.startsWith("http") && presentation.backgroundClass,
                     )}
                     title={application.image_name ?? undefined}
                   >
@@ -348,7 +348,7 @@ function ApplicationsSettingsPage() {
                       <img
                         src={application.image_name}
                         alt=""
-                        className="h-full w-full rounded-lg object-contain p-1"
+                        className="h-full w-full scale-[1.75] object-contain"
                       />
                     ) : (
                       <Icon className={cn("h-8 w-8", presentation.iconClass)} strokeWidth={1.8} />
@@ -530,11 +530,15 @@ function ApplicationEditorDialog({
               <div
                 className={cn(
                   "grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-lg border",
-                  presentation.backgroundClass,
+                  !logoPreview && presentation.backgroundClass,
                 )}
               >
                 {logoPreview ? (
-                  <img src={logoPreview} alt="Prévia do logotipo" className="h-full w-full object-contain p-1" />
+                  <img
+                    src={logoPreview}
+                    alt="Prévia do logotipo"
+                    className="h-full w-full scale-[1.75] object-contain"
+                  />
                 ) : (
                   <PreviewIcon className={cn("h-9 w-9", presentation.iconClass)} />
                 )}
