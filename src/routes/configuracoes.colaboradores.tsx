@@ -260,7 +260,9 @@ function CollaboratorsSettingsPage() {
                       <span
                         className={cn(
                           "inline-flex items-center gap-1.5",
-                          item.active ? "text-foreground" : "text-destructive",
+                          item.active
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-destructive",
                         )}
                       >
                         {item.active ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
@@ -432,6 +434,9 @@ function DateRangeFilter({
         <Calendar
           mode="range"
           numberOfMonths={2}
+          captionLayout="dropdown"
+          startMonth={new Date(1990, 0)}
+          endMonth={new Date(new Date().getFullYear() + 1, 11)}
           selected={draft}
           onSelect={setDraft}
           locale={ptBR}
