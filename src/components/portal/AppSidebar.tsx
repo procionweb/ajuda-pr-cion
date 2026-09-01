@@ -77,7 +77,7 @@ const nav: NavItem[] = [
   { to: "/", label: "Dashboard", icon: DashboardIcon, exact: true },
   {
     to: "/chamados",
-    label: "Chamados",
+    label: "Suporte",
     icon: TicketsIcon,
     children: [
       { to: "/chamados", label: "Chamados", icon: TicketsIcon },
@@ -243,7 +243,7 @@ export function AppSidebar() {
                       title={collapsed ? item.label : undefined}
                       className={cn(
                         "group relative flex h-12 items-center gap-4 rounded-l-lg rounded-r-[26px] px-4 text-[15px] font-semibold transition-all",
-                        (item.label === "Chamados" || item.label === "Comercial") &&
+                        (item.label === "Suporte" || item.label === "Comercial") &&
                           "cursor-pointer",
                         collapsed && "mx-auto w-12 justify-center rounded-2xl px-0",
                         active

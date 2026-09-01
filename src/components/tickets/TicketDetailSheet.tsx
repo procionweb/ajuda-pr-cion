@@ -12,6 +12,7 @@ import {
   FileText,
   Folder,
   Globe,
+  Headphones,
   History,
   Info,
   LayoutGrid,
@@ -792,6 +793,30 @@ export function TicketDetailSheet({
 
               {/* Main content */}
               <div className="modal-scrollbar flex-1 min-w-0 overflow-y-auto rounded-2xl border border-border bg-card px-5 py-5 md:px-6">
+                {/* Datas e responsáveis */}
+                <div className="mb-4 grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-3 shadow-[0_6px_18px_rgba(25,29,51,0.04)] sm:grid-cols-2 xl:grid-cols-4">
+                  <CompactInfo
+                    icon={CalendarClock}
+                    label="Abertura"
+                    value={formatDateTime(ticket.openedAt)}
+                  />
+                  <CompactInfo
+                    icon={Clock3}
+                    label="Última atualização"
+                    value={formatDateTime(ticket.updatedAt)}
+                  />
+                  <CompactInfo
+                    icon={UserRound}
+                    label="Responsável atual"
+                    value={ticket.owner || "Não informado"}
+                  />
+                  <CompactInfo
+                    icon={Headphones}
+                    label="Atendido por"
+                    value={ticket.lockedBy || ticket.attendant || "Não iniciado"}
+                  />
+                </div>
+
                 {/* Resumo */}
                 <Section title="Resumo do chamado" icon={LayoutGrid}>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -864,7 +889,7 @@ export function TicketDetailSheet({
                     <MiniStat label="Tempo de atendimento">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex min-w-0 flex-col">
-                          <span className="text-[18px] font-normal leading-none text-foreground sm:text-[20px]">
+                          <span className="text-[18px] font-bold leading-none text-foreground sm:text-[20px]">
                             {attendanceTime.started
                               ? formatElapsedTime(attendanceTime.seconds)
                               : "Não iniciado"}
@@ -1004,25 +1029,6 @@ export function TicketDetailSheet({
                       </p>
                     )}
                   </Section>
-                </div>
-
-                {/* Datas e responsável — card próprio */}
-                <div className="mt-4 grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-3 shadow-[0_6px_18px_rgba(25,29,51,0.04)] sm:grid-cols-3">
-                  <CompactInfo
-                    icon={CalendarClock}
-                    label="Abertura"
-                    value={formatDateTime(ticket.openedAt)}
-                  />
-                  <CompactInfo
-                    icon={Clock3}
-                    label="Última atualização"
-                    value={formatDateTime(ticket.updatedAt)}
-                  />
-                  <CompactInfo
-                    icon={UserRound}
-                    label="Responsável atual"
-                    value={ticket.lockedBy ? `${ticket.owner} · ${ticket.lockedBy}` : ticket.owner}
-                  />
                 </div>
 
                 {/* Timeline do chamado atual — embutida */}
