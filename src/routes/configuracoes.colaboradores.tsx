@@ -32,7 +32,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  deactivateCollaborator,
+  getCollaboratorDetail,
+  saveCollaboratorDetail,
+} from "@/lib/collaborator-admin.functions";
 import {
   type Collaborator,
   collaboratorMatches,
@@ -181,13 +185,13 @@ function CollaboratorsSettingsPage() {
             </colgroup>
             <thead className="border-b bg-muted/35 text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 font-medium">Sigla / Cód.</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Departamento</th>
-                <th className="px-4 py-3 font-medium">Nome</th>
-                <th className="px-4 py-3 font-medium">E-mail</th>
-                <th className="px-4 py-3 font-medium">Datas</th>
-                <th className="px-4 py-3 text-center font-medium">Ações</th>
+                <th className="px-4 py-3 font-normal">Sigla / Cód.</th>
+                <th className="px-4 py-3 font-normal">Status</th>
+                <th className="px-4 py-3 font-normal">Departamento</th>
+                <th className="px-4 py-3 font-normal">Nome</th>
+                <th className="px-4 py-3 font-normal">E-mail</th>
+                <th className="px-4 py-3 font-normal">Datas</th>
+                <th className="px-4 py-3 text-center font-normal">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -213,7 +217,7 @@ function CollaboratorsSettingsPage() {
                 rows.map((item) => (
                   <tr key={item.id} className="transition-colors hover:bg-muted/25">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-foreground">
+                      <p className="font-normal text-foreground">
                         {item.acronym || "Não informado"}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
@@ -224,9 +228,7 @@ function CollaboratorsSettingsPage() {
                       <span
                         className={cn(
                           "inline-flex items-center gap-1.5",
-                          item.active
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-muted-foreground",
+                          item.active ? "text-foreground" : "text-muted-foreground",
                         )}
                       >
                         {item.active ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
@@ -362,18 +364,15 @@ function CollaboratorDetails({
     }
     let cancelled = false;
     setLoading(true);
-    // Imported CRM tables are not represented in the generated Supabase types yet.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    void (supabase as any)
-      .rpc("configuration_collaborator_get", { collaborator_id: collaborator.id })
-      .then(({ data, error }: { data: unknown; error: { message: string } | null }) => {
+    void getCollaboratorDetail({ data: { id: collaborator.id } })
+      .then((data) => {
         if (cancelled) return;
-        if (error) {
-          toast.error(error.message);
-          setDetail(null);
-        } else {
-          setDetail(data as CollaboratorDetail);
-        }
+        setDetail(data as CollaboratorDetail);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        toast.error(error instanceof Error ? error.message : "Não foi possível carregar o cadastro.");
+        setDetail(null);
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -388,10 +387,9 @@ function CollaboratorDetails({
       return;
     }
     setSaving(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).rpc("configuration_collaborator_save", {
-      collaborator_id: detail.id,
-      collaborator_payload: {
+    try {
+      await saveCollaboratorDetail({ data: {
+        id: detail.id,
         first_name: detail.first_name,
         last_name: detail.last_name,
         operator_acronym: detail.operator_acronym,
@@ -411,13 +409,13 @@ function CollaboratorDetails({
         terminated_at: detail.terminated_at,
         driver_license_type: detail.driver_license_type,
         driver_license_expires_at: detail.driver_license_expires_at,
-      },
-    });
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
+      } });
+    } catch (error) {
+      setSaving(false);
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar o colaborador.");
       return;
     }
+    setSaving(false);
     toast.success("Colaborador atualizado.");
     onSaved();
   }
@@ -590,15 +588,14 @@ function DeactivateCollaboratorDialog({
   async function deactivate() {
     if (!collaborator) return;
     setSaving(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).rpc("configuration_collaborator_deactivate", {
-      collaborator_id: collaborator.id,
-    });
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
+    try {
+      await deactivateCollaborator({ data: { id: collaborator.id } });
+    } catch (error) {
+      setSaving(false);
+      toast.error(error instanceof Error ? error.message : "Não foi possível desativar o colaborador.");
       return;
     }
+    setSaving(false);
     toast.success("Colaborador desativado.");
     onDone();
   }
