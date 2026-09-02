@@ -272,7 +272,7 @@ export function EventDetailsModal({
                     [ticket?.clientCode, ticket?.clientName].filter(Boolean).join(" · ")}
                 </Info>
               )}
-              {guestLabels.length > 0 && (
+              {event.type !== "Pessoal" && guestLabels.length > 0 && (
                 <Info icon={UsersRound} label="Convidados" className="sm:col-span-2">
                   <span className="flex flex-wrap gap-1">
                     {guestLabels.map((label) => (
@@ -396,7 +396,7 @@ export function EventDetailsModal({
                 Cancelar agendamento
               </Button>
             )}
-            {!hideFooterActions && canCancel && onSaveReport && (
+            {!hideFooterActions && event.type !== "Pessoal" && canCancel && onSaveReport && (
               <Button
                 className="h-9 cursor-pointer"
                 onClick={(e) => {

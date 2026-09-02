@@ -137,6 +137,12 @@ export function hasEventStarted(
   return Boolean(instant && instant.getTime() <= now.getTime());
 }
 
+function eventEndInstant(event: Pick<CalendarEvent, "date" | "time" | "end">): Date | null {
+  const clock = (event.end || event.time || "00:00").slice(0, 5);
+  const parsed = new Date(`${event.date}T${clock}:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 /**
  * Regras de cor:
  * - Concluído → verde; Cancelado → vermelho.
@@ -145,12 +151,14 @@ export function hasEventStarted(
  * O status salvo sempre prevalece: data passada não conclui evento.
  */
 export function getEventTone(
-  event: Pick<CalendarEvent, "date" | "time" | "end" | "status">,
+  event: Pick<CalendarEvent, "date" | "time" | "end" | "status" | "type">,
   now: Date = new Date(),
 ): EventTone {
   const status = event.status ?? "Agendado";
   if (status === "Concluído") return "done";
   if (status === "Cancelado") return "cancelled";
+  const end = eventEndInstant(event);
+  if (event.type === "Pessoal" && end && end.getTime() <= now.getTime()) return "done";
   const start = eventStartInstant(event);
   if (start && start.getTime() > now.getTime()) return "upcoming";
   return "inProgress";

@@ -557,7 +557,7 @@ function CalendarPage() {
         }
       />
 
-      <div className="mb-4 grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <FieldSelect
           label="Tipo"
           value={filters.type}
@@ -575,6 +575,12 @@ function CalendarPage() {
           value={filters.operator}
           onChange={(value) => setFilters((current) => ({ ...current, operator: value }))}
           options={operatorOptions.map((option) => ({ value: option, label: option }))}
+        />
+        <FieldSelect
+          label="Status"
+          value={filters.status}
+          onChange={(value) => setFilters((current) => ({ ...current, status: value }))}
+          options={statusOptions.map((option) => ({ value: option, label: option }))}
         />
         <FieldSelect
           label="Mês"
