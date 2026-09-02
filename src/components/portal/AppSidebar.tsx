@@ -81,6 +81,7 @@ const nav: NavItem[] = [
     icon: TicketsIcon,
     children: [
       { to: "/chamados", label: "Chamados", icon: TicketsIcon },
+      { to: "/suporte/agendamentos", label: "Agendamentos", icon: CalendarIcon },
       { to: "/calendario", label: "Calendário", icon: CalendarIcon },
       { to: "/frota", label: "Frota", icon: FleetIcon },
     ],

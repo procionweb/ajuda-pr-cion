@@ -40,6 +40,15 @@ const eventStatus = (value) => ({
   in_progress: "scheduled",
   others: "scheduled",
 }[text(value).toLowerCase()] || "scheduled");
+const eventOrigin = (value) => ({
+  admin: "admin",
+  administracao: "admin",
+  "administração": "admin",
+  support: "support",
+  suporte: "support",
+  commercial: "commercial",
+  comercial: "commercial",
+}[text(value).toLocaleLowerCase("pt-BR")] || "admin");
 const timestamp = (date, time) => {
   const day = text(date);
   const clock = text(time);
@@ -93,7 +102,7 @@ try {
       ends_at: endsAt,
       status: eventStatus(row.status),
       legacy_operator: text(row.operador) || null,
-      legacy_origin: text(row.origem) || null,
+      legacy_origin: eventOrigin(row.origem),
       legacy_type: text(row.tipo) || null,
       legacy_status: text(row.status) || null,
       legacy_contact_id: text(row.contatos_id) || null,
@@ -153,4 +162,3 @@ try {
 } finally {
   await pool.end();
 }
-

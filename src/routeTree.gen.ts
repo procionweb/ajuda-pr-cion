@@ -25,6 +25,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as FrotaIndexRouteImport } from './routes/frota.index'
 import { Route as ClientesIndexRouteImport } from './routes/clientes.index'
 import { Route as BaseDeConhecimentoIndexRouteImport } from './routes/base-de-conhecimento.index'
+import { Route as SuporteAgendamentosRouteImport } from './routes/suporte.agendamentos'
 import { Route as KanbanBoardIdRouteImport } from './routes/kanban.$boardId'
 import { Route as FrotaVehicleIdRouteImport } from './routes/frota.$vehicleId'
 import { Route as ConfiguracoesLogsRouteImport } from './routes/configuracoes.logs'
@@ -122,6 +123,11 @@ const BaseDeConhecimentoIndexRoute = BaseDeConhecimentoIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => BaseDeConhecimentoRoute,
+} as any)
+const SuporteAgendamentosRoute = SuporteAgendamentosRouteImport.update({
+  id: '/suporte/agendamentos',
+  path: '/suporte/agendamentos',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const KanbanBoardIdRoute = KanbanBoardIdRouteImport.update({
   id: '/$boardId',
@@ -240,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes/logs': typeof ConfiguracoesLogsRoute
   '/frota/$vehicleId': typeof FrotaVehicleIdRoute
   '/kanban/$boardId': typeof KanbanBoardIdRoute
+  '/suporte/agendamentos': typeof SuporteAgendamentosRoute
   '/base-de-conhecimento/': typeof BaseDeConhecimentoIndexRoute
   '/clientes/': typeof ClientesIndexRoute
   '/frota/': typeof FrotaIndexRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/configuracoes/logs': typeof ConfiguracoesLogsRoute
   '/frota/$vehicleId': typeof FrotaVehicleIdRoute
   '/kanban/$boardId': typeof KanbanBoardIdRoute
+  '/suporte/agendamentos': typeof SuporteAgendamentosRoute
   '/base-de-conhecimento': typeof BaseDeConhecimentoIndexRoute
   '/clientes': typeof ClientesIndexRoute
   '/frota': typeof FrotaIndexRoute
@@ -309,6 +317,7 @@ export interface FileRoutesById {
   '/configuracoes/logs': typeof ConfiguracoesLogsRoute
   '/frota/$vehicleId': typeof FrotaVehicleIdRoute
   '/kanban/$boardId': typeof KanbanBoardIdRoute
+  '/suporte/agendamentos': typeof SuporteAgendamentosRoute
   '/base-de-conhecimento/': typeof BaseDeConhecimentoIndexRoute
   '/clientes/': typeof ClientesIndexRoute
   '/frota/': typeof FrotaIndexRoute
@@ -346,6 +355,7 @@ export interface FileRouteTypes {
     | '/configuracoes/logs'
     | '/frota/$vehicleId'
     | '/kanban/$boardId'
+    | '/suporte/agendamentos'
     | '/base-de-conhecimento/'
     | '/clientes/'
     | '/frota/'
@@ -379,6 +389,7 @@ export interface FileRouteTypes {
     | '/configuracoes/logs'
     | '/frota/$vehicleId'
     | '/kanban/$boardId'
+    | '/suporte/agendamentos'
     | '/base-de-conhecimento'
     | '/clientes'
     | '/frota'
@@ -414,6 +425,7 @@ export interface FileRouteTypes {
     | '/configuracoes/logs'
     | '/frota/$vehicleId'
     | '/kanban/$boardId'
+    | '/suporte/agendamentos'
     | '/base-de-conhecimento/'
     | '/clientes/'
     | '/frota/'
@@ -446,6 +458,7 @@ export interface RootRouteChildren {
   ConfiguracoesDispositivosRoute: typeof ConfiguracoesDispositivosRoute
   ConfiguracoesEmpresasRoute: typeof ConfiguracoesEmpresasRoute
   ConfiguracoesLogsRoute: typeof ConfiguracoesLogsRoute
+  SuporteAgendamentosRoute: typeof SuporteAgendamentosRoute
   ClientesIndexRoute: typeof ClientesIndexRoute
   ApiPublicTestPlacesRoute: typeof ApiPublicTestPlacesRoute
   ComercialContatoLeadIdRoute: typeof ComercialContatoLeadIdRoute
@@ -564,6 +577,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/base-de-conhecimento/'
       preLoaderRoute: typeof BaseDeConhecimentoIndexRouteImport
       parentRoute: typeof BaseDeConhecimentoRoute
+    }
+    '/suporte/agendamentos': {
+      id: '/suporte/agendamentos'
+      path: '/suporte/agendamentos'
+      fullPath: '/suporte/agendamentos'
+      preLoaderRoute: typeof SuporteAgendamentosRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/kanban/$boardId': {
       id: '/kanban/$boardId'
@@ -770,6 +790,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesDispositivosRoute: ConfiguracoesDispositivosRoute,
   ConfiguracoesEmpresasRoute: ConfiguracoesEmpresasRoute,
   ConfiguracoesLogsRoute: ConfiguracoesLogsRoute,
+  SuporteAgendamentosRoute: SuporteAgendamentosRoute,
   ClientesIndexRoute: ClientesIndexRoute,
   ApiPublicTestPlacesRoute: ApiPublicTestPlacesRoute,
   ComercialContatoLeadIdRoute: ComercialContatoLeadIdRoute,

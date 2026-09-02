@@ -195,7 +195,7 @@ export function CreateEventDialog({
       time: startTime,
       end: endTime,
       type,
-      origin: type === "Pessoal" ? "Administração" : "Suporte",
+      origin: "Administração",
       operator: responsible,
       title: title.trim(),
       client: lockedClient

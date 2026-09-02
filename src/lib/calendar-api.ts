@@ -29,8 +29,12 @@ function normalizeEventType(event: Record<string, unknown>): CrmCalendarEvent["t
 }
 const originLabels: Record<string, CrmCalendarEvent["origin"]> = {
   admin: "Administração",
+  administracao: "Administração",
+  "administração": "Administração",
   support: "Suporte",
+  suporte: "Suporte",
   commercial: "Comercial",
+  comercial: "Comercial",
 };
 const statusLabels: Record<string, NonNullable<CrmCalendarEvent["status"]>> = {
   scheduled: "Agendado",
@@ -47,7 +51,9 @@ export async function listCrmCalendarEvents(): Promise<CrmCalendarEvent[]> {
     time: String(event.time || ""),
     end: String(event.end || ""),
     type: normalizeEventType(event),
-    origin: originLabels[String(event.origin || "")] || "Administração",
+    origin:
+      originLabels[String(event.origin || "").trim().toLocaleLowerCase("pt-BR")] ||
+      "Administração",
     operator: String(event.operator || ""),
     title: String(event.title || ""),
     client: event.client ? String(event.client) : undefined,
@@ -61,6 +67,7 @@ export async function listCrmCalendarEvents(): Promise<CrmCalendarEvent[]> {
       : undefined,
     clientId: event.clientId ? String(event.clientId) : undefined,
     ticketId: event.ticketId ? String(event.ticketId) : undefined,
+    protocol: event.protocol ? String(event.protocol) : undefined,
     responsible: event.responsible ? String(event.responsible) : undefined,
     vehicleId: event.vehicleId ? String(event.vehicleId) : undefined,
     address: event.address ? String(event.address) : undefined,
