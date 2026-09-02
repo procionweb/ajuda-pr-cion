@@ -35,7 +35,6 @@ import {
   CollaboratorSelect,
   type CollaboratorGuest,
 } from "@/components/portal/CollaboratorPicker";
-import { useCollaborators } from "@/lib/collaborators-store";
 import { ClientPicker } from "@/components/portal/ClientPicker";
 import { getClientById, getGroupMembers, resolveGroupCode, useClients } from "@/lib/clients-store";
 import type { ClientRow } from "@/routes/clientes.index";
@@ -71,9 +70,7 @@ export function CreateEventDialog({
   /** Quando informado, o diálogo funciona em modo de edição. */
   editingEvent?: CalendarEvent;
 }) {
-  const { collaborators } = useCollaborators();
   const { clients } = useClients({ onlyActive: true });
-  const defaultResponsible = collaborators[0]?.acronym ?? "";
   const [type, setType] = useState<EventType>(editingEvent?.type ?? "Visita presencial");
   const [title, setTitle] = useState(editingEvent?.title ?? "");
   const [description, setDescription] = useState(editingEvent?.description ?? "");
@@ -115,10 +112,6 @@ export function CreateEventDialog({
   useEffect(() => {
     if (open && !editingEvent) setDate(initialDate);
   }, [open, initialDate, editingEvent]);
-
-  useEffect(() => {
-    if (!responsible && defaultResponsible) setResponsible(defaultResponsible);
-  }, [responsible, defaultResponsible]);
 
   useEffect(() => {
     if (lockedClient || type !== "Reunião na Prócion" || !procionClient) return;
@@ -168,7 +161,7 @@ export function CreateEventDialog({
     setEndTime("10:00");
     setClient(null);
     setVehicleId(NO_VEHICLE);
-    setResponsible(defaultResponsible);
+    setResponsible("");
     setMeetingLink("");
     setPlatform(PLATFORM_OPTIONS[0]);
     setRoom(ROOM_OPTIONS[0]);
@@ -203,6 +196,10 @@ export function CreateEventDialog({
     }
     if (endTime <= startTime) {
       toast.error("O horário final deve ser posterior ao inicial.");
+      return;
+    }
+    if (!responsible) {
+      toast.error("Selecione o responsável pelo agendamento.");
       return;
     }
     if (type === "Visita presencial" && !lockedClient && !client) {

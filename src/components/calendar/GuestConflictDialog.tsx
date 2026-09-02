@@ -28,8 +28,16 @@ function normalize(value?: string | null) {
 }
 
 function guestKeys(guest: GuestIdentity | string) {
-  if (typeof guest === "string") return [normalize(guest)].filter(Boolean);
-  return [guest.id, guest.acronym, guest.email, guest.name].map(normalize).filter(Boolean);
+  const values =
+    typeof guest === "string"
+      ? [guest]
+      : [guest.id, guest.acronym, guest.email, guest.name].filter(Boolean).map(String);
+  const keys = values.flatMap((value) => {
+    const normalized = normalize(value);
+    const acronyms = normalized.match(/prc[a-z0-9]+/g) ?? [];
+    return [normalized, ...acronyms];
+  });
+  return [...new Set(keys.filter(Boolean))];
 }
 
 export function findGuestConflicts({

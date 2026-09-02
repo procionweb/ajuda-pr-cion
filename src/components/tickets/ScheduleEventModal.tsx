@@ -59,7 +59,7 @@ export function ScheduleEventModal({
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [responsible, setResponsible] = useState(ticket.owner || "");
+  const [responsible, setResponsible] = useState("");
   const [guests, setGuests] = useState<CollaboratorGuest[]>([]);
   const [vehicleId, setVehicleId] = useState(NO_VEHICLE);
   const [module, setModule] = useState(defaults.module);
@@ -116,7 +116,7 @@ export function ScheduleEventModal({
     setDate("");
     setStartTime("");
     setEndTime("");
-    setResponsible(ticket.owner || "");
+    setResponsible("");
     setGuests([]);
     setVehicleId(NO_VEHICLE);
     setModule(defaults.module);
@@ -130,8 +130,12 @@ export function ScheduleEventModal({
       toast.error("Chamado finalizado não pode receber novos agendamentos.");
       return;
     }
-    if (!date || !startTime || !endTime || !responsible || !module || !submodule) {
+    if (!date || !startTime || !endTime || !module || !submodule) {
       toast.error("Preencha os campos obrigatórios.");
+      return;
+    }
+    if (!responsible) {
+      toast.error("Selecione o responsável pelo agendamento.");
       return;
     }
     if (hasEventStarted({ date, time: startTime })) {
