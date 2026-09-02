@@ -322,3 +322,35 @@ iframe[src*="lovable"] {
   height: auto;
   display: block;
 }
+
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  [role="dialog"] {
+    max-width: calc(100vw - 0.75rem) !important;
+  }
+
+  [role="dialog"] footer,
+  [role="dialog"] [class*="DialogFooter"] {
+    flex-wrap: wrap;
+  }
+
+  main table {
+    white-space: nowrap;
+  }
+
+  main table td,
+  main table th {
+    max-width: min(72vw, 280px);
+  }
+
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+}

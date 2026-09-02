@@ -56,7 +56,7 @@ export function NotificationsPopover() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[360px] p-0">
+      <PopoverContent align="end" className="w-[calc(100vw-1rem)] max-w-[360px] p-0">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div>
             <p className="text-sm font-semibold">Notificações</p>

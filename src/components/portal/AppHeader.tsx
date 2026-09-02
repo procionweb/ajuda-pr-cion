@@ -31,6 +31,7 @@ export function AppHeader() {
           size="icon"
           className="lg:hidden focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Abrir menu"
+          onClick={() => window.dispatchEvent(new Event("procion:mobile-menu-open"))}
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -42,7 +43,7 @@ export function AppHeader() {
           </p>
         </div>
 
-        <div className="ml-auto hidden items-center gap-1 sm:flex">
+        <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
           <Button
             variant="ghost"
             size="icon"
@@ -53,7 +54,7 @@ export function AppHeader() {
           </Button>
           <ThemeToggle />
           <NotificationsPopover />
-          <div className="ml-1">
+          <div className="ml-1 hidden sm:block">
             <UserMenu />
           </div>
         </div>

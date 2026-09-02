@@ -132,6 +132,16 @@ export function AppSidebar() {
     top: number;
   } | null>(null);
   const collapsedFlyoutCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const displayCollapsed = collapsed && !mobileOpen;
+
+  useEffect(() => {
+    const open = () => setMobileOpen(true);
+    window.addEventListener("procion:mobile-menu-open", open);
+    return () => window.removeEventListener("procion:mobile-menu-open", open);
+  }, []);
+
+  useEffect(() => setMobileOpen(false), [pathname]);
 
   const cancelCollapsedFlyoutClose = () => {
     if (collapsedFlyoutCloseTimer.current) {
@@ -153,23 +163,33 @@ export function AppSidebar() {
   }, []);
 
   return (
+    <>
+    {mobileOpen && (
+      <button
+        type="button"
+        aria-label="Fechar menu"
+        onClick={() => setMobileOpen(false)}
+        className="fixed inset-0 z-40 cursor-default bg-black/55 lg:hidden"
+      />
+    )}
     <aside
       className={cn(
-        "hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-[width] duration-300 ease-out",
-        collapsed ? "w-[86px]" : "w-[286px]",
+        "fixed inset-y-0 left-0 z-50 flex w-[min(86vw,320px)] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 ease-out lg:z-30 lg:translate-x-0 lg:transition-[width]",
+        mobileOpen ? "translate-x-0" : "-translate-x-full",
+        collapsed ? "lg:w-[86px]" : "lg:w-[286px]",
       )}
     >
       <button
         type="button"
         onClick={sidebarStore.toggle}
-        className="absolute -right-4 top-10 z-40 grid h-8 w-8 place-items-center rounded-full border border-sidebar-border bg-card text-muted-foreground shadow-[0_8px_22px_rgba(15,23,42,0.16)] transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-sidebar dark:text-sidebar-foreground/75"
-        aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+        className="absolute -right-4 top-10 z-40 hidden h-8 w-8 place-items-center rounded-full border border-sidebar-border bg-card text-muted-foreground shadow-[0_8px_22px_rgba(15,23,42,0.16)] transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-sidebar dark:text-sidebar-foreground/75 lg:grid"
+        aria-label={displayCollapsed ? "Expandir menu" : "Recolher menu"}
       >
-        {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        {displayCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </button>
 
-      <div className={cn("flex h-[88px] items-center px-5", collapsed && "justify-center px-3")}>
-        {collapsed ? (
+      <div className={cn("flex h-[88px] items-center px-5", displayCollapsed && "justify-center px-3")}>
+        {displayCollapsed ? (
           <ProcionLogo
             variant="mark"
             className="text-sidebar-accent-foreground dark:text-sidebar-foreground"
@@ -182,7 +202,7 @@ export function AppSidebar() {
       </div>
 
       <nav className="app-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-4 py-2">
-        {!collapsed && (
+        {!displayCollapsed && (
           <p className="mb-4 px-5 text-sm font-semibold text-sidebar-foreground/25">Main Menu</p>
         )}
         <ul className="space-y-2">
@@ -196,12 +216,12 @@ export function AppSidebar() {
                 <div
                   className="relative"
                   onMouseEnter={() => {
-                    if (!collapsed && item.children) {
+                    if (!displayCollapsed && item.children) {
                       setOpenGroups((current) => ({ ...current, [item.to]: true }));
                     }
                   }}
                 >
-                  {collapsed && item.children ? (
+                  {displayCollapsed && item.children ? (
                     <button
                       type="button"
                       title={item.label}
@@ -241,18 +261,18 @@ export function AppSidebar() {
                   ) : (
                     <Link
                       to={item.to}
-                      title={collapsed ? item.label : undefined}
+                      title={displayCollapsed ? item.label : undefined}
                       className={cn(
                         "group relative flex h-12 items-center gap-4 rounded-l-lg rounded-r-[26px] px-4 text-[15px] font-semibold transition-all",
                         (item.label === "Suporte" || item.label === "Comercial") &&
                           "cursor-pointer",
-                        collapsed && "mx-auto w-12 justify-center rounded-2xl px-0",
+                        displayCollapsed && "mx-auto w-12 justify-center rounded-2xl px-0",
                         active
                           ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[0_14px_30px_rgba(11,151,196,0.12)]"
                           : "text-sidebar-foreground hover:bg-sidebar-accent/45 hover:text-sidebar-accent-foreground",
                       )}
                     >
-                      {active && !collapsed && (
+                      {active && !displayCollapsed && (
                         <span className="absolute -left-4 top-1/2 h-9 w-1.5 -translate-y-1/2 rounded-r-full bg-primary" />
                       )}
                       <Icon
@@ -263,10 +283,10 @@ export function AppSidebar() {
                             : "text-sidebar-foreground/70 group-hover:text-primary dark:text-sidebar-foreground/85",
                         )}
                       />
-                      {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+                      {!displayCollapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
                     </Link>
                   )}
-                  {!collapsed && item.children && (
+                  {!displayCollapsed && item.children && (
                     <button
                       type="button"
                       className="absolute right-3 top-2 grid h-8 w-8 place-items-center rounded-full text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-primary"
@@ -281,7 +301,7 @@ export function AppSidebar() {
                     </button>
                   )}
                 </div>
-                {!collapsed && item.children && expanded && (
+                {!displayCollapsed && item.children && expanded && (
                   <ul className="ml-7 mt-1 space-y-1 border-l border-sidebar-border pl-3">
                     {item.children.map((child) => {
                       const childActive = pathname.startsWith(child.to);
@@ -313,7 +333,7 @@ export function AppSidebar() {
         </ul>
       </nav>
 
-      {collapsed && collapsedFlyout && collapsedFlyout.item.children && (
+      {displayCollapsed && collapsedFlyout && collapsedFlyout.item.children && (
         <div
           className="fixed left-[94px] z-50 w-52 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-xl"
           style={{ top: collapsedFlyout.top }}
@@ -352,7 +372,7 @@ export function AppSidebar() {
         </div>
       )}
 
-      {!collapsed && (
+      {!displayCollapsed && (
         <div className="animate-fade-in px-6 pb-5">
           <div className="mb-5 flex items-center gap-3">
             <Avatar className="h-12 w-12 ring-2 ring-primary/20">
@@ -384,7 +404,7 @@ export function AppSidebar() {
         </div>
       )}
 
-      {!collapsed && (
+      {!displayCollapsed && (
         <div className="px-6 pb-6 text-xs text-sidebar-foreground/55">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-3.5 w-3.5" />
@@ -393,6 +413,7 @@ export function AppSidebar() {
         </div>
       )}
     </aside>
+    </>
   );
 }
 

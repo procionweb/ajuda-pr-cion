@@ -16,7 +16,7 @@ export function AppShell({ children, fullWidth = false }: { children: ReactNode;
         <AppHeader />
         <main
           className={cn(
-            "mx-auto min-w-0 overflow-x-hidden px-4 py-6 pb-24 sm:px-6 lg:px-7 lg:py-7 lg:pb-8",
+            "mx-auto min-w-0 overflow-x-hidden px-3 py-4 pb-24 sm:px-6 sm:py-6 lg:px-7 lg:py-7 lg:pb-8",
             fullWidth ? "w-full max-w-none" : "max-w-[1680px]",
           )}
         >
@@ -42,11 +42,11 @@ export function PageHeader({
   breadcrumbs?: Crumb[];
 }) {
   return (
-    <div className="mb-6 lg:mb-8">
+    <div className="mb-5 min-w-0 lg:mb-8">
       {breadcrumbs && breadcrumbs.length > 0 && <Breadcrumbs items={breadcrumbs} />}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:flex-wrap sm:justify-between">
+      <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-foreground truncate">
+          <h1 className="break-words text-[22px] font-semibold text-foreground lg:text-3xl">
             {title}
           </h1>
           {description && (
@@ -55,7 +55,7 @@ export function PageHeader({
             </p>
           )}
         </div>
-        {actions && <div className="shrink-0 flex items-center gap-2">{actions}</div>}
+        {actions && <div className="flex min-w-0 flex-wrap items-center gap-2 sm:shrink-0">{actions}</div>}
       </div>
     </div>
   );

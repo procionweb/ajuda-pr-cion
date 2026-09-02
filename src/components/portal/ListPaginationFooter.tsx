@@ -69,20 +69,20 @@ export function ListPaginationFooter({
   const pages = pageRange(safePage, safePageCount);
 
   return (
-    <footer className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 text-[12px] text-muted-foreground shadow-[0_6px_16px_rgba(25,29,51,0.04)]">
+    <footer className="flex flex-col items-stretch gap-3 rounded-lg border border-border/60 bg-card px-3 py-3 text-[12px] text-muted-foreground shadow-[0_6px_16px_rgba(25,29,51,0.04)] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:rounded-2xl sm:px-4">
       <span>
         Mostrando <strong className="text-foreground">{start}</strong> a{" "}
         <strong className="text-foreground">{end}</strong> de{" "}
         <strong className="text-foreground">{total}</strong> {noun}
       </span>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
         <span className="inline-flex items-center gap-2">
           Itens por página
           <span className="inline-flex h-7 min-w-11 items-center justify-center rounded-md border border-border bg-background px-2 text-foreground">
             {pageSize}
           </span>
         </span>
-        <div className="flex items-center gap-1">
+        <div className="hide-scrollbar flex max-w-full items-center gap-1 overflow-x-auto pb-0.5">
           <PageButton label="Primeira página" disabled={safePage === 0 || loading} onClick={() => onPageChange(0)}><ChevronsLeft className="h-3.5 w-3.5" /></PageButton>
           <PageButton label="Página anterior" disabled={safePage === 0 || loading} onClick={() => onPageChange(safePage - 1)}><ChevronLeft className="h-3.5 w-3.5" /></PageButton>
           {pages.map((value, index) =>
