@@ -2,7 +2,7 @@ import { Car, CalendarDays, Laptop, UsersRound } from "lucide-react";
 
 export type EventType = "Visita presencial" | "Reunião remota" | "Reunião na Prócion" | "Pessoal";
 
-export type EventStatus = "Agendado" | "Concluído" | "Cancelado";
+export type EventStatus = "Agendado" | "Em andamento" | "Concluído" | "Cancelado";
 
 export type EventReport = {
   permission: "Público" | "Clientes" | "Empresa";
@@ -63,7 +63,14 @@ export type EventGuest = {
 };
 
 export const PLATFORM_OPTIONS = ["Google Meet", "Microsoft Teams", "Zoom", "AnyDesk"];
-export const ROOM_OPTIONS = ["Sala Diretoria", "Sala Reuniões 1", "Sala Reuniões 2", "Auditório"];
+export const ROOM_OPTIONS = ["Sala Diretoria", "Sala Reuniões 1", "Auditório"];
+export const PERSONAL_EVENT_OPTIONS = [
+  "Médico",
+  "Dentista",
+  "Exame",
+  "Assunto pessoal",
+  "Compromisso particular",
+];
 
 export const TYPE_ICON: Record<EventType, typeof Car> = {
   "Visita presencial": Car,
@@ -73,13 +80,13 @@ export const TYPE_ICON: Record<EventType, typeof Car> = {
 };
 
 /** Tonalidade do evento derivada do status salvo + data/hora real. */
-export type EventTone = "done" | "cancelled" | "upcoming" | "other";
+export type EventTone = "done" | "cancelled" | "upcoming" | "inProgress";
 
 export const EVENT_TONE_LABEL: Record<EventTone, string> = {
   done: "Concluído",
   cancelled: "Cancelado",
   upcoming: "Agendado",
-  other: "Outros",
+  inProgress: "Em andamento",
 };
 
 export const EVENT_TONE_STYLES: Record<
@@ -104,7 +111,7 @@ export const EVENT_TONE_STYLES: Record<
     text: "text-orange-700 dark:text-orange-300",
     solid: "bg-orange-600 text-white dark:bg-orange-500 dark:text-orange-950",
   },
-  other: {
+  inProgress: {
     dot: "bg-sky-500",
     soft: "bg-sky-500/12",
     text: "text-sky-700 dark:text-sky-300",
@@ -151,7 +158,8 @@ export function getEventTone(
   const status = event.status ?? "Agendado";
   if (status === "Concluído") return "done";
   if (status === "Cancelado") return "cancelled";
+  if (status === "Em andamento") return "inProgress";
   const instant = eventInstant(event);
   if (status === "Agendado" && instant && instant.getTime() >= now.getTime()) return "upcoming";
-  return "other";
+  return "inProgress";
 }

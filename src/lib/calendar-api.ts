@@ -38,6 +38,8 @@ const originLabels: Record<string, CrmCalendarEvent["origin"]> = {
 };
 const statusLabels: Record<string, NonNullable<CrmCalendarEvent["status"]>> = {
   scheduled: "Agendado",
+  in_progress: "Em andamento",
+  "em andamento": "Em andamento",
   completed: "Concluído",
   cancelled: "Cancelado",
 };

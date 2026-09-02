@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Building2, CalendarDays, Car, Check, Laptop, Link2, Lock, X } from "lucide-react";
+import { Building2, CalendarDays, Car, Check, Laptop, Link2, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SmartTextarea } from "@/components/ui/smart-text";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -37,6 +36,7 @@ import { getClientById, getGroupMembers, resolveGroupCode, useClients } from "@/
 import type { ClientRow } from "@/routes/clientes.index";
 import {
   PLATFORM_OPTIONS,
+  PERSONAL_EVENT_OPTIONS,
   ROOM_OPTIONS,
   TYPE_ICON,
   hasEventStarted,
@@ -89,7 +89,6 @@ export function CreateEventDialog({
   const [meetingLink, setMeetingLink] = useState(editingEvent?.meetingLink ?? "");
   const [platform, setPlatform] = useState(editingEvent?.platform ?? PLATFORM_OPTIONS[0]);
   const [room, setRoom] = useState(editingEvent?.room ?? ROOM_OPTIONS[0]);
-  const [isPrivate, setIsPrivate] = useState(editingEvent?.isPrivate ?? false);
   const [meetingTarget, setMeetingTarget] = useState<MeetingTarget>("Empresa");
   const [meetingReason, setMeetingReason] = useState(editingEvent?.description ?? "");
 
@@ -143,7 +142,6 @@ export function CreateEventDialog({
     setMeetingLink("");
     setPlatform(PLATFORM_OPTIONS[0]);
     setRoom(ROOM_OPTIONS[0]);
-    setIsPrivate(false);
     setMeetingTarget("Empresa");
     setMeetingReason("");
   };
@@ -182,8 +180,8 @@ export function CreateEventDialog({
       return;
     }
     const isMeeting = type === "Reunião remota" || type === "Reunião na Prócion";
-    if (isMeeting && meetingTarget === "Cliente" && !lockedClient && !client) {
-      toast.error("Selecione o cliente da reunião.");
+    if (isMeeting && !lockedClient && !client) {
+      toast.error("Selecione a empresa da reunião.");
       return;
     }
     if (isMeeting && meetingTarget === "Cliente" && !meetingReason.trim()) {
@@ -200,12 +198,12 @@ export function CreateEventDialog({
       title: title.trim(),
       client: lockedClient
         ? lockedClient.label
-        : (type === "Visita presencial" || (isMeeting && meetingTarget === "Cliente")) && client
+        : (type === "Visita presencial" || isMeeting) && client
           ? client.fantasia || client.name || client.razaoSocial || client.acronym
           : undefined,
       clientId:
         lockedClient?.id ??
-        (type === "Visita presencial" || (isMeeting && meetingTarget === "Cliente")
+        (type === "Visita presencial" || isMeeting
           ? client?.id
           : undefined),
       description:
@@ -221,7 +219,6 @@ export function CreateEventDialog({
       meetingLink: type === "Reunião remota" ? meetingLink.trim() || undefined : undefined,
       platform: type === "Reunião remota" ? platform : undefined,
       room: type === "Reunião na Prócion" ? room : undefined,
-      isPrivate: type === "Pessoal" ? isPrivate : undefined,
     });
     reset();
     onOpenChange(false);
@@ -301,7 +298,12 @@ export function CreateEventDialog({
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => setType(opt.value)}
+                    onClick={() => {
+                      setType(opt.value);
+                      if (opt.value === "Pessoal" && !PERSONAL_EVENT_OPTIONS.includes(title)) {
+                        setTitle(PERSONAL_EVENT_OPTIONS[0]);
+                      }
+                    }}
                     className={cn(
                       "flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-[13px] transition",
                       active
@@ -430,20 +432,16 @@ export function CreateEventDialog({
 
           {type === "Pessoal" && (
             <div className="grid gap-3 sm:grid-cols-2">
+              <NewField label="Compromisso pessoal" required>
+                <SelectNative
+                  value={PERSONAL_EVENT_OPTIONS.includes(title) ? title : PERSONAL_EVENT_OPTIONS[0]}
+                  onChange={setTitle}
+                  options={PERSONAL_EVENT_OPTIONS}
+                />
+              </NewField>
               <NewField label="Responsável">
                 <CollaboratorSelect value={responsible} onChange={setResponsible} />
               </NewField>
-              <div className="flex items-end">
-                <label className="flex cursor-pointer items-center gap-2 text-[13px] text-foreground">
-                  <Checkbox
-                    checked={isPrivate}
-                    onCheckedChange={(v) => setIsPrivate(v === true)}
-                    className="h-4 w-4 cursor-pointer"
-                  />
-                  <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                  Evento privado
-                </label>
-              </div>
             </div>
           )}
 
@@ -550,14 +548,14 @@ function MeetingTargetFields({
           </SelectContent>
         </Select>
       </NewField>
-      {target === "Cliente" && !lockedClient && (
-        <NewField label="Cliente" required className="sm:col-span-2">
+      {!lockedClient && (
+        <NewField label="Empresa" required className="sm:col-span-2">
           <ClientPicker
             compact
             label=""
             value={client}
             onSelect={onClientChange}
-            placeholder="Buscar por sigla, razão social, fantasia, CNPJ ou grupo..."
+            placeholder="Buscar empresa por sigla, razão social, fantasia, CNPJ ou grupo..."
           />
         </NewField>
       )}

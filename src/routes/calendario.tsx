@@ -224,7 +224,21 @@ const typeOptions = [
   "Pessoal",
 ] as const;
 const originOptions = ["Todas", "Administração", "Suporte", "Comercial"] as const;
-const statusOptions = ["Todos", "Agendado", "Concluído", "Cancelado"] as const;
+const statusOptions = ["Todos", "Agendado", "Em andamento", "Concluído", "Cancelado"] as const;
+const monthOptions = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
 
 type Filters = {
   query: string;
@@ -303,6 +317,7 @@ function CalendarPage() {
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draft, setDraft] = useState<Filters>(emptyFilters);
+  const operatorOptions = ["Todos", ...useOperatorAcronyms()];
 
   useEffect(() => {
     if (filtersOpen) setDraft(filters);
@@ -439,6 +454,24 @@ function CalendarPage() {
     setSelectedDate(dateKey(next.getFullYear(), next.getMonth(), 1));
   };
 
+  const selectCalendarMonth = (nextMonth: number) => {
+    const next = new Date(year, nextMonth, 1);
+    setCursor(next);
+    setSelectedDate(dateKey(next.getFullYear(), next.getMonth(), 1));
+  };
+
+  const selectCalendarYear = (nextYear: number) => {
+    const next = new Date(nextYear, month, 1);
+    setCursor(next);
+    setSelectedDate(dateKey(next.getFullYear(), next.getMonth(), 1));
+  };
+
+  const availableYears = Array.from(
+    new Set([today.getFullYear(), year, ...allEvents.map((event) => Number(event.date.slice(0, 4)))]),
+  )
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a);
+
   const detailIsLocal = detailEvent
     ? isLocalEvent(detailEvent.id) || Boolean(detailEvent.editable)
     : false;
@@ -523,6 +556,39 @@ function CalendarPage() {
           </div>
         }
       />
+
+      <div className="mb-4 grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">
+        <FieldSelect
+          label="Tipo"
+          value={filters.type}
+          onChange={(value) => setFilters((current) => ({ ...current, type: value }))}
+          options={typeOptions.map((option) => ({ value: option, label: option }))}
+        />
+        <FieldSelect
+          label="Origem"
+          value={filters.origin}
+          onChange={(value) => setFilters((current) => ({ ...current, origin: value }))}
+          options={originOptions.map((option) => ({ value: option, label: option }))}
+        />
+        <FieldSelect
+          label="Operador"
+          value={filters.operator}
+          onChange={(value) => setFilters((current) => ({ ...current, operator: value }))}
+          options={operatorOptions.map((option) => ({ value: option, label: option }))}
+        />
+        <FieldSelect
+          label="Mês"
+          value={String(month)}
+          onChange={(value) => selectCalendarMonth(Number(value))}
+          options={monthOptions.map((label, value) => ({ value: String(value), label }))}
+        />
+        <FieldSelect
+          label="Ano"
+          value={String(year)}
+          onChange={(value) => selectCalendarYear(Number(value))}
+          options={availableYears.map((value) => ({ value: String(value), label: String(value) }))}
+        />
+      </div>
 
       {chips.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
