@@ -124,7 +124,7 @@ export function eventStartInstant(
   event: Pick<CalendarEvent, "date" | "time">,
 ): Date | null {
   const clock = (event.time || "00:00").slice(0, 5);
-  const parsed = new Date(`${event.date}T${clock}:00`);
+  const parsed = new Date(`${event.date}T${clock}:00-03:00`);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
@@ -139,7 +139,7 @@ export function hasEventStarted(
 
 function eventEndInstant(event: Pick<CalendarEvent, "date" | "time" | "end">): Date | null {
   const clock = (event.end || event.time || "00:00").slice(0, 5);
-  const parsed = new Date(`${event.date}T${clock}:00`);
+  const parsed = new Date(`${event.date}T${clock}:00-03:00`);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 

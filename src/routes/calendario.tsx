@@ -313,6 +313,7 @@ function CalendarPage() {
   const [agendaOpen, setAgendaOpen] = useState(false);
   const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [calendarNow, setCalendarNow] = useState(() => new Date());
 
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -322,6 +323,11 @@ function CalendarPage() {
   useEffect(() => {
     if (filtersOpen) setDraft(filters);
   }, [filtersOpen, filters]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCalendarNow(new Date()), 15_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const filtered = useMemo(() => {
     return allEvents.filter((event) => {
@@ -696,7 +702,7 @@ function CalendarPage() {
                 </span>
                 <div className="space-y-1">
                   {dayEvents.slice(0, 3).map((event) => (
-                    <CalendarEventPill key={event.id} event={event} />
+                    <CalendarEventPill key={event.id} event={event} now={calendarNow} />
                   ))}
                   {dayEvents.length > 3 && (
                     <span className="block pl-1 text-[10px] text-primary">
@@ -730,7 +736,12 @@ function CalendarPage() {
               <div className="space-y-3">
                 {selectedEvents.length ? (
                   selectedEvents.map((event) => (
-                    <AgendaItem key={event.id} event={event} onOpen={setDetailEvent} />
+                    <AgendaItem
+                      key={event.id}
+                      event={event}
+                      now={calendarNow}
+                      onOpen={setDetailEvent}
+                    />
                   ))
                 ) : (
                   <div className="rounded-md border border-dashed border-border px-4 py-10 text-center">
@@ -1028,8 +1039,8 @@ function DateField({
   );
 }
 
-function CalendarEventPill({ event }: { event: CalendarEvent }) {
-  const tone = getEventTone(event);
+function CalendarEventPill({ event, now }: { event: CalendarEvent; now: Date }) {
+  const tone = getEventTone(event, now);
   const toneStyle = EVENT_TONE_STYLES[tone];
   const Icon = typeStyles[event.type].icon;
   const operator = event.operator?.trim() ? event.operator : "SEM OPERADOR";
@@ -1054,12 +1065,14 @@ function CalendarEventPill({ event }: { event: CalendarEvent }) {
 
 function AgendaItem({
   event,
+  now,
   onOpen,
 }: {
   event: CalendarEvent;
+  now: Date;
   onOpen: (e: CalendarEvent) => void;
 }) {
-  const tone = getEventTone(event);
+  const tone = getEventTone(event, now);
   const toneStyle = EVENT_TONE_STYLES[tone];
   const Icon = typeStyles[event.type].icon;
   // Reactively read usage tied to this appointment

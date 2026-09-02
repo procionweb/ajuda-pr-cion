@@ -218,10 +218,13 @@ export function CreateEventDialog({
       toast.error("Informe o motivo da reunião com o cliente.");
       return;
     }
-    if (!ignoreGuestConflicts && type !== "Pessoal") {
+    if (!ignoreGuestConflicts) {
       const conflicts = findGuestConflicts({
         events: existingEvents,
-        guests,
+        guests: [
+          ...guests,
+          ...(responsible ? [{ acronym: responsible, name: responsible }] : []),
+        ],
         date,
         startTime,
         endTime,

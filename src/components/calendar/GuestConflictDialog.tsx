@@ -50,24 +50,29 @@ export function findGuestConflicts({
   if (!guests.length) return [];
 
   return events.flatMap((event) => {
+    const eventEnd = event.end || event.time;
     if (
       event.date !== date ||
       event.status === "Cancelado" ||
       String(event.id) === String(ignoreEventId ?? "") ||
-      startTime >= event.end ||
+      startTime >= eventEnd ||
       endTime <= event.time
     ) {
       return [];
     }
 
     const eventGuestKeys = new Set(
-      [...(event.guestList ?? []), ...(event.guests ?? [])].flatMap(guestKeys),
+      [
+        ...(event.guestList ?? []),
+        ...(event.guests ?? []),
+        event.responsible || event.operator,
+      ].flatMap(guestKeys),
     );
     const matched = guests
       .filter((guest) => guestKeys(guest).some((key) => eventGuestKeys.has(key)))
       .map((guest) => guest.acronym || guest.name || guest.email || "Convidado");
 
-    return matched.length ? [{ event, guests: matched }] : [];
+    return matched.length ? [{ event, guests: [...new Set(matched)] }] : [];
   });
 }
 
@@ -84,9 +89,9 @@ export function GuestConflictDialog({
     <AlertDialog open={conflicts.length > 0}>
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle>Convidado com conflito de horário</AlertDialogTitle>
+          <AlertDialogTitle>Colaborador com conflito de horário</AlertDialogTitle>
           <AlertDialogDescription>
-            Um ou mais convidados já participam de outro agendamento nesse período.
+            O colaborador já está em outro evento nesse período. Deseja continuar mesmo assim?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="max-h-64 space-y-2 overflow-y-auto">
@@ -97,9 +102,9 @@ export function GuestConflictDialog({
                 <CalendarClock className="h-4 w-4" />
                 {event.date.split("-").reverse().join("/")} · {event.time} às {event.end} · {event.type}
               </p>
-              <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+              <p className="mt-1 flex items-center gap-1.5 font-medium text-foreground">
                 <UsersRound className="h-4 w-4" />
-                {guests.join(", ")}
+                {guests.join(", ")} já está em outro evento das {event.time} às {event.end}.
               </p>
               {event.client && <p className="mt-1 text-muted-foreground">{event.client}</p>}
             </div>

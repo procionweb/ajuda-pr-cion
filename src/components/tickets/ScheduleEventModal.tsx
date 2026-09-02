@@ -145,7 +145,10 @@ export function ScheduleEventModal({
     if (!ignoreGuestConflicts) {
       const conflicts = findGuestConflicts({
         events: calendarEvents,
-        guests,
+        guests: [
+          ...guests,
+          ...(responsible ? [{ acronym: responsible, name: responsible }] : []),
+        ],
         date,
         startTime,
         endTime,
