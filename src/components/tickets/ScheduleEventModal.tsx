@@ -223,6 +223,15 @@ export function ScheduleEventModal({
           }
         />
         <div className="flex-1 space-y-2.5 overflow-y-auto bg-card px-5 py-3 md:px-6">
+          <EventDateTimeFields
+            className="gap-2.5"
+            date={date}
+            onDateChange={setDate}
+            startTime={startTime}
+            onStartTimeChange={setStartTime}
+            endTime={endTime}
+            onEndTimeChange={setEndTime}
+          />
           <div className="grid gap-2.5 sm:grid-cols-2">
             <Field label="Tipo do evento" required>
               <Select value={type} onValueChange={setType}>
@@ -242,15 +251,6 @@ export function ScheduleEventModal({
               <CollaboratorSelect value={responsible} onChange={setResponsible} />
             </Field>
           </div>
-          <EventDateTimeFields
-            className="gap-2.5"
-            date={date}
-            onDateChange={setDate}
-            startTime={startTime}
-            onStartTimeChange={setStartTime}
-            endTime={endTime}
-            onEndTimeChange={setEndTime}
-          />
 
           <div className="grid gap-2.5 sm:grid-cols-2">
             <Field label="Módulo" required>

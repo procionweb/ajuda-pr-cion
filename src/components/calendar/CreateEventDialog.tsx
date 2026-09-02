@@ -92,6 +92,20 @@ export function CreateEventDialog({
   const [meetingTarget, setMeetingTarget] = useState<MeetingTarget>("Empresa");
   const [meetingReason, setMeetingReason] = useState(editingEvent?.description ?? "");
 
+  const procionClient = useMemo(
+    () =>
+      clients.find((candidate) => candidate.cnpj.replace(/\D/g, "") === "06887505000104") ??
+      clients.find(
+        (candidate) =>
+          candidate.acronym.trim().toUpperCase() === "PRC" &&
+          [candidate.fantasia, candidate.name, candidate.razaoSocial].some((value) =>
+            value.toLocaleUpperCase("pt-BR").includes("PROCION"),
+          ),
+      ) ??
+      null,
+    [clients],
+  );
+
   useEffect(() => {
     if (open && !editingEvent) setDate(initialDate);
   }, [open, initialDate, editingEvent]);
@@ -99,6 +113,16 @@ export function CreateEventDialog({
   useEffect(() => {
     if (!responsible && defaultResponsible) setResponsible(defaultResponsible);
   }, [responsible, defaultResponsible]);
+
+  useEffect(() => {
+    if (lockedClient || type !== "Reunião na Prócion" || !procionClient) return;
+    if (meetingTarget === "Empresa" && client?.id !== procionClient.id) {
+      setClient(procionClient);
+    }
+    if (meetingTarget === "Cliente" && client?.id === procionClient.id) {
+      setClient(null);
+    }
+  }, [client, lockedClient, meetingTarget, procionClient, type]);
 
   // Resolve o cliente do evento em edição assim que a lista do CRM estiver carregada.
   useEffect(() => {
@@ -252,34 +276,6 @@ export function CreateEventDialog({
         />
 
         <div className="flex-1 min-h-0 space-y-4 overflow-y-auto bg-card px-5 py-4 md:px-6">
-          <NewField label="Título" required>
-            <Input
-              lang="pt-BR"
-              spellCheck
-              autoCorrect="on"
-              autoCapitalize="sentences"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Informe o título do agendamento"
-              maxLength={140}
-            />
-          </NewField>
-
-          <NewField label="Descrição">
-            <SmartTextarea
-              value={description}
-              onValueChange={setDescription}
-              rows={3}
-              maxLength={700}
-              placeholder="Descreva o objetivo ou as informações do agendamento"
-              className="min-h-[80px] resize-none"
-            />
-          </NewField>
-
-          <NewField label="Convidados">
-            <CollaboratorMultiSelect value={guests} onChange={setGuests} />
-          </NewField>
-
           <EventDateTimeFields
             date={date}
             onDateChange={setDate}
@@ -317,6 +313,34 @@ export function CreateEventDialog({
                 );
               })}
             </div>
+          </NewField>
+
+          <NewField label="Título" required>
+            <Input
+              lang="pt-BR"
+              spellCheck
+              autoCorrect="on"
+              autoCapitalize="sentences"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Informe o título do agendamento"
+              maxLength={140}
+            />
+          </NewField>
+
+          <NewField label="Descrição">
+            <SmartTextarea
+              value={description}
+              onValueChange={setDescription}
+              rows={3}
+              maxLength={700}
+              placeholder="Descreva o objetivo ou as informações do agendamento"
+              className="min-h-[80px] resize-none"
+            />
+          </NewField>
+
+          <NewField label="Convidados">
+            <CollaboratorMultiSelect value={guests} onChange={setGuests} />
           </NewField>
 
           {lockedClient && (
