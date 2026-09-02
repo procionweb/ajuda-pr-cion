@@ -20,6 +20,12 @@ import {
 
 export const NO_VEHICLE = "__none__";
 
+function reservationPeriod(startAt: string, endAt: string) {
+  const start = new Date(startAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const end = new Date(endAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return `${start} às ${end}`;
+}
+
 export type VehicleAvailability =
   | { key: "disponivel"; label: "Disponível"; conflict?: undefined }
   | { key: "em_uso"; label: "Em uso" | "Em uso no período"; conflict?: undefined }
@@ -146,11 +152,8 @@ export function VehicleAvailabilitySelect({
           : undefined;
       onChange(NO_VEHICLE);
       if (conflict) {
-        toast.error("Este veículo já possui um agendamento.", {
-          description: `Agendado para ${new Date(conflict.startAt).toLocaleString("pt-BR", {
-            dateStyle: "short",
-            timeStyle: "short",
-          })}. O veículo fica bloqueado desde 1 hora antes até 30 minutos após o término previsto.`,
+        toast.error("Carro reservado", {
+          description: `Reservado de ${reservationPeriod(conflict.startAt, conflict.endAt)}.`,
         });
       } else {
         toast.info("Veículo indisponível no período selecionado. Escolha outro.");
@@ -172,7 +175,13 @@ export function VehicleAvailabilitySelect({
             <SelectItem value={NO_VEHICLE}>Não definido</SelectItem>
             {vehicles.map((vehicle) => {
               const info = availability.get(vehicle.id);
-              const label = info?.label ?? VEHICLE_STATUS_LABEL[vehicle.status];
+              const conflict =
+                windowStart && windowEnd
+                  ? hasReservationConflict(vehicle.id, windowStart, windowEnd)
+                  : undefined;
+              const label = conflict
+                ? `Reservado de ${reservationPeriod(conflict.startAt, conflict.endAt)}`
+                : info?.label ?? VEHICLE_STATUS_LABEL[vehicle.status];
               const disabled = isUnavailable(info);
               return (
                 <SelectItem key={vehicle.id} value={vehicle.id} disabled={disabled}>

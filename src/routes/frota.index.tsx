@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import {
   useVehicles,
   useUsages,
+  useReservations,
   getVehicleById,
   fleetDayKey,
   formatFleetDateTime,
@@ -202,6 +203,7 @@ function DeparturesView({ query }: { query: string }) {
 
 function VehiclesView({ query }: { query: string }) {
   const vehicles = useVehicles();
+  const reservations = useReservations();
   const rows = vehicles.filter((v) =>
     `${v.model} ${v.plate} ${v.category}`.toLowerCase().includes(query.toLowerCase()),
   );
@@ -209,7 +211,16 @@ function VehiclesView({ query }: { query: string }) {
   return (
     <>
       <div className="grid w-full min-w-0 max-w-full gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {rows.map((v) => (
+        {rows.map((v) => {
+          const reservation = reservations
+            .filter(
+              (item) =>
+                item.vehicleId === v.id &&
+                item.status === "pre_agendado" &&
+                new Date(item.endAt).getTime() >= Date.now(),
+            )
+            .sort((a, b) => a.startAt.localeCompare(b.startAt))[0];
+          return (
           <Card
             key={v.id}
             className="group relative min-w-0 overflow-hidden p-0 transition hover:border-primary/40 hover:shadow-md"
@@ -232,7 +243,13 @@ function VehiclesView({ query }: { query: string }) {
                   <p className="mt-0.5 font-mono text-[11.5px] text-primary">{v.plate}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <VehicleBadge status={v.status} />
+                  {reservation ? (
+                    <Badge className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50">
+                      Reservado
+                    </Badge>
+                  ) : (
+                    <VehicleBadge status={v.status} />
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11.5px] text-muted-foreground">
@@ -242,7 +259,8 @@ function VehiclesView({ query }: { query: string }) {
               </div>
             </div>
           </Card>
-        ))}
+          );
+        })}
       </div>
     </>
   );

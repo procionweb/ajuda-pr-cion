@@ -73,6 +73,23 @@ function syncFleetReservation(event: CalendarEvent) {
     ? `${event.client ?? event.title} - ${event.address}`
     : (event.client ?? event.title);
 
+  const hasReservation = getReservationsSnapshot().some(
+    (reservation) =>
+      String(reservation.eventId) === String(event.id) && reservation.status === "pre_agendado",
+  );
+  if (!hasReservation) {
+    const reservation = createReservation({
+      vehicleId: event.vehicleId,
+      operatorId: event.responsible ?? event.operator ?? "",
+      startAt: scheduledStartAt,
+      endAt: expectedReturnAt,
+      eventId: event.id,
+      customerId: event.clientId,
+      destination,
+    });
+    if ("error" in reservation) return;
+  }
+
   if (!getUsageByAppointment(event.id)) {
     createUsageForAppointment({
       appointmentId: event.id,
@@ -82,22 +99,6 @@ function syncFleetReservation(event: CalendarEvent) {
       destination,
       scheduledStartAt,
       expectedReturnAt,
-    });
-  }
-
-  const hasReservation = getReservationsSnapshot().some(
-    (reservation) =>
-      String(reservation.eventId) === String(event.id) && reservation.status === "pre_agendado",
-  );
-  if (!hasReservation) {
-    createReservation({
-      vehicleId: event.vehicleId,
-      operatorId: event.responsible ?? event.operator ?? "",
-      startAt: scheduledStartAt,
-      endAt: expectedReturnAt,
-      eventId: event.id,
-      customerId: event.clientId,
-      destination,
     });
   }
 }
@@ -177,6 +178,8 @@ export function updateLocalEvent(
     console.error("[calendar] Nao foi possivel atualizar o agendamento no Supabase.", error);
     toast.error("Nao foi possivel atualizar o agendamento no banco.");
   });
+  removeFleetRecordsForAppointments([id]);
+  syncFleetReservation(updated);
   return updated;
 }
 

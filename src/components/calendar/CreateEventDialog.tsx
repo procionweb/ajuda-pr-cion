@@ -37,6 +37,7 @@ import {
 } from "@/components/portal/CollaboratorPicker";
 import { ClientPicker } from "@/components/portal/ClientPicker";
 import { getClientById, getGroupMembers, resolveGroupCode, useClients } from "@/lib/clients-store";
+import { getActiveReservationsByVehicle, hasReservationConflict } from "@/lib/fleet-store";
 import type { ClientRow } from "@/routes/clientes.index";
 import {
   PLATFORM_OPTIONS,
@@ -209,6 +210,25 @@ export function CreateEventDialog({
     if (type === "Visita presencial" && vehicleId === NO_VEHICLE) {
       toast.error("Selecione o veículo que será usado na visita.");
       return;
+    }
+    if (type === "Visita presencial") {
+      const ownReservation = editingEvent
+        ? getActiveReservationsByVehicle(vehicleId).find(
+            (reservation) => String(reservation.eventId ?? "") === String(editingEvent.id),
+          )
+        : undefined;
+      const conflict = hasReservationConflict(
+        vehicleId,
+        `${date}T${startTime}:00`,
+        `${date}T${endTime}:00`,
+        ownReservation?.id,
+      );
+      if (conflict) {
+        const from = new Date(conflict.startAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const until = new Date(conflict.endAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        toast.error("Carro reservado", { description: `Reservado de ${from} às ${until}.` });
+        return;
+      }
     }
     const isMeeting = type === "Reunião remota" || type === "Reunião na Prócion";
     if (isMeeting && !lockedClient && !client) {

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { listCrmCalendarEvents } from "@/lib/calendar-api";
 import { currentUser } from "@/lib/mock-data";
 import { addNotification } from "@/lib/notifications-store";
+import { useLocalEvents } from "@/lib/local-events-store";
 
 const REMINDER_WINDOW_MS = 30 * 60 * 1000;
 
@@ -17,6 +18,7 @@ function includesOperator(values: Array<string | undefined>, operator: string) {
 }
 
 export function CalendarNotifications() {
+  useLocalEvents(); // Mantém eventos e reservas da Frota sincronizados em todo o portal.
   useEffect(() => {
     let active = true;
 

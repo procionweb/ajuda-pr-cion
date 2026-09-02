@@ -72,6 +72,10 @@ export async function listCrmCalendarEvents(): Promise<CrmCalendarEvent[]> {
     protocol: event.protocol ? String(event.protocol) : undefined,
     responsible: event.responsible ? String(event.responsible) : undefined,
     vehicleId: event.vehicleId ? String(event.vehicleId) : undefined,
+    needsDisplacement:
+      event.needsDisplacement === true ||
+      event.needsDisplacement === "true" ||
+      Boolean(event.vehicleId),
     address: event.address ? String(event.address) : undefined,
     meetingLink: event.meetingLink ? String(event.meetingLink) : undefined,
     platform: event.platform ? String(event.platform) : undefined,

@@ -38,12 +38,14 @@ import { modulesMap, moduleOptions, splitModule } from "@/lib/modules-map";
 import { addLocalEvent, useLocalEvents } from "@/lib/local-events-store";
 import { hasEventStarted, type EventType } from "@/lib/calendar-events";
 import { listCrmCalendarEvents } from "@/lib/calendar-api";
-import { createReservation } from "@/lib/fleet-store";
+import { createReservation, hasReservationConflict } from "@/lib/fleet-store";
 import { CorrectionHint } from "@/components/ui/smart-text";
 import { useSpellCorrection } from "@/lib/spellcheck";
 
 const EVENT_TYPES = ["Visita", "Reunião remota", "Reunião PRC"];
 const preventOutsideClose = (event: Event) => event.preventDefault();
+const reservationPeriod = (startAt: string, endAt: string) =>
+  `${new Date(startAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} às ${new Date(endAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 
 export function ScheduleEventModal({
   open,
@@ -183,7 +185,12 @@ export function ScheduleEventModal({
       }
       const info = vehicleAvailability.get(vehicleId);
       if (isUnavailable(info)) {
-        toast.error("Veículo indisponível para reserva.");
+        const existing = hasReservationConflict(vehicleId, windowStart, windowEnd);
+        toast.error("Carro reservado", {
+          description: existing
+            ? `Reservado de ${reservationPeriod(existing.startAt, existing.endAt)}.`
+            : "O carro está indisponível neste horário.",
+        });
         return;
       }
       const created = createReservation({
@@ -197,8 +204,8 @@ export function ScheduleEventModal({
         destination: `${ticket.clientCode || "—"} · ${ticket.clientName || "Cliente não vinculado"}`,
       });
       if ("error" in created) {
-        toast.error("Conflito de agenda para o veículo escolhido.", {
-          description: `Já existe pré-reserva de ${new Date(created.conflict.startAt).toLocaleString("pt-BR")} até ${new Date(created.conflict.endAt).toLocaleString("pt-BR")}.`,
+        toast.error("Carro reservado", {
+          description: `Reservado de ${reservationPeriod(created.conflict.startAt, created.conflict.endAt)}.`,
         });
         return;
       }
