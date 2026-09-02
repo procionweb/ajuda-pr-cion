@@ -50,7 +50,7 @@ function SupportAppointmentsPage() {
     persistedEvents.forEach((event) => merged.set(String(event.id), event));
     localEvents.forEach((event) => merged.set(String(event.id), event));
     return [...merged.values()]
-      .filter((event) => event.origin === "Suporte")
+      .filter((event) => event.origin === "Suporte" || event.origin === "Administração")
       .sort((a, b) => `${b.date}T${b.time}`.localeCompare(`${a.date}T${a.time}`));
   }, [localEvents, persistedEvents]);
 
@@ -82,7 +82,7 @@ function SupportAppointmentsPage() {
     <AppShell fullWidth>
       <PageHeader
         title="Agendamentos Suporte"
-        description="Visitas, reuniões e compromissos criados a partir dos chamados."
+        description="Visitas, reuniões e compromissos do suporte criados no calendário ou nos chamados."
         breadcrumbs={[{ label: "Suporte" }, { label: "Agendamentos" }]}
       />
 

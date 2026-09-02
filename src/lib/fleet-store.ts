@@ -524,7 +524,13 @@ export function useReservations() {
 }
 
 export function getActiveReservationsByVehicle(vehicleId: string) {
-  return reservations.filter((r) => r.vehicleId === vehicleId && r.status === "pre_agendado");
+  return reservations.filter((reservation) => {
+    if (reservation.vehicleId !== vehicleId || reservation.status !== "pre_agendado") return false;
+    const linkedUsage = usages.find(
+      (usage) => String(usage.appointmentId ?? "") === String(reservation.eventId ?? ""),
+    );
+    return !linkedUsage || linkedUsage.status === "aguardando_retirada";
+  });
 }
 
 export function hasReservationConflict(
@@ -533,10 +539,8 @@ export function hasReservationConflict(
   endAt: string,
   ignoreReservationId?: string,
 ): VehicleReservation | undefined {
-  return reservations.find((r) => {
+  return getActiveReservationsByVehicle(vehicleId).find((r) => {
     if (r.id === ignoreReservationId) return false;
-    if (r.vehicleId !== vehicleId) return false;
-    if (r.status !== "pre_agendado") return false;
     const reservedFrom = new Date(r.startAt).getTime() - VEHICLE_RESERVATION_BUFFER_MS;
     const reservedUntil = new Date(r.endAt).getTime() + VEHICLE_RETURN_BUFFER_MS;
     const requestedFrom = new Date(startAt).getTime();
@@ -840,6 +844,8 @@ export function registerDeparture(
     departurePhotos?: string[];
   },
 ) {
+  const usage = usages.find((item) => item.id === usageId);
+  if (!usage) return;
   usages = usages.map((u) =>
     u.id === usageId
       ? {
@@ -868,6 +874,12 @@ export function registerDeparture(
           fuelLevel: data.fuelAtDeparture,
         }
       : v,
+  );
+  reservations = reservations.map((reservation) =>
+    String(reservation.eventId ?? "") === String(usage.appointmentId ?? "") &&
+    reservation.status === "pre_agendado"
+      ? { ...reservation, status: "convertida_em_uso", updatedAt: nowISO() }
+      : reservation,
   );
   persistRuntimeRecords();
   emit();
@@ -916,6 +928,12 @@ export function registerReturn(
         : v,
     );
   }
+  reservations = reservations.map((reservation) =>
+    String(reservation.eventId ?? "") === String(usage.appointmentId ?? "") &&
+    reservation.status !== "cancelada"
+      ? { ...reservation, status: "cancelada", updatedAt: nowISO() }
+      : reservation,
+  );
   persistRuntimeRecords();
   emit();
 }
@@ -928,6 +946,12 @@ export function cancelUsage(id: string) {
   if (usage?.vehicleId) {
     vehicles = vehicles.map((v) => (v.id === usage.vehicleId ? { ...v, status: "disponivel" } : v));
   }
+  reservations = reservations.map((reservation) =>
+    String(reservation.eventId ?? "") === String(usage?.appointmentId ?? "") &&
+    reservation.status !== "cancelada"
+      ? { ...reservation, status: "cancelada", updatedAt: nowISO() }
+      : reservation,
+  );
   persistRuntimeRecords();
   emit();
 }

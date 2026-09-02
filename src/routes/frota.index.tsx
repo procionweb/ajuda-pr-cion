@@ -10,6 +10,7 @@ import {
   useVehicles,
   useUsages,
   useReservations,
+  getActiveReservationsByVehicle,
   getVehicleById,
   fleetDayKey,
   formatFleetDateTime,
@@ -203,7 +204,7 @@ function DeparturesView({ query }: { query: string }) {
 
 function VehiclesView({ query }: { query: string }) {
   const vehicles = useVehicles();
-  const reservations = useReservations();
+  useReservations();
   const rows = vehicles.filter((v) =>
     `${v.model} ${v.plate} ${v.category}`.toLowerCase().includes(query.toLowerCase()),
   );
@@ -212,13 +213,8 @@ function VehiclesView({ query }: { query: string }) {
     <>
       <div className="grid w-full min-w-0 max-w-full gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {rows.map((v) => {
-          const reservation = reservations
-            .filter(
-              (item) =>
-                item.vehicleId === v.id &&
-                item.status === "pre_agendado" &&
-                new Date(item.endAt).getTime() >= Date.now(),
-            )
+          const reservation = getActiveReservationsByVehicle(v.id)
+            .filter((item) => new Date(item.endAt).getTime() >= Date.now())
             .sort((a, b) => a.startAt.localeCompare(b.startAt))[0];
           return (
           <Card

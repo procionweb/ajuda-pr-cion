@@ -126,7 +126,7 @@ export function NotificationsPopover() {
           <button
             type="button"
             onClick={enableDesktopNotifications}
-            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            className="inline-flex cursor-pointer items-center gap-1 text-xs text-primary hover:underline"
           >
             <MonitorUp className="h-3.5 w-3.5" /> Ativar avisos no computador
           </button>
