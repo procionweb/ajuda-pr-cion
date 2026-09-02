@@ -391,7 +391,7 @@ export function ScheduleEventModal({
             >
               Cancelar
             </Button>
-            <Button onClick={submit} className="cursor-pointer">
+            <Button onClick={() => submit()} className="cursor-pointer">
               <CalendarClock className="mr-1.5 h-4 w-4" />
               Agendar evento
             </Button>

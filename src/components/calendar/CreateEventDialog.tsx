@@ -555,7 +555,7 @@ export function CreateEventDialog({
             Cancelar
           </Button>
           <Button
-            onClick={submit}
+            onClick={() => submit()}
             className="cursor-pointer bg-blue-600 text-white hover:bg-blue-700"
           >
             <CalendarDays className="mr-1.5 h-4 w-4" />
