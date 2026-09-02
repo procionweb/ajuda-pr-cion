@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CalendarClock, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -21,6 +21,11 @@ import {
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { EventDateTimeFields } from "@/components/calendar/EventDateTimeFields";
 import {
+  findGuestConflicts,
+  GuestConflictDialog,
+  type GuestConflict,
+} from "@/components/calendar/GuestConflictDialog";
+import {
   NO_VEHICLE,
   VehicleAvailabilitySelect,
   useVehicleAvailability,
@@ -30,8 +35,9 @@ import {
 import { ticketsStore } from "@/lib/tickets-store";
 import type { SupportTicket } from "@/lib/support-tickets-data";
 import { modulesMap, moduleOptions, splitModule } from "@/lib/modules-map";
-import { addLocalEvent } from "@/lib/local-events-store";
+import { addLocalEvent, useLocalEvents } from "@/lib/local-events-store";
 import { hasEventStarted, type EventType } from "@/lib/calendar-events";
+import { listCrmCalendarEvents } from "@/lib/calendar-api";
 import { createReservation } from "@/lib/fleet-store";
 import { CorrectionHint } from "@/components/ui/smart-text";
 import { useSpellCorrection } from "@/lib/spellcheck";
@@ -64,6 +70,32 @@ export function ScheduleEventModal({
     onChange: setDescription,
   });
   const [reminder, setReminder] = useState(true);
+  const [guestConflicts, setGuestConflicts] = useState<GuestConflict[]>([]);
+  const localCalendarEvents = useLocalEvents();
+  const [crmCalendarEvents, setCrmCalendarEvents] = useState<Awaited<
+    ReturnType<typeof listCrmCalendarEvents>
+  >>([]);
+  const calendarEvents = useMemo(() => {
+    const merged = new Map<string, (typeof localCalendarEvents)[number]>();
+    crmCalendarEvents.forEach((event) => merged.set(String(event.id), event));
+    localCalendarEvents.forEach((event) => merged.set(String(event.id), event));
+    return [...merged.values()];
+  }, [crmCalendarEvents, localCalendarEvents]);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    void listCrmCalendarEvents()
+      .then((events) => {
+        if (active) setCrmCalendarEvents(events);
+      })
+      .catch(() => {
+        if (active) setCrmCalendarEvents([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [open]);
 
   const availableSubs = modulesMap[module] ?? [];
   const {
@@ -93,7 +125,7 @@ export function ScheduleEventModal({
     setReminder(true);
   };
 
-  const submit = () => {
+  const submit = (ignoreGuestConflicts = false) => {
     if (ticket.status === "Finalizado") {
       toast.error("Chamado finalizado não pode receber novos agendamentos.");
       return;
@@ -109,6 +141,19 @@ export function ScheduleEventModal({
     if (endTime <= startTime) {
       toast.error("O horário final deve ser posterior ao inicial.");
       return;
+    }
+    if (!ignoreGuestConflicts) {
+      const conflicts = findGuestConflicts({
+        events: calendarEvents,
+        guests,
+        date,
+        startTime,
+        endTime,
+      });
+      if (conflicts.length) {
+        setGuestConflicts(conflicts);
+        return;
+      }
     }
 
     let vehicleLabel: string | undefined;
@@ -346,6 +391,14 @@ export function ScheduleEventModal({
           </div>
         </DialogFooter>
       </DialogContent>
+      <GuestConflictDialog
+        conflicts={guestConflicts}
+        onCancel={() => setGuestConflicts([])}
+        onContinue={() => {
+          setGuestConflicts([]);
+          submit(true);
+        }}
+      />
     </Dialog>
   );
 }

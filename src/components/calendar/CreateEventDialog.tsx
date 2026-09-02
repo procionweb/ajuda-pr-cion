@@ -20,6 +20,11 @@ import {
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { EventDateTimeFields } from "@/components/calendar/EventDateTimeFields";
 import {
+  findGuestConflicts,
+  GuestConflictDialog,
+  type GuestConflict,
+} from "@/components/calendar/GuestConflictDialog";
+import {
   NO_VEHICLE,
   VehicleAvailabilitySelect,
 } from "@/components/fleet/VehicleAvailabilitySelect";
@@ -91,6 +96,7 @@ export function CreateEventDialog({
   const [room, setRoom] = useState(editingEvent?.room ?? ROOM_OPTIONS[0]);
   const [meetingTarget, setMeetingTarget] = useState<MeetingTarget>("Empresa");
   const [meetingReason, setMeetingReason] = useState(editingEvent?.description ?? "");
+  const [guestConflicts, setGuestConflicts] = useState<GuestConflict[]>([]);
 
   const procionClient = useMemo(
     () =>
@@ -182,7 +188,7 @@ export function CreateEventDialog({
     ? format(new Date(`${date}T12:00:00`), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     : "Selecione uma data";
 
-  const submit = () => {
+  const submit = (ignoreGuestConflicts = false) => {
     if (!title.trim()) {
       toast.error("Informe o título do agendamento.");
       return;
@@ -211,6 +217,20 @@ export function CreateEventDialog({
     if (isMeeting && meetingTarget === "Cliente" && !meetingReason.trim()) {
       toast.error("Informe o motivo da reunião com o cliente.");
       return;
+    }
+    if (!ignoreGuestConflicts && type !== "Pessoal") {
+      const conflicts = findGuestConflicts({
+        events: existingEvents,
+        guests,
+        date,
+        startTime,
+        endTime,
+        ignoreEventId: editingEvent?.id,
+      });
+      if (conflicts.length) {
+        setGuestConflicts(conflicts);
+        return;
+      }
     }
     onCreate({
       date,
@@ -543,6 +563,14 @@ export function CreateEventDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <GuestConflictDialog
+        conflicts={guestConflicts}
+        onCancel={() => setGuestConflicts([])}
+        onContinue={() => {
+          setGuestConflicts([]);
+          submit(true);
+        }}
+      />
     </Dialog>
   );
 }
