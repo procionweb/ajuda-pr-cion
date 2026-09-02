@@ -234,8 +234,11 @@ export function CreateEventDialog({
         isMeeting && meetingTarget === "Cliente"
           ? meetingReason.trim()
           : description.trim() || undefined,
-      guests: guests.length ? guests.map((g) => g.acronym ?? g.name) : undefined,
-      guestList: guests.length ? guests : undefined,
+      guests:
+        type !== "Pessoal" && guests.length
+          ? guests.map((guest) => guest.acronym ?? guest.name)
+          : undefined,
+      guestList: type !== "Pessoal" && guests.length ? guests : undefined,
       needsDisplacement: type === "Visita presencial" ? vehicleId !== NO_VEHICLE : undefined,
       vehicleId: type === "Visita presencial" && vehicleId !== NO_VEHICLE ? vehicleId : undefined,
 
@@ -339,9 +342,11 @@ export function CreateEventDialog({
             />
           </NewField>
 
-          <NewField label="Convidados">
-            <CollaboratorMultiSelect value={guests} onChange={setGuests} />
-          </NewField>
+          {type !== "Pessoal" && (
+            <NewField label="Convidados">
+              <CollaboratorMultiSelect value={guests} onChange={setGuests} />
+            </NewField>
+          )}
 
           {lockedClient && (
             <NewField label="Cliente">
