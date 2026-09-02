@@ -138,6 +138,10 @@ export function ScheduleEventModal({
       toast.error("Selecione o responsável pelo agendamento.");
       return;
     }
+    if (type === "Visita" && vehicleId === NO_VEHICLE) {
+      toast.error("Selecione o veículo que será usado na visita.");
+      return;
+    }
     if (hasEventStarted({ date, time: startTime })) {
       toast.error("Esse horário já passou. Escolha um horário futuro.");
       return;

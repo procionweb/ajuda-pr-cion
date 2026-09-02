@@ -206,6 +206,10 @@ export function CreateEventDialog({
       toast.error("Selecione a empresa da visita presencial.");
       return;
     }
+    if (type === "Visita presencial" && vehicleId === NO_VEHICLE) {
+      toast.error("Selecione o veículo que será usado na visita.");
+      return;
+    }
     const isMeeting = type === "Reunião remota" || type === "Reunião na Prócion";
     if (isMeeting && !lockedClient && !client) {
       toast.error("Selecione a empresa da reunião.");

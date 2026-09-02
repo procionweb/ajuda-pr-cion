@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Bell, Check, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,15 +6,19 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { notifications as seed, toneStyles } from "@/lib/notifications-data";
+import { toneStyles } from "@/lib/notifications-data";
+import {
+  markAllNotificationsRead,
+  markNotificationRead,
+  useNotifications,
+} from "@/lib/notifications-store";
 import { cn } from "@/lib/utils";
 
 export function NotificationsPopover() {
-  const [items, setItems] = useState(seed);
+  const items = useNotifications();
   const unread = items.filter((n) => !n.read).length;
 
-  const markAll = () =>
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+  const markAll = markAllNotificationsRead;
 
   return (
     <Popover>
@@ -60,6 +63,7 @@ export function NotificationsPopover() {
               return (
                 <li
                   key={n.id}
+                  onClick={() => markNotificationRead(n.id)}
                   className={cn(
                     "flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-muted/50",
                     !n.read && "bg-primary/[0.03]",

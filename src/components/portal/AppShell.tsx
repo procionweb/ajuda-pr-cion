@@ -5,6 +5,7 @@ import { Breadcrumbs, type Crumb } from "./Breadcrumbs";
 import { FleetActionModals } from "@/components/fleet/FleetActionModals";
 import { useSidebarCollapsed } from "@/lib/sidebar-store";
 import { cn } from "@/lib/utils";
+import { CalendarNotifications } from "./CalendarNotifications";
 
 export function AppShell({ children, fullWidth = false }: { children: ReactNode; fullWidth?: boolean }) {
   const collapsed = useSidebarCollapsed();
@@ -24,6 +25,7 @@ export function AppShell({ children, fullWidth = false }: { children: ReactNode;
       </div>
       <MobileBottomNav />
       <FleetActionModals />
+      <CalendarNotifications />
     </div>
   );
 }
