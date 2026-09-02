@@ -19,6 +19,7 @@ function hydrate() {
     const calendar = (state.calendar || []).map((item) => ({
       ...item,
       icon: item.tone === "warning" ? Car : CalendarClock,
+      href: item.href || "/calendario",
     }));
     items = [...calendar, ...seed].map((item) => ({
       ...item,

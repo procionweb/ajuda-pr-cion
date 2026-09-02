@@ -1,4 +1,6 @@
-import { Bell, Check, Settings2 } from "lucide-react";
+import { Bell, Check, MonitorUp } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -15,10 +17,27 @@ import {
 import { cn } from "@/lib/utils";
 
 export function NotificationsPopover() {
+  const navigate = useNavigate();
   const items = useNotifications();
-  const unread = items.filter((n) => !n.read).length;
+  const visibleItems = items.filter((item) => !item.read);
+  const unread = visibleItems.length;
 
   const markAll = markAllNotificationsRead;
+
+  const openNotification = (id: string, href?: string) => {
+    markNotificationRead(id);
+    if (href) void navigate({ to: href });
+  };
+
+  const enableDesktopNotifications = async () => {
+    if (!("Notification" in window)) {
+      toast.error("Este navegador não oferece notificações no computador.");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") toast.success("Avisos no computador ativados.");
+    else toast.error("Permissão de notificações não concedida.");
+  };
 
   return (
     <Popover>
@@ -58,12 +77,12 @@ export function NotificationsPopover() {
 
         <ScrollArea className="max-h-[380px]">
           <ul className="divide-y divide-border">
-            {items.map((n) => {
+            {visibleItems.map((n) => {
               const Icon = n.icon;
               return (
                 <li
                   key={n.id}
-                  onClick={() => markNotificationRead(n.id)}
+                  onClick={() => openNotification(n.id, n.href)}
                   className={cn(
                     "flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-muted/50",
                     !n.read && "bg-primary/[0.03]",
@@ -94,15 +113,22 @@ export function NotificationsPopover() {
                 </li>
               );
             })}
+            {visibleItems.length === 0 && (
+              <li className="px-4 py-8 text-center text-sm text-muted-foreground">
+                Nenhuma notificação pendente.
+              </li>
+            )}
           </ul>
         </ScrollArea>
 
         <div className="flex items-center justify-between px-4 py-2.5 border-t border-border bg-muted/30">
-          <button className="text-xs font-medium text-primary hover:underline">
-            Ver todas
-          </button>
-          <button className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <Settings2 className="h-3.5 w-3.5" /> Preferências
+          <span className="text-xs text-muted-foreground">Avisos do portal</span>
+          <button
+            type="button"
+            onClick={enableDesktopNotifications}
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            <MonitorUp className="h-3.5 w-3.5" /> Ativar avisos no computador
           </button>
         </div>
       </PopoverContent>

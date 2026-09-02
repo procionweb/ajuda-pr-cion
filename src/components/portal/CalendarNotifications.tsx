@@ -5,6 +5,7 @@ import { listCrmCalendarEvents } from "@/lib/calendar-api";
 import { currentUser } from "@/lib/mock-data";
 import { addNotification } from "@/lib/notifications-store";
 import { useLocalEvents } from "@/lib/local-events-store";
+import { supabase } from "@/lib/supabase";
 
 const REMINDER_WINDOW_MS = 30 * 60 * 1000;
 
@@ -45,6 +46,7 @@ export function CalendarNotifications() {
             time: `em ${minutes} min`,
             icon: hasVehicle ? Car : CalendarClock,
             tone: hasVehicle ? "warning" : "info",
+            href: "/calendario",
           });
           if (added) {
             toast(title, {
@@ -52,6 +54,16 @@ export function CalendarNotifications() {
               duration: 10000,
               position: "bottom-right",
             });
+            if ("Notification" in window && Notification.permission === "granted") {
+              const desktopNotification = new Notification(title, {
+                body: description,
+                tag: `calendar:${event.id}`,
+              });
+              desktopNotification.onclick = () => {
+                window.focus();
+                window.location.assign("/calendario");
+              };
+            }
           }
         });
       } catch {
@@ -61,9 +73,23 @@ export function CalendarNotifications() {
 
     void check();
     const interval = window.setInterval(check, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    const channel = supabase
+      .channel("calendar-notifications")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "calendar_events" },
+        () => void check(),
+      )
+      .subscribe();
     return () => {
       active = false;
       window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      void supabase.removeChannel(channel);
     };
   }, []);
 

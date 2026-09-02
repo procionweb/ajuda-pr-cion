@@ -11,6 +11,7 @@ export type Notification = {
   icon: LucideIcon;
   tone: NotificationTone;
   read?: boolean;
+  href?: string;
 };
 
 export const notifications: Notification[] = [
@@ -21,6 +22,7 @@ export const notifications: Notification[] = [
     time: "há 12 min",
     icon: GitBranch,
     tone: "success",
+    href: "/atualizacoes",
   },
   {
     id: "n2",
@@ -29,6 +31,7 @@ export const notifications: Notification[] = [
     time: "há 42 min",
     icon: AlertOctagon,
     tone: "danger",
+    href: "/chamados",
   },
   {
     id: "n3",
@@ -37,6 +40,7 @@ export const notifications: Notification[] = [
     time: "há 2 h",
     icon: MessageSquare,
     tone: "info",
+    href: "/chamados",
   },
   {
     id: "n4",
@@ -46,6 +50,7 @@ export const notifications: Notification[] = [
     icon: Sparkles,
     tone: "info",
     read: true,
+    href: "/base-de-conhecimento",
   },
   {
     id: "n5",
@@ -55,6 +60,7 @@ export const notifications: Notification[] = [
     icon: UserPlus,
     tone: "warning",
     read: true,
+    href: "/clientes",
   },
 ];
 
