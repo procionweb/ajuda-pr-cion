@@ -425,6 +425,7 @@ function NewTicketPage() {
       priority: form.priority,
       owner: selectedOwner.acronym ?? selectedOwner.name,
       ownerId: selectedOwner.id,
+      attendant: currentUser.operator,
       clientCode: effectiveClientCode,
       clientName: effectiveClientName,
       contact: form.contactName,

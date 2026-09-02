@@ -87,6 +87,8 @@ export type CreateTicketInput = {
   owner: string;
   /** ID real do colaborador responsável. */
   ownerId?: string | null;
+  /** Login do usuário que abriu o chamado. */
+  attendant?: string | null;
   companyId?: string | null;
   companyNumber?: number | null;
   companyName?: string;
@@ -459,7 +461,7 @@ export const ticketsStore = {
       priority: input.priority,
       openedAt: when,
       updatedAt: when,
-      attendant: input.owner.trim() || operator(),
+      attendant: input.attendant?.trim() || operator(),
       owner: input.owner.trim(),
       ownerId: input.ownerId ?? null,
       clientCode: input.clientCode.trim().toUpperCase(),

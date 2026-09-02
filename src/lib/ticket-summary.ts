@@ -72,6 +72,15 @@ export function useTicketSummary(
       setState(IDLE);
       return;
     }
+    if (knownSummary) {
+      const readyState: SummaryState = {
+        status: "ready",
+        summary: correctRequesterAttribution(knownSummary, context),
+      };
+      cache.set(key, readyState);
+      setState(readyState);
+      return;
+    }
     const cached = cache.get(key);
     if (cached && cached.status !== "loading") {
       setState(cached);

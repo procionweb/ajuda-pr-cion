@@ -849,9 +849,14 @@ export function TicketDetailSheet({
                   {ticketDescription ? (
                     <div key={ticket.id} className="space-y-2">
                       {summaryState.status === "loading" ? (
-                        <p className="text-[13px] leading-relaxed text-muted-foreground">
-                          Gerando resumo da descrição...
-                        </p>
+                        <>
+                          <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground">
+                            {ticketDescription}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Preparando resumo...
+                          </p>
+                        </>
                       ) : (
                         <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground">
                           {summaryState.summary ?? ticketDescription}

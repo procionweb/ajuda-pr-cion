@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 import {
   Boxes,
   CalendarClock,
@@ -31,6 +32,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
+import { useClients } from "@/lib/clients-store";
+import { snapshotCurrentChamadosForTicket } from "@/lib/return-to-ticket";
 import type { SupportTicket, TicketPriority } from "@/lib/support-tickets-data";
 import {
   useTicketEvents,
@@ -175,7 +178,20 @@ export function PastAttendanceDetailModal({
   ticket: SupportTicket | null;
 }) {
   const recordedEvents = useTicketEvents(attendance?.id);
+  const { clients } = useClients({ onlyActive: false });
   if (!attendance) return null;
+
+  const client = ticket
+    ? clients.find((item) => {
+        const candidates = [ticket.clientCode, ticket.clientName]
+          .map((value) => value?.trim().toLowerCase())
+          .filter(Boolean);
+        return candidates.some(
+          (value) => item.id.toLowerCase() === value || item.acronym.toLowerCase() === value,
+        );
+      })
+    : null;
+  const clientName = ticket?.clientName || attendance.title;
 
   const h = hashString(attendance.id);
   const channel = CHANNELS[h % CHANNELS.length];
@@ -263,7 +279,22 @@ export function PastAttendanceDetailModal({
 
         <DetailModalHeader
           icon={ModuleIcon}
-          title={ticket?.clientName || attendance.title}
+          title={
+            client && ticket ? (
+              <Link
+                to="/clientes/$clienteId"
+                params={{ clienteId: client.id }}
+                search={{ tab: "cliente", from: "chamado", ticketId: ticket.id }}
+                onClick={() => snapshotCurrentChamadosForTicket(ticket.id)}
+                className="cursor-pointer rounded-sm hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                title="Ver detalhes do cliente"
+              >
+                {clientName}
+              </Link>
+            ) : (
+              clientName
+            )
+          }
           protocol={attendance.protocol}
           onClose={() => onOpenChange(false)}
           chips={

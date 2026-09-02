@@ -23,7 +23,7 @@ export function DetailModalHeader({
   decorativeIconClassName = "text-primary/10",
 }: {
   icon: LucideIcon;
-  title: string;
+  title: ReactNode;
   protocol?: string;
   meta?: ReactNode;
   chips?: ReactNode;
