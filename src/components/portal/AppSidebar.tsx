@@ -14,6 +14,7 @@ import {
   Settings,
   ScrollText,
   Users,
+  X,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import dashboardIconUrl from "@/assets/menu-dashboard-solid.png";
@@ -143,6 +144,15 @@ export function AppSidebar() {
 
   useEffect(() => setMobileOpen(false), [pathname]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileOpen]);
+
   const cancelCollapsedFlyoutClose = () => {
     if (collapsedFlyoutCloseTimer.current) {
       clearTimeout(collapsedFlyoutCloseTimer.current);
@@ -199,6 +209,14 @@ export function AppSidebar() {
             <ProcionLogo variant="full" />
           </div>
         )}
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Fechar menu lateral"
+          className="ml-auto grid h-10 w-10 cursor-pointer place-items-center rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent lg:hidden"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
       <nav className="app-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-4 py-2">

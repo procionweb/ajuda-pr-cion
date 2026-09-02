@@ -130,7 +130,7 @@ export function SefazStatusPanel() {
     <section
       className={`flex h-full flex-col overflow-hidden rounded-[20px] ${cardBorder} ${headerBg} shadow-[0_14px_36px_rgba(15,16,20,0.08)] dark:shadow-[0_14px_36px_rgba(0,0,0,0.35)]`}
     >
-      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
+      <header className="relative flex flex-col items-stretch gap-3 px-4 py-4 pr-14 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-6 sm:py-3">
         <div className="min-w-0">
           <h2 className="text-[17px] font-semibold leading-tight">
             Disponibilidade dos autorizadores SEFAZ
@@ -141,25 +141,25 @@ export function SefazStatusPanel() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:items-center">
           <a
             href={DOWNDETECTOR_SEFAZ_URL}
             target="_blank"
             rel="noreferrer"
             title="Ver relatos de usuários no Downdetector"
-            className={`inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3 text-xs transition ${refreshBtn}`}
+            className={`inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border px-3 text-xs transition ${refreshBtn}`}
           >
             <ExternalLink className="h-3.5 w-3.5" />
             Relatos externos
           </a>
           <NfeConsultDialog />
-          <div className={`flex rounded-md border p-0.5 ${tabsWrap}`}>
+          <div className={`col-span-2 grid grid-cols-4 rounded-md border p-0.5 sm:flex ${tabsWrap}`}>
             {availableDocuments.map((document) => (
               <button
                 key={document}
                 type="button"
                 onClick={() => setSelectedDocument(document)}
-                className={`cursor-pointer rounded px-3 py-1.5 text-xs transition-colors ${
+                className={`min-w-0 cursor-pointer rounded px-2 py-1.5 text-xs transition-colors sm:px-3 ${
                   selectedDocument === document ? "bg-[#11a6b2] text-white" : tabInactive
                 }`}
               >
@@ -173,7 +173,7 @@ export function SefazStatusPanel() {
             disabled={loading}
             title="Atualizar status"
             aria-label="Atualizar status"
-            className={`grid h-9 w-9 cursor-pointer place-items-center rounded-md border transition disabled:cursor-wait ${refreshBtn}`}
+            className={`absolute right-4 top-4 h-9 w-9 cursor-pointer place-items-center rounded-md border transition disabled:cursor-wait sm:static sm:grid ${refreshBtn}`}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </button>

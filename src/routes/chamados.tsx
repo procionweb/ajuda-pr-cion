@@ -299,7 +299,7 @@ function DateRangeFilter({
         <button
           type="button"
           className={cn(
-            "inline-flex h-9 w-[220px] shrink-0 cursor-pointer items-center gap-2 truncate rounded-lg border border-border bg-background px-2.5 text-[13px] outline-none transition focus:ring-2 focus:ring-ring",
+            "inline-flex h-9 w-full shrink-0 cursor-pointer items-center gap-2 truncate rounded-lg border border-border bg-background px-2.5 text-[13px] outline-none transition focus:ring-2 focus:ring-ring sm:w-[220px]",
             isPlaceholder && "text-muted-foreground",
           )}
         >
@@ -667,7 +667,7 @@ function TicketsPage() {
 
   return (
     <AppShell>
-      <div className="mb-5 flex items-start justify-between gap-4">
+      <div className="mb-5 flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <Breadcrumbs items={[{ label: "Chamados" }]} />
           <h1 className="text-lg font-medium tracking-tight text-foreground">Chamados</h1>
@@ -676,7 +676,7 @@ function TicketsPage() {
           </p>
         </div>
 
-        <div className="flex w-[160px] shrink-0 flex-col items-stretch gap-1.5">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-[160px] sm:shrink-0 sm:flex-col sm:items-stretch sm:gap-1.5">
           <Button
             type="button"
             onClick={() => setFiltersOpen(true)}
@@ -701,7 +701,7 @@ function TicketsPage() {
             Novo chamado
           </Link>
 
-          <Badge variant="secondary" className="self-center rounded-full">
+          <Badge variant="secondary" className="col-span-2 justify-self-center rounded-full sm:self-center">
             CRM lado suporte
           </Badge>
         </div>
@@ -900,7 +900,7 @@ function TicketsPage() {
 
 
 
-      <div className="mb-3 flex flex-wrap items-center gap-3 xl:flex-nowrap">
+      <div className="mb-3 flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-center xl:flex-nowrap">
         <div className="min-w-0 shrink-0">
           <p className="text-base font-bold text-foreground">Fila de suporte</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
@@ -908,7 +908,7 @@ function TicketsPage() {
           </p>
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-2 md:flex">
           <label className="relative min-w-[180px] flex-[2]">
             <span className="sr-only">Pesquisa avancada</span>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
