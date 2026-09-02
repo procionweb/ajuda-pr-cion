@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, ClipboardList, Search } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
-import { EventDetailsModal } from "@/components/calendar/EventDetailsModal";
+import { SupportAppointmentDetailsModal } from "@/components/calendar/SupportAppointmentDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { listCrmCalendarEvents } from "@/lib/calendar-api";
@@ -109,10 +109,10 @@ function SupportAppointmentsPage() {
 
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[760px] table-fixed text-left text-sm">
             <colgroup>
-              <col className="w-[15%]" /><col className="w-[34%]" /><col className="w-[18%]" />
-              <col className="w-[13%]" /><col className="w-[9%]" /><col className="w-[8%]" /><col className="w-[3%]" />
+              <col className="w-[14%]" /><col className="w-[32%]" /><col className="w-[19%]" />
+              <col className="w-[13%]" /><col className="w-[9%]" /><col className="w-[9%]" /><col className="w-[4%]" />
             </colgroup>
             <thead className="border-b bg-muted/35 text-xs uppercase text-muted-foreground">
               <tr>
@@ -144,7 +144,11 @@ function SupportAppointmentsPage() {
         </footer>
       </div>
 
-      <EventDetailsModal event={selectedEvent} open={Boolean(selectedEvent)} onOpenChange={(open) => !open && setSelectedEvent(null)} hideFooterActions />
+      <SupportAppointmentDetailsModal
+        event={selectedEvent}
+        open={Boolean(selectedEvent)}
+        onOpenChange={(open) => !open && setSelectedEvent(null)}
+      />
     </AppShell>
   );
 }
