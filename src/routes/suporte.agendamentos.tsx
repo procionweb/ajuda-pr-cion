@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, ClipboardList, Search } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
+import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { SupportAppointmentDetailsModal } from "@/components/calendar/SupportAppointmentDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,14 +135,9 @@ function SupportAppointmentsPage() {
             </tbody>
           </table>
         </div>
-        <footer className="flex items-center justify-between border-t px-5 py-3 text-sm text-muted-foreground">
-          <span>{filtered.length} agendamento(s) encontrado(s)</span>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" disabled={page === 0} onClick={() => setPage((value) => value - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-            <span>Página {page + 1} de {pageCount}</span>
-            <Button variant="outline" size="icon" disabled={page + 1 >= pageCount} onClick={() => setPage((value) => value + 1)}><ChevronRight className="h-4 w-4" /></Button>
-          </div>
-        </footer>
+      </div>
+      <div className="mt-3">
+        <ListPaginationFooter page={page} pageCount={pageCount} pageSize={PAGE_SIZE} total={filtered.length} noun="agendamentos" onPageChange={setPage} />
       </div>
 
       <SupportAppointmentDetailsModal

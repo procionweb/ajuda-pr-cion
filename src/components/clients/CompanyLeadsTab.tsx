@@ -5,8 +5,6 @@ import {
   ArrowUpDown,
   Building2,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   Columns3,
   Eye,
   MapPinned,
@@ -23,6 +21,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1220,36 +1219,17 @@ export function CompanyLeadsTab() {
         </div>
       </Card>
       {total > 0 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            Mostrando {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} de {total}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              disabled={searching || page === 0}
-              onClick={() => void runSearch(page - 1, appliedFilters, sort, direction)}
-              title="Página anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="min-w-20 text-center">
-              Página {page + 1} de {Math.ceil(total / PAGE_SIZE)}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              disabled={searching || (page + 1) * PAGE_SIZE >= total}
-              onClick={() => void runSearch(page + 1, appliedFilters, sort, direction)}
-              title="Próxima página"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <ListPaginationFooter
+          page={page}
+          pageCount={Math.ceil(total / PAGE_SIZE)}
+          pageSize={PAGE_SIZE}
+          total={total}
+          noun="leads"
+          loading={searching}
+          onPageChange={(nextPage) =>
+            void runSearch(nextPage, appliedFilters, sort, direction)
+          }
+        />
       )}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent className="max-h-[90vh] max-w-4xl grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 [&>button]:z-20">

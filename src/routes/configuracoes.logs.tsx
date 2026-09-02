@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, RefreshCw, Search, ScrollText } from "lucide-react";
+import { RefreshCw, Search, ScrollText } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
+import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatLogDate, listConfigurationAuthLogs, type AuthLogRow } from "@/lib/auth-logs-api";
@@ -79,14 +80,6 @@ function ConfigurationLogsPage() {
   }, [filters, page]);
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const range = useMemo(
-    () =>
-      total === 0
-        ? "0 registros"
-        : `${page * PAGE_SIZE + 1}-${Math.min((page + 1) * PAGE_SIZE, total)} de ${total} registros`,
-    [page, total],
-  );
-
   function update<K extends keyof Filters>(key: K, value: Filters[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
   }
@@ -223,30 +216,9 @@ function ConfigurationLogsPage() {
               Nenhum log encontrado.
             </div>
           )}
-          <footer className="flex items-center justify-between border-t px-4 py-3 text-sm text-muted-foreground">
-            <span>{range}</span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                disabled={page === 0 || loading}
-                onClick={() => setPage((value) => value - 1)}
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <span>
-                Página {page + 1} de {pages}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                disabled={page + 1 >= pages || loading}
-                onClick={() => setPage((value) => value + 1)}
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
-          </footer>
+        </div>
+        <div className="mt-3">
+          <ListPaginationFooter page={page} pageCount={pages} pageSize={PAGE_SIZE} total={total} noun="registros" onPageChange={setPage} loading={loading} />
         </div>
       </section>
     </AppShell>

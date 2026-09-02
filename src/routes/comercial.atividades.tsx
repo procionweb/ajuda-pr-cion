@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
+import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { companyLeadsApi, type CompanyLead, type CompanyLeadStage } from "@/lib/company-leads-api";
@@ -244,30 +245,9 @@ function CommercialActivitiesPage() {
             </tbody>
           </table>
         </div>
-        <footer className="flex items-center justify-between border-t px-5 py-3 text-sm text-muted-foreground">
-          <span>{filtered.length} atividade(s) encontrada(s)</span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={page === 0}
-              onClick={() => setPage((value) => value - 1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span>
-              Página {page + 1} de {pageCount}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={page + 1 >= pageCount}
-              onClick={() => setPage((value) => value + 1)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </footer>
+      </div>
+      <div className="mt-3">
+        <ListPaginationFooter page={page} pageCount={pageCount} pageSize={PAGE_SIZE} total={filtered.length} noun="atividades" onPageChange={setPage} />
       </div>
     </AppShell>
   );

@@ -32,6 +32,7 @@ import {
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
+import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -2059,33 +2060,15 @@ function TablePagination({
   onPageChange: (page: number) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-xs text-muted-foreground">
-      <span>
-        Mostrando {(page - 1) * 50 + 1} a {Math.min(page * 50, total)} de {total} {noun}
-      </span>
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={page === 1}
-          onClick={() => onPageChange(Math.max(1, page - 1))}
-        >
-          Anterior
-        </Button>
-        <span>
-          Página {page} de {pageCount}
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={page === pageCount}
-          onClick={() => onPageChange(Math.min(pageCount, page + 1))}
-        >
-          Próxima
-        </Button>
-      </div>
+    <div className="mt-3">
+      <ListPaginationFooter
+        page={page - 1}
+        pageCount={pageCount}
+        pageSize={50}
+        total={total}
+        noun={noun}
+        onPageChange={(nextPage) => onPageChange(nextPage + 1)}
+      />
     </div>
   );
 }

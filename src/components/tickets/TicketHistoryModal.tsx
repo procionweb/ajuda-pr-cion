@@ -44,12 +44,9 @@ export function TicketHistoryModal({
   ticket: SupportTicket | null;
   historyItems: PastAttendance[];
 }) {
-  const [showAll, setShowAll] = useState(false);
   const [selected, setSelected] = useState<PastAttendance | null>(null);
 
   if (!ticket) return null;
-
-  const shown = showAll ? historyItems : historyItems.slice(0, 5);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -95,18 +92,9 @@ export function TicketHistoryModal({
                 ({historyItems.length})
               </span>
             </div>
-            {historyItems.length > 5 && (
-              <button
-                type="button"
-                onClick={() => setShowAll((v) => !v)}
-                className="cursor-pointer text-[12px] font-medium text-primary hover:underline"
-              >
-                {showAll ? "Recolher" : "Ver todos"}
-              </button>
-            )}
           </div>
 
-          <TicketHistoryList items={shown} onSelect={setSelected} timeline />
+          <TicketHistoryList items={historyItems} onSelect={setSelected} timeline />
         </div>
       </DialogContent>
       <PastAttendanceDetailModal

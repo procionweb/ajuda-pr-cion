@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Building2, ChevronLeft, ChevronRight, Eye, RefreshCw, Search } from "lucide-react";
+import { Building2, Eye, RefreshCw, Search } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
+import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -240,32 +241,10 @@ function CompaniesSettingsPage() {
           </table>
         </div>
 
-        <div className="flex flex-col gap-3 border-t bg-muted/20 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-muted-foreground">
-            Página {safePage + 1} de {pageCount}, mostrando {rows.length} de {filtered.length}{" "}
-            {filtered.length === 1 ? "empresa" : "empresas"}.
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Página anterior"
-              disabled={safePage === 0}
-              onClick={() => setPage((current) => Math.max(0, current - 1))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Próxima página"
-              disabled={safePage >= pageCount - 1}
-              onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+      </div>
+
+      <div className="mt-3">
+        <ListPaginationFooter page={safePage} pageCount={pageCount} pageSize={PAGE_SIZE} total={filtered.length} noun="empresas" onPageChange={setPage} />
       </div>
 
       <CompanyDetailsDialog

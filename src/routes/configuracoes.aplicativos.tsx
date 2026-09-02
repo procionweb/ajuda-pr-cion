@@ -2,8 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   AppWindow,
-  ChevronLeft,
-  ChevronRight,
   Globe2,
   ImagePlus,
   Pencil,
@@ -18,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
+import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -417,34 +416,10 @@ function ApplicationsSettingsPage() {
           </ul>
         )}
 
-        <div className="flex flex-col gap-3 border-t bg-muted/20 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? "aplicativo" : "aplicativos"}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Página anterior"
-              disabled={safePage === 0}
-              onClick={() => setPage((current) => Math.max(0, current - 1))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="min-w-24 text-center text-muted-foreground">
-              Página {safePage + 1} de {pageCount}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Próxima página"
-              disabled={safePage >= pageCount - 1}
-              onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+      </div>
+
+      <div className="mt-3">
+        <ListPaginationFooter page={safePage} pageCount={pageCount} pageSize={PAGE_SIZE} total={filtered.length} noun="aplicativos" onPageChange={setPage} />
       </div>
 
       <ApplicationEditorDialog

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Download, RefreshCw, Search, Smartphone } from "lucide-react";
+import { Download, RefreshCw, Search, Smartphone } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
+import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -268,36 +269,10 @@ function DevicesSettingsPage() {
             </tbody>
           </table>
         </div>
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3 text-sm text-muted-foreground">
-          <span>
-            Mostrando {filtered.length ? safePage * PAGE_SIZE + 1 : 0} a{" "}
-            {Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}{" "}
-            dispositivos
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={safePage === 0}
-              onClick={() => setPage(safePage - 1)}
-              aria-label="Página anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span>
-              Página {safePage + 1} de {pageCount}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={safePage + 1 >= pageCount}
-              onClick={() => setPage(safePage + 1)}
-              aria-label="Próxima página"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </footer>
+      </div>
+
+      <div className="mt-3">
+        <ListPaginationFooter page={safePage} pageCount={pageCount} pageSize={PAGE_SIZE} total={filtered.length} noun="dispositivos" onPageChange={setPage} />
       </div>
     </AppShell>
   );

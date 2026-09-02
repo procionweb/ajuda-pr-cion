@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, FileKey2, Pencil, RefreshCw, Search } from "lucide-react";
+import { FileKey2, Pencil, RefreshCw, Search } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
+import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -192,33 +193,10 @@ function ContractsSettingsPage() {
             </tbody>
           </table>
         </div>
-        <footer className="flex items-center justify-between gap-3 border-t px-5 py-3 text-sm text-muted-foreground">
-          <span>
-            {filtered.length ? safePage * PAGE_SIZE + 1 : 0}-
-            {Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} de {filtered.length} contratos
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={!safePage}
-              onClick={() => setPage(safePage - 1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span>
-              Página {safePage + 1} de {pages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={safePage + 1 >= pages}
-              onClick={() => setPage(safePage + 1)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </footer>
+      </div>
+
+      <div className="mt-3">
+        <ListPaginationFooter page={safePage} pageCount={pages} pageSize={PAGE_SIZE} total={filtered.length} noun="contratos" onPageChange={setPage} />
       </div>
     </AppShell>
   );
