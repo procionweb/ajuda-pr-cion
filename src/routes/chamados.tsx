@@ -935,6 +935,27 @@ function TicketsPage() {
           </label>
 
           <label className="min-w-[130px] flex-1">
+            <span className="sr-only">Status do chamado</span>
+            <select
+              value={filters.status}
+              onChange={(event) =>
+                setFilters((current) => ({ ...current, status: event.target.value }))
+              }
+              className={cn(
+                "h-9 w-full min-w-0 cursor-pointer rounded-lg border border-border bg-background px-3 text-[13px] outline-none transition focus:ring-2 focus:ring-ring",
+                filters.status === "Todos" && "text-muted-foreground",
+              )}
+            >
+              <option value="Todos">STATUS</option>
+              {ticketStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="min-w-[130px] flex-1">
             <span className="sr-only">Operador</span>
             <select
               value={filters.operator}

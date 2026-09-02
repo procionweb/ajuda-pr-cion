@@ -59,6 +59,8 @@ export const Route = createFileRoute("/chamados/novo")({
   validateSearch: (search: Record<string, unknown>) => ({
     cliente: typeof search.cliente === "string" ? search.cliente : undefined,
     empresa: typeof search.empresa === "string" ? search.empresa : undefined,
+    voltarChamado:
+      typeof search.voltarChamado === "string" ? search.voltarChamado : undefined,
   }),
   head: () => ({
     meta: [
@@ -194,7 +196,11 @@ const initialForm: FormState = {
 
 function NewTicketPage() {
   const navigate = useNavigate();
-  const { cliente: prefillClientCode, empresa: prefillCompanyId } = Route.useSearch();
+  const {
+    cliente: prefillClientCode,
+    empresa: prefillCompanyId,
+    voltarChamado,
+  } = Route.useSearch();
   const [form, setForm] = useState<FormState>(initialForm);
   const [client, setClient] = useState<ClientRow | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -472,7 +478,10 @@ function NewTicketPage() {
         breadcrumbs={[{ label: "Chamados", to: "/chamados" }, { label: "Criar chamado" }]}
         actions={
           <Button asChild variant="outline" size="sm" className="rounded-xl cursor-pointer">
-            <Link to="/chamados">
+            <Link
+              to="/chamados"
+              search={voltarChamado ? { ticket: voltarChamado } : {}}
+            >
               <ArrowLeft className="mr-1.5 h-4 w-4" />
               Voltar
             </Link>

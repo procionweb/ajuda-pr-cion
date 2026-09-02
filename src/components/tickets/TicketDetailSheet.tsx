@@ -486,6 +486,7 @@ export function TicketDetailSheet({
       search: {
         cliente: ticket.clientCode || undefined,
         empresa: ticket.companyId || undefined,
+        voltarChamado: ticket.id,
       },
     });
   };
