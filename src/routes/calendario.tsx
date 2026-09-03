@@ -563,7 +563,7 @@ function CalendarPage() {
         }
       />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="mb-4 hidden gap-3 lg:grid lg:grid-cols-6">
         <FieldSelect
           label="Tipo"
           value={filters.type}

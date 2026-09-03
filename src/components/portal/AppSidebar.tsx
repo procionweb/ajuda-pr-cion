@@ -227,7 +227,7 @@ export function AppSidebar() {
           {nav.map((item) => {
             const active = isActivePath(pathname, item);
             const Icon = item.icon;
-            const expanded = Boolean(item.children && (openGroups[item.to] ?? active));
+            const expanded = Boolean(item.children && (openGroups[item.to] ?? (active && !mobileOpen)));
 
             return (
               <li key={item.to}>

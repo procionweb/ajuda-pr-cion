@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, ClipboardList, Search } from "lucide-react";
+import { ClipboardList, Filter, Search } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { SupportAppointmentDetailsModal } from "@/components/calendar/SupportAppointmentDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { listCrmCalendarEvents } from "@/lib/calendar-api";
 import {
   EVENT_TONE_STYLES,
@@ -44,6 +45,7 @@ function SupportAppointmentsPage() {
   const [to, setTo] = useState("");
   const [page, setPage] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const events = useMemo(() => {
     const merged = new Map<string, CalendarEvent>();
@@ -84,9 +86,10 @@ function SupportAppointmentsPage() {
         title="Agendamentos Suporte"
         description="Visitas, reuniões e compromissos do suporte criados no calendário ou nos chamados."
         breadcrumbs={[{ label: "Suporte" }, { label: "Agendamentos" }]}
+        actions={<Button type="button" onClick={() => setFiltersOpen(true)} className="w-full gap-2 sm:w-auto xl:hidden"><Filter className="h-4 w-4" />Filtros</Button>}
       />
 
-      <section className="mb-5 grid gap-3 xl:grid-cols-[190px_minmax(240px,1fr)_180px_200px_155px_155px_auto]">
+      <section className="mb-5 hidden gap-3 xl:grid xl:grid-cols-[190px_minmax(240px,1fr)_180px_200px_155px_155px_auto]">
         <select value={operator} onChange={(event) => setOperator(event.target.value)} className={selectClass}>
           <option value="">Todos os operadores</option>
           {operators.map((item) => <option key={item} value={item}>{item}</option>)}
@@ -108,7 +111,12 @@ function SupportAppointmentsPage() {
         <Button className="h-10" onClick={() => setPage(0)}>Buscar</Button>
       </section>
 
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="space-y-2 xl:hidden">
+        {rows.length === 0 ? (
+          <div className="rounded-lg border bg-card px-4 py-16 text-center text-sm text-muted-foreground">Nenhum agendamento de suporte encontrado.</div>
+        ) : rows.map((event) => <AppointmentCard key={String(event.id)} event={event} onOpen={() => setSelectedEvent(event)} />)}
+      </div>
+      <div className="hidden overflow-hidden rounded-lg border bg-card xl:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] table-fixed text-left text-[13px] text-foreground">
             <colgroup>
@@ -145,8 +153,37 @@ function SupportAppointmentsPage() {
         open={Boolean(selectedEvent)}
         onOpenChange={(open) => !open && setSelectedEvent(null)}
       />
+      <AppointmentFiltersSheet
+        open={filtersOpen} onOpenChange={setFiltersOpen} operators={operators}
+        operator={operator} setOperator={setOperator} query={query} setQuery={setQuery}
+        status={status} setStatus={setStatus} type={type} setType={setType}
+        from={from} setFrom={setFrom} to={to} setTo={setTo}
+      />
     </AppShell>
   );
+}
+
+function AppointmentCard({ event, onOpen }: { event: CalendarEvent; onOpen: () => void }) {
+  const Icon = TYPE_ICON[event.type];
+  const toneStyle = EVENT_TONE_STYLES[getEventTone(event)];
+  return <button type="button" onClick={onOpen} className="w-full rounded-lg border bg-card p-4 text-left shadow-sm">
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0"><p className="text-sm text-foreground">{event.client || event.title}</p>{event.client && <p className="mt-1 truncate text-xs text-muted-foreground">{event.title}</p>}</div>
+      <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </div>
+    <div className="mt-3 flex flex-wrap gap-1.5"><span className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary"><Icon className="h-3.5 w-3.5" />{event.type}</span><span className={cn("rounded px-2 py-1 text-[11px] font-medium", toneStyle.soft, toneStyle.text)}>{event.status || "Agendado"}</span></div>
+    <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs"><div><dt className="text-muted-foreground">Responsável</dt><dd className="mt-0.5 text-foreground">{event.responsible || event.operator || "Não informado"}</dd></div><div><dt className="text-muted-foreground">Chamado</dt><dd className="mt-0.5 text-foreground">{event.protocol || "—"}</dd></div><div><dt className="text-muted-foreground">Dia</dt><dd className="mt-0.5 text-foreground">{formatDate(event.date)}</dd></div><div><dt className="text-muted-foreground">Horário</dt><dd className="mt-0.5 whitespace-nowrap text-foreground">{event.time} - {event.end}</dd></div></dl>
+  </button>;
+}
+
+function AppointmentFiltersSheet(props: { open: boolean; onOpenChange: (open: boolean) => void; operators: string[]; operator: string; setOperator: (value: string) => void; query: string; setQuery: (value: string) => void; status: string; setStatus: (value: string) => void; type: string; setType: (value: string) => void; from: string; setFrom: (value: string) => void; to: string; setTo: (value: string) => void }) {
+  return <Sheet open={props.open} onOpenChange={props.onOpenChange}><SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[480px]"><SheetHeader className="border-b px-6 py-4"><SheetTitle>Filtros de agendamentos</SheetTitle></SheetHeader><div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+    <label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={props.query} onChange={(e) => props.setQuery(e.target.value)} placeholder="Chamado, título ou cliente" className="h-10 pl-9" /></label>
+    <select value={props.operator} onChange={(e) => props.setOperator(e.target.value)} className={selectClass}><option value="">Todos os operadores</option>{props.operators.map((item) => <option key={item}>{item}</option>)}</select>
+    <select value={props.status} onChange={(e) => props.setStatus(e.target.value)} className={selectClass}><option value="">Todos os status</option>{eventStatuses.map((item) => <option key={item}>{item}</option>)}</select>
+    <select value={props.type} onChange={(e) => props.setType(e.target.value)} className={selectClass}><option value="">Todos os tipos</option>{eventTypes.map((item) => <option key={item}>{item}</option>)}</select>
+    <div><label className="mb-1 block text-xs text-muted-foreground">Data inicial</label><Input type="date" value={props.from} onChange={(e) => props.setFrom(e.target.value)} /></div><div><label className="mb-1 block text-xs text-muted-foreground">Data final</label><Input type="date" value={props.to} onChange={(e) => props.setTo(e.target.value)} /></div>
+  </div><div className="border-t p-4"><Button className="w-full" onClick={() => props.onOpenChange(false)}>Aplicar filtros</Button></div></SheetContent></Sheet>;
 }
 
 function AppointmentRow({ event, onOpen }: { event: CalendarEvent; onOpen: () => void }) {

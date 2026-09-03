@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AppSidebar, MobileBottomNav } from "./AppSidebar";
+import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { Breadcrumbs, type Crumb } from "./Breadcrumbs";
 import { FleetActionModals } from "@/components/fleet/FleetActionModals";
@@ -16,14 +16,13 @@ export function AppShell({ children, fullWidth = false }: { children: ReactNode;
         <AppHeader />
         <main
           className={cn(
-            "mx-auto min-w-0 overflow-x-hidden px-3 py-4 pb-24 sm:px-6 sm:py-6 lg:px-7 lg:py-7 lg:pb-8",
+            "mx-auto min-w-0 overflow-x-hidden px-3 py-4 sm:px-6 sm:py-6 lg:px-7 lg:py-7 lg:pb-8",
             fullWidth ? "w-full max-w-none" : "max-w-[1680px]",
           )}
         >
           {children}
         </main>
       </div>
-      <MobileBottomNav />
       <FleetActionModals />
       <CalendarNotifications />
     </div>

@@ -67,6 +67,9 @@ export function ListPaginationFooter({
   const start = total ? safePage * pageSize + 1 : 0;
   const end = Math.min((safePage + 1) * pageSize, total);
   const pages = pageRange(safePage, safePageCount);
+  const mobilePages = [...new Set([safePage - 1, safePage, safePage + 1])].filter(
+    (value) => value >= 0 && value < safePageCount,
+  );
 
   return (
     <footer className="flex flex-col items-stretch gap-3 rounded-lg border border-border/60 bg-card px-3 py-3 text-[12px] text-muted-foreground shadow-[0_6px_16px_rgba(25,29,51,0.04)] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:rounded-2xl sm:px-4">
@@ -82,7 +85,16 @@ export function ListPaginationFooter({
             {pageSize}
           </span>
         </span>
-        <div className="hide-scrollbar flex max-w-full items-center gap-1 overflow-x-auto pb-0.5">
+        <div className="flex max-w-full items-center justify-between gap-1 sm:hidden">
+          <PageButton label="Página anterior" disabled={safePage === 0 || loading} onClick={() => onPageChange(safePage - 1)}><ChevronLeft className="h-3.5 w-3.5" /></PageButton>
+          <div className="flex items-center gap-1">
+            {mobilePages.map((value) => (
+              <PageButton key={value} active={value === safePage} disabled={loading} onClick={() => onPageChange(value)}>{value + 1}</PageButton>
+            ))}
+          </div>
+          <PageButton label="Próxima página" disabled={safePage + 1 >= safePageCount || loading} onClick={() => onPageChange(safePage + 1)}><ChevronRight className="h-3.5 w-3.5" /></PageButton>
+        </div>
+        <div className="hide-scrollbar hidden max-w-full items-center gap-1 overflow-x-auto pb-0.5 sm:flex">
           <PageButton label="Primeira página" disabled={safePage === 0 || loading} onClick={() => onPageChange(0)}><ChevronsLeft className="h-3.5 w-3.5" /></PageButton>
           <PageButton label="Página anterior" disabled={safePage === 0 || loading} onClick={() => onPageChange(safePage - 1)}><ChevronLeft className="h-3.5 w-3.5" /></PageButton>
           {pages.map((value, index) =>
