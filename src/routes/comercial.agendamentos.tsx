@@ -94,16 +94,7 @@ function CommercialAppointmentsPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Agendamentos" }]}
       />
 
-      <section className="mb-5 grid gap-3 xl:grid-cols-[minmax(190px,300px)_170px_160px_175px_220px_auto]">
-        <label className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Pesquisa"
-            className="h-9 rounded-lg pl-9 text-[13px]"
-          />
-        </label>
+      <section className="mb-5 grid gap-3 xl:grid-cols-[180px_minmax(220px,1fr)_170px_190px_220px_96px]">
         <select
           value={operator}
           onChange={(event) => setOperator(event.target.value)}
@@ -116,6 +107,15 @@ function CommercialAppointmentsPage() {
             </option>
           ))}
         </select>
+        <label className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Pesquisar chamado, título ou cliente"
+            className="h-10 pl-9"
+          />
+        </label>
         <select
           value={status}
           onChange={(event) => setStatus(event.target.value)}
@@ -148,7 +148,7 @@ function CommercialAppointmentsPage() {
             setTo(end);
           }}
         />
-        <Button className="h-9 rounded-lg text-[13px]" onClick={() => setPage(0)}>
+        <Button className="h-10 w-24" onClick={() => setPage(0)}>
           Buscar
         </Button>
       </section>
@@ -277,4 +277,4 @@ function formatDate(value: string) {
   return year && month && day ? `${day}/${month}/${year.slice(-2)}` : value;
 }
 const selectClass =
-  "h-9 w-full rounded-lg border border-input bg-background px-3 text-[13px] text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/25";
+  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/25";

@@ -145,13 +145,13 @@ function CommercialContactsPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Empresa, CNPJ, telefone ou e-mail"
-            className="h-9 rounded-lg pl-9 text-[13px]"
+            className="h-10 rounded-md pl-9 text-sm"
           />
         </label>
         <select
           value={city}
           onChange={(event) => setCity(event.target.value)}
-          className="h-9 rounded-lg border border-input bg-background px-3 text-[13px] outline-none focus:ring-2 focus:ring-ring"
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">Todas as cidades</option>
           {cities.map((item) => (
@@ -163,7 +163,7 @@ function CommercialContactsPage() {
         <select
           value={stage}
           onChange={(event) => setStage(event.target.value)}
-          className="h-9 rounded-lg border border-input bg-background px-3 text-[13px] outline-none focus:ring-2 focus:ring-ring"
+          className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">Todas as etapas</option>
           {visibleStages.map((item) => (

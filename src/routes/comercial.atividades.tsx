@@ -92,14 +92,14 @@ function CommercialActivitiesPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Atividades" }]}
       />
 
-      <section className="mb-5 grid gap-3 xl:grid-cols-[minmax(190px,300px)_180px_170px_220px_auto]">
+      <section className="mb-5 grid gap-3 xl:grid-cols-[minmax(220px,1fr)_180px_170px_220px_96px]">
         <label className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Pesquisa geral"
-            className="h-9 rounded-lg pl-9 text-[13px]"
+            className="h-10 pl-9"
           />
         </label>
         <select
@@ -130,7 +130,7 @@ function CommercialActivitiesPage() {
             setTo(end);
           }}
         />
-        <Button className="h-9 rounded-lg text-[13px]" onClick={() => setPage(0)}>
+        <Button className="h-10 w-24" onClick={() => setPage(0)}>
           Buscar
         </Button>
       </section>
@@ -143,10 +143,10 @@ function CommercialActivitiesPage() {
               <col className="w-[5%]" />
               <col className="w-[12%]" />
               <col className="w-[9%]" />
-              <col className="w-[19%]" />
-              <col className="w-[32%]" />
-              <col className="w-[11%]" />
-              <col className="w-[9%]" />
+              <col className="w-[20%]" />
+              <col className="w-[25%]" />
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
             </colgroup>
             <thead className="border-b bg-muted/35 text-[11px] uppercase text-muted-foreground">
               <tr>
@@ -224,7 +224,7 @@ function ActivityRow({ activity }: { activity: CommercialActivity }) {
       <td className="px-3 py-3">
         <TypeIcon className="h-4 w-4 text-primary" />
       </td>
-      <td className="px-3 py-3">
+      <td className="whitespace-nowrap px-3 py-3">
         <span className="block">{formatDate(activity.date)}</span>
         <span className="text-[10px] text-muted-foreground">{activity.operator}</span>
       </td>
@@ -235,15 +235,15 @@ function ActivityRow({ activity }: { activity: CommercialActivity }) {
         </span>
         <span className="block truncate text-[11px] text-muted-foreground">{activity.subject}</span>
       </td>
-      <td className="px-3 py-3">
+      <td className="min-w-0 px-3 py-3">
         <span className="block truncate" title={activity.note}>
           {activity.note}
         </span>
       </td>
-      <td className="px-3 py-3">
+      <td className="whitespace-nowrap px-3 py-3">
         {activity.city} - {activity.state}
       </td>
-      <td className="px-3 py-3">
+      <td className="whitespace-nowrap px-3 py-3">
         <span
           className={cn(
             "inline-flex rounded px-2 py-1 text-[10px] font-medium",
@@ -310,4 +310,4 @@ function statusClass(status: string) {
   return status === "30" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground";
 }
 const selectClass =
-  "h-9 rounded-lg border border-input bg-background px-3 text-[13px] outline-none focus:ring-2 focus:ring-ring";
+  "h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring";
