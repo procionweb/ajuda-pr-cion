@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   CalendarDays,
   Check,
   ChevronLeft,
   ChevronRight,
-  Eye,
   Laptop,
   Phone,
   Search,
@@ -15,38 +14,27 @@ import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { companyLeadsApi, type CompanyLead, type CompanyLeadStage } from "@/lib/company-leads-api";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/comercial/atividades")({
   component: CommercialActivitiesPage,
 });
 
 const PAGE_SIZE = 25;
-const stageLabels: Record<CompanyLeadStage, string> = {
-  novo: "Novo",
-  prospeccao: "Prospecção",
-  relacionamento: "Relacionamento",
-  proposta: "Proposta",
-  negociacao: "Negociação",
-  demonstracao: "Demonstração",
-  negocio_fechado: "Negócio fechado",
-  sem_interesse: "Sem interesse",
-};
-
 type ActivityType = "conclusao" | "ligacao" | "demonstracao" | "acompanhamento";
 type CommercialActivity = {
   id: string;
-  leadId: string;
+  contactId: string;
   type: ActivityType;
   date: string;
   returnAt: string | null;
   company: string;
-  profile: string;
+  subject: string;
   note: string;
   city: string;
   state: string;
-  stage: CompanyLeadStage;
+  status: string;
   operator: string;
   priority: "alta" | "media" | "baixa";
 };
@@ -54,11 +42,10 @@ type CommercialActivity = {
 function CommercialActivitiesPage() {
   const [activities, setActivities] = useState<CommercialActivity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchField, setSearchField] = useState("todos");
+  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [substatus, setSubstatus] = useState("");
-  const [dateType, setDateType] = useState("atividade");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [page, setPage] = useState(0);
@@ -68,15 +55,23 @@ function CommercialActivitiesPage() {
     async function load() {
       setLoading(true);
       try {
-        const result = await companyLeadsApi.list({
-          filters: emptyLeadFilters,
-          sort: "opened_at",
-          direction: "desc",
-          limit: 1000,
-          offset: 0,
-        });
+        const { data, error } = await supabase.rpc(
+          "commercial_activities_list" as never,
+          {
+            p_search: search.trim(),
+            p_status: status,
+            p_history_type: substatus,
+            p_from: from || null,
+            p_to: to || null,
+            p_limit: PAGE_SIZE,
+            p_offset: page * PAGE_SIZE,
+          } as never,
+        );
+        if (error) throw error;
         if (!active) return;
-        setActivities(result.leads.filter((lead) => lead.stage !== "novo").map(mapActivity));
+        const result = (data || {}) as { rows?: Array<Record<string, unknown>>; total?: number };
+        setActivities((result.rows || []).map(mapHistoryActivity));
+        setTotal(Number(result.total || 0));
       } catch {
         if (!active) return;
         toast.error("Não foi possível carregar as atividades comerciais.");
@@ -89,34 +84,12 @@ function CommercialActivitiesPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [from, page, search, status, substatus, to]);
 
-  const filtered = useMemo(() => {
-    const term = normalize(search);
-    return activities.filter((activity) => {
-      const searchable: Record<string, string> = {
-        todos: `${activity.company} ${activity.note} ${activity.city} ${activity.operator}`,
-        nome: activity.company,
-        observacao: activity.note,
-        cidade: `${activity.city} ${activity.state}`,
-        operador: activity.operator,
-      };
-      if (term && !normalize(searchable[searchField] || searchable.todos).includes(term))
-        return false;
-      if (status && activity.stage !== status) return false;
-      if (substatus && activity.type !== substatus) return false;
-      const date = (dateType === "retorno" ? activity.returnAt : activity.date)?.slice(0, 10);
-      if ((from || to) && !date) return false;
-      if (from && date! < from) return false;
-      if (to && date! > to) return false;
-      return true;
-    });
-  }, [activities, dateType, from, search, searchField, status, substatus, to]);
+  useEffect(() => setPage(0), [from, search, status, substatus, to]);
 
-  useEffect(() => setPage(0), [dateType, from, search, searchField, status, substatus, to]);
-
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const rows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rows = activities;
 
   return (
     <AppShell fullWidth>
@@ -126,18 +99,7 @@ function CommercialActivitiesPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Atividades" }]}
       />
 
-      <section className="mb-5 grid gap-3 lg:grid-cols-[190px_minmax(220px,1fr)_180px_180px_170px_150px_150px_auto]">
-        <select
-          value={searchField}
-          onChange={(event) => setSearchField(event.target.value)}
-          className={selectClass}
-        >
-          <option value="todos">Filtro</option>
-          <option value="nome">Nome</option>
-          <option value="observacao">Observação</option>
-          <option value="cidade">Cidade / UF</option>
-          <option value="operador">Operador</option>
-        </select>
+      <section className="mb-5 grid gap-3 lg:grid-cols-[minmax(240px,1fr)_190px_180px_150px_150px_auto]">
         <label className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -153,11 +115,8 @@ function CommercialActivitiesPage() {
           className={selectClass}
         >
           <option value="">Todos os status</option>
-          {Object.entries(stageLabels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
+          <option value="5">Em acompanhamento</option>
+          <option value="30">Visita/Demonstração</option>
         </select>
         <select
           value={substatus}
@@ -165,18 +124,10 @@ function CommercialActivitiesPage() {
           className={selectClass}
         >
           <option value="">Todos os tipos</option>
-          <option value="ligacao">Ligação</option>
-          <option value="demonstracao">Demonstração</option>
-          <option value="acompanhamento">Acompanhamento</option>
-          <option value="conclusao">Conclusão</option>
-        </select>
-        <select
-          value={dateType}
-          onChange={(event) => setDateType(event.target.value)}
-          className={selectClass}
-        >
-          <option value="atividade">Data da atividade</option>
-          <option value="retorno">Data de retorno</option>
+          <option value="1">Ligação</option>
+          <option value="2">E-mail</option>
+          <option value="3">Visita</option>
+          <option value="7">Reunião</option>
         </select>
         <Input
           type="date"
@@ -199,7 +150,7 @@ function CommercialActivitiesPage() {
 
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1280px] table-fixed text-left text-xs">
+          <table className="w-full min-w-[1080px] table-fixed text-left text-[13px] text-foreground">
             <colgroup>
               <col className="w-[4%]" />
               <col className="w-[5%]" />
@@ -211,16 +162,16 @@ function CommercialActivitiesPage() {
               <col className="w-[10%]" />
               <col className="w-[3%]" />
             </colgroup>
-            <thead className="border-b bg-muted/35 uppercase text-muted-foreground">
+            <thead className="border-b bg-muted/35 text-[11px] uppercase text-muted-foreground">
               <tr>
-                <th className="px-3 py-3 font-medium">P</th>
-                <th className="px-3 py-3 font-medium">Tipo</th>
-                <th className="px-3 py-3 font-medium">Datas</th>
-                <th className="px-3 py-3 font-medium">Retorno</th>
-                <th className="px-3 py-3 font-medium">Nome</th>
-                <th className="px-3 py-3 font-medium">Observação</th>
-                <th className="px-3 py-3 font-medium">Cidade / UF</th>
-                <th className="px-3 py-3 font-medium">Status</th>
+                <th className="px-3 py-3 font-normal">P</th>
+                <th className="px-3 py-3 font-normal">Tipo</th>
+                <th className="px-3 py-3 font-normal">Datas</th>
+                <th className="px-3 py-3 font-normal">Retorno</th>
+                <th className="px-3 py-3 font-normal">Nome</th>
+                <th className="px-3 py-3 font-normal">Observação</th>
+                <th className="px-3 py-3 font-normal">Cidade / UF</th>
+                <th className="px-3 py-3 font-normal">Status</th>
                 <th className="px-3 py-3">
                   <span className="sr-only">Ações</span>
                 </th>
@@ -247,7 +198,14 @@ function CommercialActivitiesPage() {
         </div>
       </div>
       <div className="mt-3">
-        <ListPaginationFooter page={page} pageCount={pageCount} pageSize={PAGE_SIZE} total={filtered.length} noun="atividades" onPageChange={setPage} />
+        <ListPaginationFooter
+          page={page}
+          pageCount={pageCount}
+          pageSize={PAGE_SIZE}
+          total={total}
+          noun="atividades"
+          onPageChange={setPage}
+        />
       </div>
     </AppShell>
   );
@@ -285,15 +243,10 @@ function ActivityRow({ activity }: { activity: CommercialActivity }) {
       </td>
       <td className="px-3 py-3">{activity.returnAt ? formatDate(activity.returnAt) : "—"}</td>
       <td className="min-w-0 px-3 py-3">
-        <Link
-          to="/comercial/contatos/$leadId"
-          params={{ leadId: activity.leadId }}
-          className="block truncate font-medium hover:text-primary"
-          title={activity.company}
-        >
+        <span className="block truncate font-normal" title={activity.company}>
           {activity.company}
-        </Link>
-        <span className="block truncate text-[10px] text-muted-foreground">{activity.profile}</span>
+        </span>
+        <span className="block truncate text-[11px] text-muted-foreground">{activity.subject}</span>
       </td>
       <td className="px-3 py-3">
         <span className="block truncate" title={activity.note}>
@@ -307,69 +260,47 @@ function ActivityRow({ activity }: { activity: CommercialActivity }) {
         <span
           className={cn(
             "inline-flex rounded px-2 py-1 text-[10px] font-medium",
-            stageClass(activity.stage),
+            statusClass(activity.status),
           )}
         >
-          {stageLabels[activity.stage]}
+          {statusLabel(activity.status)}
         </span>
       </td>
       <td className="px-3 py-3">
-        <Link
-          to="/comercial/contatos/$leadId"
-          params={{ leadId: activity.leadId }}
-          aria-label={`Ver ${activity.company}`}
-          title="Ver detalhes"
-          className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent"
-        >
-          <Eye className="h-4 w-4" />
-        </Link>
+        <span className="text-xs text-muted-foreground">#{activity.contactId}</span>
       </td>
     </tr>
   );
 }
 
-function mapActivity(row: CompanyLead): CommercialActivity {
-  const stage = row.stage;
-  const score = Number(row.relevance_score || 0);
+function mapHistoryActivity(row: Record<string, unknown>): CommercialActivity {
+  const rawType = String(row.history_type || "");
   return {
     id: String(row.id),
-    leadId: String(row.id),
-    type:
-      stage === "negocio_fechado"
-        ? "conclusao"
-        : stage === "demonstracao"
-          ? "demonstracao"
-          : stage === "prospeccao"
-            ? "ligacao"
-            : "acompanhamento",
-    date: row.discovered_at || new Date().toISOString(),
-    returnAt: null,
-    company: String(row.trade_name || row.legal_name || "Empresa não informada"),
-    profile: [row.cnae_description, row.company_size ? `Porte: ${row.company_size}` : ""]
-      .filter(Boolean)
-      .join(" · "),
-    note: row.notes || `Etapa comercial: ${stageLabels[stage]}.`,
+    contactId: String(row.contact_id || ""),
+    type: rawType === "3" ? "demonstracao" : rawType === "1" ? "ligacao" : "acompanhamento",
+    date: String(row.crm_created_at || ""),
+    returnAt: row.return_date ? String(row.return_date) : null,
+    company: String(row.company || `Contato #${row.contact_id || ""}`),
+    subject: String(row.subject || typeLabel(rawType)),
+    note: plainHistoryText(String(row.observation_html || "Sem observação")),
     city: String(row.city || "Não informada"),
     state: String(row.state || ""),
-    stage,
-    operator: row.assigned_to || "Não informado",
-    priority: score >= 8 ? "alta" : score >= 5 ? "media" : "baixa",
+    status: String(row.status_code || ""),
+    operator: String(row.operator_code || "Não informado"),
+    priority: rawType === "3" || rawType === "7" ? "alta" : rawType === "2" ? "media" : "baixa",
   };
 }
 
-const emptyLeadFilters = {
-  city: "",
-  state: "",
-  openedWithinDays: 0,
-  cnae: "",
-  companySize: "",
-};
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+function plainHistoryText(value: string) {
+  const node = typeof document !== "undefined" ? document.createElement("div") : null;
+  if (!node)
+    return value
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  node.innerHTML = value;
+  return (node.textContent || "").replace(/\s+/g, " ").trim();
 }
 function formatDate(value: string) {
   const date = new Date(value);
@@ -377,12 +308,21 @@ function formatDate(value: string) {
     ? "—"
     : date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
-function stageClass(stage: CompanyLeadStage) {
-  if (stage === "negocio_fechado")
-    return "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300";
-  if (stage === "sem_interesse") return "bg-destructive/10 text-destructive";
-  if (stage === "demonstracao" || stage === "proposta") return "bg-primary/10 text-primary";
-  return "bg-muted text-muted-foreground";
+function typeLabel(type: string) {
+  return (
+    ({ "1": "Ligação", "2": "E-mail", "3": "Visita", "7": "Reunião" } as Record<string, string>)[
+      type
+    ] || `Atividade ${type || "comercial"}`
+  );
+}
+function statusLabel(status: string) {
+  return (
+    ({ "5": "Em acompanhamento", "30": "Visita/Demonstração" } as Record<string, string>)[status] ||
+    `Status ${status || "não informado"}`
+  );
+}
+function statusClass(status: string) {
+  return status === "30" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground";
 }
 const selectClass =
   "h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring";

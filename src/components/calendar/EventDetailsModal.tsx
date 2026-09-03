@@ -313,7 +313,7 @@ export function EventDetailsModal({
               )}
               {event.description && (
                 <Info icon={CalendarDays} label="Descrição e observações" className="sm:col-span-2">
-                  <span className="whitespace-pre-wrap">{plainText(event.description)}</span>
+                  <EventDescription value={event.description} cancelled={tone === "cancelled"} />
                 </Info>
               )}
               {tone === "cancelled" && event.cancellationReason && (
@@ -773,6 +773,32 @@ function Info({
         {label}
       </p>
       <div className="mt-1 text-sm text-foreground">{children}</div>
+    </div>
+  );
+}
+
+function EventDescription({ value, cancelled }: { value: string; cancelled: boolean }) {
+  let text = plainText(value).replace(/\r/g, "").trim();
+  if (cancelled) text = text.split(/Motivo de cancelamento:/i)[0].trim();
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && line !== ".");
+  return (
+    <div className="space-y-1.5">
+      {lines.map((line, index) => {
+        const match = line.match(/^([^:]{2,28}):\s*(.*)$/);
+        return match ? (
+          <div key={`${line}-${index}`} className="grid gap-0.5 sm:grid-cols-[150px_minmax(0,1fr)]">
+            <span className="text-xs font-medium text-muted-foreground">{match[1]}</span>
+            <span className="min-w-0 break-words">{match[2] || "Não informado"}</span>
+          </div>
+        ) : (
+          <p key={`${line}-${index}`} className="break-words leading-relaxed">
+            {line}
+          </p>
+        );
+      })}
     </div>
   );
 }

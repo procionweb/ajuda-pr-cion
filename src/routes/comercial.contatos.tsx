@@ -64,6 +64,8 @@ function CommercialContactsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [stage, setStage] = useState("");
+  const [city, setCity] = useState("");
+  const [cities, setCities] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [selected, setSelected] = useState<CompanyLeadDetails | null>(null);
@@ -82,6 +84,7 @@ function CommercialContactsPage() {
             "stage",
             visibleStages.map((item) => item.value),
           );
+      if (city) query = query.eq("city", city);
       const term = search.trim().replace(/[,%()]/g, " ");
       if (term)
         query = query.or(
@@ -104,9 +107,15 @@ function CommercialContactsPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [page, search, stage]);
+  }, [city, page, search, stage]);
 
-  useEffect(() => setPage(0), [search, stage]);
+  useEffect(() => setPage(0), [city, search, stage]);
+
+  useEffect(() => {
+    void supabase
+      .rpc("company_lead_cities" as never)
+      .then(({ data }) => setCities(Array.isArray(data) ? data.map(String) : []));
+  }, []);
 
   async function changeStage(lead: CompanyLead, next: CompanyLeadStage) {
     try {
@@ -129,16 +138,28 @@ function CommercialContactsPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Contatos" }]}
       />
 
-      <section className="mb-5 grid gap-3 md:grid-cols-[minmax(280px,1fr)_260px]">
+      <section className="mb-5 grid gap-3 md:grid-cols-[minmax(240px,1fr)_220px_220px]">
         <label className="relative block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Empresa, CNPJ, cidade, telefone ou e-mail"
+            placeholder="Empresa, CNPJ, telefone ou e-mail"
             className="h-11 pl-10"
           />
         </label>
+        <select
+          value={city}
+          onChange={(event) => setCity(event.target.value)}
+          className="h-11 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+        >
+          <option value="">Todas as cidades</option>
+          {cities.map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
         <select
           value={stage}
           onChange={(event) => setStage(event.target.value)}

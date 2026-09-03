@@ -161,7 +161,7 @@ function CommercialAppointmentsPage() {
 
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[760px] table-fixed text-left text-[13px] text-foreground">
             <colgroup>
               <col className="w-[45%]" />
               <col className="w-[18%]" />
@@ -170,13 +170,13 @@ function CommercialAppointmentsPage() {
               <col className="w-[10%]" />
               <col className="w-[3%]" />
             </colgroup>
-            <thead className="border-b bg-muted/35 text-xs uppercase text-muted-foreground">
+            <thead className="border-b bg-muted/35 text-[11px] uppercase text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 font-medium">Título</th>
-                <th className="px-4 py-3 font-medium">Tipo / Status</th>
-                <th className="px-4 py-3 font-medium">Responsável</th>
-                <th className="px-4 py-3 font-medium">Dia</th>
-                <th className="px-4 py-3 font-medium">Horário</th>
+                <th className="px-4 py-3 font-normal">Título</th>
+                <th className="px-4 py-3 font-normal">Tipo / Status</th>
+                <th className="px-4 py-3 font-normal">Responsável</th>
+                <th className="px-4 py-3 font-normal">Dia</th>
+                <th className="px-4 py-3 font-normal">Horário</th>
                 <th className="px-3 py-3">
                   <span className="sr-only">Ações</span>
                 </th>
@@ -203,7 +203,14 @@ function CommercialAppointmentsPage() {
         </div>
       </div>
       <div className="mt-3">
-        <ListPaginationFooter page={page} pageCount={pageCount} pageSize={PAGE_SIZE} total={filtered.length} noun="agendamentos" onPageChange={setPage} />
+        <ListPaginationFooter
+          page={page}
+          pageCount={pageCount}
+          pageSize={PAGE_SIZE}
+          total={filtered.length}
+          noun="agendamentos"
+          onPageChange={setPage}
+        />
       </div>
 
       <EventDetailsModal
@@ -223,11 +230,13 @@ function AppointmentRow({ event, onOpen }: { event: CalendarEvent; onOpen: () =>
   return (
     <tr className="transition-colors hover:bg-muted/25">
       <td className="px-4 py-3">
-        <p className="font-medium text-foreground">
+        <p className="font-normal leading-snug text-foreground">
           {event.type.replace(" presencial", "")} - {event.client || event.title}
         </p>
         {event.client && (
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">{event.title}</p>
+          <p className="mt-0.5 truncate text-[11px] font-normal text-muted-foreground">
+            {event.title}
+          </p>
         )}
       </td>
       <td className="px-4 py-3">
@@ -247,9 +256,11 @@ function AppointmentRow({ event, onOpen }: { event: CalendarEvent; onOpen: () =>
           </span>
         </div>
       </td>
-      <td className="px-4 py-3">{responsible}</td>
-      <td className="px-4 py-3 tabular-nums">{formatDate(event.date)}</td>
-      <td className="px-4 py-3 tabular-nums text-primary">
+      <td className="px-4 py-3 font-normal text-foreground">{responsible}</td>
+      <td className="px-4 py-3 font-normal tabular-nums text-foreground">
+        {formatDate(event.date)}
+      </td>
+      <td className="px-4 py-3 font-normal tabular-nums text-foreground">
         {event.time} - {event.end}
       </td>
       <td className="px-3 py-3">
