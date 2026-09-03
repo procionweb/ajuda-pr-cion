@@ -39,6 +39,8 @@ export type Vehicle = {
   nickname?: string;
   fuelType?: string;
   tankCapacity?: number;
+  averageConsumptionKmPerLiter?: number;
+  fuelLiters?: number;
   hasSecondTank?: boolean;
   secondTankCapacity?: number;
   measurementUnit?: "km" | "mi" | "h";
@@ -158,6 +160,80 @@ const nowISO = () => new Date().toISOString();
 const LEGACY_RUNTIME_STORAGE_KEY = "procion.fleet-runtime.v2";
 const LEGACY_VEHICLES_STORAGE_KEY = "procion.fleet-vehicles.v1";
 const SP_TIME_ZONE = "America/Sao_Paulo";
+
+const VEHICLE_SPECS: Record<string, Partial<Vehicle>> = {
+  "ABC-1234": {
+    model: "Volkswagen Gol G4",
+    brand: "Volkswagen",
+    tankCapacity: 51,
+    averageConsumptionKmPerLiter: 11,
+  },
+  "PRC-2026": {
+    model: "Chevrolet Celta",
+    brand: "Chevrolet",
+    tankCapacity: 54,
+    averageConsumptionKmPerLiter: 11.5,
+  },
+  "HAD-1908": {
+    model: "Fiat Mobi",
+    brand: "Fiat",
+    tankCapacity: 47,
+    averageConsumptionKmPerLiter: 13,
+  },
+  "WEB-4580": {
+    model: "Volkswagen Saveiro G5",
+    brand: "Volkswagen",
+    tankCapacity: 55,
+    averageConsumptionKmPerLiter: 10.5,
+  },
+};
+
+function fuelFraction(label?: string) {
+  const normalized = label?.trim().toLowerCase();
+  if (normalized === "cheio") return 1;
+  if (normalized === "3/4") return 0.75;
+  if (normalized === "1/2") return 0.5;
+  if (normalized === "1/4") return 0.25;
+  if (normalized === "reserva") return 0.1;
+  return 0.5;
+}
+
+function fuelLabel(liters: number, capacity: number) {
+  const percent = capacity > 0 ? liters / capacity : 0;
+  if (percent <= 0.15) return "Reserva";
+  if (percent < 0.38) return "1/4";
+  if (percent < 0.63) return "1/2";
+  if (percent < 0.88) return "3/4";
+  return "Cheio";
+}
+
+function normalizeVehicleSpecs(vehicle: Vehicle): Vehicle {
+  const specs = VEHICLE_SPECS[vehicle.plate.toUpperCase()] ?? {};
+  const merged = { ...vehicle, ...specs, imageUrl: vehicle.imageUrl };
+  const capacity = merged.tankCapacity ?? 50;
+  return {
+    ...merged,
+    fuelLiters: Math.min(
+      capacity,
+      Math.max(0, vehicle.fuelLiters ?? capacity * fuelFraction(vehicle.fuelLevel)),
+    ),
+  };
+}
+
+export function getVehicleFuelState(vehicle: Vehicle) {
+  const normalized = normalizeVehicleSpecs(vehicle);
+  const capacity = normalized.tankCapacity ?? 50;
+  const liters = normalized.fuelLiters ?? capacity * fuelFraction(normalized.fuelLevel);
+  const consumption = normalized.averageConsumptionKmPerLiter ?? 10;
+  return {
+    liters,
+    capacity,
+    percent: capacity ? Math.round((liters / capacity) * 100) : 0,
+    label: fuelLabel(liters, capacity),
+    isReserve: capacity ? liters / capacity <= 0.15 : false,
+    estimatedRangeKm: Math.round(liters * consumption),
+  };
+}
 
 /**
  * Datas "ingênuas" (2026-07-30T08:00:00, sem fuso) vêm do agendamento e devem ser
@@ -442,11 +518,14 @@ function startRemoteLoad() {
     if (state?.vehicles?.length) {
       vehicles = vehicles.map((base) => {
         const stored = state.vehicles?.find((item) => item.id === base.id);
-        return stored ? { ...base, ...stored, imageUrl: base.imageUrl } : base;
+        return normalizeVehicleSpecs(
+          stored ? { ...base, ...stored, imageUrl: base.imageUrl } : base,
+        );
       });
     }
     usages = Array.isArray(state?.usages) ? state.usages : [];
     reservations = Array.isArray(state?.reservations) ? state.reservations : [];
+    if (state?.vehicles?.length) void persistCoreState();
     emit();
   });
 }
@@ -483,21 +562,33 @@ export function getVehiclesSnapshot() {
   hydrateVehicles();
   hydrateRuntimeRecords();
   const now = Date.now();
-  const needsMaintenanceSync = vehicles.some((vehicle) => vehicle.maintenanceRecords?.some((record) => {
-    const entry = new Date(record.entryDate).getTime();
-    return (record.status === "agendado" && entry <= now) || (record.status === "em_andamento" && entry > now);
-  }));
-  if (needsMaintenanceSync) vehicles = vehicles.map((vehicle) => {
-    const records = vehicle.maintenanceRecords?.map((record) => {
+  const needsMaintenanceSync = vehicles.some((vehicle) =>
+    vehicle.maintenanceRecords?.some((record) => {
       const entry = new Date(record.entryDate).getTime();
-      if (record.status === "agendado" && entry <= now) return { ...record, status: "em_andamento" as const, updatedAt: nowISO() };
-      if (record.status === "em_andamento" && entry > now) return { ...record, status: "agendado" as const, updatedAt: nowISO() };
-      return record;
+      return (
+        (record.status === "agendado" && entry <= now) ||
+        (record.status === "em_andamento" && entry > now)
+      );
+    }),
+  );
+  if (needsMaintenanceSync)
+    vehicles = vehicles.map((vehicle) => {
+      const records = vehicle.maintenanceRecords?.map((record) => {
+        const entry = new Date(record.entryDate).getTime();
+        if (record.status === "agendado" && entry <= now)
+          return { ...record, status: "em_andamento" as const, updatedAt: nowISO() };
+        if (record.status === "em_andamento" && entry > now)
+          return { ...record, status: "agendado" as const, updatedAt: nowISO() };
+        return record;
+      });
+      const hasActive = records?.some((record) => record.status === "em_andamento");
+      const status = hasActive
+        ? "manutencao"
+        : vehicle.status === "manutencao"
+          ? "disponivel"
+          : vehicle.status;
+      return records ? { ...vehicle, maintenanceRecords: records, status } : vehicle;
     });
-    const hasActive = records?.some((record) => record.status === "em_andamento");
-    const status = hasActive ? "manutencao" : vehicle.status === "manutencao" ? "disponivel" : vehicle.status;
-    return records ? { ...vehicle, maintenanceRecords: records, status } : vehicle;
-  });
   if (needsMaintenanceSync) persistVehicles();
   const staleVehicleIds = new Set(
     vehicles
@@ -582,7 +673,9 @@ export function getVehicleMaintenanceConflict(vehicleId: string, startAt: string
   return vehicle?.maintenanceRecords?.find((record) => {
     if (record.status === "concluido") return false;
     const maintenanceStart = new Date(record.entryDate).getTime();
-    const maintenanceEnd = record.exitDate ? new Date(record.exitDate).getTime() : Number.POSITIVE_INFINITY;
+    const maintenanceEnd = record.exitDate
+      ? new Date(record.exitDate).getTime()
+      : Number.POSITIVE_INFINITY;
     return requestedStart < maintenanceEnd && requestedEnd > maintenanceStart;
   });
 }
@@ -603,7 +696,20 @@ export function createReservation(input: {
   const maintenance = getVehicleMaintenanceConflict(input.vehicleId, input.startAt, input.endAt);
   if (maintenance) {
     const now = nowISO();
-    return { error: "conflict", conflict: { id: `maintenance-${maintenance.id}`, vehicleId: input.vehicleId, operatorId: input.operatorId, startAt: maintenance.entryDate, endAt: maintenance.exitDate || input.endAt, destination: `Manutenção: ${maintenance.reason}`, status: "pre_agendado", createdAt: now, updatedAt: now } };
+    return {
+      error: "conflict",
+      conflict: {
+        id: `maintenance-${maintenance.id}`,
+        vehicleId: input.vehicleId,
+        operatorId: input.operatorId,
+        startAt: maintenance.entryDate,
+        endAt: maintenance.exitDate || input.endAt,
+        destination: `Manutenção: ${maintenance.reason}`,
+        status: "pre_agendado",
+        createdAt: now,
+        updatedAt: now,
+      },
+    };
   }
 
   const vehicle = getVehicleById(input.vehicleId);
@@ -964,12 +1070,25 @@ export function registerReturn(
   if (usage.vehicleId) {
     vehicles = vehicles.map((v) =>
       v.id === usage.vehicleId
-        ? {
-            ...v,
-            status: "disponivel",
-            currentMileage: data.returnMileage,
-            fuelLevel: data.fuelAtReturn,
-          }
+        ? (() => {
+            const normalized = normalizeVehicleSpecs(v);
+            const capacity = normalized.tankCapacity ?? 50;
+            const consumption = normalized.averageConsumptionKmPerLiter ?? 10;
+            const estimatedLiters = Math.max(
+              0,
+              (normalized.fuelLiters ?? capacity * fuelFraction(usage.fuelAtDeparture)) -
+                (distance ?? 0) / consumption,
+            );
+            const reportedLiters = capacity * fuelFraction(data.fuelAtReturn);
+            const fuelLiters = Math.min(estimatedLiters, reportedLiters);
+            return {
+              ...normalized,
+              status: "disponivel" as const,
+              currentMileage: data.returnMileage,
+              fuelLiters,
+              fuelLevel: fuelLabel(fuelLiters, capacity),
+            };
+          })()
         : v,
     );
   }
@@ -980,6 +1099,19 @@ export function registerReturn(
       : reservation,
   );
   persistRuntimeRecords();
+  emit();
+}
+
+export function registerRefueling(vehicleId: string, liters: number) {
+  if (!Number.isFinite(liters) || liters <= 0) return;
+  vehicles = vehicles.map((vehicle) => {
+    if (vehicle.id !== vehicleId) return vehicle;
+    const normalized = normalizeVehicleSpecs(vehicle);
+    const capacity = normalized.tankCapacity ?? 50;
+    const fuelLiters = Math.min(capacity, (normalized.fuelLiters ?? 0) + liters);
+    return { ...normalized, fuelLiters, fuelLevel: fuelLabel(fuelLiters, capacity) };
+  });
+  persistVehicles();
   emit();
 }
 

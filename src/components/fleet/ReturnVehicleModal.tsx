@@ -18,7 +18,7 @@ export function ReturnVehicleModal({ usageId }: { usageId: string }) {
   const usage = getUsageById(usageId);
   const vehicle = getVehicleById(usage?.vehicleId);
   const [mileage, setMileage] = useState("");
-  const [fuel, setFuel] = useState("1/2");
+  const [fuel, setFuel] = useState(vehicle?.fuelLevel ?? "1/2");
   const [notes, setNotes] = useState("");
 
   if (!usage || !vehicle) return null;
@@ -60,8 +60,12 @@ export function ReturnVehicleModal({ usageId }: { usageId: string }) {
 
         <div className="flex-1 space-y-3 overflow-y-auto p-5">
           <div className="rounded-lg border border-border bg-muted/30 p-3 text-[12px]">
-            <p><b>Operador:</b> {usage.operatorId}</p>
-            <p><b>Destino:</b> {usage.destination}</p>
+            <p>
+              <b>Operador:</b> {usage.operatorId}
+            </p>
+            <p>
+              <b>Destino:</b> {usage.destination}
+            </p>
             <p>
               <b>Saída:</b>{" "}
               {usage.departureAt ? new Date(usage.departureAt).toLocaleString("pt-BR") : "—"}
@@ -89,7 +93,9 @@ export function ReturnVehicleModal({ usageId }: { usageId: string }) {
               </p>
             </div>
             <div>
-              <Label className="mb-1.5 block text-[12.5px] font-medium">Combustível restante *</Label>
+              <Label className="mb-1.5 block text-[12.5px] font-medium">
+                Combustível restante *
+              </Label>
               <div className="relative">
                 <Fuel className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <select
@@ -97,14 +103,18 @@ export function ReturnVehicleModal({ usageId }: { usageId: string }) {
                   onChange={(e) => setFuel(e.target.value)}
                   className="h-9 w-full cursor-pointer rounded-md border border-input bg-background pl-8 pr-3 text-[13px] outline-none focus:ring-2 focus:ring-ring"
                 >
-                  {FUEL_OPTIONS.map((f) => <option key={f}>{f}</option>)}
+                  {FUEL_OPTIONS.map((f) => (
+                    <option key={f}>{f}</option>
+                  ))}
                 </select>
               </div>
             </div>
           </div>
 
           <div>
-            <Label className="mb-1.5 block text-[12.5px] font-medium">Observações da devolução</Label>
+            <Label className="mb-1.5 block text-[12.5px] font-medium">
+              Observações da devolução
+            </Label>
             <SmartTextarea
               value={notes}
               onValueChange={setNotes}
@@ -119,7 +129,10 @@ export function ReturnVehicleModal({ usageId }: { usageId: string }) {
           <Button variant="outline" onClick={() => fleetActions.close()} className="cursor-pointer">
             Cancelar
           </Button>
-          <Button onClick={submit} className="cursor-pointer bg-blue-600 text-white hover:bg-blue-700">
+          <Button
+            onClick={submit}
+            className="cursor-pointer bg-blue-600 text-white hover:bg-blue-700"
+          >
             <Undo2 className="mr-1.5 h-4 w-4" />
             Confirmar devolução
           </Button>

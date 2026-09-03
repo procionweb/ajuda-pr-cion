@@ -8,7 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createFleetEntry, type FleetEntryType } from "@/lib/fleet-entry-store";
-import { addVehicleMaintenance, getMaintenanceReservationConflict, useVehicles, type VehicleReservation, type VehicleStatus } from "@/lib/fleet-store";
+import {
+  addVehicleMaintenance,
+  getMaintenanceReservationConflict,
+  registerRefueling,
+  useVehicles,
+  type VehicleReservation,
+  type VehicleStatus,
+} from "@/lib/fleet-store";
 import { useOperatorAcronyms } from "@/lib/collaborators-store";
 import { MaintenanceConflictDialog } from "@/components/fleet/MaintenanceConflictDialog";
 
@@ -114,9 +121,13 @@ export function FleetEntryDialog({
   const save = () => {
     if (!type || !draft.vehicleId || !draft.occurredAt)
       return toast.error("Preencha veículo e data do lançamento.");
-    if (!draft.driver.trim()) return toast.error("Selecione o operador responsável pelo lançamento.");
+    if (!draft.driver.trim())
+      return toast.error("Selecione o operador responsável pelo lançamento.");
     if ((type === "abastecimento" || type === "despesa") && !draft.paymentMethod) {
       return toast.error("Selecione a forma de pagamento.");
+    }
+    if (type === "abastecimento" && !(numberValue(draft.liters) ?? 0)) {
+      return toast.error("Informe a quantidade de litros abastecida.");
     }
     const title = draft.title.trim() || selectedLabel || "Lançamento";
     if (type === "servico") {
@@ -193,6 +204,8 @@ export function FleetEntryDialog({
       reminderAt: type === "lembrete" ? draft.reminderAt || undefined : undefined,
       reminderKind: type === "lembrete" ? draft.reminderKind : undefined,
     });
+    if (type === "abastecimento")
+      registerRefueling(draft.vehicleId, numberValue(draft.liters) ?? 0);
     toast.success(`${selectedLabel} registrado com sucesso.`);
     close();
   };
@@ -297,7 +310,16 @@ export function FleetEntryDialog({
           </div>
         </DialogContent>
       </Dialog>
-      <MaintenanceConflictDialog reservation={maintenanceConflict} onCancel={() => setMaintenanceConflict(null)} onVisit={(reservation) => { setMaintenanceConflict(null); close(); if (reservation.eventId !== undefined) void navigate({ to: "/calendario", search: { evento: String(reservation.eventId) } }); }} />
+      <MaintenanceConflictDialog
+        reservation={maintenanceConflict}
+        onCancel={() => setMaintenanceConflict(null)}
+        onVisit={(reservation) => {
+          setMaintenanceConflict(null);
+          close();
+          if (reservation.eventId !== undefined)
+            void navigate({ to: "/calendario", search: { evento: String(reservation.eventId) } });
+        }}
+      />
     </>
   );
 }
@@ -471,21 +493,21 @@ function ServiceFields({
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Field label="Motivo da manutenção">
-          <Input
-            value={draft.title}
-            onChange={(e) => set("title", e.target.value)}
-            placeholder="Ex.: barulho na roda esquerda"
-          />
-        </Field>
-        <Field label="Local / oficina">
-          <Input value={draft.location} onChange={(e) => set("location", e.target.value)} />
-        </Field>
-        <DriverSelect
-          value={draft.driver}
-          onChange={(value) => set("driver", value)}
-          operators={operators}
+      <Field label="Motivo da manutenção">
+        <Input
+          value={draft.title}
+          onChange={(e) => set("title", e.target.value)}
+          placeholder="Ex.: barulho na roda esquerda"
         />
+      </Field>
+      <Field label="Local / oficina">
+        <Input value={draft.location} onChange={(e) => set("location", e.target.value)} />
+      </Field>
+      <DriverSelect
+        value={draft.driver}
+        onChange={(value) => set("driver", value)}
+        operators={operators}
+      />
     </div>
   );
 }

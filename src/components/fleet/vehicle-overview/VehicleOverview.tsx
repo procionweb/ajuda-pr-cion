@@ -23,6 +23,9 @@ import {
   formatFleetDateTime,
   VEHICLE_STATUS_LABEL,
   updateVehicle,
+  getActiveReservationsByVehicle,
+  useReservations,
+  getVehicleFuelState,
 } from "@/lib/fleet-store";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -48,6 +51,7 @@ interface VehicleOverviewProps {
 export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
   const navigate = useNavigate();
   const usages = useUsages();
+  useReservations();
   const [activeTab, setActiveTab] = useState("overview");
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -67,6 +71,10 @@ export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
   const occurrences = fleetEntries.filter(
     (entry) => entry.vehicleId === vehicle.id && entry.type === "ocorrencia",
   );
+  const activeReservation = getActiveReservationsByVehicle(vehicle.id).some(
+    (item) => new Date(item.endAt).getTime() >= Date.now(),
+  );
+  const fuelState = getVehicleFuelState(vehicle);
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -98,14 +106,16 @@ export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
             <Badge
               className={cn(
                 "h-7 px-3 text-[11px] font-semibold uppercase tracking-wider",
-                vehicle.status === "disponivel"
-                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                  : vehicle.status === "manutencao"
-                    ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                    : "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
+                activeReservation
+                  ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                  : vehicle.status === "disponivel"
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                    : vehicle.status === "manutencao"
+                      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                      : "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
               )}
             >
-              {VEHICLE_STATUS_LABEL[vehicle.status]}
+              {activeReservation ? "Reservado" : VEHICLE_STATUS_LABEL[vehicle.status]}
             </Badge>
           </div>
         </div>
@@ -119,11 +129,15 @@ export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
             label="KM Atual"
             value={`${vehicle.currentMileage.toLocaleString("pt-BR")} km`}
           />
-          <HeaderStat icon={Fuel} label="Combustível" value={vehicle.fuelLevel} />
+          <HeaderStat
+            icon={Fuel}
+            label="Combustível"
+            value={`${fuelState.label} · ${fuelState.liters.toFixed(1)} L`}
+          />
           <HeaderStat
             icon={LayoutDashboard}
             label="Status"
-            value={VEHICLE_STATUS_LABEL[vehicle.status]}
+            value={activeReservation ? "Reservado" : VEHICLE_STATUS_LABEL[vehicle.status]}
           />
           <HeaderStat icon={User} label="Último condutor" value={lastUsage?.operatorId || "—"} />
         </Card>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Fuel, KeyRound } from "lucide-react";
+import { AlertTriangle, Fuel, KeyRound } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   getVehicleById,
   registerDeparture,
   formatFleetDateTime,
+  getVehicleFuelState,
 } from "@/lib/fleet-store";
 
 import { fleetActions } from "@/lib/fleet-action-store";
@@ -34,6 +35,7 @@ export function RegisterDepartureModal({
   const [notes, setNotes] = useState("");
 
   if (!usage || !vehicle) return null;
+  const fuelState = getVehicleFuelState(vehicle);
 
   const submit = () => {
     const km = Number(mileage);
@@ -67,16 +69,35 @@ export function RegisterDepartureModal({
         />
 
         <div className="flex-1 space-y-3 overflow-y-auto p-5">
+          {fuelState.isReserve && (
+            <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="text-[12px]">
+                <b>Veículo na reserva.</b>
+                <p>
+                  Estimativa: {fuelState.liters.toFixed(1)} L e autonomia aproximada de{" "}
+                  {fuelState.estimatedRangeKm} km. Providencie o abastecimento.
+                </p>
+              </div>
+            </div>
+          )}
           <div className="rounded-lg border border-border bg-muted/30 p-3 text-[12px]">
-            <p><b>Operador:</b> {usage.operatorId}</p>
-            <p><b>Destino:</b> {usage.destination}</p>
+            <p>
+              <b>Operador:</b> {usage.operatorId}
+            </p>
+            <p>
+              <b>Destino:</b> {usage.destination}
+            </p>
             {usage.scheduledStartAt && (
-              <p><b>Saída prevista:</b> {formatFleetDateTime(usage.scheduledStartAt)}</p>
+              <p>
+                <b>Saída prevista:</b> {formatFleetDateTime(usage.scheduledStartAt)}
+              </p>
             )}
             {usage.expectedReturnAt && (
-              <p><b>Devolução prevista:</b> {formatFleetDateTime(usage.expectedReturnAt)}</p>
+              <p>
+                <b>Devolução prevista:</b> {formatFleetDateTime(usage.expectedReturnAt)}
+              </p>
             )}
-
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -101,7 +122,9 @@ export function RegisterDepartureModal({
                   onChange={(e) => setFuel(e.target.value)}
                   className="h-9 w-full cursor-pointer rounded-md border border-input bg-background pl-8 pr-3 text-[13px] outline-none focus:ring-2 focus:ring-ring"
                 >
-                  {FUEL_OPTIONS.map((f) => <option key={f}>{f}</option>)}
+                  {FUEL_OPTIONS.map((f) => (
+                    <option key={f}>{f}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -123,7 +146,10 @@ export function RegisterDepartureModal({
           <Button variant="outline" onClick={() => fleetActions.close()} className="cursor-pointer">
             Cancelar
           </Button>
-          <Button onClick={submit} className="cursor-pointer bg-blue-600 text-white hover:bg-blue-700">
+          <Button
+            onClick={submit}
+            className="cursor-pointer bg-blue-600 text-white hover:bg-blue-700"
+          >
             <KeyRound className="mr-1.5 h-4 w-4" />
             Confirmar saída
           </Button>
