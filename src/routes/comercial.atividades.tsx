@@ -99,7 +99,7 @@ function CommercialActivitiesPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Pesquisa geral"
-            className="h-10 pl-9"
+            className="h-9 rounded-lg pl-9"
           />
         </label>
         <select
@@ -130,7 +130,7 @@ function CommercialActivitiesPage() {
             setTo(end);
           }}
         />
-        <Button className="h-10 w-24" onClick={() => setPage(0)}>
+        <Button className="h-9 w-24 rounded-lg" onClick={() => setPage(0)}>
           Buscar
         </Button>
       </section>
@@ -310,4 +310,4 @@ function statusClass(status: string) {
   return status === "30" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground";
 }
 const selectClass =
-  "h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring";
+  "h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring";

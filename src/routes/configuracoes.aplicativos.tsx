@@ -288,12 +288,12 @@ function ApplicationsSettingsPage() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Pesquisar por aplicativo, tipo ou versão"
-            className="h-10 pl-9"
+            className="h-9 rounded-lg pl-9"
           />
         </label>
         <Button
           variant="outline"
-          className="h-10 gap-2"
+          className="h-9 gap-2 rounded-lg"
           onClick={() => void loadApplications()}
           disabled={loading}
         >

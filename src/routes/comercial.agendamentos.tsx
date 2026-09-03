@@ -113,7 +113,7 @@ function CommercialAppointmentsPage() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Pesquisar chamado, título ou cliente"
-            className="h-10 pl-9"
+            className="h-9 rounded-lg pl-9"
           />
         </label>
         <select
@@ -148,7 +148,7 @@ function CommercialAppointmentsPage() {
             setTo(end);
           }}
         />
-        <Button className="h-10 w-24" onClick={() => setPage(0)}>
+        <Button className="h-9 w-24 rounded-lg" onClick={() => setPage(0)}>
           Buscar
         </Button>
       </section>
@@ -277,4 +277,4 @@ function formatDate(value: string) {
   return year && month && day ? `${day}/${month}/${year.slice(-2)}` : value;
 }
 const selectClass =
-  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/25";
+  "h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/25";

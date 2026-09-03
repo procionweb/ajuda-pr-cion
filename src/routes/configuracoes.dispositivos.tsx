@@ -151,14 +151,14 @@ function DevicesSettingsPage() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Busca geral"
-            className="h-10 pl-9"
+            className="h-9 rounded-lg pl-9"
           />
         </label>
         <Input
           value={acronym}
           onChange={(event) => setAcronym(event.target.value.toUpperCase())}
           placeholder="Sigla"
-          className="h-10 uppercase"
+          className="h-9 rounded-lg uppercase"
         />
         <select
           value={type}
@@ -181,7 +181,7 @@ function DevicesSettingsPage() {
           <option value="active">Ativos</option>
           <option value="inactive">Inativos</option>
         </select>
-        <Button className="h-10 gap-2" onClick={() => void loadDevices()} disabled={loading}>
+        <Button className="h-9 gap-2 rounded-lg" onClick={() => void loadDevices()} disabled={loading}>
           <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           Buscar
         </Button>
@@ -333,4 +333,4 @@ function normalize(value: unknown) {
 }
 
 const selectClass =
-  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/20";
+  "h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/20";

@@ -42,7 +42,7 @@ export function DateRangeFilter({
         <button
           type="button"
           className={cn(
-            "inline-flex h-10 w-full min-w-[220px] cursor-pointer items-center gap-2 truncate rounded-lg border border-border bg-background px-3 text-[13px] outline-none focus:ring-2 focus:ring-ring",
+            "inline-flex h-9 w-full min-w-[220px] cursor-pointer items-center gap-2 truncate rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring",
             !from && !to && "text-muted-foreground",
             className,
           )}

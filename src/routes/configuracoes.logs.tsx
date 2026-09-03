@@ -104,7 +104,7 @@ function ConfigurationLogsPage() {
       <section className="space-y-4">
         <div className="grid gap-3 xl:grid-cols-[190px_130px_minmax(220px,1fr)_220px_120px_120px_auto]">
           <select
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            className="h-9 rounded-lg border border-input bg-background px-3 text-sm"
             value={draft.operator}
             onChange={(e) => update("operator", e.target.value)}
             aria-label="Operador"

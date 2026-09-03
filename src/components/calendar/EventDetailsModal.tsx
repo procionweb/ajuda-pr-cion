@@ -785,16 +785,18 @@ function EventDescription({ value, cancelled }: { value: string; cancelled: bool
     .map((line) => line.trim())
     .filter((line) => line && line !== ".");
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 text-[13px] font-normal text-foreground/90">
       {lines.map((line, index) => {
         const match = line.match(/^([^:]{2,28}):\s*(.*)$/);
         return match ? (
-          <div key={`${line}-${index}`} className="grid gap-0.5 sm:grid-cols-[150px_minmax(0,1fr)]">
-            <span className="text-xs font-medium text-muted-foreground">{match[1]}</span>
-            <span className="min-w-0 break-words">{match[2] || "Não informado"}</span>
+          <div key={`${line}-${index}`} className="grid gap-0.5 sm:grid-cols-[130px_minmax(0,1fr)]">
+            <span className="font-normal text-foreground/90">{match[1]}</span>
+            <span className="min-w-0 break-words font-normal text-foreground/90">
+              {match[2] || "Não informado"}
+            </span>
           </div>
         ) : (
-          <p key={`${line}-${index}`} className="break-words leading-relaxed">
+          <p key={`${line}-${index}`} className="break-words font-normal leading-relaxed">
             {line}
           </p>
         );

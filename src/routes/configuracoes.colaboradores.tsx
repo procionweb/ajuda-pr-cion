@@ -193,10 +193,10 @@ function CollaboratorsSettingsPage() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Pesquisar por nome, e-mail, função ou código"
-            className="h-10 pl-9"
+            className="h-9 rounded-lg pl-9"
           />
         </label>
-        <Button variant="outline" className="h-10 gap-2" onClick={reload} disabled={loading}>
+        <Button variant="outline" className="h-9 gap-2 rounded-lg" onClick={reload} disabled={loading}>
           <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           Atualizar
         </Button>
@@ -395,7 +395,7 @@ function DateRangeFilter({
         <button
           type="button"
           className={cn(
-            "inline-flex h-10 w-full items-center gap-2 truncate rounded-md border border-input bg-background px-3 text-left text-sm text-foreground shadow-sm outline-none focus:ring-2 focus:ring-ring/20",
+            "inline-flex h-9 w-full items-center gap-2 truncate rounded-lg border border-input bg-background px-3 text-left text-sm text-foreground shadow-sm outline-none focus:ring-2 focus:ring-ring/20",
             !start && !end && "text-muted-foreground",
           )}
         >
@@ -761,4 +761,4 @@ function formatDateTime(value: string | null | undefined) {
 }
 
 const selectClass =
-  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/20";
+  "h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/20";
