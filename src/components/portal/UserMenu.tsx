@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { currentUser } from "@/lib/mock-data";
+import { supabase } from "@/lib/supabase";
 
 export function UserMenu() {
   return (
@@ -24,9 +25,7 @@ export function UserMenu() {
             <p className="text-sm font-medium leading-none group-hover:text-primary transition-colors">
               {currentUser.name}
             </p>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              {currentUser.role}
-            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">{currentUser.role}</p>
           </div>
           <Avatar className="h-9 w-9 ring-2 ring-transparent group-hover:ring-primary/30 transition">
             <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
@@ -56,19 +55,30 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() => toast("Preferências em breve", { description: "Personalização de tema, idioma e notificações." })}
+          onSelect={() =>
+            toast("Preferências em breve", {
+              description: "Personalização de tema, idioma e notificações.",
+            })
+          }
         >
           <Settings className="mr-2 h-4 w-4" /> Preferências
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() => toast("Novidades", { description: "Confira as últimas atualizações do portal." })}
+          onSelect={() =>
+            toast("Novidades", { description: "Confira as últimas atualizações do portal." })
+          }
         >
           <Sparkles className="mr-2 h-4 w-4" /> Novidades
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:text-destructive"
-          onSelect={() => toast.success("Sessão encerrada", { description: "Você foi desconectado (simulação)." })}
+          onSelect={() => {
+            void supabase.auth.signOut().then(() => {
+              toast.success("Sessão encerrada.");
+              window.location.assign("/login");
+            });
+          }}
         >
           <LogOut className="mr-2 h-4 w-4" /> Sair
         </DropdownMenuItem>
