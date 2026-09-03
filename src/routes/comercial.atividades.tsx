@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
+import { DateRangeFilter } from "@/components/portal/DateRangeFilter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -109,7 +110,7 @@ function CommercialActivitiesPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Atividades" }]}
       />
 
-      <section className="mb-5 grid gap-3 lg:grid-cols-[minmax(220px,320px)_190px_180px_150px_150px_auto_auto]">
+      <section className="mb-5 grid gap-3 lg:grid-cols-[minmax(220px,300px)_180px_170px_220px_auto_auto]">
         <label className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -139,32 +140,26 @@ function CommercialActivitiesPage() {
           <option value="3">Visita</option>
           <option value="7">Reunião</option>
         </select>
-        <Input
-          type="date"
-          value={from}
-          onChange={(event) => setFrom(event.target.value)}
-          className="h-10"
-          aria-label="Data inicial"
+        <DateRangeFilter
+          from={from}
+          to={to}
+          onChange={(start, end) => {
+            setFrom(start);
+            setTo(end);
+          }}
         />
-        <Input
-          type="date"
-          value={to}
-          onChange={(event) => setTo(event.target.value)}
-          className="h-10"
-          aria-label="Data final"
-        />
-        <Button className="h-10" onClick={() => setPage(0)}>
-          Buscar
-        </Button>
         <Button variant="outline" className="h-10 gap-2" onClick={clearFilters}>
           <RotateCcw className="h-4 w-4" />
           Limpar filtros
         </Button>
+        <Button className="h-10" onClick={() => setPage(0)}>
+          Buscar
+        </Button>
       </section>
 
       <div className="overflow-hidden rounded-lg border bg-card">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[960px] table-fixed text-left text-[13px] text-foreground">
+        <div className="overflow-x-auto xl:overflow-x-hidden">
+          <table className="w-full min-w-[900px] table-fixed text-left text-[13px] text-foreground">
             <colgroup>
               <col className="w-[3%]" />
               <col className="w-[5%]" />

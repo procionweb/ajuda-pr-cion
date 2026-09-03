@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RefreshCw, Search, ScrollText } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
+import { DateRangeFilter } from "@/components/portal/DateRangeFilter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatLogDate, listConfigurationAuthLogs, type AuthLogRow } from "@/lib/auth-logs-api";
@@ -101,7 +102,7 @@ function ConfigurationLogsPage() {
         icon={ScrollText}
       />
       <section className="space-y-4">
-        <div className="grid gap-3 xl:grid-cols-[200px_150px_minmax(260px,1fr)_160px_130px_160px_130px_auto]">
+        <div className="grid gap-3 xl:grid-cols-[190px_130px_minmax(220px,1fr)_220px_120px_120px_auto]">
           <select
             className="h-10 rounded-md border border-input bg-background px-3 text-sm"
             value={draft.operator}
@@ -128,23 +129,18 @@ function ConfigurationLogsPage() {
               if (e.key === "Enter") search();
             }}
           />
-          <Input
-            type="date"
-            aria-label="Data inicial"
-            value={draft.fromDate}
-            onChange={(e) => update("fromDate", e.target.value)}
+          <DateRangeFilter
+            from={draft.fromDate}
+            to={draft.toDate}
+            onChange={(start, end) =>
+              setDraft((current) => ({ ...current, fromDate: start, toDate: end }))
+            }
           />
           <Input
             type="time"
             aria-label="Hora inicial"
             value={draft.fromTime}
             onChange={(e) => update("fromTime", e.target.value)}
-          />
-          <Input
-            type="date"
-            aria-label="Data final"
-            value={draft.toDate}
-            onChange={(e) => update("toDate", e.target.value)}
           />
           <Input
             type="time"
@@ -218,7 +214,15 @@ function ConfigurationLogsPage() {
           )}
         </div>
         <div className="mt-3">
-          <ListPaginationFooter page={page} pageCount={pages} pageSize={PAGE_SIZE} total={total} noun="registros" onPageChange={setPage} loading={loading} />
+          <ListPaginationFooter
+            page={page}
+            pageCount={pages}
+            pageSize={PAGE_SIZE}
+            total={total}
+            noun="registros"
+            onPageChange={setPage}
+            loading={loading}
+          />
         </div>
       </section>
     </AppShell>

@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
+import { DateRangeFilter } from "@/components/portal/DateRangeFilter";
 import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1208,23 +1209,14 @@ function OptionsTable({ query, onOpen }: TableProps) {
                 ["aprovacao", "Aprovação"],
               ]}
             />
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(event) => {
-                setDateFrom(event.target.value);
+            <DateRangeFilter
+              from={dateFrom}
+              to={dateTo}
+              onChange={(start, end) => {
+                setDateFrom(start);
+                setDateTo(end);
                 setPage(1);
               }}
-              aria-label="Data inicial"
-            />
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(event) => {
-                setDateTo(event.target.value);
-                setPage(1);
-              }}
-              aria-label="Data final"
             />
             <Button type="button" className="cursor-pointer px-7">
               <Search className="mr-2 h-4 w-4" />
@@ -1927,17 +1919,13 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
               ["solucao", "Solução"],
             ]}
           />
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(event) => setDateFrom(event.target.value)}
-            aria-label="De"
-          />
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(event) => setDateTo(event.target.value)}
-            aria-label="Até"
+          <DateRangeFilter
+            from={dateFrom}
+            to={dateTo}
+            onChange={(start, end) => {
+              setDateFrom(start);
+              setDateTo(end);
+            }}
           />
           <Button type="button" className="cursor-pointer px-6">
             Buscar
@@ -2510,17 +2498,13 @@ function ParametersTable({ query, onOpen }: TableProps) {
             onChange={(event) => setForm(event.target.value)}
             placeholder="Formulário"
           />
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(event) => setDateFrom(event.target.value)}
-            aria-label="De"
-          />
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(event) => setDateTo(event.target.value)}
-            aria-label="Até"
+          <DateRangeFilter
+            from={dateFrom}
+            to={dateTo}
+            onChange={(start, end) => {
+              setDateFrom(start);
+              setDateTo(end);
+            }}
           />
           <Button type="button" className="cursor-pointer px-8">
             Buscar
@@ -2826,17 +2810,13 @@ function SerialsTable({ query }: TableProps) {
               ...operatorStats.map(([item]) => [item, item] as [string, string]),
             ]}
           />
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(event) => setDateFrom(event.target.value)}
-            aria-label="De"
-          />
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(event) => setDateTo(event.target.value)}
-            aria-label="Até"
+          <DateRangeFilter
+            from={dateFrom}
+            to={dateTo}
+            onChange={(start, end) => {
+              setDateFrom(start);
+              setDateTo(end);
+            }}
           />
           <Button type="button" className="cursor-pointer px-8">
             Buscar

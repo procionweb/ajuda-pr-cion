@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ClipboardList, RotateCcw, Search } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
+import { DateRangeFilter } from "@/components/portal/DateRangeFilter";
 import { EventDetailsModal } from "@/components/calendar/EventDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,7 +104,7 @@ function CommercialAppointmentsPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Agendamentos" }]}
       />
 
-      <section className="mb-5 grid gap-3 xl:grid-cols-[180px_minmax(180px,280px)_170px_185px_145px_145px_auto_auto]">
+      <section className="mb-5 grid gap-3 xl:grid-cols-[170px_minmax(170px,250px)_160px_175px_220px_auto_auto]">
         <select
           value={operator}
           onChange={(event) => setOperator(event.target.value)}
@@ -149,32 +150,26 @@ function CommercialAppointmentsPage() {
             </option>
           ))}
         </select>
-        <Input
-          type="date"
-          value={from}
-          onChange={(event) => setFrom(event.target.value)}
-          className="h-10"
-          aria-label="Data inicial"
+        <DateRangeFilter
+          from={from}
+          to={to}
+          onChange={(start, end) => {
+            setFrom(start);
+            setTo(end);
+          }}
         />
-        <Input
-          type="date"
-          value={to}
-          onChange={(event) => setTo(event.target.value)}
-          className="h-10"
-          aria-label="Data final"
-        />
-        <Button className="h-10" onClick={() => setPage(0)}>
-          Buscar
-        </Button>
         <Button variant="outline" className="h-10 gap-2" onClick={clearFilters}>
           <RotateCcw className="h-4 w-4" />
           Limpar filtros
         </Button>
+        <Button className="h-10" onClick={() => setPage(0)}>
+          Buscar
+        </Button>
       </section>
 
       <div className="overflow-hidden rounded-lg border bg-card">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] table-fixed text-left text-[13px] text-foreground">
+        <div className="overflow-x-auto xl:overflow-x-hidden">
+          <table className="w-full min-w-[700px] table-fixed text-left text-[13px] text-foreground">
             <colgroup>
               <col className="w-[45%]" />
               <col className="w-[18%]" />
