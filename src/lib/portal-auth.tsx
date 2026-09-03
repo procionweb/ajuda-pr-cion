@@ -3,7 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import { currentUser } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
 
-export type PortalRole = "s_admin" | "prc";
+export type PortalRole = "s_admin" | "admin" | "prc";
 
 type PortalAuthState = {
   loading: boolean;
@@ -22,8 +22,9 @@ const prcRoutes = ["/chamados", "/kanban", "/base-de-conhecimento", "/iniciar-ha
 export function canAccessPortalPath(role: PortalRole | null, pathname: string) {
   if (pathname === "/login") return true;
   if (role === "s_admin") return true;
-  if (role !== "prc") return false;
+  if (role !== "prc" && role !== "admin") return false;
   if (pathname === "/" || pathname.startsWith("/minha-conta")) return true;
+  if (role === "admin" && pathname.startsWith("/comercial")) return true;
   return prcRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
@@ -44,7 +45,12 @@ function syncCurrentUser(session: Session | null) {
   Object.assign(currentUser, {
     name: fullName,
     email: user.email || "",
-    role: user.app_metadata?.perfil === "s_admin" ? "Administrador" : "Equipe Prócion",
+    role:
+      user.app_metadata?.perfil === "s_admin"
+        ? "Administrador geral"
+        : user.app_metadata?.perfil === "admin"
+          ? "Administrador"
+          : "Equipe Prócion",
     initials,
     operator: operator || fullName,
   });
@@ -59,7 +65,8 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       syncCurrentUser(session);
       const rawRole = session?.user.app_metadata?.perfil;
-      const role = rawRole === "s_admin" || rawRole === "prc" ? rawRole : null;
+      const role =
+        rawRole === "s_admin" || rawRole === "admin" || rawRole === "prc" ? rawRole : null;
       setState({ loading: false, session, role });
     };
     void supabase.auth.getSession().then(({ data }) => applySession(data.session));

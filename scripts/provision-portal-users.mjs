@@ -58,7 +58,7 @@ try {
     const legacy = legacyByEmail.get(email) || legacyByOperator.get(operator);
     const portalRole = clean(legacy?.aus_perfil).toLowerCase();
 
-    if (!email || !["s_admin", "prc"].includes(portalRole)) {
+    if (!email || !["s_admin", "admin", "prc"].includes(portalRole)) {
       skipped += 1;
       continue;
     }

@@ -46,6 +46,7 @@ import {
   useCollaborators,
 } from "@/lib/collaborators-store";
 import { cn } from "@/lib/utils";
+import { usePortalAuth, type PortalRole } from "@/lib/portal-auth";
 
 export const Route = createFileRoute("/configuracoes/colaboradores")({
   head: () => ({ meta: [{ title: "Colaboradores - Configurações - Portal Prócion" }] }),
@@ -83,7 +84,10 @@ type CollaboratorDetail = {
   updated_at: string | null;
 };
 
+type ManagedPortalRole = PortalRole | "none";
+
 function CollaboratorsSettingsPage() {
+  const { role: currentRole } = usePortalAuth();
   const { allCollaborators, loading, error, reload } = useCollaborators({ onlyActive: false });
   const [acronym, setAcronym] = useState("");
   const [status, setStatus] = useState("all");
@@ -95,6 +99,38 @@ function CollaboratorsSettingsPage() {
   const [selected, setSelected] = useState<Collaborator | null>(null);
   const [editorMode, setEditorMode] = useState<"view" | "edit">("view");
   const [deactivating, setDeactivating] = useState<Collaborator | null>(null);
+  const [portalRoles, setPortalRoles] = useState<Record<string, ManagedPortalRole>>({});
+  const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (currentRole !== "s_admin") return;
+    void (supabase as any)
+      .rpc("list_portal_user_roles")
+      .then(({ data, error }: { data: Array<{ collaborator_id: string; portal_role: string }> | null; error: { message: string } | null }) => {
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+        setPortalRoles(Object.fromEntries(
+          (data || []).map((item) => [item.collaborator_id, item.portal_role as ManagedPortalRole]),
+        ));
+      });
+  }, [currentRole]);
+
+  async function changePortalRole(collaboratorId: string, portalRole: ManagedPortalRole) {
+    setSavingRoleId(collaboratorId);
+    const { error } = await (supabase as any).rpc("set_portal_user_role", {
+      collaborator_id: collaboratorId,
+      new_role: portalRole,
+    });
+    setSavingRoleId(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setPortalRoles((current) => ({ ...current, [collaboratorId]: portalRole }));
+    toast.success("Perfil de acesso atualizado.");
+  }
 
   const departments = useMemo(
     () =>
@@ -206,12 +242,13 @@ function CollaboratorsSettingsPage() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1120px] table-fixed text-left text-sm">
             <colgroup>
-              <col className="w-[14%]" />
-              <col className="w-[9%]" />
-              <col className="w-[15%]" />
-              <col className="w-[20%]" />
-              <col className="w-[20%]" />
-              <col className="w-[14%]" />
+              <col className="w-[12%]" />
+              <col className="w-[8%]" />
+              <col className="w-[13%]" />
+              <col className="w-[16%]" />
+              <col className="w-[16%]" />
+              <col className="w-[11%]" />
+              <col className="w-[16%]" />
               <col className="w-[8%]" />
             </colgroup>
             <thead className="border-b bg-muted/35 text-xs uppercase text-muted-foreground">
@@ -222,25 +259,26 @@ function CollaboratorsSettingsPage() {
                 <th className="px-4 py-3 font-normal">Nome</th>
                 <th className="px-4 py-3 font-normal">E-mail</th>
                 <th className="px-4 py-3 font-normal">Datas</th>
+                <th className="px-4 py-3 font-normal">Acesso ao portal</th>
                 <th className="px-4 py-3 text-center font-normal">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="h-52 text-center text-muted-foreground">
+                  <td colSpan={8} className="h-52 text-center text-muted-foreground">
                     Carregando colaboradores...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={7} className="h-52 px-6 text-center text-destructive">
+                  <td colSpan={8} className="h-52 px-6 text-center text-destructive">
                     Não foi possível carregar os colaboradores: {error}
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="h-52 text-center text-muted-foreground">
+                  <td colSpan={8} className="h-52 text-center text-muted-foreground">
                     Nenhum colaborador encontrado.
                   </td>
                 </tr>
@@ -278,6 +316,20 @@ function CollaboratorsSettingsPage() {
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       <p>{formatDateTime(item.createdAt)}</p>
                       <p className="mt-1">{formatDateTime(item.updatedAt)}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={portalRoles[item.id] || "none"}
+                        disabled={currentRole !== "s_admin" || savingRoleId === item.id}
+                        onChange={(event) => void changePortalRole(item.id, event.target.value as ManagedPortalRole)}
+                        className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
+                        aria-label={`Acesso de ${item.name}`}
+                      >
+                        <option value="none">Sem acesso</option>
+                        <option value="prc">PRC</option>
+                        <option value="admin">Admin</option>
+                        <option value="s_admin">S Admin</option>
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-0.5">
