@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, type ReactNode } from "react";
+import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Building2,
@@ -68,6 +68,9 @@ import {
 const preventOutsideClose = (event: Event) => event.preventDefault();
 
 export const Route = createFileRoute("/calendario")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    evento: typeof search.evento === "string" ? search.evento : undefined,
+  }),
   head: () => ({ meta: [{ title: "Calendário - Portal Prócion" }] }),
   loader: () => listCrmCalendarEvents(),
   component: CalendarPage,
@@ -297,6 +300,8 @@ function dateKey(year: number, month: number, day: number) {
 
 function CalendarPage() {
   const importedEvents = Route.useLoaderData();
+  const { evento: notificationEventId } = Route.useSearch();
+  const openedNotificationEvent = useRef<string | null>(null);
   const today = new Date();
   const todayKey = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
@@ -314,6 +319,17 @@ function CalendarPage() {
   const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [calendarNow, setCalendarNow] = useState(() => new Date());
+
+  useEffect(() => {
+    if (!notificationEventId || openedNotificationEvent.current === notificationEventId) return;
+    const event = allEvents.find((item) => String(item.id) === notificationEventId);
+    if (!event) return;
+    const [year, month] = event.date.split("-").map(Number);
+    setCursor(new Date(year, month - 1, 1));
+    setSelectedDate(event.date);
+    setDetailEvent(event);
+    openedNotificationEvent.current = notificationEventId;
+  }, [allEvents, notificationEventId]);
 
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);

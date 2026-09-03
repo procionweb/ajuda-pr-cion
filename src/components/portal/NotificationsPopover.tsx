@@ -25,8 +25,11 @@ export function NotificationsPopover() {
   const markAll = markAllNotificationsRead;
 
   const openNotification = (id: string, href?: string) => {
+    if (href) {
+      void navigate({ to: href }).then(() => markNotificationRead(id));
+      return;
+    }
     markNotificationRead(id);
-    if (href) void navigate({ to: href });
   };
 
   const enableDesktopNotifications = async () => {

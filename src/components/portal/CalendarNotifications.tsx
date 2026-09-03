@@ -46,7 +46,7 @@ export function CalendarNotifications() {
             time: `em ${minutes} min`,
             icon: hasVehicle ? Car : CalendarClock,
             tone: hasVehicle ? "warning" : "info",
-            href: "/calendario",
+            href: `/calendario?evento=${encodeURIComponent(String(event.id))}`,
           });
           if (added) {
             toast(title, {
@@ -61,7 +61,7 @@ export function CalendarNotifications() {
               });
               desktopNotification.onclick = () => {
                 window.focus();
-                window.location.assign("/calendario");
+                window.location.assign(`/calendario?evento=${encodeURIComponent(String(event.id))}`);
               };
             }
           }
