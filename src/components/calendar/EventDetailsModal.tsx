@@ -360,7 +360,8 @@ export function EventDetailsModal({
             )}
             {!hideFooterActions && canPickup && (
               <Button
-                className="h-9 w-full cursor-pointer bg-blue-600 text-white hover:bg-blue-700"
+                variant="outline"
+                className="h-9 w-full cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   onPickupVehicle?.(event);
@@ -398,6 +399,7 @@ export function EventDetailsModal({
             )}
             {!hideFooterActions && event.type !== "Pessoal" && canCancel && onSaveReport && (
               <Button
+                variant="outline"
                 className="h-9 w-full cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -408,13 +410,6 @@ export function EventDetailsModal({
                 Relatório
               </Button>
             )}
-            <Button
-              variant="ghost"
-              className="h-9 w-full cursor-pointer"
-              onClick={() => onOpenChange(false)}
-            >
-              Fechar
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
