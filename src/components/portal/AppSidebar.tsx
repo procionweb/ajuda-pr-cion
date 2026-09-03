@@ -13,6 +13,7 @@ import {
   Smartphone,
   Settings,
   ScrollText,
+  Target,
   Users,
   X,
 } from "lucide-react";
@@ -95,6 +96,7 @@ const nav: NavItem[] = [
       { to: "/comercial/contatos", label: "Contatos", icon: ContactsIcon },
       { to: "/comercial/atividades", label: "Atividades", icon: ClipboardList },
       { to: "/comercial/agendamentos", label: "Agendamentos", icon: CalendarIcon },
+      { to: "/comercial/prospeccao", label: "Prospecção", icon: Target },
     ],
   },
   { to: "/iniciar-hadron", label: "Hadron", icon: HadronIcon },

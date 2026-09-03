@@ -1,15 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  CalendarDays,
-  Check,
-  Mail,
-  MapPin,
-  Phone,
-  RotateCcw,
-  Search,
-  UsersRound,
-} from "lucide-react";
+import { CalendarDays, Check, Mail, MapPin, Phone, Search, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
@@ -93,15 +84,6 @@ function CommercialActivitiesPage() {
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rows = activities;
-  const clearFilters = () => {
-    setSearch("");
-    setStatus("");
-    setSubstatus("");
-    setFrom("");
-    setTo("");
-    setPage(0);
-  };
-
   return (
     <AppShell fullWidth>
       <PageHeader
@@ -110,14 +92,14 @@ function CommercialActivitiesPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Atividades" }]}
       />
 
-      <section className="mb-5 grid gap-3 lg:grid-cols-[minmax(220px,300px)_180px_170px_220px_auto_auto]">
+      <section className="mb-5 grid gap-3 xl:grid-cols-[minmax(190px,300px)_180px_170px_220px_auto]">
         <label className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Pesquisa geral"
-            className="h-10 pl-9"
+            className="h-9 rounded-lg pl-9 text-[13px]"
           />
         </label>
         <select
@@ -148,28 +130,23 @@ function CommercialActivitiesPage() {
             setTo(end);
           }}
         />
-        <Button variant="outline" className="h-10 gap-2" onClick={clearFilters}>
-          <RotateCcw className="h-4 w-4" />
-          Limpar filtros
-        </Button>
-        <Button className="h-10" onClick={() => setPage(0)}>
+        <Button className="h-9 rounded-lg text-[13px]" onClick={() => setPage(0)}>
           Buscar
         </Button>
       </section>
 
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="overflow-x-auto xl:overflow-x-hidden">
-          <table className="w-full min-w-[900px] table-fixed text-left text-[13px] text-foreground">
+          <table className="w-full min-w-[820px] table-fixed text-left text-[13px] text-foreground xl:min-w-0">
             <colgroup>
               <col className="w-[3%]" />
               <col className="w-[5%]" />
               <col className="w-[12%]" />
               <col className="w-[9%]" />
-              <col className="w-[18%]" />
-              <col className="w-[30%]" />
+              <col className="w-[19%]" />
+              <col className="w-[32%]" />
               <col className="w-[11%]" />
               <col className="w-[9%]" />
-              <col className="w-[3%]" />
             </colgroup>
             <thead className="border-b bg-muted/35 text-[11px] uppercase text-muted-foreground">
               <tr>
@@ -181,21 +158,18 @@ function CommercialActivitiesPage() {
                 <th className="px-3 py-3 font-normal">Observação</th>
                 <th className="px-3 py-3 font-normal">Cidade / UF</th>
                 <th className="px-3 py-3 font-normal">Status</th>
-                <th className="px-3 py-3">
-                  <span className="sr-only">Ações</span>
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="h-52 text-center text-muted-foreground">
+                  <td colSpan={8} className="h-52 text-center text-muted-foreground">
                     Carregando atividades...
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="h-52 text-center text-muted-foreground">
+                  <td colSpan={8} className="h-52 text-center text-muted-foreground">
                     Nenhuma atividade encontrada.
                   </td>
                 </tr>
@@ -279,9 +253,6 @@ function ActivityRow({ activity }: { activity: CommercialActivity }) {
           {statusLabel(activity.status)}
         </span>
       </td>
-      <td className="px-3 py-3">
-        <span className="text-xs text-muted-foreground">#{activity.contactId}</span>
-      </td>
     </tr>
   );
 }
@@ -339,4 +310,4 @@ function statusClass(status: string) {
   return status === "30" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground";
 }
 const selectClass =
-  "h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring";
+  "h-9 rounded-lg border border-input bg-background px-3 text-[13px] outline-none focus:ring-2 focus:ring-ring";

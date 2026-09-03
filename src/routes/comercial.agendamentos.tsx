@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ClipboardList, RotateCcw, Search } from "lucide-react";
+import { ClipboardList, Search } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { DateRangeFilter } from "@/components/portal/DateRangeFilter";
@@ -86,16 +86,6 @@ function CommercialAppointmentsPage() {
   useEffect(() => setPage(0), [from, operator, query, status, to, type]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const rows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const clearFilters = () => {
-    setOperator("");
-    setQuery("");
-    setStatus("");
-    setType("");
-    setFrom("");
-    setTo("");
-    setPage(0);
-  };
-
   return (
     <AppShell fullWidth>
       <PageHeader
@@ -104,7 +94,16 @@ function CommercialAppointmentsPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Agendamentos" }]}
       />
 
-      <section className="mb-5 grid gap-3 xl:grid-cols-[170px_minmax(170px,250px)_160px_175px_220px_auto_auto]">
+      <section className="mb-5 grid gap-3 xl:grid-cols-[minmax(190px,300px)_170px_160px_175px_220px_auto]">
+        <label className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Pesquisa"
+            className="h-9 rounded-lg pl-9 text-[13px]"
+          />
+        </label>
         <select
           value={operator}
           onChange={(event) => setOperator(event.target.value)}
@@ -117,15 +116,6 @@ function CommercialAppointmentsPage() {
             </option>
           ))}
         </select>
-        <label className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Pesquisa"
-            className="h-10 pl-9"
-          />
-        </label>
         <select
           value={status}
           onChange={(event) => setStatus(event.target.value)}
@@ -158,18 +148,14 @@ function CommercialAppointmentsPage() {
             setTo(end);
           }}
         />
-        <Button variant="outline" className="h-10 gap-2" onClick={clearFilters}>
-          <RotateCcw className="h-4 w-4" />
-          Limpar filtros
-        </Button>
-        <Button className="h-10" onClick={() => setPage(0)}>
+        <Button className="h-9 rounded-lg text-[13px]" onClick={() => setPage(0)}>
           Buscar
         </Button>
       </section>
 
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="overflow-x-auto xl:overflow-x-hidden">
-          <table className="w-full min-w-[700px] table-fixed text-left text-[13px] text-foreground">
+          <table className="w-full min-w-[700px] table-fixed text-left text-[13px] text-foreground xl:min-w-0">
             <colgroup>
               <col className="w-[45%]" />
               <col className="w-[18%]" />
@@ -291,4 +277,4 @@ function formatDate(value: string) {
   return year && month && day ? `${day}/${month}/${year.slice(-2)}` : value;
 }
 const selectClass =
-  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/25";
+  "h-9 w-full rounded-lg border border-input bg-background px-3 text-[13px] text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/25";
