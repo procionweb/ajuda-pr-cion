@@ -5,7 +5,6 @@ import {
   ArrowUpDown,
   Building2,
   CalendarDays,
-  Columns3,
   Eye,
   MapPinned,
   LoaderCircle,
@@ -14,6 +13,7 @@ import {
   Search,
   SlidersHorizontal,
   Target,
+  TableProperties,
   Users,
   X,
 } from "lucide-react";
@@ -74,7 +74,7 @@ const initialFilters: CompanyLeadFilters = {
 };
 
 const PAGE_SIZE = 50;
-const COLUMNS_STORAGE_KEY = "procion:company-leads:columns";
+const COLUMNS_STORAGE_KEY = "procion:company-leads:columns:v2";
 const SEARCH_STORAGE_KEY = "procion:company-leads:search-state:v1";
 
 type PersistedSearchState = {
@@ -161,7 +161,6 @@ const defaultColumns: ColumnKey[] = [
   "cnae",
   "company_size",
   "phone",
-  "score",
   "stage",
 ];
 
@@ -707,14 +706,14 @@ export function CompanyLeadsTab() {
   return (
     <div className="space-y-4">
       <form
-        className="flex flex-wrap items-end gap-3"
+        className="grid items-end gap-3 md:grid-cols-2 xl:grid-cols-[minmax(140px,.75fr)_72px_150px_130px_minmax(180px,1fr)_165px_155px_auto_190px]"
         onSubmit={(event) => {
           event.preventDefault();
           if (searching) return;
           searchLeads(0);
         }}
       >
-        <label className="min-w-[220px] flex-[1.4] space-y-1.5">
+        <label className="min-w-0 space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground">Cidade</span>
           <Input
             value={filters.city}
@@ -722,7 +721,7 @@ export function CompanyLeadsTab() {
             placeholder="Ex.: São Carlos"
           />
         </label>
-        <label className="w-[90px] space-y-1.5">
+        <label className="space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground">UF</span>
           <Input
             value={filters.state}
@@ -733,7 +732,7 @@ export function CompanyLeadsTab() {
             className="uppercase"
           />
         </label>
-        <label className="min-w-[170px] flex-1 space-y-1.5">
+        <label className="min-w-0 space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground">Abertura</span>
           <select
             value={filters.openedWithinDays}
@@ -752,13 +751,73 @@ export function CompanyLeadsTab() {
             <option value={365}>Último ano</option>
           </select>
         </label>
-        <label className="min-w-[150px] flex-1 space-y-1.5">
+        <label className="min-w-0 space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground">CNAE</span>
           <Input
             value={filters.cnae}
             onChange={(event) => setFilters((value) => ({ ...value, cnae: event.target.value }))}
             placeholder="Código do CNAE"
           />
+        </label>
+        <label className="min-w-0 space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Descrição do CNAE</span>
+          <Input
+            value={filters.cnaeDescription ?? ""}
+            onChange={(event) =>
+              setFilters((value) => ({ ...value, cnaeDescription: event.target.value }))
+            }
+            placeholder="Descrição da atividade"
+          />
+        </label>
+        <label className="min-w-0 space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Regime tributário</span>
+          <Select
+            value={filters.taxRegime || "all"}
+            onValueChange={(selectedTaxRegime) => {
+              const taxRegime = selectedTaxRegime === "all" ? "" : selectedTaxRegime;
+              setFilters((value) => ({
+                ...value,
+                taxRegime,
+                ...(taxRegime ? { openedWithinDays: 0, openedFrom: "", openedTo: "" } : {}),
+              }));
+            }}
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {Object.entries(taxRegimeLabels).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
+        <label className="min-w-0 space-y-1.5">
+          <span className="text-xs font-medium text-muted-foreground">Porte</span>
+          <Select
+            value={filters.companySize || "all"}
+            onValueChange={(companySize) =>
+              setFilters((value) => ({
+                ...value,
+                companySize: companySize === "all" ? "" : companySize,
+              }))
+            }
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {companySizeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
 
         <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
@@ -995,11 +1054,7 @@ export function CompanyLeadsTab() {
               </div>
             </div>
             <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border p-4">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={clearSearchFilters}
-              >
+              <Button type="button" variant="ghost" onClick={clearSearchFilters}>
                 Limpar filtros
               </Button>
               <div className="flex gap-2">
@@ -1020,59 +1075,73 @@ export function CompanyLeadsTab() {
           </DialogContent>
         </Dialog>
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button type="button" variant="outline" className="h-9 gap-2" title="Escolher colunas">
-              <Columns3 className="h-4 w-4" />
-              Colunas
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            align="end"
-            side="bottom"
-            sideOffset={8}
-            collisionPadding={16}
-            avoidCollisions
-            className="flex max-h-[calc(100vh-120px)] w-[min(260px,calc(100vw-32px))] flex-col p-0"
-          >
-            <div className="shrink-0 border-b border-border px-3 py-2.5">
-              <p className="text-sm font-semibold">Colunas visíveis</p>
-            </div>
-            <div className="hide-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <div className="space-y-1 p-3">
-                {columnDefinitions.map((column) => (
-                  <label
-                    key={column.key}
-                    className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      checked={visibleColumns.includes(column.key)}
-                      onCheckedChange={(checked) =>
-                        persistColumns(
-                          checked === true
-                            ? columnDefinitions
-                                .map((item) => item.key)
-                                .filter((key) => visibleColumns.includes(key) || key === column.key)
-                            : visibleColumns.filter((key) => key !== column.key),
-                        )
-                      }
-                    />
-                    {column.label}
-                  </label>
-                ))}
+        <div className="grid gap-2 md:col-span-2 xl:col-span-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 gap-2"
+                title="Escolher colunas"
+              >
+                <TableProperties className="h-4 w-4" />
+                Colunas
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              side="bottom"
+              sideOffset={8}
+              collisionPadding={16}
+              avoidCollisions
+              className="flex max-h-[calc(100vh-120px)] w-[min(260px,calc(100vw-32px))] flex-col p-0"
+            >
+              <div className="shrink-0 border-b border-border px-3 py-2.5">
+                <p className="text-sm font-semibold">Colunas visíveis</p>
               </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+              <div className="hide-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                <div className="space-y-1 p-3">
+                  {columnDefinitions.map((column) => (
+                    <label
+                      key={column.key}
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-muted/50"
+                    >
+                      <Checkbox
+                        checked={visibleColumns.includes(column.key)}
+                        onCheckedChange={(checked) =>
+                          persistColumns(
+                            checked === true
+                              ? columnDefinitions
+                                  .map((item) => item.key)
+                                  .filter(
+                                    (key) => visibleColumns.includes(key) || key === column.key,
+                                  )
+                              : visibleColumns.filter((key) => key !== column.key),
+                          )
+                        }
+                      />
+                      {column.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
 
-        <Button type="submit" disabled={searching} title="Procurar empresas" className="h-9 gap-2">
-          {searching ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
-          Procurar empresas
-        </Button>
+          <Button
+            type="submit"
+            disabled={searching}
+            title="Procurar empresas"
+            className="h-9 gap-2"
+          >
+            {searching ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+            Procurar empresas
+          </Button>
+        </div>
       </form>
 
       {chips.length > 0 && (
@@ -1167,7 +1236,13 @@ export function CompanyLeadsTab() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button asChild type="button" variant="ghost" size="icon" className="h-8 w-8">
+                        <Button
+                          asChild
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                        >
                           <a
                             href={googleMapsAddressUrl(lead)}
                             target="_blank"
@@ -1226,9 +1301,7 @@ export function CompanyLeadsTab() {
           total={total}
           noun="leads"
           loading={searching}
-          onPageChange={(nextPage) =>
-            void runSearch(nextPage, appliedFilters, sort, direction)
-          }
+          onPageChange={(nextPage) => void runSearch(nextPage, appliedFilters, sort, direction)}
         />
       )}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
