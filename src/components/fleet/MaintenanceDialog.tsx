@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Wrench,
   CheckCircle2,
@@ -32,8 +33,10 @@ import {
   addVehicleMaintenance,
   closeVehicleMaintenance,
   formatFleetDateTime,
+  getMaintenanceReservationConflict,
   type Vehicle,
   type VehicleMaintenance,
+  type VehicleReservation,
 } from "@/lib/fleet-store";
 import { cn } from "@/lib/utils";
 import { createFleetEntry, updateFleetEntryByMaintenance } from "@/lib/fleet-entry-store";
@@ -44,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MaintenanceConflictDialog } from "@/components/fleet/MaintenanceConflictDialog";
 
 type MaintenanceDialogProps = {
   vehicle: Vehicle;
@@ -52,8 +56,10 @@ type MaintenanceDialogProps = {
 };
 
 export function MaintenanceDialog({ vehicle, open, onOpenChange }: MaintenanceDialogProps) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<"create" | "close" | "view">("create");
   const [selectedMaint, setSelectedMaint] = useState<VehicleMaintenance | null>(null);
+  const [maintenanceConflict, setMaintenanceConflict] = useState<VehicleReservation | null>(null);
 
   // Form states for creation
   const [createForm, setCreateForm] = useState({
@@ -114,6 +120,11 @@ export function MaintenanceDialog({ vehicle, open, onOpenChange }: MaintenanceDi
   const handleCreate = () => {
     if (!createForm.reason.trim() || !createForm.workshop.trim()) {
       toast.error("Preencha o motivo e a oficina.");
+      return;
+    }
+    const conflict = getMaintenanceReservationConflict(vehicle.id, createForm.entryDate);
+    if (conflict) {
+      setMaintenanceConflict(conflict);
       return;
     }
 
@@ -274,7 +285,7 @@ export function MaintenanceDialog({ vehicle, open, onOpenChange }: MaintenanceDi
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <><Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90dvh] flex-col overflow-hidden p-0 sm:max-w-[600px] [&_button:not(:disabled)]:cursor-pointer [&_select:not(:disabled)]:cursor-pointer">
         <DialogHeader className="border-b border-border bg-muted/20 px-6 py-4">
           <DialogTitle className="flex items-center gap-2 text-xl">
@@ -560,7 +571,7 @@ export function MaintenanceDialog({ vehicle, open, onOpenChange }: MaintenanceDi
           )}
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+    </Dialog><MaintenanceConflictDialog reservation={maintenanceConflict} onCancel={() => setMaintenanceConflict(null)} onVisit={(reservation) => { setMaintenanceConflict(null); onOpenChange(false); if (reservation.eventId !== undefined) void navigate({ to: "/calendario", search: { evento: String(reservation.eventId) } }); }} /></>
   );
 }
 

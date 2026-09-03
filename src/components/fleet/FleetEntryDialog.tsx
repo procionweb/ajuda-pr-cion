@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Fuel, Plus, Receipt, Save, Upload, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createFleetEntry, type FleetEntryType } from "@/lib/fleet-entry-store";
-import { addVehicleMaintenance, useVehicles, type VehicleStatus } from "@/lib/fleet-store";
+import { addVehicleMaintenance, getMaintenanceReservationConflict, useVehicles, type VehicleReservation, type VehicleStatus } from "@/lib/fleet-store";
 import { useOperatorAcronyms } from "@/lib/collaborators-store";
+import { MaintenanceConflictDialog } from "@/components/fleet/MaintenanceConflictDialog";
 
 const TYPES = [
   ["abastecimento", "Abastecimento", Fuel],
@@ -94,10 +96,12 @@ export function FleetEntryDialog({
   triggerLabel?: string;
 }) {
   const vehicles = useVehicles();
+  const navigate = useNavigate();
   const operatorAcronyms = useOperatorAcronyms();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<FleetEntryType | null>(null);
   const [draft, setDraft] = useState(() => emptyDraft(defaultVehicleId));
+  const [maintenanceConflict, setMaintenanceConflict] = useState<VehicleReservation | null>(null);
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
   const selectedLabel = TYPES.find(([value]) => value === type)?.[1];
@@ -110,10 +114,16 @@ export function FleetEntryDialog({
   const save = () => {
     if (!type || !draft.vehicleId || !draft.occurredAt)
       return toast.error("Preencha veículo e data do lançamento.");
+    if (!draft.driver.trim()) return toast.error("Selecione o operador responsável pelo lançamento.");
     const title = draft.title.trim() || selectedLabel || "Lançamento";
     if (type === "servico") {
       if (!draft.title.trim() || !draft.location.trim()) {
         return toast.error("Preencha o motivo da manutenção e a oficina.");
+      }
+      const conflict = getMaintenanceReservationConflict(draft.vehicleId, draft.occurredAt);
+      if (conflict) {
+        setMaintenanceConflict(conflict);
+        return;
       }
       const maintenance = addVehicleMaintenance(draft.vehicleId, {
         entryDate: draft.occurredAt,
@@ -280,6 +290,7 @@ export function FleetEntryDialog({
           </div>
         </DialogContent>
       </Dialog>
+      <MaintenanceConflictDialog reservation={maintenanceConflict} onCancel={() => setMaintenanceConflict(null)} onVisit={(reservation) => { setMaintenanceConflict(null); close(); if (reservation.eventId !== undefined) void navigate({ to: "/calendario", search: { evento: String(reservation.eventId) } }); }} />
     </>
   );
 }
@@ -601,7 +612,7 @@ function DriverSelect({
   operators: string[];
 }) {
   return (
-    <Field label="Motorista">
+    <Field label="Operador *">
       <select
         className="h-10 w-full cursor-pointer rounded-md border border-input bg-background px-3 text-sm"
         value={value}

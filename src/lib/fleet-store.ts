@@ -533,6 +533,15 @@ export function getActiveReservationsByVehicle(vehicleId: string) {
   });
 }
 
+export function getMaintenanceReservationConflict(vehicleId: string, entryAt: string) {
+  hydrateRuntimeRecords();
+  const maintenanceDay = fleetDayKey(entryAt);
+  if (!maintenanceDay) return undefined;
+  return getActiveReservationsByVehicle(vehicleId).find(
+    (reservation) => fleetDayKey(reservation.startAt) === maintenanceDay,
+  );
+}
+
 export function hasReservationConflict(
   vehicleId: string,
   startAt: string,
