@@ -9,6 +9,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  RotateCcw,
   Search,
   UsersRound,
 } from "lucide-react";
@@ -130,6 +131,13 @@ function CommercialContactsPage() {
     }
   }
 
+  const clearFilters = () => {
+    setSearch("");
+    setCity("");
+    setStage("");
+    setPage(0);
+  };
+
   return (
     <AppShell fullWidth>
       <PageHeader
@@ -138,7 +146,7 @@ function CommercialContactsPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Contatos" }]}
       />
 
-      <section className="mb-5 grid gap-3 md:grid-cols-[minmax(240px,1fr)_220px_220px]">
+      <section className="mb-5 grid gap-3 md:grid-cols-[minmax(240px,360px)_220px_220px_auto]">
         <label className="relative block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -172,6 +180,10 @@ function CommercialContactsPage() {
             </option>
           ))}
         </select>
+        <Button variant="outline" className="h-11 gap-2" onClick={clearFilters}>
+          <RotateCcw className="h-4 w-4" />
+          Limpar filtros
+        </Button>
       </section>
 
       <div className="overflow-hidden rounded-lg border bg-card">

@@ -3,11 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   CalendarDays,
   Check,
-  ChevronLeft,
-  ChevronRight,
-  Laptop,
+  Mail,
+  MapPin,
   Phone,
+  RotateCcw,
   Search,
+  UsersRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
@@ -27,6 +28,7 @@ type CommercialActivity = {
   id: string;
   contactId: string;
   type: ActivityType;
+  historyType: string;
   date: string;
   returnAt: string | null;
   company: string;
@@ -90,6 +92,14 @@ function CommercialActivitiesPage() {
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rows = activities;
+  const clearFilters = () => {
+    setSearch("");
+    setStatus("");
+    setSubstatus("");
+    setFrom("");
+    setTo("");
+    setPage(0);
+  };
 
   return (
     <AppShell fullWidth>
@@ -99,7 +109,7 @@ function CommercialActivitiesPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Atividades" }]}
       />
 
-      <section className="mb-5 grid gap-3 lg:grid-cols-[minmax(240px,1fr)_190px_180px_150px_150px_auto]">
+      <section className="mb-5 grid gap-3 lg:grid-cols-[minmax(220px,320px)_190px_180px_150px_150px_auto_auto]">
         <label className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -146,20 +156,24 @@ function CommercialActivitiesPage() {
         <Button className="h-10" onClick={() => setPage(0)}>
           Buscar
         </Button>
+        <Button variant="outline" className="h-10 gap-2" onClick={clearFilters}>
+          <RotateCcw className="h-4 w-4" />
+          Limpar filtros
+        </Button>
       </section>
 
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1080px] table-fixed text-left text-[13px] text-foreground">
+          <table className="w-full min-w-[960px] table-fixed text-left text-[13px] text-foreground">
             <colgroup>
-              <col className="w-[4%]" />
+              <col className="w-[3%]" />
               <col className="w-[5%]" />
               <col className="w-[12%]" />
-              <col className="w-[10%]" />
-              <col className="w-[25%]" />
-              <col className="w-[20%]" />
+              <col className="w-[9%]" />
+              <col className="w-[18%]" />
+              <col className="w-[30%]" />
               <col className="w-[11%]" />
-              <col className="w-[10%]" />
+              <col className="w-[9%]" />
               <col className="w-[3%]" />
             </colgroup>
             <thead className="border-b bg-muted/35 text-[11px] uppercase text-muted-foreground">
@@ -213,13 +227,17 @@ function CommercialActivitiesPage() {
 
 function ActivityRow({ activity }: { activity: CommercialActivity }) {
   const TypeIcon =
-    activity.type === "conclusao"
-      ? Check
-      : activity.type === "demonstracao"
-        ? Laptop
-        : activity.type === "ligacao"
-          ? Phone
-          : CalendarDays;
+    activity.historyType === "2"
+      ? Mail
+      : activity.historyType === "3"
+        ? MapPin
+        : activity.historyType === "7"
+          ? UsersRound
+          : activity.type === "conclusao"
+            ? Check
+            : activity.type === "ligacao"
+              ? Phone
+              : CalendarDays;
   return (
     <tr className="transition-colors hover:bg-muted/25">
       <td className="px-3 py-3">
@@ -279,6 +297,7 @@ function mapHistoryActivity(row: Record<string, unknown>): CommercialActivity {
     id: String(row.id),
     contactId: String(row.contact_id || ""),
     type: rawType === "3" ? "demonstracao" : rawType === "1" ? "ligacao" : "acompanhamento",
+    historyType: rawType,
     date: String(row.crm_created_at || ""),
     returnAt: row.return_date ? String(row.return_date) : null,
     company: String(row.company || `Contato #${row.contact_id || ""}`),

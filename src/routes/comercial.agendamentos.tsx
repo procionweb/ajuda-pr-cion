@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, ClipboardList, Search } from "lucide-react";
+import { ClipboardList, RotateCcw, Search } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { EventDetailsModal } from "@/components/calendar/EventDetailsModal";
@@ -85,6 +85,15 @@ function CommercialAppointmentsPage() {
   useEffect(() => setPage(0), [from, operator, query, status, to, type]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const rows = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const clearFilters = () => {
+    setOperator("");
+    setQuery("");
+    setStatus("");
+    setType("");
+    setFrom("");
+    setTo("");
+    setPage(0);
+  };
 
   return (
     <AppShell fullWidth>
@@ -94,7 +103,7 @@ function CommercialAppointmentsPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Agendamentos" }]}
       />
 
-      <section className="mb-5 grid gap-3 xl:grid-cols-[190px_minmax(240px,1fr)_180px_200px_155px_155px_auto]">
+      <section className="mb-5 grid gap-3 xl:grid-cols-[180px_minmax(180px,280px)_170px_185px_145px_145px_auto_auto]">
         <select
           value={operator}
           onChange={(event) => setOperator(event.target.value)}
@@ -156,6 +165,10 @@ function CommercialAppointmentsPage() {
         />
         <Button className="h-10" onClick={() => setPage(0)}>
           Buscar
+        </Button>
+        <Button variant="outline" className="h-10 gap-2" onClick={clearFilters}>
+          <RotateCcw className="h-4 w-4" />
+          Limpar filtros
         </Button>
       </section>
 
