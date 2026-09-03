@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { HelpCircle, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommandPalette } from "./CommandPalette";
 import { NotificationsPopover } from "./NotificationsPopover";
@@ -22,7 +22,6 @@ export function AppHeader() {
     return () => clearInterval(id);
   }, []);
 
-
   return (
     <header className="sticky top-0 z-20 h-16 border-b border-border bg-background/85 backdrop-blur-xl">
       <div className="h-full px-4 sm:px-6 lg:px-7 flex items-center gap-3">
@@ -44,14 +43,6 @@ export function AppHeader() {
         </div>
 
         <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden sm:inline-flex focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Ajuda"
-          >
-            <HelpCircle className="h-5 w-5 text-muted-foreground" />
-          </Button>
           <ThemeToggle />
           <NotificationsPopover />
           <div className="ml-1 hidden sm:block">

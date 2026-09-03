@@ -41,6 +41,7 @@ export type Vehicle = {
   tankCapacity?: number;
   averageConsumptionKmPerLiter?: number;
   fuelLiters?: number;
+  lastDriverId?: string;
   hasSecondTank?: boolean;
   secondTankCapacity?: number;
   measurementUnit?: "km" | "mi" | "h";
@@ -1023,6 +1024,7 @@ export function registerDeparture(
           status: "em_uso",
           currentMileage: Math.max(v.currentMileage, data.departureMileage),
           fuelLevel: data.fuelAtDeparture,
+          lastDriverId: data.operatorId ?? usage.operatorId,
         }
       : v,
   );
@@ -1087,6 +1089,7 @@ export function registerReturn(
               currentMileage: data.returnMileage,
               fuelLiters,
               fuelLevel: fuelLabel(fuelLiters, capacity),
+              lastDriverId: usage.operatorId || normalized.lastDriverId,
             };
           })()
         : v,

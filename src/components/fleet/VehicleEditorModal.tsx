@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
-import { Save, Trash2, AlertTriangle, X } from "lucide-react";
+import { Save, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +26,7 @@ import {
   normalizeVehiclePlate,
   type Vehicle,
 } from "@/lib/fleet-store";
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -50,14 +56,14 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
   if (!draft || !vehicle) return null;
 
   const change = (field: keyof Vehicle, value: any) =>
-    setDraft((current) => current ? { ...current, [field]: value } : current);
+    setDraft((current) => (current ? { ...current, [field]: value } : current));
 
   const handleSave = () => {
     if (!draft.plate) {
       toast.error("A placa é obrigatória.");
       return;
     }
-    
+
     const normalizedPlate = normalizeVehiclePlate(draft.plate);
     if (normalizedPlate.replace(/[^A-Z0-9]/g, "").length < 7) {
       toast.error("Informe uma placa válida.");
@@ -68,7 +74,7 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
       ...draft,
       plate: normalizedPlate,
     });
-    
+
     toast.success("Dados do veículo atualizados com sucesso.");
     onOpenChange(false);
   };
@@ -93,19 +99,15 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="flex max-h-[90dvh] max-w-3xl flex-col overflow-hidden p-0 shadow-lg border-border [&_button:not(:disabled)]:cursor-pointer [&_select:not(:disabled)]:cursor-pointer">
           <DialogHeader className="px-6 py-4 border-b border-border bg-muted/30">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pr-8">
               <DialogTitle className="flex flex-col gap-0.5">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Editar veículo</span>
-                <span className="text-lg font-semibold">{draft.model || draft.brand || "Novo Veículo"}</span>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                  Editar veículo
+                </span>
+                <span className="text-lg font-semibold">
+                  {draft.model || draft.brand || "Novo Veículo"}
+                </span>
               </DialogTitle>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 rounded-full" 
-                onClick={() => onOpenChange(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
             </div>
           </DialogHeader>
 
@@ -118,55 +120,56 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Field label="Status">
-                  <Select 
-                    value={draft.status} 
-                    onValueChange={(v) => change("status", v)}
-                  >
+                  <Select value={draft.status} onValueChange={(v) => change("status", v)}>
                     <SelectTrigger className="h-10 bg-background">
                       <SelectValue placeholder="Selecione o status" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="disponivel">Ativo</SelectItem>
-                      <SelectItem value="inativo" disabled={draft.status === "em_uso"}>Inativo</SelectItem>
-                      <SelectItem value="manutencao" disabled={draft.status === "em_uso"}>Em Manutenção</SelectItem>
+                      <SelectItem value="inativo" disabled={draft.status === "em_uso"}>
+                        Inativo
+                      </SelectItem>
+                      <SelectItem value="manutencao" disabled={draft.status === "em_uso"}>
+                        Em Manutenção
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>
                 <Field label="Tipo de veículo">
-                  <Input 
-                    value={draft.type || ""} 
+                  <Input
+                    value={draft.type || ""}
                     onChange={(e) => change("type", e.target.value)}
                     placeholder="Ex: Hatch, SUV, Caminhão"
                     className="h-10"
                   />
                 </Field>
                 <Field label="Categoria">
-                  <Input 
-                    value={draft.category || ""} 
+                  <Input
+                    value={draft.category || ""}
                     onChange={(e) => change("category", e.target.value)}
                     placeholder="Ex: Utilitário"
                     className="h-10"
                   />
                 </Field>
                 <Field label="Marca">
-                  <Input 
-                    value={draft.brand || ""} 
+                  <Input
+                    value={draft.brand || ""}
                     onChange={(e) => change("brand", e.target.value)}
                     placeholder="Ex: Volkswagen"
                     className="h-10"
                   />
                 </Field>
                 <Field label="Modelo">
-                  <Input 
-                    value={draft.model || ""} 
+                  <Input
+                    value={draft.model || ""}
                     onChange={(e) => change("model", e.target.value)}
                     placeholder="Ex: Gol G4"
                     className="h-10"
                   />
                 </Field>
                 <Field label="Nome / Apelido">
-                  <Input 
-                    value={draft.nickname || ""} 
+                  <Input
+                    value={draft.nickname || ""}
                     onChange={(e) => change("nickname", e.target.value)}
                     placeholder="Ex: Carro 01"
                     className="h-10"
@@ -183,49 +186,46 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Field label="Ano Fabricação">
-                  <Input 
-                    value={draft.year || ""} 
+                  <Input
+                    value={draft.year || ""}
                     onChange={(e) => change("year", e.target.value)}
                     placeholder="Ex: 2022"
                     className="h-10"
                   />
                 </Field>
                 <Field label="Ano Modelo">
-                  <Input 
-                    value={draft.yearModel || ""} 
+                  <Input
+                    value={draft.yearModel || ""}
                     onChange={(e) => change("yearModel", e.target.value)}
                     placeholder="Ex: 2023"
                     className="h-10"
                   />
                 </Field>
                 <Field label="Cor">
-                  <Input 
-                    value={draft.color || ""} 
+                  <Input
+                    value={draft.color || ""}
                     onChange={(e) => change("color", e.target.value)}
                     className="h-10"
                   />
                 </Field>
                 <Field label="Potência">
-                  <Input 
-                    value={draft.power || ""} 
+                  <Input
+                    value={draft.power || ""}
                     onChange={(e) => change("power", e.target.value)}
                     placeholder="Ex: 100cv"
                     className="h-10"
                   />
                 </Field>
                 <Field label="Capacidade Passageiros">
-                  <Input 
+                  <Input
                     type="number"
-                    value={draft.passengerCapacity || ""} 
+                    value={draft.passengerCapacity || ""}
                     onChange={(e) => change("passengerCapacity", Number(e.target.value))}
                     className="h-10"
                   />
                 </Field>
                 <Field label="Combustível">
-                  <Select 
-                    value={draft.fuelType || ""} 
-                    onValueChange={(v) => change("fuelType", v)}
-                  >
+                  <Select value={draft.fuelType || ""} onValueChange={(v) => change("fuelType", v)}>
                     <SelectTrigger className="h-10 bg-background">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
@@ -239,8 +239,8 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
                   </Select>
                 </Field>
                 <Field label="Unidade de Medição">
-                  <Select 
-                    value={draft.measurementUnit || "km"} 
+                  <Select
+                    value={draft.measurementUnit || "km"}
                     onValueChange={(v) => change("measurementUnit", v)}
                   >
                     <SelectTrigger className="h-10 bg-background">
@@ -254,16 +254,16 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
                   </Select>
                 </Field>
                 <Field label="Capacidade Tanque (L)">
-                  <Input 
+                  <Input
                     type="number"
-                    value={draft.tankCapacity || ""} 
+                    value={draft.tankCapacity || ""}
                     onChange={(e) => change("tankCapacity", Number(e.target.value))}
                     className="h-10"
                   />
                 </Field>
                 <div className="flex items-center space-x-2 pt-8">
-                  <Switch 
-                    id="two-tanks" 
+                  <Switch
+                    id="two-tanks"
                     checked={draft.hasSecondTank || false}
                     onCheckedChange={(checked) => change("hasSecondTank", checked)}
                   />
@@ -271,9 +271,9 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
                 </div>
                 {draft.hasSecondTank && (
                   <Field label="Capacidade 2º Tanque (L)">
-                    <Input 
+                    <Input
                       type="number"
-                      value={draft.secondTankCapacity || ""} 
+                      value={draft.secondTankCapacity || ""}
                       onChange={(e) => change("secondTankCapacity", Number(e.target.value))}
                       className="h-10"
                     />
@@ -290,32 +290,32 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Field label="Placa">
-                  <Input 
-                    value={draft.plate || ""} 
+                  <Input
+                    value={draft.plate || ""}
                     onChange={(e) => change("plate", e.target.value.toUpperCase())}
                     placeholder="AAA-0000"
                     className="h-10 uppercase font-mono"
                   />
                 </Field>
                 <Field label="Renavam">
-                  <Input 
-                    value={draft.renavam || ""} 
+                  <Input
+                    value={draft.renavam || ""}
                     onChange={(e) => change("renavam", e.target.value.replace(/\D/g, ""))}
                     maxLength={11}
                     className="h-10 font-mono"
                   />
                 </Field>
                 <Field label="Chassi">
-                  <Input 
-                    value={draft.chassis || ""} 
+                  <Input
+                    value={draft.chassis || ""}
                     onChange={(e) => change("chassis", e.target.value.toUpperCase())}
                     className="h-10 font-mono uppercase"
                   />
                 </Field>
                 <Field label="KM Atual">
-                  <Input 
+                  <Input
                     type="text"
-                    value={draft.currentMileage?.toLocaleString("pt-BR") || "0"} 
+                    value={draft.currentMileage?.toLocaleString("pt-BR") || "0"}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "");
                       change("currentMileage", Number(val));
@@ -328,8 +328,8 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
 
             <section>
               <Field label="Observações">
-                <Textarea 
-                  value={draft.observations || ""} 
+                <Textarea
+                  value={draft.observations || ""}
                   onChange={(e) => change("observations", e.target.value)}
                   placeholder="Informações adicionais sobre o veículo..."
                   className="min-h-[100px] resize-none"
@@ -341,24 +341,24 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
           </div>
 
           <DialogFooter className="flex flex-row items-center justify-between gap-3 border-t border-border px-6 py-4 bg-muted/20 shrink-0">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors gap-2"
               onClick={() => setIsDeleteDialogOpen(true)}
             >
               <Trash2 className="h-4 w-4" />
               Excluir veículo
             </Button>
-            
+
             <div className="flex gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => onOpenChange(false)}
                 className="h-10 px-6 border-border hover:bg-muted"
               >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 onClick={handleSave}
                 className="h-10 px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm gap-2"
               >
@@ -378,12 +378,13 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
               Confirmar exclusão
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Você tem certeza que deseja excluir o veículo <strong>{vehicle.model}</strong> ({vehicle.plate})? Esta ação não pode ser desfeita.
+              Você tem certeza que deseja excluir o veículo <strong>{vehicle.model}</strong> (
+              {vehicle.plate})? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDelete}
               className="bg-red-500 hover:bg-red-600 text-white"
             >

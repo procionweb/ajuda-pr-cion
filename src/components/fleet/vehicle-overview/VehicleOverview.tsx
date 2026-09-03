@@ -139,7 +139,11 @@ export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
             label="Status"
             value={activeReservation ? "Reservado" : VEHICLE_STATUS_LABEL[vehicle.status]}
           />
-          <HeaderStat icon={User} label="Último condutor" value={lastUsage?.operatorId || "—"} />
+          <HeaderStat
+            icon={User}
+            label="Último condutor"
+            value={vehicle.lastDriverId || lastUsage?.operatorId || "—"}
+          />
         </Card>
       </div>
 

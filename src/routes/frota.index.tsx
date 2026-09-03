@@ -90,8 +90,8 @@ function FleetPage() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar veículo, operador ou cliente..."
-              className="h-9 cursor-text text-[13px]"
+              placeholder="Buscar veículo, operador ou cliente"
+              className="h-9 cursor-text px-3 text-xs placeholder:text-xs"
             />
           </div>
         </div>
@@ -217,44 +217,51 @@ function VehiclesView({ query }: { query: string }) {
             .filter((item) => new Date(item.endAt).getTime() >= Date.now())
             .sort((a, b) => a.startAt.localeCompare(b.startAt))[0];
           return (
-          <Card
-            key={v.id}
-            className="group relative min-w-0 overflow-hidden p-0 transition hover:border-primary/40 hover:shadow-md"
-          >
-            <Link
-              to="/frota/$vehicleId"
-              params={{ vehicleId: v.id }}
-              aria-label={`Ver detalhes de ${v.model}`}
-              className="absolute inset-0 z-10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            <Card
+              key={v.id}
+              className="group relative min-w-0 overflow-hidden p-0 transition hover:border-primary/40 hover:shadow-md"
             >
-              <span className="sr-only">Ver detalhes de {v.model}</span>
-            </Link>
-            <div className="flex h-32 items-center justify-center bg-white">
-              <img src={v.imageUrl} alt={v.model} className="h-full w-full object-contain p-2" />
-            </div>
-            <div className="space-y-2 p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate text-[13.5px] font-medium">{v.model}</p>
-                  <p className="mt-0.5 font-mono text-[11.5px] text-primary">{v.plate}</p>
+              <Link
+                to="/frota/$vehicleId"
+                params={{ vehicleId: v.id }}
+                aria-label={`Ver detalhes de ${v.model}`}
+                className="absolute inset-0 z-10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+              >
+                <span className="sr-only">Ver detalhes de {v.model}</span>
+              </Link>
+              <div className="flex h-32 items-center justify-center bg-white">
+                <img src={v.imageUrl} alt={v.model} className="h-full w-full object-contain p-2" />
+              </div>
+              <div className="space-y-2 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-[13.5px] font-medium">{v.model}</p>
+                    <p className="mt-0.5 font-mono text-[11.5px] text-primary">{v.plate}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {reservation ? (
+                      <Badge className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50">
+                        Reservado
+                      </Badge>
+                    ) : (
+                      <VehicleBadge status={v.status} />
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  {reservation ? (
-                    <Badge className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50">
-                      Reservado
-                    </Badge>
-                  ) : (
-                    <VehicleBadge status={v.status} />
-                  )}
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11.5px] text-muted-foreground">
+                  <span>
+                    Ano: <span className="text-foreground">{v.yearModel}</span>
+                  </span>
+                  <span>
+                    KM:{" "}
+                    <span className="text-foreground">
+                      {v.currentMileage.toLocaleString("pt-BR")}
+                    </span>
+                  </span>
+                  <LicensingSummary vehicle={v} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11.5px] text-muted-foreground">
-                <span>Ano: <span className="text-foreground">{v.yearModel}</span></span>
-                <span>KM: <span className="text-foreground">{v.currentMileage.toLocaleString("pt-BR")}</span></span>
-                <LicensingSummary vehicle={v} />
-              </div>
-            </div>
-          </Card>
+            </Card>
           );
         })}
       </div>
@@ -283,13 +290,24 @@ function InUseView({ query }: { query: string }) {
             className="grid items-center gap-3 border-t border-border px-4 py-2.5 text-[13px]"
             style={{ gridTemplateColumns: "200px 120px 1fr 160px 160px 160px" }}
           >
-            <span className="text-foreground">{vehicle ? `${vehicle.model} · ${vehicle.plate}` : "—"}</span>
+            <span className="text-foreground">
+              {vehicle ? `${vehicle.model} · ${vehicle.plate}` : "—"}
+            </span>
             <span className="text-foreground">{u.operatorId}</span>
             <span className="min-w-0 truncate text-muted-foreground">{u.destination}</span>
-            <span className="tabular-nums text-muted-foreground">{formatFleetDateTime(getUsageDepartureRef(u))}</span>
-            <span className="tabular-nums text-muted-foreground">{formatFleetDateTime(u.expectedReturnAt)}</span>
+            <span className="tabular-nums text-muted-foreground">
+              {formatFleetDateTime(getUsageDepartureRef(u))}
+            </span>
+            <span className="tabular-nums text-muted-foreground">
+              {formatFleetDateTime(u.expectedReturnAt)}
+            </span>
             <div className="flex justify-end">
-              <Button size="sm" variant="outline" className="h-8 cursor-pointer" onClick={() => fleetActions.openReturn(u.id)}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 cursor-pointer"
+                onClick={() => fleetActions.openReturn(u.id)}
+              >
                 <Undo2 className="mr-1.5 h-3.5 w-3.5" /> Devolver
               </Button>
             </div>
@@ -322,11 +340,17 @@ function HistoryView({ query }: { query: string }) {
             className="grid items-center gap-3 border-t border-border px-4 py-2.5 text-[13px]"
             style={{ gridTemplateColumns: "160px 180px 120px 1fr 120px 140px" }}
           >
-            <span className="tabular-nums text-muted-foreground">{formatFleetDateTime(u.returnedAt ?? getUsageDepartureRef(u))}</span>
-            <span className="text-foreground">{vehicle ? `${vehicle.model} · ${vehicle.plate}` : "—"}</span>
+            <span className="tabular-nums text-muted-foreground">
+              {formatFleetDateTime(u.returnedAt ?? getUsageDepartureRef(u))}
+            </span>
+            <span className="text-foreground">
+              {vehicle ? `${vehicle.model} · ${vehicle.plate}` : "—"}
+            </span>
             <span className="text-foreground">{u.operatorId}</span>
             <span className="min-w-0 truncate text-muted-foreground">{u.destination}</span>
-            <span className="tabular-nums text-muted-foreground">{u.distanceTraveled ? `${u.distanceTraveled.toLocaleString("pt-BR")} km` : "—"}</span>
+            <span className="tabular-nums text-muted-foreground">
+              {u.distanceTraveled ? `${u.distanceTraveled.toLocaleString("pt-BR")} km` : "—"}
+            </span>
             <UsageBadge status={u.status} />
           </div>
         );
@@ -337,7 +361,14 @@ function HistoryView({ query }: { query: string }) {
 
 function LicensingSummary({ vehicle }: { vehicle: Vehicle }) {
   const licensing = getLicensingStatus(vehicle);
-  const color = licensing.status === "overdue" ? "text-red-600" : licensing.status === "due_soon" ? "text-amber-600" : licensing.status === "regular" ? "text-emerald-600" : "text-muted-foreground";
+  const color =
+    licensing.status === "overdue"
+      ? "text-red-600"
+      : licensing.status === "due_soon"
+        ? "text-amber-600"
+        : licensing.status === "regular"
+          ? "text-emerald-600"
+          : "text-muted-foreground";
   return (
     <span className={cn("col-span-2 flex items-center gap-1", color)}>
       <ShieldCheck className="h-3.5 w-3.5" />
@@ -349,13 +380,22 @@ function LicensingSummary({ vehicle }: { vehicle: Vehicle }) {
 function matchesQuery(u: { destination: string; operatorId: string; client?: string }, q: string) {
   if (!q.trim()) return true;
   const search = q.toLowerCase();
-  return u.destination.toLowerCase().includes(search) || u.operatorId.toLowerCase().includes(search) || u.client?.toLowerCase().includes(search);
+  return (
+    u.destination.toLowerCase().includes(search) ||
+    u.operatorId.toLowerCase().includes(search) ||
+    u.client?.toLowerCase().includes(search)
+  );
 }
 
 function TableHeader({ cols, widths }: { cols: string[]; widths: string[] }) {
   return (
-    <div className="grid gap-3 bg-muted/30 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" style={{ gridTemplateColumns: widths.join(" ") }}>
-      {cols.map((c) => <div key={c}>{c}</div>)}
+    <div
+      className="grid gap-3 bg-muted/30 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+      style={{ gridTemplateColumns: widths.join(" ") }}
+    >
+      {cols.map((c) => (
+        <div key={c}>{c}</div>
+      ))}
     </div>
   );
 }
@@ -366,7 +406,14 @@ function EmptyRow({ label }: { label: string }) {
 
 function VehicleBadge({ status }: { status: VehicleStatus }) {
   return (
-    <Badge className={cn("h-5 border-0 text-[10.5px] font-semibold", status === "disponivel" && "bg-emerald-500/10 text-emerald-600", status === "em_uso" && "bg-blue-500/10 text-blue-600", status === "manutencao" && "bg-amber-500/10 text-amber-600")}>
+    <Badge
+      className={cn(
+        "h-5 border-0 text-[10.5px] font-semibold",
+        status === "disponivel" && "bg-emerald-500/10 text-emerald-600",
+        status === "em_uso" && "bg-blue-500/10 text-blue-600",
+        status === "manutencao" && "bg-amber-500/10 text-amber-600",
+      )}
+    >
       {VEHICLE_STATUS_LABEL[status]}
     </Badge>
   );
@@ -374,7 +421,16 @@ function VehicleBadge({ status }: { status: VehicleStatus }) {
 
 function UsageBadge({ status }: { status: UsageStatus }) {
   return (
-    <Badge variant="outline" className={cn("h-5 text-[10.5px] font-semibold", status === "aguardando_retirada" && "bg-amber-500/10 text-amber-600", status === "em_deslocamento" && "bg-blue-500/10 text-blue-600", status === "devolvido" && "bg-emerald-500/10 text-emerald-600", status === "cancelado" && "bg-slate-400/10 text-slate-600")}>
+    <Badge
+      variant="outline"
+      className={cn(
+        "h-5 text-[10.5px] font-semibold",
+        status === "aguardando_retirada" && "bg-amber-500/10 text-amber-600",
+        status === "em_deslocamento" && "bg-blue-500/10 text-blue-600",
+        status === "devolvido" && "bg-emerald-500/10 text-emerald-600",
+        status === "cancelado" && "bg-slate-400/10 text-slate-600",
+      )}
+    >
       {USAGE_STATUS_LABEL[status]}
     </Badge>
   );
