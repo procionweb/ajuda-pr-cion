@@ -483,17 +483,22 @@ export function getVehiclesSnapshot() {
   hydrateVehicles();
   hydrateRuntimeRecords();
   const now = Date.now();
-  let activatedMaintenance = false;
-  vehicles = vehicles.map((vehicle) => {
+  const needsMaintenanceSync = vehicles.some((vehicle) => vehicle.maintenanceRecords?.some((record) => {
+    const entry = new Date(record.entryDate).getTime();
+    return (record.status === "agendado" && entry <= now) || (record.status === "em_andamento" && entry > now);
+  }));
+  if (needsMaintenanceSync) vehicles = vehicles.map((vehicle) => {
     const records = vehicle.maintenanceRecords?.map((record) => {
-      if (record.status !== "agendado" || new Date(record.entryDate).getTime() > now) return record;
-      activatedMaintenance = true;
-      return { ...record, status: "em_andamento" as const, updatedAt: nowISO() };
+      const entry = new Date(record.entryDate).getTime();
+      if (record.status === "agendado" && entry <= now) return { ...record, status: "em_andamento" as const, updatedAt: nowISO() };
+      if (record.status === "em_andamento" && entry > now) return { ...record, status: "agendado" as const, updatedAt: nowISO() };
+      return record;
     });
     const hasActive = records?.some((record) => record.status === "em_andamento");
-    return records ? { ...vehicle, maintenanceRecords: records, status: hasActive ? "manutencao" : vehicle.status } : vehicle;
+    const status = hasActive ? "manutencao" : vehicle.status === "manutencao" ? "disponivel" : vehicle.status;
+    return records ? { ...vehicle, maintenanceRecords: records, status } : vehicle;
   });
-  if (activatedMaintenance) persistVehicles();
+  if (needsMaintenanceSync) persistVehicles();
   const staleVehicleIds = new Set(
     vehicles
       .filter(
@@ -570,6 +575,18 @@ export function hasReservationConflict(
   });
 }
 
+export function getVehicleMaintenanceConflict(vehicleId: string, startAt: string, endAt: string) {
+  const vehicle = getVehicleById(vehicleId);
+  const requestedStart = new Date(startAt).getTime();
+  const requestedEnd = new Date(endAt).getTime();
+  return vehicle?.maintenanceRecords?.find((record) => {
+    if (record.status === "concluido") return false;
+    const maintenanceStart = new Date(record.entryDate).getTime();
+    const maintenanceEnd = record.exitDate ? new Date(record.exitDate).getTime() : Number.POSITIVE_INFINITY;
+    return requestedStart < maintenanceEnd && requestedEnd > maintenanceStart;
+  });
+}
+
 export function createReservation(input: {
   vehicleId: string;
   operatorId: string;
@@ -582,6 +599,12 @@ export function createReservation(input: {
 }): VehicleReservation | { error: "conflict"; conflict: VehicleReservation } {
   const conflict = hasReservationConflict(input.vehicleId, input.startAt, input.endAt);
   if (conflict) return { error: "conflict", conflict };
+
+  const maintenance = getVehicleMaintenanceConflict(input.vehicleId, input.startAt, input.endAt);
+  if (maintenance) {
+    const now = nowISO();
+    return { error: "conflict", conflict: { id: `maintenance-${maintenance.id}`, vehicleId: input.vehicleId, operatorId: input.operatorId, startAt: maintenance.entryDate, endAt: maintenance.exitDate || input.endAt, destination: `Manutenção: ${maintenance.reason}`, status: "pre_agendado", createdAt: now, updatedAt: now } };
+  }
 
   const vehicle = getVehicleById(input.vehicleId);
   if (vehicle?.status === "manutencao" || vehicle?.status === "em_uso") {

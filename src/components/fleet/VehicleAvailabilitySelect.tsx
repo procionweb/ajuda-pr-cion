@@ -14,6 +14,7 @@ import {
   hasReservationConflict,
   hasConflict,
   getActiveReservationsByVehicle,
+  getVehicleMaintenanceConflict,
   VEHICLE_STATUS_LABEL,
   type Vehicle,
 } from "@/lib/fleet-store";
@@ -29,7 +30,7 @@ function reservationPeriod(startAt: string, endAt: string) {
 export type VehicleAvailability =
   | { key: "disponivel"; label: "Disponível"; conflict?: undefined }
   | { key: "em_uso"; label: "Em uso" | "Em uso no período"; conflict?: undefined }
-  | { key: "indisponivel"; label: "Indisponível" | "Em manutenção"; conflict?: undefined }
+  | { key: "indisponivel"; label: "Indisponível" | "Em manutenção" | "Manutenção agendada"; conflict?: undefined }
   | { key: "pre_agendado"; label: "Pré-agendado"; conflict?: boolean };
 
 export function combineDateTime(date: string, time: string): string | null {
@@ -45,6 +46,9 @@ export function evaluateVehicle(
 ): VehicleAvailability {
   if (vehicle.status === "em_uso") return { key: "em_uso", label: "Em uso" };
   if (vehicle.status === "manutencao") return { key: "indisponivel", label: "Em manutenção" };
+  if (windowStart && windowEnd && getVehicleMaintenanceConflict(vehicle.id, windowStart, windowEnd)) {
+    return { key: "indisponivel", label: "Manutenção agendada" };
+  }
   if (windowStart && windowEnd && hasConflict(vehicle.id, windowStart, windowEnd)) {
     return { key: "em_uso", label: "Em uso no período" };
   }
@@ -150,8 +154,13 @@ export function VehicleAvailabilitySelect({
               )?.id,
             )
           : undefined;
+      const maintenance = windowStart && windowEnd ? getVehicleMaintenanceConflict(value, windowStart, windowEnd) : undefined;
       onChange(NO_VEHICLE);
-      if (conflict) {
+      if (maintenance) {
+        toast.error("Veículo em manutenção", {
+          description: `O veículo estará na oficina a partir de ${new Date(maintenance.entryDate).toLocaleString("pt-BR")}. Escolha outro carro ou altere o horário.`,
+        });
+      } else if (conflict) {
         toast.error("Carro reservado", {
           description: `Reservado de ${reservationPeriod(conflict.startAt, conflict.endAt)}.`,
         });
@@ -179,7 +188,10 @@ export function VehicleAvailabilitySelect({
                 windowStart && windowEnd
                   ? hasReservationConflict(vehicle.id, windowStart, windowEnd)
                   : undefined;
-              const label = conflict
+              const maintenance = windowStart && windowEnd ? getVehicleMaintenanceConflict(vehicle.id, windowStart, windowEnd) : undefined;
+              const label = maintenance
+                ? `Manutenção a partir de ${new Date(maintenance.entryDate).toLocaleString("pt-BR")}`
+                : conflict
                 ? `Reservado de ${reservationPeriod(conflict.startAt, conflict.endAt)}`
                 : info?.label ?? VEHICLE_STATUS_LABEL[vehicle.status];
               const disabled = isUnavailable(info);
