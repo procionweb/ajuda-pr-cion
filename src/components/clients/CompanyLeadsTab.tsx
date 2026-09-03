@@ -706,14 +706,14 @@ export function CompanyLeadsTab() {
   return (
     <div className="space-y-4">
       <form
-        className="grid items-end gap-3 md:grid-cols-2 xl:grid-cols-[minmax(140px,.75fr)_72px_150px_130px_minmax(180px,1fr)_165px_155px_auto_190px]"
+        className="flex flex-wrap items-end gap-3"
         onSubmit={(event) => {
           event.preventDefault();
           if (searching) return;
           searchLeads(0);
         }}
       >
-        <label className="min-w-0 space-y-1.5">
+        <label className="min-w-[220px] flex-[1.4] space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground">Cidade</span>
           <Input
             value={filters.city}
@@ -721,7 +721,7 @@ export function CompanyLeadsTab() {
             placeholder="Ex.: São Carlos"
           />
         </label>
-        <label className="space-y-1.5">
+        <label className="w-[90px] space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground">UF</span>
           <Input
             value={filters.state}
@@ -732,7 +732,7 @@ export function CompanyLeadsTab() {
             className="uppercase"
           />
         </label>
-        <label className="min-w-0 space-y-1.5">
+        <label className="min-w-[170px] flex-1 space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground">Abertura</span>
           <select
             value={filters.openedWithinDays}
@@ -751,7 +751,7 @@ export function CompanyLeadsTab() {
             <option value={365}>Último ano</option>
           </select>
         </label>
-        <label className="min-w-0 space-y-1.5">
+        <label className="min-w-[150px] flex-1 space-y-1.5">
           <span className="text-xs font-medium text-muted-foreground">CNAE</span>
           <Input
             value={filters.cnae}
@@ -759,67 +759,6 @@ export function CompanyLeadsTab() {
             placeholder="Código do CNAE"
           />
         </label>
-        <label className="min-w-0 space-y-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Descrição do CNAE</span>
-          <Input
-            value={filters.cnaeDescription ?? ""}
-            onChange={(event) =>
-              setFilters((value) => ({ ...value, cnaeDescription: event.target.value }))
-            }
-            placeholder="Descrição da atividade"
-          />
-        </label>
-        <label className="min-w-0 space-y-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Regime tributário</span>
-          <Select
-            value={filters.taxRegime || "all"}
-            onValueChange={(selectedTaxRegime) => {
-              const taxRegime = selectedTaxRegime === "all" ? "" : selectedTaxRegime;
-              setFilters((value) => ({
-                ...value,
-                taxRegime,
-                ...(taxRegime ? { openedWithinDays: 0, openedFrom: "", openedTo: "" } : {}),
-              }));
-            }}
-          >
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {Object.entries(taxRegimeLabels).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </label>
-        <label className="min-w-0 space-y-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Porte</span>
-          <Select
-            value={filters.companySize || "all"}
-            onValueChange={(companySize) =>
-              setFilters((value) => ({
-                ...value,
-                companySize: companySize === "all" ? "" : companySize,
-              }))
-            }
-          >
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {companySizeOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </label>
-
         <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
           <DialogTrigger asChild>
             <Button
@@ -1075,7 +1014,7 @@ export function CompanyLeadsTab() {
           </DialogContent>
         </Dialog>
 
-        <div className="grid gap-2 md:col-span-2 xl:col-span-1">
+        <div className="grid w-[190px] gap-2">
           <Popover>
             <PopoverTrigger asChild>
               <Button

@@ -148,6 +148,7 @@
 }
 
 @layer utilities {
+  *,
   .app-scrollbar,
   .kanban-scrollbar,
   .modal-scrollbar {
@@ -156,12 +157,14 @@
     transition: scrollbar-color 0.2s ease;
   }
 
+  *:hover,
   .app-scrollbar:hover,
   .kanban-scrollbar:hover,
   .modal-scrollbar:hover {
     scrollbar-color: oklch(0.55 0.018 250 / 50%) transparent;
   }
 
+  *::-webkit-scrollbar,
   .app-scrollbar::-webkit-scrollbar,
   .kanban-scrollbar::-webkit-scrollbar,
   .modal-scrollbar::-webkit-scrollbar {
@@ -169,6 +172,7 @@
     height: 6px;
   }
 
+  *::-webkit-scrollbar-button,
   .modal-scrollbar::-webkit-scrollbar-button {
     display: none !important;
     width: 0;
@@ -176,12 +180,14 @@
     background: transparent;
   }
 
+  *::-webkit-scrollbar-track,
   .app-scrollbar::-webkit-scrollbar-track,
   .kanban-scrollbar::-webkit-scrollbar-track,
   .modal-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
 
+  *::-webkit-scrollbar-thumb,
   .app-scrollbar::-webkit-scrollbar-thumb,
   .kanban-scrollbar::-webkit-scrollbar-thumb,
   .modal-scrollbar::-webkit-scrollbar-thumb {
@@ -190,30 +196,35 @@
     transition: background 0.2s ease;
   }
 
+  *:hover::-webkit-scrollbar-thumb,
   .app-scrollbar:hover::-webkit-scrollbar-thumb,
   .kanban-scrollbar:hover::-webkit-scrollbar-thumb,
   .modal-scrollbar:hover::-webkit-scrollbar-thumb {
     background: oklch(0.55 0.018 250 / 50%);
   }
 
+  .dark *,
   .dark .app-scrollbar,
   .dark .kanban-scrollbar,
   .dark .modal-scrollbar {
     scrollbar-color: oklch(0.7 0.02 250 / 30%) transparent;
   }
 
+  .dark *:hover,
   .dark .app-scrollbar:hover,
   .dark .kanban-scrollbar:hover,
   .dark .modal-scrollbar:hover {
     scrollbar-color: oklch(0.7 0.02 250 / 50%) transparent;
   }
 
+  .dark *::-webkit-scrollbar-thumb,
   .dark .app-scrollbar::-webkit-scrollbar-thumb,
   .dark .kanban-scrollbar::-webkit-scrollbar-thumb,
   .dark .modal-scrollbar::-webkit-scrollbar-thumb {
     background: oklch(0.7 0.02 250 / 30%);
   }
 
+  .dark *:hover::-webkit-scrollbar-thumb,
   .dark .app-scrollbar:hover::-webkit-scrollbar-thumb,
   .dark .kanban-scrollbar:hover::-webkit-scrollbar-thumb,
   .dark .modal-scrollbar:hover::-webkit-scrollbar-thumb {
