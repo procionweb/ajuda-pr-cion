@@ -99,7 +99,7 @@ export type VehicleMaintenance = {
   partsReplaced?: string;
   nextRevisionDate?: string;
   nextRevisionMileage?: number;
-  status: "em_andamento" | "concluido";
+  status: "agendado" | "em_andamento" | "concluido";
   createdAt: string;
   updatedAt: string;
 };
@@ -482,6 +482,18 @@ function subscribe(listener: () => void) {
 export function getVehiclesSnapshot() {
   hydrateVehicles();
   hydrateRuntimeRecords();
+  const now = Date.now();
+  let activatedMaintenance = false;
+  vehicles = vehicles.map((vehicle) => {
+    const records = vehicle.maintenanceRecords?.map((record) => {
+      if (record.status !== "agendado" || new Date(record.entryDate).getTime() > now) return record;
+      activatedMaintenance = true;
+      return { ...record, status: "em_andamento" as const, updatedAt: nowISO() };
+    });
+    const hasActive = records?.some((record) => record.status === "em_andamento");
+    return records ? { ...vehicle, maintenanceRecords: records, status: hasActive ? "manutencao" : vehicle.status } : vehicle;
+  });
+  if (activatedMaintenance) persistVehicles();
   const staleVehicleIds = new Set(
     vehicles
       .filter(
@@ -696,11 +708,12 @@ export function addVehicleMaintenance(
   vehicleStatus: VehicleStatus = "manutencao",
 ) {
   const now = nowISO();
+  const scheduled = new Date(input.entryDate).getTime() > Date.now();
   const record: VehicleMaintenance = {
     ...input,
     id: `mnt-${Date.now().toString(36)}`,
     vehicleId,
-    status: "em_andamento",
+    status: scheduled ? "agendado" : "em_andamento",
     createdAt: now,
     updatedAt: now,
   };
@@ -709,7 +722,7 @@ export function addVehicleMaintenance(
     vehicle.id === vehicleId
       ? {
           ...vehicle,
-          status: vehicleStatus,
+          status: scheduled ? vehicle.status : vehicleStatus,
           currentMileage: Math.max(vehicle.currentMileage, input.entryMileage),
           maintenanceRecords: [record, ...(vehicle.maintenanceRecords ?? [])],
         }

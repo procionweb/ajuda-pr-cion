@@ -825,12 +825,13 @@ function MaintenanceListView({ maintenanceRecords }: { maintenanceRecords: Vehic
     <div className="space-y-4">
       {maintenanceRecords.map((m) => {
         const inProgress = m.status === "em_andamento";
+        const scheduled = m.status === "agendado";
         return (
           <Card
             key={m.id}
             className={cn(
               "overflow-hidden border-l-4",
-              inProgress ? "border-l-amber-500 bg-amber-500/5" : "border-l-emerald-500",
+              scheduled ? "border-l-sky-500 bg-sky-500/5" : inProgress ? "border-l-amber-500 bg-amber-500/5" : "border-l-emerald-500",
             )}
           >
             <div className="p-4">
@@ -839,15 +840,17 @@ function MaintenanceListView({ maintenanceRecords }: { maintenanceRecords: Vehic
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">{m.reason}</span>
                     <Badge
-                      variant={inProgress ? "outline" : "secondary"}
+                      variant={inProgress || scheduled ? "outline" : "secondary"}
                       className={cn(
                         "h-5 text-[10px] uppercase",
-                        inProgress
+                        scheduled
+                          ? "border-sky-500 text-sky-600"
+                          : inProgress
                           ? "border-amber-500 text-amber-600"
                           : "bg-emerald-500/10 text-emerald-600",
                       )}
                     >
-                      {inProgress ? "Em andamento" : "Concluída"}
+                      {scheduled ? "Agendada" : inProgress ? "Em andamento" : "Concluída"}
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground flex items-center gap-1.5">

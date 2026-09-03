@@ -157,7 +157,9 @@ export function MaintenanceDialog({ vehicle, open, onOpenChange }: MaintenanceDi
     });
 
     toast.success(
-      createForm.vehicleStatus === "manutencao"
+      maintenance.status === "agendado"
+        ? "Manutenção agendada. O veículo ficará em manutenção na data informada."
+        : createForm.vehicleStatus === "manutencao"
         ? "Manutenção iniciada. Veículo agora está em manutenção."
         : "Manutenção registrada e veículo mantido disponível.",
     );

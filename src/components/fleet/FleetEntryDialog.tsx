@@ -115,6 +115,9 @@ export function FleetEntryDialog({
     if (!type || !draft.vehicleId || !draft.occurredAt)
       return toast.error("Preencha veículo e data do lançamento.");
     if (!draft.driver.trim()) return toast.error("Selecione o operador responsável pelo lançamento.");
+    if ((type === "abastecimento" || type === "despesa") && !draft.paymentMethod) {
+      return toast.error("Selecione a forma de pagamento.");
+    }
     const title = draft.title.trim() || selectedLabel || "Lançamento";
     if (type === "servico") {
       if (!draft.title.trim() || !draft.location.trim()) {
@@ -146,7 +149,11 @@ export function FleetEntryDialog({
         notes: draft.notes.trim() || undefined,
         maintenanceId: maintenance.id,
       });
-      toast.success("Manutenção iniciada. O veículo foi colocado em manutenção.");
+      toast.success(
+        maintenance.status === "agendado"
+          ? "Manutenção agendada. O veículo ficará em manutenção na data informada."
+          : "Manutenção iniciada. O veículo foi colocado em manutenção.",
+      );
       close();
       return;
     }
@@ -576,7 +583,7 @@ function ReminderFields({ draft, set }: { draft: Draft; set: Setter }) {
 }
 function Payment({ draft, set }: { draft: Draft; set: Setter }) {
   return (
-    <Field label="Forma de pagamento (opcional)">
+    <Field label="Forma de pagamento *">
       <select
         className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
         value={draft.paymentMethod}
