@@ -21,7 +21,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -38,14 +38,21 @@ function LoginPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!email.trim() || !password) {
-      toast.error("Informe o e-mail e a senha.");
+    if (!login.trim() || !password) {
+      toast.error("Informe o e-mail ou operador e a senha.");
       return;
     }
 
     setSubmitting(true);
+    let email = login.trim().toLowerCase();
+    if (!email.includes("@")) {
+      const { data } = await supabase.rpc("resolve_portal_login_email", {
+        login_value: login.trim(),
+      });
+      email = String(data || "");
+    }
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+      email,
       password,
     });
     setSubmitting(false);
@@ -101,16 +108,16 @@ function LoginPage() {
 
             <form className="mt-8 space-y-5" onSubmit={submit}>
               <div className="space-y-2">
-                <Label htmlFor="login-email">E-mail</Label>
+                <Label htmlFor="login-email">E-mail ou operador</Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="login-email"
-                    type="email"
+                    type="text"
                     autoComplete="username"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="nome@procion.com"
+                    value={login}
+                    onChange={(event) => setLogin(event.target.value)}
+                    placeholder="nome@procion.com ou PRC..."
                     className="h-11 rounded-lg pl-10"
                     autoFocus
                   />

@@ -35,6 +35,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { sidebarStore, useSidebarCollapsed } from "@/lib/sidebar-store";
 import { currentUser } from "@/lib/mock-data";
+import { canAccessPortalPath, usePortalAuth } from "@/lib/portal-auth";
 
 type NavIcon = ComponentType<{ className?: string; strokeWidth?: number }>;
 
@@ -129,6 +130,7 @@ function isActivePath(pathname: string, item: NavItem) {
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const collapsed = useSidebarCollapsed();
+  const { role } = usePortalAuth();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [collapsedFlyout, setCollapsedFlyout] = useState<{
     item: NavItem;
@@ -173,6 +175,13 @@ export function AppSidebar() {
   useEffect(() => {
     return () => cancelCollapsedFlyoutClose();
   }, []);
+
+  const visibleNav = nav
+    .filter((item) => canAccessPortalPath(role, item.to))
+    .map((item) => ({
+      ...item,
+      children: item.children?.filter((child) => canAccessPortalPath(role, child.to)),
+    }));
 
   return (
     <>
@@ -226,7 +235,7 @@ export function AppSidebar() {
           <p className="mb-4 px-5 text-sm font-semibold text-sidebar-foreground/25">Main Menu</p>
         )}
         <ul className="space-y-2">
-          {nav.map((item) => {
+          {visibleNav.map((item) => {
             const active = isActivePath(pathname, item);
             const Icon = item.icon;
             const expanded = Boolean(item.children && (openGroups[item.to] ?? (active && !mobileOpen)));

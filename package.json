@@ -13,6 +13,7 @@
     "import:crm-internet": "node scripts/import-crm-internet.mjs",
     "import:crm-auth": "node scripts/import-crm-auth.mjs",
     "import:crm-collaborators": "node scripts/import-crm-collaborators.mjs",
+    "provision:portal-users": "node scripts/provision-portal-users.mjs",
     "import:crm-client-params": "node scripts/import-crm-client-params.mjs",
     "import:crm-setuphad": "node scripts/import-crm-setuphad.mjs",
     "import:crm-calendar": "node scripts/import-crm-calendar.mjs",

@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -12,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { canAccessPortalPath, PortalAuthProvider, usePortalAuth } from "@/lib/portal-auth";
 
 function NotFoundComponent() {
   return (
@@ -79,16 +81,36 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Portal Prócion — Central de Ajuda e Produtividade" },
-      { name: "description", content: "Portal Prócion: base de conhecimento, atualizações, versões, kanban e gestão de clientes em um só lugar." },
+      {
+        name: "description",
+        content:
+          "Portal Prócion: base de conhecimento, atualizações, versões, kanban e gestão de clientes em um só lugar.",
+      },
       { name: "author", content: "Prócion Sistemas" },
       { property: "og:title", content: "Portal Prócion — Central de Ajuda e Produtividade" },
-      { property: "og:description", content: "Portal Prócion: base de conhecimento, atualizações, versões, kanban e gestão de clientes em um só lugar." },
+      {
+        property: "og:description",
+        content:
+          "Portal Prócion: base de conhecimento, atualizações, versões, kanban e gestão de clientes em um só lugar.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Portal Prócion — Central de Ajuda e Produtividade" },
-      { name: "twitter:description", content: "Portal Prócion: base de conhecimento, atualizações, versões, kanban e gestão de clientes em um só lugar." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ba65d486-8a90-491a-8d73-8a6fa4385e37/id-preview-2dd673df--ff341c9e-6292-4b5c-9862-0a760d146e00.lovable.app-1783425476561.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ba65d486-8a90-491a-8d73-8a6fa4385e37/id-preview-2dd673df--ff341c9e-6292-4b5c-9862-0a760d146e00.lovable.app-1783425476561.png" },
+      {
+        name: "twitter:description",
+        content:
+          "Portal Prócion: base de conhecimento, atualizações, versões, kanban e gestão de clientes em um só lugar.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ba65d486-8a90-491a-8d73-8a6fa4385e37/id-preview-2dd673df--ff341c9e-6292-4b5c-9862-0a760d146e00.lovable.app-1783425476561.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ba65d486-8a90-491a-8d73-8a6fa4385e37/id-preview-2dd673df--ff341c9e-6292-4b5c-9862-0a760d146e00.lovable.app-1783425476561.png",
+      },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -132,9 +154,40 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
-      <Toaster richColors position="top-right" />
+      <PortalAuthProvider>
+        <PortalRouteGuard />
+        <Toaster richColors position="top-right" />
+      </PortalAuthProvider>
     </QueryClientProvider>
   );
+}
+
+function PortalRouteGuard() {
+  const router = useRouter();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const { loading, session, role } = usePortalAuth();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!session && pathname !== "/login") {
+      void router.navigate({ to: "/login", replace: true });
+      return;
+    }
+    if (session && pathname === "/login") {
+      void router.navigate({ to: "/", replace: true });
+      return;
+    }
+    if (session && !canAccessPortalPath(role, pathname)) {
+      void router.navigate({ to: "/", replace: true });
+    }
+  }, [loading, pathname, role, router, session]);
+
+  if (loading || (!session && pathname !== "/login")) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">
+        Carregando acesso...
+      </div>
+    );
+  }
+  return <Outlet />;
 }
