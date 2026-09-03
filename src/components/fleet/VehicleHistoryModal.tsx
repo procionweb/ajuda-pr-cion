@@ -31,6 +31,8 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Store } from "lucide-react";
 import { type FleetEntry, useFleetEntries } from "@/lib/fleet-entry-store";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { exportFleetHistoryCsv, exportFleetHistoryPdf, exportFleetHistoryXlsx, type FleetHistoryExportRow } from "@/lib/fleet-history-export";
 
 // ---------------------------------------------------------------------------
 // Utilidades
@@ -148,6 +150,10 @@ export function VehicleHistoryModal({
       .filter((entry) => entry.vehicleId === vehicle.id)
       .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
   }, [allEntries, vehicle]);
+  const historyRows = useMemo(
+    () => buildHistoryRows(filtered, vehicleEntries, vehicle?.maintenanceRecords ?? []),
+    [filtered, vehicleEntries, vehicle?.maintenanceRecords],
+  );
 
   const clearFilters = () => {
     setDateFrom("");
@@ -266,16 +272,7 @@ export function VehicleHistoryModal({
             {vehicleUsages.length} utilização(ões) registrada(s)
           </div>
           <div className="flex items-center gap-2">
-            {!selected && (
-              <Button
-                variant="outline"
-                className="h-9 cursor-pointer gap-2"
-                onClick={() => exportHistory(vehicle, filtered)}
-              >
-                <Download className="h-4 w-4" />
-                Exportar histórico
-              </Button>
-            )}
+            {!selected && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="h-9 cursor-pointer gap-2"><Download className="h-4 w-4" />Exportar histórico</Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-48"><DropdownMenuItem onClick={() => exportFleetHistoryCsv(vehicle, historyRows)}>Baixar CSV</DropdownMenuItem><DropdownMenuItem onClick={() => exportFleetHistoryXlsx(vehicle, historyRows)}>Baixar XLSX</DropdownMenuItem><DropdownMenuItem onClick={() => exportFleetHistoryPdf(vehicle, historyRows)}>Baixar PDF</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
             <Button
               variant="outline"
               className="h-9 cursor-pointer"
@@ -797,47 +794,14 @@ function computeStats(usages: VehicleUsage[]) {
   };
 }
 
-function exportHistory(vehicle: Vehicle, usages: VehicleUsage[]) {
-  const header = [
-    "Data",
-    "Saida",
-    "Devolução",
-    "Operador",
-    "Cliente",
-    "Destino",
-    "KM inicial",
-    "KM final",
-    "Percorrido",
-    "Combustivel saida",
-    "Combustivel devolucao",
-    "Status",
+function buildHistoryRows(usages: VehicleUsage[], entries: FleetEntry[], maintenance: VehicleMaintenance[]): FleetHistoryExportRow[] {
+  const entryLabels: Record<string, string> = { abastecimento: "Abastecimento", despesa: "Despesa", servico: "Serviço", percurso: "Percurso", leitura: "Leitura", checklist: "Checklist", lembrete: "Lembrete", ocorrencia: "Ocorrência" };
+  const rows: FleetHistoryExportRow[] = [
+    ...entries.map((entry) => ({ date: formatDateTime(entry.occurredAt), category: entryLabels[entry.type] || entry.type, title: entry.title, operator: entry.driver || "", mileage: entry.mileage !== undefined ? formatKm(entry.mileage) : "", amount: entry.amount?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) || "", details: entry.notes || entry.destination || entry.location || "" })),
+    ...usages.map((usage) => ({ date: formatDateTime(usage.departureAt ?? usage.scheduledStartAt ?? usage.returnedAt), category: "Utilização", title: usage.client || usage.destination || "Utilização do veículo", operator: usage.operatorId, mileage: computeDistance(usage) !== undefined ? formatKm(computeDistance(usage)) : "", amount: "", details: `${usage.destination} | ${USAGE_STATUS_LABEL[usage.status]}` })),
+    ...maintenance.map((item) => ({ date: formatDateTime(item.entryDate), category: "Manutenção", title: item.reason, operator: "", mileage: formatKm(item.entryMileage), amount: item.cost?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) || "", details: [item.workshop, item.servicesPerformed, item.partsReplaced, item.notes].filter(Boolean).join(" | ") })),
   ];
-  const rows = usages.map((u) => [
-    formatDate(u.departureAt ?? u.scheduledStartAt ?? u.returnedAt),
-    formatTime(u.departureAt ?? u.scheduledStartAt),
-    u.status === "em_deslocamento"
-      ? "Em andamento"
-      : formatTime(u.returnedAt ?? u.expectedReturnAt),
-    u.operatorId,
-    u.client ?? "",
-    u.destination,
-    u.departureMileage ?? "",
-    u.returnMileage ?? "",
-    computeDistance(u) ?? "",
-    u.fuelAtDeparture ?? "",
-    u.fuelAtReturn ?? "",
-    USAGE_STATUS_LABEL[u.status],
-  ]);
-  const csv = [header, ...rows]
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
-    .join("\n");
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `historico-${vehicle.plate}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  return rows.sort((a, b) => b.date.localeCompare(a.date));
 }
 
 function MaintenanceListView({ maintenanceRecords }: { maintenanceRecords: VehicleMaintenance[] }) {

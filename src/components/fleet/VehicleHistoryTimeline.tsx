@@ -7,12 +7,13 @@ import {
   Gauge, 
   ClipboardCheck, 
   Bell,
-  Search,
   Download,
   Calendar,
   UserRound
 } from "lucide-react";
-import { type FleetEntry, useFleetEntries } from "@/lib/fleet-entry-store";
+import { type FleetEntry, type FleetEntryType, useFleetEntries } from "@/lib/fleet-entry-store";
+import { useVehicles } from "@/lib/fleet-store";
+import { exportFleetHistoryXlsx, type FleetHistoryExportRow } from "@/lib/fleet-history-export";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,27 +28,25 @@ const TYPE_CONFIG = {
   leitura: { icon: Gauge, color: "text-slate-500", border: "border-slate-500", label: "Leitura" },
   checklist: { icon: ClipboardCheck, color: "text-purple-500", border: "border-purple-500", label: "Checklist" },
   lembrete: { icon: Bell, color: "text-amber-500", border: "border-amber-500", label: "Lembrete" },
+  ocorrencia: { icon: Receipt, color: "text-red-500", border: "border-red-500", label: "Ocorrência" },
 };
 
 export function VehicleHistoryTimeline({ vehicleId }: { vehicleId: string }) {
   const allEntries = useFleetEntries();
-  const [search, setSearch] = useState("");
+  const vehicle = useVehicles().find((item) => item.id === vehicleId);
+  const [entryType, setEntryType] = useState<FleetEntryType | "all">("all");
+  const [month, setMonth] = useState("all");
   const [showAll, setShowAll] = useState(false);
 
   const vehicleEntries = useMemo(() => {
     return allEntries
       .filter(e => e.vehicleId === vehicleId)
-      .filter(e => {
-        if (!search.trim()) return true;
-        const s = search.toLowerCase();
-        return (
-          e.title.toLowerCase().includes(s) || 
-          e.notes?.toLowerCase().includes(s) ||
-          TYPE_CONFIG[e.type]?.label.toLowerCase().includes(s)
-        );
-      })
+      .filter((e) => entryType === "all" || e.type === entryType)
+      .filter((e) => month === "all" || e.occurredAt.slice(0, 7) === month)
       .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
-  }, [allEntries, vehicleId, search]);
+  }, [allEntries, entryType, month, vehicleId]);
+
+  const months = useMemo(() => [...new Set(allEntries.filter((e) => e.vehicleId === vehicleId).map((e) => e.occurredAt.slice(0, 7)))].sort().reverse(), [allEntries, vehicleId]);
 
   const visibleEntries = showAll ? vehicleEntries : vehicleEntries.slice(0, 3);
 
@@ -65,27 +64,35 @@ export function VehicleHistoryTimeline({ vehicleId }: { vehicleId: string }) {
   }, [visibleEntries]);
 
   const exportData = () => {
-    const content = vehicleEntries.map(e => (
-      `${new Date(e.occurredAt).toLocaleString('pt-BR')};${TYPE_CONFIG[e.type].label};${e.title};${e.amount || ''};${e.mileage || ''}`
-    )).join('\n');
-    const blob = new Blob([`Data;Tipo;Descrição;Valor;KM\n${content}`], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `historico-veiculo-${vehicleId}.csv`;
-    link.click();
+    if (!vehicle) return;
+    const rows: FleetHistoryExportRow[] = vehicleEntries.map((entry) => ({
+      date: new Date(entry.occurredAt).toLocaleString("pt-BR"), category: TYPE_CONFIG[entry.type].label,
+      title: entry.title, operator: entry.driver || "", mileage: entry.mileage?.toLocaleString("pt-BR") || "",
+      amount: entry.amount?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) || "",
+      details: entry.notes || entry.destination || entry.location || "",
+    }));
+    exportFleetHistoryXlsx(vehicle, rows);
   };
 
   return (
     <Card className="flex flex-col border-border/50 bg-card p-5">
       <div className="mb-5 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h3 className="text-xl font-bold">Histórico</h3>
-          <Search className="h-5 w-5 text-primary cursor-pointer hover:opacity-70" />
-        </div>
+        <h3 className="text-xl font-bold">Histórico</h3>
         <Download 
           className="h-5 w-5 text-primary cursor-pointer hover:opacity-70" 
           onClick={exportData}
         />
+      </div>
+
+      <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <select value={entryType} onChange={(event) => setEntryType(event.target.value as FleetEntryType | "all")} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+          <option value="all">Todos os lançamentos</option>
+          {(Object.keys(TYPE_CONFIG) as FleetEntryType[]).map((type) => <option key={type} value={type}>{TYPE_CONFIG[type].label}</option>)}
+        </select>
+        <select value={month} onChange={(event) => setMonth(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+          <option value="all">Todos os meses</option>
+          {months.map((value) => <option key={value} value={value}>{new Date(`${value}-01T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}</option>)}
+        </select>
       </div>
 
       <div className="relative flex-1 space-y-5 before:absolute before:inset-0 before:ml-[1.15rem] before:-translate-x-px before:h-full before:w-0.5 before:bg-border/60">
@@ -153,7 +160,6 @@ export function VehicleHistoryTimeline({ vehicleId }: { vehicleId: string }) {
 
         {vehicleEntries.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <Search className="h-8 w-8 mb-2 opacity-20" />
             <p className="text-sm">Nenhum registro encontrado.</p>
           </div>
         )}
