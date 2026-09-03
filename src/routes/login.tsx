@@ -44,13 +44,11 @@ function LoginPage() {
     }
 
     setSubmitting(true);
-    let email = login.trim().toLowerCase();
-    if (!email.includes("@")) {
-      const { data } = await supabase.rpc("resolve_portal_login_email", {
-        login_value: login.trim(),
-      });
-      email = String(data || "");
-    }
+    const normalizedLogin = login.trim();
+    const { data: resolvedEmail } = await supabase.rpc("resolve_portal_login_email", {
+      login_value: normalizedLogin,
+    });
+    const email = String(resolvedEmail || normalizedLogin).trim().toLowerCase();
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
