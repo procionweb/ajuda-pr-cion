@@ -54,17 +54,35 @@ export function exportFleetHistoryXlsx(vehicle: VehicleExportInfo, rows: FleetHi
   XLSX.writeFile(workbook, filename(vehicle, "xlsx"));
 }
 
-export function exportFleetHistoryPdf(vehicle: VehicleExportInfo, rows: FleetHistoryExportRow[]) {
+async function imageData(url: string) {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+export async function exportFleetHistoryPdf(vehicle: VehicleExportInfo, rows: FleetHistoryExportRow[], logoUrl?: string) {
   const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   pdf.setFillColor(7, 151, 196);
   pdf.rect(0, 0, 297, 30, "F");
+  if (logoUrl) {
+    try {
+      pdf.addImage(await imageData(logoUrl), "PNG", 14, 5.5, 48, 17);
+    } catch {
+      // O relatório continua disponível mesmo se a imagem não puder ser carregada.
+    }
+  }
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(18);
-  pdf.text("Histórico de Frota", 14, 13);
+  pdf.text("Histórico de Frota", logoUrl ? 70 : 14, 13);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(10);
-  pdf.text(`${vehicle.model}  |  ${vehicle.plate}`, 14, 21);
+  pdf.text(`${vehicle.model}  |  ${vehicle.plate}`, logoUrl ? 70 : 14, 21);
   pdf.text(`${rows.length} registro(s)  |  Emitido em ${new Date().toLocaleString("pt-BR")}`, 283, 21, { align: "right" });
 
   autoTable(pdf, {

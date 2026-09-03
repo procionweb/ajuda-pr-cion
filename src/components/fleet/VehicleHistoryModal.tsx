@@ -33,6 +33,7 @@ import { Store } from "lucide-react";
 import { type FleetEntry, useFleetEntries } from "@/lib/fleet-entry-store";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportFleetHistoryCsv, exportFleetHistoryPdf, exportFleetHistoryXlsx, type FleetHistoryExportRow } from "@/lib/fleet-history-export";
+import procionLogoWhiteUrl from "@/assets/procion-logo-white.png";
 
 // ---------------------------------------------------------------------------
 // Utilidades
@@ -104,6 +105,7 @@ export function VehicleHistoryModal({
   const allUsages = useUsages();
   const allEntries = useFleetEntries();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("lancamentos");
 
   // Filtros
   const [dateFrom, setDateFrom] = useState("");
@@ -154,6 +156,11 @@ export function VehicleHistoryModal({
     () => buildHistoryRows(filtered, vehicleEntries, vehicle?.maintenanceRecords ?? []),
     [filtered, vehicleEntries, vehicle?.maintenanceRecords],
   );
+  const exportRows = useMemo(() => historyRows.filter((row) => {
+    if (activeTab === "utilizacao") return row.category === "Utilização";
+    if (activeTab === "manutencao") return row.category === "Manutenção";
+    return row.category !== "Utilização" && row.category !== "Manutenção";
+  }), [activeTab, historyRows]);
 
   const clearFilters = () => {
     setDateFrom("");
@@ -224,7 +231,7 @@ export function VehicleHistoryModal({
           {selected ? (
             <DetailView usage={selected} vehicle={vehicle} onBack={() => setSelectedId(null)} />
           ) : (
-            <Tabs defaultValue="lancamentos" className="flex min-h-0 flex-1 flex-col">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
               <div className="border-b px-6">
                 <TabsList className="h-10 w-auto">
                   <TabsTrigger value="lancamentos">Lançamentos</TabsTrigger>
@@ -272,7 +279,7 @@ export function VehicleHistoryModal({
             {vehicleUsages.length} utilização(ões) registrada(s)
           </div>
           <div className="flex items-center gap-2">
-            {!selected && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="h-9 cursor-pointer gap-2"><Download className="h-4 w-4" />Exportar histórico</Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-48"><DropdownMenuItem onClick={() => exportFleetHistoryCsv(vehicle, historyRows)}>Baixar CSV</DropdownMenuItem><DropdownMenuItem onClick={() => exportFleetHistoryXlsx(vehicle, historyRows)}>Baixar XLSX</DropdownMenuItem><DropdownMenuItem onClick={() => exportFleetHistoryPdf(vehicle, historyRows)}>Baixar PDF</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
+            {!selected && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="h-9 cursor-pointer gap-2"><Download className="h-4 w-4" />Exportar histórico</Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-48"><DropdownMenuItem onClick={() => exportFleetHistoryCsv(vehicle, exportRows)}>Baixar CSV</DropdownMenuItem><DropdownMenuItem onClick={() => exportFleetHistoryXlsx(vehicle, exportRows)}>Baixar XLSX</DropdownMenuItem><DropdownMenuItem onClick={() => void exportFleetHistoryPdf(vehicle, exportRows, procionLogoWhiteUrl)}>Baixar PDF</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
             <Button
               variant="outline"
               className="h-9 cursor-pointer"
