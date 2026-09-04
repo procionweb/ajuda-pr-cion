@@ -18,7 +18,7 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="flex items-center gap-3 pl-3 border-l border-border rounded-r-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring group"
+          className="group flex cursor-pointer items-center gap-3 rounded-r-md border-l border-border pl-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Menu do usuário"
         >
           <div className="hidden sm:block text-right">

@@ -57,9 +57,13 @@ import { modulesMap } from "@/lib/modules-map";
 import { cvsArticles } from "@/lib/cvs-catalogs-imported";
 import { getCategory, kbArticlesFull } from "@/lib/kb-data";
 import { ticketsStore, useTickets, type TicketEvent } from "@/lib/tickets-store";
+import { currentUser } from "@/lib/mock-data";
+import { usePortalAuth } from "@/lib/portal-auth";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/iniciar-hadron")({
-  head: () => ({ meta: [{ title: "Iniciar Hadron - CRM Procion" }] }),
+  head: () => ({ meta: [{ title: "Hadron - CRM Procion" }] }),
   component: HadronPage,
 });
 
@@ -331,23 +335,32 @@ const hadronParameters = [
 ] as const;
 
 function HadronPage() {
+  const tickets = useTickets();
   const [tab, setTab] = useState("visao-geral");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("todos");
   const [detail, setDetail] = useState<Detail | null>(null);
+  const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
+  const viewingOptionTickets = useMemo(
+    () =>
+      viewingOption
+        ? tickets.filter((ticket) => findTicketOption(ticket)?.id === viewingOption.id)
+        : [],
+    [tickets, viewingOption],
+  );
 
   return (
     <AppShell>
       <div className="space-y-5">
         <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <Breadcrumbs items={[{ label: "Iniciar Hadron" }]} />
+            <Breadcrumbs items={[{ label: "Hadron" }]} />
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
                 <Rocket className="h-5 w-5" />
               </span>
               <div>
-                <h1 className="text-xl font-medium text-foreground">Iniciar Hadron</h1>
+                <h1 className="text-xl font-medium text-foreground">Hadron</h1>
                 <p className="text-xs text-muted-foreground">
                   Gestao de opcoes, ocorrencias, releases e artigos do sistema.
                 </p>
@@ -378,6 +391,18 @@ function HadronPage() {
           </div>
         </header>
 
+        {viewingOption ? (
+          <HadronOptionPage
+            option={viewingOption}
+            tickets={viewingOptionTickets}
+            disabled={false}
+            onBack={() => setViewingOption(null)}
+            onEdit={() => {
+              setViewingOption(null);
+              setTab("opcoes");
+            }}
+          />
+        ) : (
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg border bg-card p-1">
             {[
@@ -403,7 +428,7 @@ function HadronPage() {
             ))}
           </TabsList>
           <TabsContent value="visao-geral">
-            <Overview onOpen={setDetail} />
+            <Overview onOpen={setDetail} onViewOption={setViewingOption} />
           </TabsContent>
           <TabsContent value="opcoes">
             <OptionsTable query={query} onOpen={setDetail} />
@@ -433,6 +458,7 @@ function HadronPage() {
             <ArticlesTable query={query} onOpen={setDetail} />
           </TabsContent>
         </Tabs>
+        )}
       </div>
 
       <Dialog open={!!detail} onOpenChange={(open) => !open && setDetail(null)}>
@@ -490,7 +516,13 @@ function HadronPage() {
   );
 }
 
-function Overview({ onOpen }: { onOpen: (d: Detail) => void }) {
+function Overview({
+  onOpen,
+  onViewOption,
+}: {
+  onOpen: (d: Detail) => void;
+  onViewOption: (option: HadronOption) => void;
+}) {
   const tickets = useTickets();
   const active = useMemo(
     () => tickets.filter((ticket) => !["Finalizado", "Cancelado"].includes(ticket.status)),
@@ -628,8 +660,8 @@ function Overview({ onOpen }: { onOpen: (d: Detail) => void }) {
                   <span className="text-muted-foreground">{option.option}</span>
                   <button
                     type="button"
-                    onClick={openPreview}
-                    className="truncate text-left text-primary hover:underline"
+                    onClick={() => onViewOption(option)}
+                    className="cursor-pointer truncate text-left text-primary hover:underline"
                   >
                     {option.description}
                   </button>
@@ -1788,6 +1820,11 @@ function OptionField({
 
 function OccurrencesTable({ query, onOpen }: TableProps) {
   const tickets = useTickets();
+  const { session } = usePortalAuth();
+  const [reviews, setReviews] = useState<
+    Record<string, { reviewed_at: string; reviewer_operator: string }>
+  >({});
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
   const ticketsWithOptions = useMemo(
     () => tickets.map((ticket) => ({ ticket, option: findTicketOption(ticket) })),
     [tickets],
@@ -1805,6 +1842,44 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
     () => [...new Set(tickets.map((ticket) => ticket.owner).filter(Boolean))].sort(),
     [tickets],
   );
+  useEffect(() => {
+    if (!session?.user.id) return;
+    void supabase
+      .from("hadron_occurrence_reviews")
+      .select("occurrence_id, reviewed_at, reviewer_operator")
+      .eq("reviewer_id", session.user.id)
+      .then(({ data, error }) => {
+        if (error) return;
+        setReviews(
+          Object.fromEntries((data || []).map((review) => [review.occurrence_id, review])),
+        );
+      });
+  }, [session?.user.id]);
+  const reviewOccurrence = async (ticket: TicketRow) => {
+    if (!session?.user.id) return;
+    setReviewingId(ticket.id);
+    const reviewedAt = new Date().toISOString();
+    const reviewerOperator = currentUser.operator || currentUser.name;
+    const { error } = await supabase.from("hadron_occurrence_reviews").upsert(
+      {
+        occurrence_id: ticket.id,
+        reviewer_id: session.user.id,
+        reviewer_operator: reviewerOperator,
+        reviewed_at: reviewedAt,
+      },
+      { onConflict: "occurrence_id,reviewer_id" },
+    );
+    setReviewingId(null);
+    if (error) {
+      toast.error("Não foi possível registrar a revisão.");
+      return;
+    }
+    setReviews((current) => ({
+      ...current,
+      [ticket.id]: { reviewed_at: reviewedAt, reviewer_operator: reviewerOperator },
+    }));
+    toast.success("Ocorrência marcada como revisada.");
+  };
   const rows = useMemo(() => {
     const global = normalizeOccurrenceText(query);
     const optionFilter = normalizeOccurrenceText(optionQuery);
@@ -1958,7 +2033,11 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
           </thead>
           <tbody className="divide-y">
             {pagedRows.map(({ ticket, option }) => {
-              const reviewed = ["Finalizado", "Cancelado"].includes(ticket.status);
+              const solved = ["Finalizado", "Cancelado"].includes(ticket.status);
+              const review = reviews[ticket.id];
+              const isAssignedToCurrentUser =
+                normalizeOccurrenceText(ticket.owner) ===
+                normalizeOccurrenceText(currentUser.operator);
               return (
                 <tr key={ticket.id} className="align-top hover:bg-muted/25">
                   <td className="px-3 py-3">
@@ -1978,25 +2057,28 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
                   <td className="px-3 py-3">
                     <OccurrenceDate
                       value={ticket.closedAt || ticket.updatedAt}
-                      operator={reviewed ? ticket.owner : ""}
+                      operator={solved ? ticket.owner : ""}
                     />
                   </td>
                   <td className="px-3 py-3">
-                    {reviewed ? (
+                    {review ? (
                       <span className="text-emerald-600">
-                        {formatOccurrenceDate(ticket.closedAt || ticket.updatedAt)}
+                        {formatOccurrenceDate(review.reviewed_at)}
                         <br />
-                        {ticket.owner}
+                        {review.reviewer_operator}
                       </span>
-                    ) : (
+                    ) : isAssignedToCurrentUser ? (
                       <Button
                         size="sm"
                         variant="secondary"
                         className="h-10 cursor-pointer"
-                        onClick={() => openOccurrence(ticket, option, onOpen)}
+                        disabled={reviewingId === ticket.id}
+                        onClick={() => void reviewOccurrence(ticket)}
                       >
-                        Revisar
+                        {reviewingId === ticket.id ? "Salvando..." : "Revisar"}
                       </Button>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </td>
                   <td className="px-3 py-3 text-center">
