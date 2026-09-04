@@ -40,6 +40,8 @@ export type CalendarEvent = {
   vehicleId?: string;
   address?: string;
   responsible?: string;
+  creatorOperator?: string;
+  reminderEnabled?: boolean;
   meetingLink?: string;
   platform?: string;
   room?: string;
