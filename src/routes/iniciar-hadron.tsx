@@ -955,11 +955,8 @@ function getHadronOptionStatus(
   activeCount: number,
   disabled: boolean,
 ): HadronOptionStatus {
-  const searchable = normalizeOccurrenceText(
-    `${option.description} ${option.observation} ${option.characteristic}`,
-  );
-  if (disabled || option.status === "10") return "desativada";
-  if (option.status === "90" || searchable.includes("hadron")) return "hadron";
+  if (disabled || option.status === "90") return "desativada";
+  if (option.status === "10") return "hadron";
   if (option.status === "9") return "testes";
   if (option.status === "8") return "aprovada";
   if (option.status === "4" || activeCount > 0) return "correcoes";
@@ -990,7 +987,7 @@ function OptionsTable({ query, onOpen }: TableProps) {
   const [optionQuery, setOptionQuery] = useState("");
   const [formQuery, setFormQuery] = useState("");
   const [operator, setOperator] = useState("todos");
-  const [hadronScope, setHadronScope] = useState("exceto");
+  const [hadronScope, setHadronScope] = useState("todos");
   const [characteristic, setCharacteristic] = useState("todos");
   const [module, setModule] = useState("todos");
   const [dateType, setDateType] = useState("criacao");
@@ -1062,8 +1059,11 @@ function OptionsTable({ query, onOpen }: TableProps) {
           )) &&
         (!formFilter || normalizeOccurrenceText(option.form).includes(formFilter)) &&
         (operator === "todos" || latest?.owner === operator) &&
-        (hadronScope === "todos" ||
-          (hadronScope === "exceto" ? status !== "hadron" : status === hadronScope)) &&
+        (hadronScope === "todos"
+          ? status !== "desativada"
+          : hadronScope === "exceto"
+            ? status !== "hadron" && status !== "desativada"
+            : status === hadronScope) &&
         (characteristic === "todos" || option.characteristic === characteristic) &&
         (module === "todos" || option.moduleId === module) &&
         (from === null || (dateValue !== null && dateValue >= from)) &&
@@ -1087,7 +1087,7 @@ function OptionsTable({ query, onOpen }: TableProps) {
     setOptionQuery("");
     setFormQuery("");
     setOperator("todos");
-    setHadronScope("exceto");
+    setHadronScope("todos");
     setCharacteristic("todos");
     setModule("todos");
     setDateType("criacao");
