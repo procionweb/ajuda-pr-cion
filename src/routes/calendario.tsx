@@ -579,7 +579,7 @@ function CalendarPage() {
         }
       />
 
-      <div className="mb-4 hidden gap-3 lg:grid lg:grid-cols-6">
+      <div className="mb-4 hidden gap-2 lg:grid lg:grid-cols-6">
         <FieldSelect
           label="Tipo"
           value={filters.type}
@@ -965,8 +965,8 @@ function FieldText({
   placeholder?: string;
 }) {
   return (
-    <div className="space-y-2">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="space-y-1">
+      <p className="text-[10px] font-medium uppercase text-muted-foreground">
         {label}
       </p>
       <input
@@ -974,7 +974,7 @@ function FieldText({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+        className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
       />
     </div>
   );
@@ -992,14 +992,14 @@ function FieldSelect({
   options: { value: string; label: string }[];
 }) {
   return (
-    <div className="space-y-2">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="space-y-1">
+      <p className="text-[10px] font-medium uppercase text-muted-foreground">
         {label}
       </p>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 w-full cursor-pointer rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+        className="h-9 w-full cursor-pointer rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -1022,8 +1022,8 @@ function DateField({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="space-y-2">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="space-y-1">
+      <p className="text-[10px] font-medium uppercase text-muted-foreground">
         {label}
       </p>
       <Popover open={open} onOpenChange={setOpen}>
@@ -1031,7 +1031,7 @@ function DateField({
           <button
             type="button"
             className={cn(
-              "inline-flex h-10 w-full cursor-pointer items-center gap-2 truncate rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:ring-2 focus:ring-ring",
+              "inline-flex h-9 w-full cursor-pointer items-center gap-2 truncate rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:ring-2 focus:ring-ring",
               !value && "text-muted-foreground",
             )}
           >
