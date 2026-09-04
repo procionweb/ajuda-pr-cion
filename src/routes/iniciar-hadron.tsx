@@ -541,14 +541,12 @@ function Overview({
       grouped.set(optionId, [...(grouped.get(optionId) || []), ticket]);
     });
     return hadronOptions
-      .filter((option) => option.status !== "10")
       .map((option) => ({ option, tickets: grouped.get(option.id) || [] }))
       .sort(
         (a, b) =>
           b.tickets.length - a.tickets.length ||
           a.option.option.localeCompare(b.option.option, "pt-BR", { numeric: true }),
-      )
-      .slice(0, 24);
+      );
   }, [tickets]);
   const overviewOperatorStats = useMemo(() => {
     const totals = new Map<string, number>();
