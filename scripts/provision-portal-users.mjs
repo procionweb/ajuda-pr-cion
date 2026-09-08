@@ -58,7 +58,19 @@ try {
     const legacy = legacyByEmail.get(email) || legacyByOperator.get(operator);
     const portalRole = clean(legacy?.aus_perfil).toLowerCase();
 
-    if (!email || !["s_admin", "admin", "prc"].includes(portalRole)) {
+    if (
+      !email ||
+      ![
+        "s_admin",
+        "admin",
+        "tester",
+        "manager",
+        "logistics",
+        "supervisor",
+        "marketing",
+        "prc",
+      ].includes(portalRole)
+    ) {
       skipped += 1;
       continue;
     }
@@ -71,6 +83,26 @@ try {
       email,
     ]);
     if (existing.rowCount) {
+      const userId = existing.rows[0].id;
+      await pool.query(
+        `update auth.users
+         set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
+               || jsonb_build_object('perfil', $2::text),
+             raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)
+               || jsonb_build_object(
+                 'perfil', $2::text,
+                 'operator', $3::text,
+                 'departamento', $4::text
+               ),
+             updated_at = now()
+         where id = $1`,
+        [userId, portalRole, operator, clean(collaborator.clb_departamento)],
+      );
+      await pool.query(
+        `update public.tab_colaboradores set profile_id=$1, updated_at=now()
+         where legacy_id=$2`,
+        [userId, clean(collaborator.clb_id)],
+      );
       skipped += 1;
       continue;
     }
@@ -90,9 +122,20 @@ try {
         ('00000000-0000-0000-0000-000000000000', $1, 'authenticated', 'authenticated', $2,
          crypt($3, gen_salt('bf', 10)), now(), '', '', '', '',
          jsonb_build_object('provider','email','providers',jsonb_build_array('email'),'perfil',$4::text),
-         jsonb_build_object('full_name',$5::text,'operator',$6::text,'perfil',$4::text), now(), now(),
+         jsonb_build_object(
+           'full_name',$5::text,'operator',$6::text,'perfil',$4::text,
+           'departamento',$7::text
+         ), now(), now(),
          '', '', '', '', false, false)`,
-      [userId, email, password, portalRole, fullName, operator],
+      [
+        userId,
+        email,
+        password,
+        portalRole,
+        fullName,
+        operator,
+        clean(collaborator.clb_departamento),
+      ],
     );
     await pool.query(
       `insert into auth.identities

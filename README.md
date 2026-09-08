@@ -72,13 +72,14 @@ Consulta centralizada de clientes e empresas vinculadas, incluindo contatos, par
 
 O acesso é autenticado pelo Supabase Auth. O login aceita e-mail ou sigla do operador, desde que o colaborador esteja cadastrado e provisionado.
 
-| Perfil | Acesso atual |
-| --- | --- |
-| `s_admin` | Todos os módulos e configurações |
-| `admin` | Módulos de `prc` mais a área Comercial |
-| `prc` | Dashboard, Chamados, Kanban, Base de conhecimento e Hádron |
+Como no CRM legado, a autorização combina dois campos independentes:
 
-Os perfis são administrados em **Configurações > Colaboradores**. As permissões de interface são complementadas por políticas RLS e funções SQL no Supabase.
+- `AUS_PERFIL`, do usuário web: `s_admin`, `admin`, `tester`, `manager`, `logistics`, `supervisor`, `marketing` ou `prc`;
+- `CLB_DEPARTAMENTO`, do colaborador: `admin`, `tester`, `support`, `commercial` ou `development`.
+
+Todos os usuários internos acessam Clientes, Suporte, Calendário e o núcleo do Hádron. O departamento libera os módulos operacionais: Comercial para `admin` e `commercial`, e recursos avançados do Hádron para `admin`, `development` e `tester`. O perfil libera funções administrativas: Analytics e Configurações para `s_admin` e `admin`, com Contratos restrito a `s_admin`.
+
+Perfil e departamento são administrados em **Configurações > Colaboradores**. As permissões de interface são complementadas por políticas RLS e funções SQL no Supabase.
 
 ## Arquitetura
 

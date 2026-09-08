@@ -343,6 +343,10 @@ const hadronParameters = [
 
 function HadronPage() {
   const tickets = useTickets();
+  const { department } = usePortalAuth();
+  const hasAdvancedHadronAccess = ["admin", "development", "tester"].includes(
+    department || "",
+  );
   const [tab, setTab] = useState("visao-geral");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("todos");
@@ -418,12 +422,16 @@ function HadronPage() {
               ["opcoes", "Opcoes", ListChecks],
               ["ocorrencias", "Ocorrências", ClipboardCheck],
               ["releases", "Releases", GitBranch],
-              ["checklist", "Checklist", ListTodo],
-              ["parametros", "Parâmetros", SlidersHorizontal],
-              ["modulos", "Módulos", Boxes],
-              ["seriais", "Seriais", KeyRound],
-              ["versoes", "Versões", History],
               ["artigos", "Artigos", BookOpenText],
+              ...(hasAdvancedHadronAccess
+                ? [
+                    ["checklist", "Checklist", ListTodo],
+                    ["parametros", "Parâmetros", SlidersHorizontal],
+                    ["modulos", "Módulos", Boxes],
+                    ["seriais", "Seriais", KeyRound],
+                    ["versoes", "Versões", History],
+                  ]
+                : []),
             ].map(([value, label, Icon]) => (
               <TabsTrigger
                 key={String(value)}

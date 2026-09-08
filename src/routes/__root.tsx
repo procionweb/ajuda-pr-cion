@@ -165,7 +165,7 @@ function RootComponent() {
 function PortalRouteGuard() {
   const router = useRouter();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { loading, session, role } = usePortalAuth();
+  const { loading, session, role, department } = usePortalAuth();
 
   useEffect(() => {
     if (loading) return;
@@ -177,10 +177,10 @@ function PortalRouteGuard() {
       void router.navigate({ to: "/", replace: true });
       return;
     }
-    if (session && !canAccessPortalPath(role, pathname)) {
+    if (session && !canAccessPortalPath(role, department, pathname)) {
       void router.navigate({ to: "/", replace: true });
     }
-  }, [loading, pathname, role, router, session]);
+  }, [department, loading, pathname, role, router, session]);
 
   if (loading || (!session && pathname !== "/login")) {
     return (

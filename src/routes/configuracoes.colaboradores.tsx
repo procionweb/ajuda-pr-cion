@@ -87,7 +87,7 @@ type CollaboratorDetail = {
 type ManagedPortalRole = PortalRole | "none";
 
 function CollaboratorsSettingsPage() {
-  const { role: currentRole } = usePortalAuth();
+  const { role: currentRole, department: currentDepartment } = usePortalAuth();
   const { allCollaborators, loading, error, reload } = useCollaborators({ onlyActive: false });
   const [acronym, setAcronym] = useState("");
   const [status, setStatus] = useState("all");
@@ -103,7 +103,7 @@ function CollaboratorsSettingsPage() {
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (currentRole !== "s_admin") return;
+    if (currentRole !== "s_admin" && currentRole !== "admin") return;
     void (supabase as any)
       .rpc("list_portal_user_roles")
       .then(({ data, error }: { data: Array<{ collaborator_id: string; portal_role: string }> | null; error: { message: string } | null }) => {
@@ -320,13 +320,18 @@ function CollaboratorsSettingsPage() {
                     <td className="px-4 py-3">
                       <select
                         value={portalRoles[item.id] || "none"}
-                        disabled={currentRole !== "s_admin" || savingRoleId === item.id}
+                        disabled={currentDepartment !== "admin" || savingRoleId === item.id}
                         onChange={(event) => void changePortalRole(item.id, event.target.value as ManagedPortalRole)}
                         className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
                         aria-label={`Acesso de ${item.name}`}
                       >
                         <option value="none">Sem acesso</option>
                         <option value="prc">PRC</option>
+                        <option value="marketing">Marketing</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="logistics">Logística</option>
+                        <option value="manager">Gerente</option>
+                        <option value="tester">Tester</option>
                         <option value="admin">Admin</option>
                         <option value="s_admin">S Admin</option>
                       </select>
@@ -500,6 +505,7 @@ function CollaboratorDetails({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { department: currentDepartment } = usePortalAuth();
   const [detail, setDetail] = useState<CollaboratorDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -605,7 +611,7 @@ function CollaboratorDetails({
               <SelectField
                 label="Departamento"
                 value={detail.department ?? ""}
-                editing={mode === "edit"}
+                editing={mode === "edit" && currentDepartment === "admin"}
                 options={Object.entries({ admin: "Administrativo", support: "Suporte", development: "Desenvolvimento", commercial: "Comercial", cob: "Cobrança", tester: "Testes" }).map(([value, label]) => ({ value, label }))}
                 onChange={(value) => update("department", value)}
               />

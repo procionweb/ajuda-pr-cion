@@ -3,29 +3,58 @@ import type { Session } from "@supabase/supabase-js";
 import { currentUser } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
 
-export type PortalRole = "s_admin" | "admin" | "prc";
+export type PortalRole =
+  | "s_admin"
+  | "admin"
+  | "tester"
+  | "manager"
+  | "logistics"
+  | "supervisor"
+  | "marketing"
+  | "prc";
+
+export type PortalDepartment = "admin" | "tester" | "support" | "commercial" | "development" | string;
 
 type PortalAuthState = {
   loading: boolean;
   session: Session | null;
   role: PortalRole | null;
+  department: PortalDepartment | null;
 };
 
 const PortalAuthContext = createContext<PortalAuthState>({
   loading: true,
   session: null,
   role: null,
+  department: null,
 });
 
-const prcRoutes = ["/chamados", "/kanban", "/base-de-conhecimento", "/iniciar-hadron"];
+const portalRoles: PortalRole[] = [
+  "s_admin", "admin", "tester", "manager", "logistics", "supervisor", "marketing", "prc",
+];
+const commonRoutes = [
+  "/chamados", "/suporte/agendamentos", "/calendario", "/clientes",
+  "/base-de-conhecimento", "/iniciar-hadron", "/atualizacoes", "/minha-conta",
+];
 
-export function canAccessPortalPath(role: PortalRole | null, pathname: string) {
+export function canAccessPortalPath(
+  role: PortalRole | null,
+  department: PortalDepartment | null,
+  pathname: string,
+) {
   if (pathname === "/login") return true;
-  if (role === "s_admin") return true;
-  if (role !== "prc" && role !== "admin") return false;
-  if (pathname === "/" || pathname.startsWith("/minha-conta")) return true;
-  if (role === "admin" && pathname.startsWith("/comercial")) return true;
-  return prcRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  if (!role || !portalRoles.includes(role)) return false;
+  if (pathname === "/") return true;
+  if (pathname.startsWith("/kanban")) return true;
+  if (pathname.startsWith("/frota")) return role === "s_admin";
+  if (pathname.startsWith("/comercial")) return department === "admin" || department === "commercial";
+  if (pathname.startsWith("/analytics")) return role === "s_admin" || role === "admin";
+  if (pathname.startsWith("/configuracoes/contratos")) return role === "s_admin";
+  if (pathname.startsWith("/configuracoes")) return role === "s_admin" || role === "admin";
+  if (pathname.startsWith("/versoes")) {
+    return department === "admin" || department === "development" || department === "tester";
+  }
+  return commonRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
 function syncCurrentUser(session: Session | null) {
@@ -57,20 +86,32 @@ function syncCurrentUser(session: Session | null) {
 }
 
 export function PortalAuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PortalAuthState>({ loading: true, session: null, role: null });
+  const [state, setState] = useState<PortalAuthState>({ loading: true, session: null, role: null, department: null });
 
   useEffect(() => {
     let active = true;
-    const applySession = (session: Session | null) => {
+    const applySession = async (session: Session | null) => {
       if (!active) return;
       syncCurrentUser(session);
       const rawRole = session?.user.app_metadata?.perfil;
-      const role =
-        rawRole === "s_admin" || rawRole === "admin" || rawRole === "prc" ? rawRole : null;
-      setState({ loading: false, session, role });
+      let role = portalRoles.includes(rawRole as PortalRole) ? (rawRole as PortalRole) : null;
+      let department = session?.user.user_metadata?.departamento
+        ? String(session.user.user_metadata.departamento)
+        : null;
+      if (session) {
+        const { data } = await supabase.rpc("get_current_portal_access");
+        const access = data?.[0] as
+          | { portal_profile?: string; collaborator_department?: string }
+          | undefined;
+        if (access?.portal_profile && portalRoles.includes(access.portal_profile as PortalRole)) {
+          role = access.portal_profile as PortalRole;
+        }
+        department = access?.collaborator_department || department;
+      }
+      if (active) setState({ loading: false, session, role, department });
     };
-    void supabase.auth.getSession().then(({ data }) => applySession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => applySession(session));
+    void supabase.auth.getSession().then(({ data }) => void applySession(data.session));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => void applySession(session));
     return () => {
       active = false;
       data.subscription.unsubscribe();

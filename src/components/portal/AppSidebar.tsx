@@ -130,7 +130,7 @@ function isActivePath(pathname: string, item: NavItem) {
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const collapsed = useSidebarCollapsed();
-  const { role } = usePortalAuth();
+  const { role, department } = usePortalAuth();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [collapsedFlyout, setCollapsedFlyout] = useState<{
     item: NavItem;
@@ -177,10 +177,10 @@ export function AppSidebar() {
   }, []);
 
   const visibleNav = nav
-    .filter((item) => canAccessPortalPath(role, item.to))
+    .filter((item) => canAccessPortalPath(role, department, item.to))
     .map((item) => ({
       ...item,
-      children: item.children?.filter((child) => canAccessPortalPath(role, child.to)),
+      children: item.children?.filter((child) => canAccessPortalPath(role, department, child.to)),
     }));
 
   return (
