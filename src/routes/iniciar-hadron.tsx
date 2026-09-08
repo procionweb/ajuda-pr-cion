@@ -42,7 +42,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Info } from "lucide-react";
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
-import { TicketTimelineList } from "@/components/tickets/TicketTimelineList";
 import {
   Select,
   SelectContent,
@@ -61,6 +60,14 @@ import { currentUser } from "@/lib/mock-data";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import {
+  getHadronOccurrenceCounts,
+  listHadronOccurrences,
+  listHadronOccurrenceOperators,
+  type HadronOccurrence,
+} from "@/lib/hadron-occurrences";
+
+const hadronOptionsById = new Map(hadronOptions.map((option) => [option.id, option]));
 
 export const Route = createFileRoute("/iniciar-hadron")({
   head: () => ({ meta: [{ title: "Hadron - CRM Procion" }] }),
@@ -401,6 +408,7 @@ function HadronPage() {
               setViewingOption(null);
               setTab("opcoes");
             }}
+            onOpen={setDetail}
           />
         ) : (
         <Tabs value={tab} onValueChange={setTab}>
@@ -434,7 +442,7 @@ function HadronPage() {
             <OptionsTable query={query} onOpen={setDetail} />
           </TabsContent>
           <TabsContent value="ocorrencias">
-            <OccurrencesTable query={query} onOpen={setDetail} />
+            <ImportedOccurrencesTable query={query} onOpen={setDetail} />
           </TabsContent>
           <TabsContent value="releases">
             <ReleasesTable query={query} onOpen={setDetail} />
@@ -979,6 +987,7 @@ function getHadronOptionDate(
 
 function OptionsTable({ query, onOpen }: TableProps) {
   const tickets = useTickets();
+  const [occurrenceCounts, setOccurrenceCounts] = useState<Record<string, number>>({});
   const [optionOverrides, setOptionOverrides] = useState<Record<string, Partial<HadronOption>>>({});
   const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
   const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
@@ -1002,6 +1011,11 @@ function OptionsTable({ query, onOpen }: TableProps) {
       setOptionOverrides({});
       setDisabledOptions([]);
     }
+  }, []);
+  useEffect(() => {
+    void getHadronOccurrenceCounts()
+      .then(setOccurrenceCounts)
+      .catch(() => setOccurrenceCounts({}));
   }, []);
   const optionsWithTickets = useMemo(() => {
     const grouped = new Map<string, TicketRow[]>();
@@ -1158,6 +1172,7 @@ function OptionsTable({ query, onOpen }: TableProps) {
         disabled={row?.disabled || false}
         onBack={() => setViewingOption(null)}
         onEdit={() => setEditingOption(row?.option || viewingOption)}
+        onOpen={onOpen}
       />
     );
   }
@@ -1287,7 +1302,7 @@ function OptionsTable({ query, onOpen }: TableProps) {
                   "Opção",
                   "Formulário",
                   "Descrição",
-                  "Chamada",
+                  "Ocorrências",
                   "Data",
                   "DLL EXE",
                   "Módulo / Submódulo",
@@ -1334,21 +1349,6 @@ function OptionsTable({ query, onOpen }: TableProps) {
                   : active.some((ticket) => ticket.priority === "Media")
                     ? "Media"
                     : "Baixa";
-                const occurrences: TicketEvent[] = related.map((ticket) => ({
-                  id: ticket.id,
-                  kind: ["Finalizado", "Cancelado"].includes(ticket.status) ? "closed" : "status",
-                  when: ticket.closedAt || ticket.updatedAt || ticket.openedAt,
-                  actor: ticket.owner || option.owner || "Não informado",
-                  actorType: "suporte",
-                  description: `${ticket.subject}${ticket.description ? ` — ${ticket.description}` : ""}`,
-                }));
-                const preview: Detail = {
-                  title: "Ocorrências",
-                  subtitle: `Opção: ${option.option}`,
-                  body: latest?.description || option.observation || option.description,
-                  meta: [],
-                  occurrences,
-                };
                 return (
                   <tr
                     key={option.id}
@@ -1381,7 +1381,9 @@ function OptionsTable({ query, onOpen }: TableProps) {
                     <td className="break-words px-2 py-3 font-medium">{option.option}</td>
                     <td className="break-words px-2 py-3">{option.form || "Não informado"}</td>
                     <td className="break-words px-2 py-3 text-primary">{option.description}</td>
-                    <td className="break-words px-2 py-3">{latest?.subject || "Não informado"}</td>
+                    <td className="break-words px-2 py-3">
+                      {occurrenceCounts[option.id]?.toLocaleString("pt-BR") || "0"}
+                    </td>
                     <td className="break-words px-2 py-3">
                       {latest ? formatOccurrenceDate(latest.updatedAt) : "Não informado"}
                     </td>
@@ -1396,7 +1398,7 @@ function OptionsTable({ query, onOpen }: TableProps) {
                           variant="ghost"
                           title="Prévia das ocorrências"
                           className="h-7 w-7 cursor-pointer"
-                          onClick={() => onOpen(preview)}
+                          onClick={() => setViewingOption(option)}
                         >
                           <ClipboardCheck className="h-4 w-4" />
                         </Button>
@@ -1524,21 +1526,15 @@ function HadronOptionPage({
   disabled,
   onBack,
   onEdit,
+  onOpen,
 }: {
   option: HadronOption;
   tickets: TicketRow[];
   disabled: boolean;
   onBack: () => void;
   onEdit: () => void;
+  onOpen: (detail: Detail) => void;
 }) {
-  const events: TicketEvent[] = tickets.map((ticket) => ({
-    id: ticket.id,
-    kind: ["Finalizado", "Cancelado"].includes(ticket.status) ? "closed" : "status",
-    when: ticket.closedAt || ticket.updatedAt || ticket.openedAt,
-    actor: ticket.owner || option.owner || "Não informado",
-    actorType: "suporte",
-    description: `${ticket.subject}${ticket.description ? ` — ${ticket.description}` : ""}`,
-  }));
   const priority = normalizeOptionPriority(option.priority);
   const PriorityIcon = priority.icon;
   return (
@@ -1584,16 +1580,12 @@ function HadronOptionPage({
         <section className="rounded-md border bg-card p-4 shadow-sm">
           <Tabs defaultValue="ocorrencias">
             <TabsList className="justify-start bg-transparent p-0">
-              <TabsTrigger value="ocorrencias">Ocorrências ({tickets.length})</TabsTrigger>
+              <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
               <TabsTrigger value="releases">Releases</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
             </TabsList>
             <TabsContent value="ocorrencias" className="mt-5">
-              <TicketTimelineList
-                events={events}
-                variant="compact"
-                emptyLabel="Nenhuma ocorrência vinculada a esta opção."
-              />
+              <OptionImportedOccurrences option={option} onOpen={onOpen} />
             </TabsContent>
             <TabsContent
               value="releases"
@@ -1830,6 +1822,261 @@ function OptionField({
       {label}
       <Input value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
+  );
+}
+
+function openImportedOccurrence(
+  occurrence: HadronOccurrence,
+  option: HadronOption | undefined,
+  onOpen: (detail: Detail) => void,
+) {
+  const optionLabel = option
+    ? `${option.option}/${option.form || option.option}`
+    : occurrence.optionLegacyId;
+  onOpen({
+    title: "Ocorrência",
+    subtitle: `Opção: ${optionLabel}`,
+    body: occurrence.occurrenceText || "Sem descrição.",
+    meta: [],
+    hadronOccurrence: {
+      option: option?.option || occurrence.optionLegacyId,
+      form: option?.form || option?.option || "-",
+      kind: occurrence.reviewedAt
+        ? "revisado"
+        : occurrence.kind === "ocorrencia"
+          ? "problema"
+          : "solicitacao",
+      reporter: occurrence.reporter || "Não informado",
+      openedAt: occurrence.occurredAt || "",
+      solver: occurrence.solver || "Não informado",
+      solvedAt: occurrence.solvedAt,
+      description: occurrence.occurrenceHtml || occurrence.occurrenceText,
+      solution:
+        occurrence.solutionHtml || occurrence.solutionText || "Solução ainda não registrada.",
+      status: occurrence.status || occurrence.kind,
+    },
+  });
+}
+
+function OptionImportedOccurrences({
+  option,
+  onOpen,
+}: {
+  option: HadronOption;
+  onOpen: (detail: Detail) => void;
+}) {
+  const [page, setPage] = useState(1);
+  const [rows, setRows] = useState<HadronOccurrence[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    void listHadronOccurrences({ page, pageSize: 25, optionIds: [option.id] })
+      .then((result) => {
+        if (!active) return;
+        setRows(result.rows);
+        setTotal(result.total);
+      })
+      .catch(() => {
+        if (!active) return;
+        setRows([]);
+        setTotal(0);
+        toast.error("Não foi possível carregar as ocorrências desta opção.");
+      })
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
+  }, [option.id, page]);
+
+  const pageCount = Math.max(1, Math.ceil(total / 25));
+  return (
+    <div className="overflow-hidden rounded-md border">
+      <div className="flex items-center justify-between border-b bg-muted/20 px-3 py-2">
+        <span className="text-xs text-muted-foreground">
+          {total.toLocaleString("pt-BR")} ocorrências vinculadas
+        </span>
+      </div>
+      <div className="divide-y">
+        {rows.map((occurrence) => (
+          <button
+            key={occurrence.id}
+            type="button"
+            onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
+            className="grid w-full cursor-pointer gap-2 px-3 py-3 text-left hover:bg-muted/30 md:grid-cols-[110px_minmax(0,1fr)_110px_32px]"
+          >
+            <span className="text-xs capitalize text-muted-foreground">{occurrence.kind}</span>
+            <span className="line-clamp-2 text-sm leading-5">
+              {occurrence.occurrenceText || "Sem descrição"}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {formatOccurrenceDate(occurrence.occurredAt)}
+            </span>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </button>
+        ))}
+        {loading && (
+          <p className="p-8 text-center text-sm text-muted-foreground">Carregando ocorrências...</p>
+        )}
+        {!loading && !rows.length && (
+          <p className="p-8 text-center text-sm text-muted-foreground">
+            Nenhuma ocorrência vinculada a esta opção.
+          </p>
+        )}
+      </div>
+      {!loading && total > 0 && (
+        <TablePagination
+          noun="ocorrências"
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          onPageChange={setPage}
+        />
+      )}
+    </div>
+  );
+}
+
+function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
+  const [optionQuery, setOptionQuery] = useState("");
+  const [formQuery, setFormQuery] = useState("");
+  const [kind, setKind] = useState("todos");
+  const [operator, setOperator] = useState("todos");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [page, setPage] = useState(1);
+  const [rows, setRows] = useState<HadronOccurrence[]>([]);
+  const [total, setTotal] = useState(0);
+  const [operators, setOperators] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const optionIds = useMemo(() => {
+    const optionTerm = normalizeOccurrenceText(optionQuery);
+    const formTerm = normalizeOccurrenceText(formQuery);
+    if (!optionTerm && !formTerm) return undefined;
+    const ids = hadronOptions
+      .filter(
+        (option) =>
+          (!optionTerm ||
+            normalizeOccurrenceText(`${option.option} ${option.description}`).includes(optionTerm)) &&
+          (!formTerm || normalizeOccurrenceText(option.form).includes(formTerm)),
+      )
+      .map((option) => option.id);
+    return ids.length ? ids : ["__none__"];
+  }, [formQuery, optionQuery]);
+
+  useEffect(() => {
+    void listHadronOccurrenceOperators().then(setOperators).catch(() => setOperators([]));
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    const timer = window.setTimeout(() => {
+      void listHadronOccurrences({
+        page,
+        optionIds,
+        kind,
+        operator,
+        dateFrom,
+        dateTo,
+        query,
+      })
+        .then((result) => {
+          if (!active) return;
+          setRows(result.rows);
+          setTotal(result.total);
+        })
+        .catch(() => {
+          if (!active) return;
+          setRows([]);
+          setTotal(0);
+          toast.error("Não foi possível carregar as ocorrências do Hádron.");
+        })
+        .finally(() => active && setLoading(false));
+    }, 200);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [dateFrom, dateTo, kind, operator, optionIds, page, query]);
+
+  const clearFilters = () => {
+    setOptionQuery("");
+    setFormQuery("");
+    setKind("todos");
+    setOperator("todos");
+    setDateFrom("");
+    setDateTo("");
+    setPage(1);
+  };
+  const pageCount = Math.max(1, Math.ceil(total / 50));
+
+  return (
+    <section className="overflow-hidden rounded-md border bg-card shadow-sm">
+      <div className="border-b px-4 py-4">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-lg font-medium">Ocorrências</h2>
+          <span className="text-xs text-muted-foreground">{total.toLocaleString("pt-BR")} registros</span>
+        </div>
+        <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.2fr_.7fr_.75fr_.8fr_1.4fr_auto]">
+          <Input value={optionQuery} onChange={(event) => { setOptionQuery(event.target.value); setPage(1); }} placeholder="Opção ou descrição" />
+          <Input value={formQuery} onChange={(event) => { setFormQuery(event.target.value); setPage(1); }} placeholder="Formulário" />
+          <OccurrenceSelect
+            value={kind}
+            onValueChange={(value) => { setKind(value); setPage(1); }}
+            items={[["todos", "Todos os tipos"], ["ocorrencia", "Ocorrência"], ["aprovacao", "Aprovação"], ["sugestao", "Sugestão"], ["revisada", "Revisada"], ["aviso", "Aviso"]]}
+          />
+          <OccurrenceSelect
+            value={operator}
+            onValueChange={(value) => { setOperator(value); setPage(1); }}
+            items={[["todos", "Todos os operadores"], ...operators.map((item) => [item, item] as [string, string])]}
+          />
+          <DateRangeFilter from={dateFrom} to={dateTo} onChange={(start, end) => { setDateFrom(start); setDateTo(end); setPage(1); }} />
+          <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="h-9 cursor-pointer">Limpar</Button>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1180px] text-left text-xs">
+          <thead className="border-b bg-muted/20 text-primary">
+            <tr>
+              <th className="w-24 px-3 py-3 font-medium">Tipo</th>
+              <th className="w-32 px-3 py-3 font-medium">Opção/Form.</th>
+              <th className="px-3 py-3 font-medium">Ocorrência</th>
+              <th className="w-24 px-3 py-3 font-medium">Responsável</th>
+              <th className="w-28 px-3 py-3 font-medium">Data</th>
+              <th className="px-3 py-3 font-medium">Solução</th>
+              <th className="w-28 px-3 py-3 font-medium">Revisão</th>
+              <th className="w-16 px-3 py-3 text-center font-medium">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {rows.map((occurrence) => {
+              const option = hadronOptionsById.get(occurrence.optionLegacyId);
+              return (
+                <tr key={occurrence.id} className="align-top hover:bg-muted/25">
+                  <td className="px-3 py-3 capitalize">{occurrence.kind}</td>
+                  <td className="px-3 py-3 font-medium">{option ? `${option.option}/${option.form || option.option}` : occurrence.optionLegacyId}</td>
+                  <td className="max-w-lg px-3 py-3"><p className="line-clamp-3 leading-5">{occurrence.occurrenceText || "Sem descrição"}</p></td>
+                  <td className="px-3 py-3">{occurrence.reporter || "-"}</td>
+                  <td className="px-3 py-3">{formatOccurrenceDate(occurrence.occurredAt)}</td>
+                  <td className="max-w-md px-3 py-3 text-muted-foreground"><p className="line-clamp-3 leading-5">{occurrence.solutionText || "-"}</p></td>
+                  <td className="px-3 py-3 text-emerald-600">{occurrence.reviewedAt ? formatOccurrenceDate(occurrence.reviewedAt) : "-"}</td>
+                  <td className="px-3 py-3 text-center">
+                    <Button size="icon" variant="ghost" className="h-8 w-8 cursor-pointer" title="Ver ocorrência" onClick={() => openImportedOccurrence(occurrence, option, onOpen)}><Eye className="h-4 w-4" /></Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {loading && <p className="p-10 text-center text-sm text-muted-foreground">Carregando ocorrências...</p>}
+        {!loading && !rows.length && <p className="p-10 text-center text-sm text-muted-foreground">Nenhuma ocorrência encontrada.</p>}
+      </div>
+      {!loading && total > 0 && <TablePagination noun="ocorrências" page={page} pageCount={pageCount} total={total} onPageChange={setPage} />}
+    </section>
   );
 }
 
