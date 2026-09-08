@@ -52,9 +52,12 @@ try {
   await pool.query("begin");
   for (const collaborator of collaborators) {
     if (clean(collaborator.clb_st) !== "1") continue;
-    const email = normalizedEmail(collaborator.clb_email);
-    const operator = normalizedOperator(collaborator.clb_operador);
-    const legacy = legacyByEmail.get(email) || legacyByOperator.get(operator);
+    const collaboratorEmail = normalizedEmail(collaborator.clb_email);
+    const collaboratorOperator = normalizedOperator(collaborator.clb_operador);
+    const legacy =
+      legacyByEmail.get(collaboratorEmail) || legacyByOperator.get(collaboratorOperator);
+    const email = normalizedEmail(legacy?.aus_email);
+    const operator = normalizedOperator(legacy?.aus_operador);
     const portalRole = clean(legacy?.aus_perfil).toLowerCase();
     const legacyPasswordHash = clean(legacy?.aus_senha).replace(/^\$2y\$/, () => "$2a$");
     const fallbackPassword = clean(collaborator.clb_senha_login);
