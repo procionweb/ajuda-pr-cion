@@ -44,26 +44,33 @@ function LoginPage() {
     }
 
     setSubmitting(true);
-    const normalizedLogin = login.trim();
-    const { data: resolvedEmail } = await supabase.rpc("resolve_portal_login_email", {
-      login_value: normalizedLogin,
-    });
-    const email = String(resolvedEmail || normalizedLogin).trim().toLowerCase();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    setSubmitting(false);
-
-    if (error) {
-      toast.error("Não foi possível entrar.", {
-        description: "Confira o e-mail e a senha informados.",
+    try {
+      const normalizedLogin = login.trim();
+      const { data: resolvedEmail } = await supabase.rpc("resolve_portal_login_email", {
+        login_value: normalizedLogin,
       });
-      return;
-    }
+      const email = String(resolvedEmail || normalizedLogin).trim().toLowerCase();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    toast.success("Login realizado com sucesso.");
-    await navigate({ to: "/", replace: true });
+      if (error) {
+        toast.error("Não foi possível entrar.", {
+          description: "Confira o e-mail e a senha informados.",
+        });
+        return;
+      }
+
+      toast.success("Login realizado com sucesso.");
+      await navigate({ to: "/", replace: true });
+    } catch {
+      toast.error("Não foi possível entrar.", {
+        description: "O serviço de autenticação não respondeu. Tente novamente.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (

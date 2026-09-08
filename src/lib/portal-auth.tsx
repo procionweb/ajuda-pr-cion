@@ -90,28 +90,53 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    const applySession = async (session: Session | null) => {
+    let accessRequest = 0;
+
+    const applySession = (session: Session | null) => {
       if (!active) return;
       syncCurrentUser(session);
       const rawRole = session?.user.app_metadata?.perfil;
-      let role = portalRoles.includes(rawRole as PortalRole) ? (rawRole as PortalRole) : null;
-      let department = session?.user.user_metadata?.departamento
+      const role = portalRoles.includes(rawRole as PortalRole) ? (rawRole as PortalRole) : null;
+      const department = session?.user.user_metadata?.departamento
         ? String(session.user.user_metadata.departamento)
         : null;
-      if (session) {
-        const { data } = await supabase.rpc("get_current_portal_access");
+      setState({ loading: false, session, role, department });
+    };
+
+    const refreshAccess = async (session: Session) => {
+      const request = ++accessRequest;
+      try {
+        const { data, error } = await supabase.rpc("get_current_portal_access");
+        if (error) return;
         const access = data?.[0] as
           | { portal_profile?: string; collaborator_department?: string }
           | undefined;
-        if (access?.portal_profile && portalRoles.includes(access.portal_profile as PortalRole)) {
-          role = access.portal_profile as PortalRole;
-        }
-        department = access?.collaborator_department || department;
+        if (!active || request !== accessRequest) return;
+        const rawRole = access?.portal_profile || session.user.app_metadata?.perfil;
+        const role = portalRoles.includes(rawRole as PortalRole) ? (rawRole as PortalRole) : null;
+        const department =
+          access?.collaborator_department ||
+          (session.user.user_metadata?.departamento
+            ? String(session.user.user_metadata.departamento)
+            : null);
+        setState({ loading: false, session, role, department });
+      } catch {
+        // A sessão continua utilizável com os metadados presentes no token.
       }
-      if (active) setState({ loading: false, session, role, department });
     };
-    void supabase.auth.getSession().then(({ data }) => void applySession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => void applySession(session));
+
+    void supabase.auth.getSession().then(({ data }) => {
+      applySession(data.session);
+      if (data.session) void refreshAccess(data.session);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session);
+      if (session) {
+        window.setTimeout(() => {
+          if (active) void refreshAccess(session);
+        }, 0);
+      }
+    });
     return () => {
       active = false;
       data.subscription.unsubscribe();
