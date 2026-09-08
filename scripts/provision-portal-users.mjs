@@ -86,17 +86,20 @@ try {
       const userId = existing.rows[0].id;
       await pool.query(
         `update auth.users
-         set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
-               || jsonb_build_object('perfil', $2::text),
+         set encrypted_password = crypt($4, gen_salt('bf', 10)),
              raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)
                || jsonb_build_object(
-                 'perfil', $2::text,
-                 'operator', $3::text,
-                 'departamento', $4::text
+                 'operator', $2::text,
+                 'departamento', $3::text
                ),
              updated_at = now()
          where id = $1`,
-        [userId, portalRole, operator, clean(collaborator.clb_departamento)],
+        [
+          userId,
+          operator,
+          clean(collaborator.clb_departamento),
+          password,
+        ],
       );
       await pool.query(
         `update public.tab_colaboradores set profile_id=$1, updated_at=now()
