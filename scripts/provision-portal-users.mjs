@@ -54,9 +54,12 @@ try {
     if (clean(collaborator.clb_st) !== "1") continue;
     const email = normalizedEmail(collaborator.clb_email);
     const operator = normalizedOperator(collaborator.clb_operador);
-    const password = clean(collaborator.clb_senha_login);
     const legacy = legacyByEmail.get(email) || legacyByOperator.get(operator);
     const portalRole = clean(legacy?.aus_perfil).toLowerCase();
+    const legacyPasswordHash = clean(legacy?.aus_senha).replace(/^\$2y\$/, () => "$2a$");
+    const fallbackPassword = clean(collaborator.clb_senha_login);
+    const credential = legacyPasswordHash || fallbackPassword;
+    const credentialIsHash = /^\$2[ab]\$/.test(credential);
 
     if (
       !email ||
@@ -74,7 +77,7 @@ try {
       skipped += 1;
       continue;
     }
-    if (!password) {
+    if (!credential) {
       missingPassword += 1;
       continue;
     }
@@ -86,7 +89,7 @@ try {
       const userId = existing.rows[0].id;
       await pool.query(
         `update auth.users
-         set encrypted_password = crypt($4, gen_salt('bf', 10)),
+         set encrypted_password = case when $5 then $4 else crypt($4, gen_salt('bf', 10)) end,
              raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)
                || jsonb_build_object(
                  'operator', $2::text,
@@ -98,7 +101,8 @@ try {
           userId,
           operator,
           clean(collaborator.clb_departamento),
-          password,
+          credential,
+          credentialIsHash,
         ],
       );
       await pool.query(
@@ -123,7 +127,7 @@ try {
          reauthentication_token, is_sso_user, is_anonymous)
        values
         ('00000000-0000-0000-0000-000000000000', $1, 'authenticated', 'authenticated', $2,
-         crypt($3, gen_salt('bf', 10)), now(), '', '', '', '',
+         case when $8 then $3 else crypt($3, gen_salt('bf', 10)) end, now(), '', '', '', '',
          jsonb_build_object('provider','email','providers',jsonb_build_array('email'),'perfil',$4::text),
          jsonb_build_object(
            'full_name',$5::text,'operator',$6::text,'perfil',$4::text,
@@ -133,11 +137,12 @@ try {
       [
         userId,
         email,
-        password,
+        credential,
         portalRole,
         fullName,
         operator,
         clean(collaborator.clb_departamento),
+        credentialIsHash,
       ],
     );
     await pool.query(
