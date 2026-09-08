@@ -1109,13 +1109,14 @@ function OptionsTable({ query, onOpen }: TableProps) {
     const activeDates: number[] = [];
     const now = Date.now();
 
-    rows.forEach(({ option, active, latest, related, disabled }) => {
+    optionsWithTickets.forEach(({ option, active, disabled }) => {
       active.forEach((ticket) => {
         const openedAt = new Date(ticket.openedAt).getTime();
         if (Number.isFinite(openedAt)) activeDates.push(openedAt);
       });
 
       const status = getHadronOptionStatus(option, active.length, disabled);
+      if (status === "desativada") return;
       if (status === "hadron") counts.hadron += 1;
       else if (status === "testes") counts.tests += 1;
       else if (status === "desenvolvimento") counts.development += 1;
@@ -1133,7 +1134,7 @@ function OptionsTable({ query, onOpen }: TableProps) {
       : 0;
 
     return { ...counts, averageDelay };
-  }, [rows]);
+  }, [optionsWithTickets]);
   const persistOverride = (option: HadronOption) => {
     const next = { ...optionOverrides, [option.id]: option };
     setOptionOverrides(next);
@@ -1301,6 +1302,33 @@ function OptionsTable({ query, onOpen }: TableProps) {
             </thead>
             <tbody>
               {pagedRows.map(({ option, active, latest, related, disabled }) => {
+                const optionStatus = getHadronOptionStatus(option, active.length, disabled);
+                const statusDisplay = {
+                  desenvolvimento: {
+                    label: "DESENVOLVIMENTO",
+                    className: "bg-slate-600 text-white hover:bg-slate-600",
+                  },
+                  correcoes: {
+                    label: active.length ? `CORREÇÕES ${active.length}` : "CORREÇÕES",
+                    className: "bg-rose-600 text-white hover:bg-rose-600",
+                  },
+                  testes: {
+                    label: "TESTES",
+                    className: "bg-amber-500 text-white hover:bg-amber-500",
+                  },
+                  aprovada: {
+                    label: "APROVADA",
+                    className: "bg-cyan-600 text-white hover:bg-cyan-600",
+                  },
+                  hadron: {
+                    label: "HÁDRON",
+                    className: "bg-lime-600 text-white hover:bg-lime-600",
+                  },
+                  desativada: {
+                    label: "DESATIVADA",
+                    className: "bg-muted text-muted-foreground hover:bg-muted",
+                  },
+                }[optionStatus];
                 const priority = active.some((ticket) => ticket.priority === "Alta")
                   ? "Alta"
                   : active.some((ticket) => ticket.priority === "Media")
@@ -1326,26 +1354,15 @@ function OptionsTable({ query, onOpen }: TableProps) {
                     key={option.id}
                     className={cn(
                       "border-b transition-colors hover:bg-muted/40",
-                      active.length > 0 && "bg-rose-50/80 dark:bg-rose-950/20",
+                      optionStatus === "correcoes" && "bg-rose-50/80 dark:bg-rose-950/20",
                       disabled && "opacity-55",
                     )}
                   >
                     <td className="px-2 py-3">
                       <Badge
-                        className={cn(
-                          "whitespace-nowrap",
-                          disabled
-                            ? "bg-muted text-muted-foreground hover:bg-muted"
-                            : active.length
-                              ? "bg-rose-600 text-white hover:bg-rose-600"
-                              : "bg-muted text-muted-foreground hover:bg-muted",
-                        )}
+                        className={cn("whitespace-nowrap", statusDisplay.className)}
                       >
-                        {disabled
-                          ? "DESATIVADA"
-                          : active.length
-                            ? `CORREÇÕES ${active.length}`
-                            : "SEM OCORRÊNCIAS"}
+                        {statusDisplay.label}
                       </Badge>
                     </td>
                     <td className="px-2 py-3">
