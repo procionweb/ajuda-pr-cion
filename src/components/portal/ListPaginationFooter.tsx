@@ -4,7 +4,9 @@ import { cn } from "@/lib/utils";
 function pageRange(page: number, pageCount: number): Array<number | "…"> {
   if (pageCount <= 7) return Array.from({ length: pageCount }, (_, index) => index);
   const values = new Set([0, 1, page - 1, page, page + 1, pageCount - 2, pageCount - 1]);
-  const sorted = [...values].filter((value) => value >= 0 && value < pageCount).sort((a, b) => a - b);
+  const sorted = [...values]
+    .filter((value) => value >= 0 && value < pageCount)
+    .sort((a, b) => a - b);
   const result: Array<number | "…"> = [];
   sorted.forEach((value, index) => {
     if (index > 0 && value - sorted[index - 1] > 1) result.push("…");
@@ -52,6 +54,7 @@ export function ListPaginationFooter({
   total,
   noun,
   onPageChange,
+  onPageSizeChange,
   loading = false,
 }: {
   page: number;
@@ -60,6 +63,7 @@ export function ListPaginationFooter({
   total: number;
   noun: string;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
   loading?: boolean;
 }) {
   const safePageCount = Math.max(1, pageCount);
@@ -79,33 +83,94 @@ export function ListPaginationFooter({
         <strong className="text-foreground">{total}</strong> {noun}
       </span>
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-        <span className="inline-flex items-center gap-2">
+        <label className="inline-flex items-center gap-2">
           Itens por página
-          <span className="inline-flex h-7 min-w-11 items-center justify-center rounded-md border border-border bg-background px-2 text-foreground">
-            {pageSize}
-          </span>
-        </span>
+          <select
+            value={pageSize}
+            disabled={!onPageSizeChange || loading}
+            onChange={(event) => onPageSizeChange?.(Number(event.target.value))}
+            className="h-7 cursor-pointer rounded-md border border-border bg-background px-2 text-[12px] text-foreground outline-none focus:ring-2 focus:ring-ring disabled:cursor-default disabled:opacity-100"
+          >
+            {[10, 25, 50, 100].map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="flex max-w-full items-center justify-between gap-1 sm:hidden">
-          <PageButton label="Página anterior" disabled={safePage === 0 || loading} onClick={() => onPageChange(safePage - 1)}><ChevronLeft className="h-3.5 w-3.5" /></PageButton>
+          <PageButton
+            label="Página anterior"
+            disabled={safePage === 0 || loading}
+            onClick={() => onPageChange(safePage - 1)}
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </PageButton>
           <div className="flex items-center gap-1">
             {mobilePages.map((value) => (
-              <PageButton key={value} active={value === safePage} disabled={loading} onClick={() => onPageChange(value)}>{value + 1}</PageButton>
+              <PageButton
+                key={value}
+                active={value === safePage}
+                disabled={loading}
+                onClick={() => onPageChange(value)}
+              >
+                {value + 1}
+              </PageButton>
             ))}
           </div>
-          <PageButton label="Próxima página" disabled={safePage + 1 >= safePageCount || loading} onClick={() => onPageChange(safePage + 1)}><ChevronRight className="h-3.5 w-3.5" /></PageButton>
+          <PageButton
+            label="Próxima página"
+            disabled={safePage + 1 >= safePageCount || loading}
+            onClick={() => onPageChange(safePage + 1)}
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </PageButton>
         </div>
         <div className="hide-scrollbar hidden max-w-full items-center gap-1 overflow-x-auto pb-0.5 sm:flex">
-          <PageButton label="Primeira página" disabled={safePage === 0 || loading} onClick={() => onPageChange(0)}><ChevronsLeft className="h-3.5 w-3.5" /></PageButton>
-          <PageButton label="Página anterior" disabled={safePage === 0 || loading} onClick={() => onPageChange(safePage - 1)}><ChevronLeft className="h-3.5 w-3.5" /></PageButton>
+          <PageButton
+            label="Primeira página"
+            disabled={safePage === 0 || loading}
+            onClick={() => onPageChange(0)}
+          >
+            <ChevronsLeft className="h-3.5 w-3.5" />
+          </PageButton>
+          <PageButton
+            label="Página anterior"
+            disabled={safePage === 0 || loading}
+            onClick={() => onPageChange(safePage - 1)}
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </PageButton>
           {pages.map((value, index) =>
             value === "…" ? (
-              <span key={`ellipsis-${index}`} className="px-1">…</span>
+              <span key={`ellipsis-${index}`} className="px-1">
+                …
+              </span>
             ) : (
-              <PageButton key={value} active={value === safePage} disabled={loading} onClick={() => onPageChange(value)}>{value + 1}</PageButton>
+              <PageButton
+                key={value}
+                active={value === safePage}
+                disabled={loading}
+                onClick={() => onPageChange(value)}
+              >
+                {value + 1}
+              </PageButton>
             ),
           )}
-          <PageButton label="Próxima página" disabled={safePage + 1 >= safePageCount || loading} onClick={() => onPageChange(safePage + 1)}><ChevronRight className="h-3.5 w-3.5" /></PageButton>
-          <PageButton label="Última página" disabled={safePage + 1 >= safePageCount || loading} onClick={() => onPageChange(safePageCount - 1)}><ChevronsRight className="h-3.5 w-3.5" /></PageButton>
+          <PageButton
+            label="Próxima página"
+            disabled={safePage + 1 >= safePageCount || loading}
+            onClick={() => onPageChange(safePage + 1)}
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </PageButton>
+          <PageButton
+            label="Última página"
+            disabled={safePage + 1 >= safePageCount || loading}
+            onClick={() => onPageChange(safePageCount - 1)}
+          >
+            <ChevronsRight className="h-3.5 w-3.5" />
+          </PageButton>
         </div>
       </div>
     </footer>

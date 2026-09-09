@@ -1034,6 +1034,7 @@ function OptionsTable({ query }: TableProps) {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   useEffect(() => {
     try {
       setOptionOverrides(JSON.parse(localStorage.getItem("hadron-option-overrides") || "{}"));
@@ -1163,9 +1164,9 @@ function OptionsTable({ query }: TableProps) {
     setDateTo("");
     setPage(1);
   };
-  const pageCount = Math.max(1, Math.ceil(rows.length / 50));
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const safePage = Math.min(page, pageCount);
-  const pagedRows = rows.slice((safePage - 1) * 50, safePage * 50);
+  const pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize);
   const optionSummary = useMemo(() => {
     const counts = {
       development: 0,
@@ -1618,8 +1619,13 @@ function OptionsTable({ query }: TableProps) {
             noun="opções"
             page={safePage}
             pageCount={pageCount}
+            pageSize={pageSize}
             total={rows.length}
             onPageChange={setPage}
+            onPageSizeChange={(value) => {
+              setPageSize(value);
+              setPage(1);
+            }}
           />
         )}
       </section>
@@ -2242,6 +2248,7 @@ function OptionImportedOccurrences({
   latestOnly?: boolean;
 }) {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [rows, setRows] = useState<HadronOccurrence[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -2254,7 +2261,7 @@ function OptionImportedOccurrences({
     setLoading(true);
     void listHadronOccurrences({
       page: latestOnly ? 1 : page,
-      pageSize: latestOnly ? 1 : 25,
+      pageSize: latestOnly ? 1 : pageSize,
       optionIds: [option.id],
     })
       .then((result) => {
@@ -2272,9 +2279,9 @@ function OptionImportedOccurrences({
     return () => {
       active = false;
     };
-  }, [latestOnly, option.id, page, reloadKey]);
+  }, [latestOnly, option.id, page, pageSize, reloadKey]);
 
-  const pageCount = Math.max(1, Math.ceil(total / 25));
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const collaboratorName = (operator: string) => {
     const collaborator = findCollaborator(allCollaborators, operator);
     return collaborator ? collaboratorLabel(collaborator) : operator || "Não informado";
@@ -2320,8 +2327,13 @@ function OptionImportedOccurrences({
             noun="ocorrências"
             page={page}
             pageCount={pageCount}
+            pageSize={pageSize}
             total={total}
             onPageChange={setPage}
+            onPageSizeChange={(value) => {
+              setPageSize(value);
+              setPage(1);
+            }}
           />
         )}
       </div>
@@ -2635,6 +2647,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [rows, setRows] = useState<HadronOccurrence[]>([]);
   const [total, setTotal] = useState(0);
   const [operators, setOperators] = useState<string[]>([]);
@@ -2669,6 +2682,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
     const timer = window.setTimeout(() => {
       void listHadronOccurrences({
         page,
+        pageSize,
         optionIds,
         kind,
         operator,
@@ -2693,7 +2707,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [dateFrom, dateTo, kind, operator, optionIds, page, query]);
+  }, [dateFrom, dateTo, kind, operator, optionIds, page, pageSize, query]);
 
   const clearFilters = () => {
     setOptionQuery("");
@@ -2704,7 +2718,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
     setDateTo("");
     setPage(1);
   };
-  const pageCount = Math.max(1, Math.ceil(total / 50));
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <section className="overflow-hidden rounded-md border bg-card shadow-sm">
@@ -2848,8 +2862,13 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
           noun="ocorrências"
           page={page}
           pageCount={pageCount}
+          pageSize={pageSize}
           total={total}
           onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value);
+            setPage(1);
+          }}
         />
       )}
     </section>
@@ -2876,6 +2895,7 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const operators = useMemo(
     () => [...new Set(tickets.map((ticket) => ticket.owner).filter(Boolean))].sort(),
     [tickets],
@@ -2979,9 +2999,9 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
     setDateTo("");
     setPage(1);
   };
-  const pageCount = Math.max(1, Math.ceil(rows.length / 50));
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const safePage = Math.min(page, pageCount);
-  const pagedRows = rows.slice((safePage - 1) * 50, safePage * 50);
+  const pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize);
   return (
     <section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="border-b px-4 py-4">
@@ -3146,8 +3166,13 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
           noun="ocorrências"
           page={safePage}
           pageCount={pageCount}
+          pageSize={pageSize}
           total={rows.length}
           onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value);
+            setPage(1);
+          }}
         />
       )}
     </section>
@@ -3158,24 +3183,29 @@ function TablePagination({
   noun,
   page,
   pageCount,
+  pageSize = 25,
   total,
   onPageChange,
+  onPageSizeChange,
 }: {
   noun: string;
   page: number;
   pageCount: number;
+  pageSize?: number;
   total: number;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }) {
   return (
     <div className="mt-3">
       <ListPaginationFooter
         page={page - 1}
         pageCount={pageCount}
-        pageSize={50}
+        pageSize={pageSize}
         total={total}
         noun={noun}
         onPageChange={(nextPage) => onPageChange(nextPage + 1)}
+        onPageSizeChange={onPageSizeChange}
       />
     </div>
   );
@@ -4124,6 +4154,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
 
 function ReleasesTable({ query, onOpen }: TableProps) {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const normalizedQuery = normalizeOccurrenceText(query);
   const rows = useMemo(
     () =>
@@ -4150,7 +4181,6 @@ function ReleasesTable({ query, onOpen }: TableProps) {
         ),
     [normalizedQuery],
   );
-  const pageSize = 50;
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(page, pageCount);
   const pagedRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -4258,8 +4288,13 @@ function ReleasesTable({ query, onOpen }: TableProps) {
         noun="releases"
         page={currentPage}
         pageCount={pageCount}
+        pageSize={pageSize}
         total={rows.length}
         onPageChange={setPage}
+        onPageSizeChange={(value) => {
+          setPageSize(value);
+          setPage(1);
+        }}
       />
     </div>
   );
