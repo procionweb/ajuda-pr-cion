@@ -113,6 +113,7 @@ export function TicketTimelineList({
   onEventCancel,
   onEventReport,
   getScheduledEventStatus,
+  showActorInHeader = false,
 }: {
   events: TicketEvent[];
   variant?: Variant;
@@ -122,6 +123,7 @@ export function TicketTimelineList({
   onEventCancel?: (event: TicketEvent) => void;
   onEventReport?: (event: TicketEvent) => void;
   getScheduledEventStatus?: (event: TicketEvent) => "active" | "completed" | "cancelled";
+  showActorInHeader?: boolean;
 }) {
   const sorted = useMemo(() => {
     // Ordena por data/hora real decrescente (mais recente primeiro).
@@ -244,6 +246,9 @@ export function TicketTimelineList({
                 <span className={`${timeSize} text-muted-foreground`}>
                   {formatTime(event.when)}
                 </span>
+                {showActorInHeader && (
+                  <span className={`${metaSize} font-medium text-foreground`}>{event.actor}</span>
+                )}
               </div>
 
               <h3
@@ -264,9 +269,11 @@ export function TicketTimelineList({
                   {event.description}
                 </p>
               )}
-              <p className={`mt-1 ${metaSize} text-muted-foreground`}>
-                {event.actor} · {event.actorType}
-              </p>
+              {!showActorInHeader && (
+                <p className={`mt-1 ${metaSize} text-muted-foreground`}>
+                  {event.actor} · {event.actorType}
+                </p>
+              )}
               {event.attachment?.dataUrl && (
                 <a
                   href={event.attachment.dataUrl}

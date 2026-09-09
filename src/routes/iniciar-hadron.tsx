@@ -39,7 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Info } from "lucide-react";
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { TicketTimelineList } from "@/components/tickets/TicketTimelineList";
@@ -54,11 +54,7 @@ import { cn } from "@/lib/utils";
 import { erpVersions, formatVersionDate } from "@/lib/erp-versions";
 import { hadronOptions, type HadronOption } from "@/lib/hadron-options";
 import { moduleOptions, modulesMap } from "@/lib/modules-map";
-import {
-  collaboratorLabel,
-  findCollaborator,
-  useCollaborators,
-} from "@/lib/collaborators-store";
+import { collaboratorLabel, findCollaborator, useCollaborators } from "@/lib/collaborators-store";
 import { cvsArticles } from "@/lib/cvs-catalogs-imported";
 import { getCategory, kbArticlesFull } from "@/lib/kb-data";
 import { ticketsStore, useTickets, type TicketEvent } from "@/lib/tickets-store";
@@ -350,9 +346,7 @@ const hadronParameters = [
 function HadronPage() {
   const tickets = useTickets();
   const { department } = usePortalAuth();
-  const hasAdvancedHadronAccess = ["admin", "development", "tester"].includes(
-    department || "",
-  );
+  const hasAdvancedHadronAccess = ["admin", "development", "tester"].includes(department || "");
   const [tab, setTab] = useState("visao-geral");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("todos");
@@ -418,65 +412,65 @@ function HadronPage() {
             onEdit={() => setEditingOption(viewingOption)}
           />
         ) : (
-        <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg border bg-card p-1">
-            {[
-              ["visao-geral", "Visao geral", Rocket],
-              ["opcoes", "Opcoes", ListChecks],
-              ["ocorrencias", "Ocorrências", ClipboardCheck],
-              ["releases", "Releases", GitBranch],
-              ["artigos", "Artigos", BookOpenText],
-              ...(hasAdvancedHadronAccess
-                ? [
-                    ["checklist", "Checklist", ListTodo],
-                    ["parametros", "Parâmetros", SlidersHorizontal],
-                    ["modulos", "Módulos", Boxes],
-                    ["seriais", "Seriais", KeyRound],
-                    ["versoes", "Versões", History],
-                  ]
-                : []),
-            ].map(([value, label, Icon]) => (
-              <TabsTrigger
-                key={String(value)}
-                value={String(value)}
-                className="cursor-pointer gap-2 px-4"
-              >
-                <Icon className="h-4 w-4" />
-                {String(label)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <TabsContent value="visao-geral">
-            <Overview onOpen={setDetail} onViewOption={setViewingOption} />
-          </TabsContent>
-          <TabsContent value="opcoes">
-            <OptionsTable query={query} onOpen={setDetail} />
-          </TabsContent>
-          <TabsContent value="ocorrencias">
-            <ImportedOccurrencesTable query={query} onOpen={setDetail} />
-          </TabsContent>
-          <TabsContent value="releases">
-            <ReleasesTable query={query} onOpen={setDetail} />
-          </TabsContent>
-          <TabsContent value="checklist">
-            <ChecklistTable query={query} onOpen={setDetail} />
-          </TabsContent>
-          <TabsContent value="parametros">
-            <ParametersTable query={query} onOpen={setDetail} />
-          </TabsContent>
-          <TabsContent value="modulos">
-            <ModulesTable query={query} onOpen={setDetail} />
-          </TabsContent>
-          <TabsContent value="seriais">
-            <SerialsTable query={query} onOpen={setDetail} />
-          </TabsContent>
-          <TabsContent value="versoes">
-            <VersionsTable query={query} onOpen={setDetail} />
-          </TabsContent>
-          <TabsContent value="artigos">
-            <ArticlesTable query={query} onOpen={setDetail} />
-          </TabsContent>
-        </Tabs>
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg border bg-card p-1">
+              {[
+                ["visao-geral", "Visao geral", Rocket],
+                ["opcoes", "Opcoes", ListChecks],
+                ["ocorrencias", "Ocorrências", ClipboardCheck],
+                ["releases", "Releases", GitBranch],
+                ["artigos", "Artigos", BookOpenText],
+                ...(hasAdvancedHadronAccess
+                  ? [
+                      ["checklist", "Checklist", ListTodo],
+                      ["parametros", "Parâmetros", SlidersHorizontal],
+                      ["modulos", "Módulos", Boxes],
+                      ["seriais", "Seriais", KeyRound],
+                      ["versoes", "Versões", History],
+                    ]
+                  : []),
+              ].map(([value, label, Icon]) => (
+                <TabsTrigger
+                  key={String(value)}
+                  value={String(value)}
+                  className="cursor-pointer gap-2 px-4"
+                >
+                  <Icon className="h-4 w-4" />
+                  {String(label)}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <TabsContent value="visao-geral">
+              <Overview onOpen={setDetail} onViewOption={setViewingOption} />
+            </TabsContent>
+            <TabsContent value="opcoes">
+              <OptionsTable query={query} onOpen={setDetail} />
+            </TabsContent>
+            <TabsContent value="ocorrencias">
+              <ImportedOccurrencesTable query={query} onOpen={setDetail} />
+            </TabsContent>
+            <TabsContent value="releases">
+              <ReleasesTable query={query} onOpen={setDetail} />
+            </TabsContent>
+            <TabsContent value="checklist">
+              <ChecklistTable query={query} onOpen={setDetail} />
+            </TabsContent>
+            <TabsContent value="parametros">
+              <ParametersTable query={query} onOpen={setDetail} />
+            </TabsContent>
+            <TabsContent value="modulos">
+              <ModulesTable query={query} onOpen={setDetail} />
+            </TabsContent>
+            <TabsContent value="seriais">
+              <SerialsTable query={query} onOpen={setDetail} />
+            </TabsContent>
+            <TabsContent value="versoes">
+              <VersionsTable query={query} onOpen={setDetail} />
+            </TabsContent>
+            <TabsContent value="artigos">
+              <ArticlesTable query={query} onOpen={setDetail} />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
 
@@ -1391,9 +1385,7 @@ function OptionsTable({ query }: TableProps) {
                     )}
                   >
                     <td className="px-2 py-3">
-                      <Badge
-                        className={cn("whitespace-nowrap", statusDisplay.className)}
-                      >
+                      <Badge className={cn("whitespace-nowrap", statusDisplay.className)}>
                         {statusDisplay.label}
                       </Badge>
                     </td>
@@ -1577,42 +1569,42 @@ function HadronOptionPage({
     <section className="space-y-4">
       <header className="rounded-md border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            title="Voltar para opções"
-            onClick={onBack}
-            className="cursor-pointer"
-          >
-            <ChevronRight className="h-4 w-4 rotate-180" />
-          </Button>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-medium">
-                {option.option} - {option.description}
-              </h2>
-              <Badge variant={disabled ? "secondary" : "outline"}>
-                {disabled ? "Desativada" : option.status || "Ativa"}
-              </Badge>
+          <div className="flex items-start gap-3">
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              title="Voltar para opções"
+              onClick={onBack}
+              className="cursor-pointer"
+            >
+              <ChevronRight className="h-4 w-4 rotate-180" />
+            </Button>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-medium">
+                  {option.option} - {option.description}
+                </h2>
+                <Badge variant={disabled ? "secondary" : "outline"}>
+                  {disabled ? "Desativada" : option.status || "Ativa"}
+                </Badge>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                <span className="font-medium text-primary">{moduleName}</span>
+                {" / "}
+                <span className="font-medium text-primary">{submoduleName}</span>
+              </p>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              <span className="font-medium text-primary">{moduleName}</span>
-              {" / "}
-              <span className="font-medium text-primary">{submoduleName}</span>
-            </p>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onEdit} className="cursor-pointer">
-            <Pencil className="mr-2 h-4 w-4" />
-            Alterar
-          </Button>
-          <Button type="button" onClick={onBack} className="cursor-pointer">
-            Sair
-          </Button>
-        </div>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={onEdit} className="cursor-pointer">
+              <Pencil className="mr-2 h-4 w-4" />
+              Alterar
+            </Button>
+            <Button type="button" onClick={onBack} className="cursor-pointer">
+              Sair
+            </Button>
+          </div>
         </div>
         <div className="mt-4 grid gap-x-5 gap-y-3 border-t pt-4 sm:grid-cols-3 lg:grid-cols-6">
           <OptionHeaderMeta label="Data" value={formatCatalogDate(option.openedAt)} />
@@ -1631,9 +1623,7 @@ function HadronOptionPage({
           />
         </div>
         {option.observation && (
-          <p className="mt-4 border-t pt-4 text-sm leading-6">
-            {option.observation}
-          </p>
+          <p className="mt-4 border-t pt-4 text-sm leading-6">{option.observation}</p>
         )}
       </header>
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -1777,22 +1767,33 @@ function OptionEditDialog({
   onSave: (option: HadronOption) => void;
 }) {
   const [draft, setDraft] = useState<HadronOption | null>(option);
+  const { collaborators } = useCollaborators();
   useEffect(() => setDraft(option), [option]);
   if (!draft) return null;
   const update = (field: keyof HadronOption, value: string) =>
     setDraft((current) => (current ? { ...current, [field]: value } : current));
+  const selectedModule = getOptionModuleName(draft);
+  const availableSubmodules = modulesMap[selectedModule] || [];
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl gap-0 overflow-hidden p-0">
-        <DialogTitle className="border-b px-6 py-5 text-lg font-medium">Opção Hádron</DialogTitle>
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
+        <DialogTitle className="sr-only">Alterar opção Hádron</DialogTitle>
+        <DetailModalHeader
+          dense
+          icon={Pencil}
+          title={draft.description || "Opção Hádron"}
+          protocol={draft.option}
+          meta="Alterar opção Hádron"
+          onClose={onClose}
+        />
         <Tabs defaultValue="opcao" className="min-h-0">
-          <TabsList className="mx-6 mt-3 justify-start bg-transparent p-0">
+          <TabsList className="mx-6 mt-2 justify-start bg-transparent p-0">
             <TabsTrigger value="opcao">OPÇÃO</TabsTrigger>
             <TabsTrigger value="checklist">CHECKLIST</TabsTrigger>
           </TabsList>
-          <div className="max-h-[65vh] overflow-y-auto px-6 pb-6">
-            <TabsContent value="opcao" className="mt-4 space-y-5">
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="max-h-[65vh] overflow-y-auto px-6 pb-4">
+            <TabsContent value="opcao" className="mt-3 space-y-4">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
                 <label className="space-y-2 text-xs text-muted-foreground">
                   Nome da opção
                   <Input
@@ -1821,7 +1822,7 @@ function OptionEditDialog({
                   </div>
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <OptionField
                   label="Opção"
                   value={draft.option}
@@ -1843,26 +1844,74 @@ function OptionEditDialog({
                   onChange={(value) => update("call", value)}
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <OptionField
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <OptionSelect
                   label="Responsável"
                   value={draft.owner}
                   onChange={(value) => update("owner", value)}
+                  options={collaborators.map((item) => ({
+                    value: item.acronym || item.id,
+                    label: collaboratorLabel(item),
+                  }))}
                 />
-                <OptionField
+                <OptionSelect
+                  label="Tester"
+                  value={draft.tester}
+                  onChange={(value) => update("tester", value)}
+                  options={collaborators.map((item) => ({
+                    value: item.acronym || item.id,
+                    label: collaboratorLabel(item),
+                  }))}
+                />
+                <OptionSelect
                   label="Característica"
-                  value={draft.characteristic}
+                  value={draft.characteristic || "cadastro"}
                   onChange={(value) => update("characteristic", value)}
+                  options={["cadastro", "processo", "relatorio", "consulta"].map((value) => ({
+                    value,
+                    label: value.charAt(0).toUpperCase() + value.slice(1),
+                  }))}
                 />
-                <OptionField
+                <label className="flex items-end gap-2 pb-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={draft.listView === "1"}
+                    onChange={(event) => update("listView", event.target.checked ? "1" : "0")}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Grids/List View
+                </label>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <OptionSelect
                   label="Módulo"
-                  value={draft.moduleId}
-                  onChange={(value) => update("moduleId", value)}
+                  value={selectedModule}
+                  onChange={(value) => {
+                    update("moduleId", String(moduleOptions.indexOf(value)));
+                    setDraft((current) =>
+                      current
+                        ? {
+                            ...current,
+                            moduleId: String(moduleOptions.indexOf(value)),
+                            submoduleId: "20",
+                          }
+                        : current,
+                    );
+                  }}
+                  options={moduleOptions
+                    .slice(1)
+                    .map((value) => ({
+                      value,
+                      label: `${moduleOptions.indexOf(value)} : ${value}`,
+                    }))}
                 />
-                <OptionField
+                <OptionSelect
                   label="Submódulo"
-                  value={draft.submoduleId}
-                  onChange={(value) => update("submoduleId", value)}
+                  value={getOptionSubmoduleName(draft)}
+                  onChange={(value) =>
+                    update("submoduleId", String((availableSubmodules.indexOf(value) + 2) * 10))
+                  }
+                  options={availableSubmodules.map((value) => ({ value, label: value }))}
                 />
               </div>
               <label className="block space-y-2 text-xs text-muted-foreground">
@@ -1873,6 +1922,11 @@ function OptionEditDialog({
                   className="min-h-24 w-full resize-y rounded-md border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
                 />
               </label>
+              <OptionField
+                label="Tags"
+                value={draft.tags}
+                onChange={(value) => update("tags", value)}
+              />
             </TabsContent>
             <TabsContent value="checklist" className="mt-4">
               <div className="divide-y rounded-md border">
@@ -1896,14 +1950,44 @@ function OptionEditDialog({
             </TabsContent>
           </div>
         </Tabs>
-        <div className="flex justify-end gap-2 border-t px-6 py-4">
+        <DialogFooter className="shrink-0 gap-2 border-t bg-card px-5 py-2.5 sm:gap-2">
           <Button variant="outline" onClick={onClose}>
             Fechar
           </Button>
           <Button onClick={() => onSave(draft)}>Salvar</Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function OptionSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <label className="space-y-2 text-xs text-muted-foreground">
+      {label}
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-9 w-full cursor-pointer text-[13px]">
+          <SelectValue placeholder="Selecione" />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((item) => (
+            <SelectItem key={item.value} value={item.value}>
+              {item.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </label>
   );
 }
 
@@ -1957,11 +2041,7 @@ function openImportedOccurrence(
   });
 }
 
-function OptionImportedOccurrences({
-  option,
-}: {
-  option: HadronOption;
-}) {
+function OptionImportedOccurrences({ option }: { option: HadronOption }) {
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<HadronOccurrence[]>([]);
   const [total, setTotal] = useState(0);
@@ -2030,6 +2110,7 @@ function OptionImportedOccurrences({
           <TicketTimelineList
             events={timelineEvents}
             variant="compact"
+            showActorInHeader
             emptyLabel="Nenhuma ocorrência vinculada a esta opção."
           />
         )}
@@ -2075,7 +2156,9 @@ function OptionOccurrencesPreviewDialog({
               <OptionImportedOccurrences option={option} />
             </div>
             <div className="flex justify-end border-t px-6 py-4">
-              <Button variant="outline" onClick={onClose}>Fechar</Button>
+              <Button variant="outline" onClick={onClose}>
+                Fechar
+              </Button>
             </div>
           </>
         )}
@@ -2105,7 +2188,9 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
       .filter(
         (option) =>
           (!optionTerm ||
-            normalizeOccurrenceText(`${option.option} ${option.description}`).includes(optionTerm)) &&
+            normalizeOccurrenceText(`${option.option} ${option.description}`).includes(
+              optionTerm,
+            )) &&
           (!formTerm || normalizeOccurrenceText(option.form).includes(formTerm)),
       )
       .map((option) => option.id);
@@ -2113,7 +2198,9 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
   }, [formQuery, optionQuery]);
 
   useEffect(() => {
-    void listHadronOccurrenceOperators().then(setOperators).catch(() => setOperators([]));
+    void listHadronOccurrenceOperators()
+      .then(setOperators)
+      .catch(() => setOperators([]));
   }, []);
 
   useEffect(() => {
@@ -2164,23 +2251,71 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
       <div className="border-b px-4 py-4">
         <div className="flex items-baseline gap-2">
           <h2 className="text-lg font-medium">Ocorrências</h2>
-          <span className="text-xs text-muted-foreground">{total.toLocaleString("pt-BR")} registros</span>
+          <span className="text-xs text-muted-foreground">
+            {total.toLocaleString("pt-BR")} registros
+          </span>
         </div>
         <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.2fr_.7fr_.75fr_.8fr_1.4fr_auto]">
-          <Input value={optionQuery} onChange={(event) => { setOptionQuery(event.target.value); setPage(1); }} placeholder="Opção ou descrição" />
-          <Input value={formQuery} onChange={(event) => { setFormQuery(event.target.value); setPage(1); }} placeholder="Formulário" />
+          <Input
+            value={optionQuery}
+            onChange={(event) => {
+              setOptionQuery(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Opção ou descrição"
+          />
+          <Input
+            value={formQuery}
+            onChange={(event) => {
+              setFormQuery(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Formulário"
+          />
           <OccurrenceSelect
             value={kind}
-            onValueChange={(value) => { setKind(value); setPage(1); }}
-            items={[["todos", "Todos os tipos"], ["ocorrencia", "Ocorrência"], ["aprovacao", "Aprovação"], ["sugestao", "Sugestão"], ["revisada", "Revisada"], ["aviso", "Aviso"]]}
+            onValueChange={(value) => {
+              setKind(value);
+              setPage(1);
+            }}
+            items={[
+              ["todos", "Todos os tipos"],
+              ["ocorrencia", "Ocorrência"],
+              ["aprovacao", "Aprovação"],
+              ["sugestao", "Sugestão"],
+              ["revisada", "Revisada"],
+              ["aviso", "Aviso"],
+            ]}
           />
           <OccurrenceSelect
             value={operator}
-            onValueChange={(value) => { setOperator(value); setPage(1); }}
-            items={[["todos", "Todos os operadores"], ...operators.map((item) => [item, item] as [string, string])]}
+            onValueChange={(value) => {
+              setOperator(value);
+              setPage(1);
+            }}
+            items={[
+              ["todos", "Todos os operadores"],
+              ...operators.map((item) => [item, item] as [string, string]),
+            ]}
           />
-          <DateRangeFilter from={dateFrom} to={dateTo} onChange={(start, end) => { setDateFrom(start); setDateTo(end); setPage(1); }} />
-          <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="h-9 cursor-pointer">Limpar</Button>
+          <DateRangeFilter
+            from={dateFrom}
+            to={dateTo}
+            onChange={(start, end) => {
+              setDateFrom(start);
+              setDateTo(end);
+              setPage(1);
+            }}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-9 cursor-pointer"
+          >
+            Limpar
+          </Button>
         </div>
       </div>
       <div className="overflow-x-auto">
@@ -2203,24 +2338,60 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
               return (
                 <tr key={occurrence.id} className="align-top hover:bg-muted/25">
                   <td className="px-3 py-3 capitalize">{occurrence.kind}</td>
-                  <td className="px-3 py-3 font-medium">{option ? `${option.option}/${option.form || option.option}` : occurrence.optionLegacyId}</td>
-                  <td className="max-w-lg px-3 py-3"><p className="line-clamp-3 leading-5">{occurrence.occurrenceText || "Sem descrição"}</p></td>
+                  <td className="px-3 py-3 font-medium">
+                    {option
+                      ? `${option.option}/${option.form || option.option}`
+                      : occurrence.optionLegacyId}
+                  </td>
+                  <td className="max-w-lg px-3 py-3">
+                    <p className="line-clamp-3 leading-5">
+                      {occurrence.occurrenceText || "Sem descrição"}
+                    </p>
+                  </td>
                   <td className="px-3 py-3">{occurrence.reporter || "-"}</td>
                   <td className="px-3 py-3">{formatOccurrenceDate(occurrence.occurredAt)}</td>
-                  <td className="max-w-md px-3 py-3 text-muted-foreground"><p className="line-clamp-3 leading-5">{occurrence.solutionText || "-"}</p></td>
-                  <td className="px-3 py-3 text-emerald-600">{occurrence.reviewedAt ? formatOccurrenceDate(occurrence.reviewedAt) : "-"}</td>
+                  <td className="max-w-md px-3 py-3 text-muted-foreground">
+                    <p className="line-clamp-3 leading-5">{occurrence.solutionText || "-"}</p>
+                  </td>
+                  <td className="px-3 py-3 text-emerald-600">
+                    {occurrence.reviewedAt ? formatOccurrenceDate(occurrence.reviewedAt) : "-"}
+                  </td>
                   <td className="px-3 py-3 text-center">
-                    <Button size="icon" variant="ghost" className="h-8 w-8 cursor-pointer" title="Ver ocorrência" onClick={() => openImportedOccurrence(occurrence, option, onOpen)}><Eye className="h-4 w-4" /></Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 cursor-pointer"
+                      title="Ver ocorrência"
+                      onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                   </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-        {loading && <p className="p-10 text-center text-sm text-muted-foreground">Carregando ocorrências...</p>}
-        {!loading && !rows.length && <p className="p-10 text-center text-sm text-muted-foreground">Nenhuma ocorrência encontrada.</p>}
+        {loading && (
+          <p className="p-10 text-center text-sm text-muted-foreground">
+            Carregando ocorrências...
+          </p>
+        )}
+        {!loading && !rows.length && (
+          <p className="p-10 text-center text-sm text-muted-foreground">
+            Nenhuma ocorrência encontrada.
+          </p>
+        )}
       </div>
-      {!loading && total > 0 && <TablePagination noun="ocorrências" page={page} pageCount={pageCount} total={total} onPageChange={setPage} />}
+      {!loading && total > 0 && (
+        <TablePagination
+          noun="ocorrências"
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          onPageChange={setPage}
+        />
+      )}
     </section>
   );
 }
