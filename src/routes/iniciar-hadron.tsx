@@ -1792,7 +1792,7 @@ function OptionEditDialog({
   const availableSubmodules = modulesMap[selectedModule] || [];
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
+      <DialogContent className="flex h-[calc(100vh-2rem)] max-h-[760px] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
         <DialogTitle className="sr-only">Alterar opção Hádron</DialogTitle>
         <DetailModalHeader
           dense
@@ -1802,13 +1802,13 @@ function OptionEditDialog({
           meta="Alterar opção Hádron"
           onClose={onClose}
         />
-        <Tabs defaultValue="opcao" className="min-h-0">
-          <TabsList className="mx-6 mt-2 justify-start bg-transparent p-0">
+        <Tabs defaultValue="opcao" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <TabsList className="mx-6 mt-2 shrink-0 justify-start bg-transparent p-0">
             <TabsTrigger value="opcao">OPÇÃO</TabsTrigger>
             <TabsTrigger value="checklist">CHECKLIST</TabsTrigger>
           </TabsList>
-          <div className="max-h-[65vh] overflow-y-auto px-6 pb-4">
-            <TabsContent value="opcao" className="mt-3 space-y-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6">
+            <TabsContent value="opcao" className="mt-3 space-y-4 pb-2">
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
                 <label className="space-y-2 text-[12.5px] font-medium text-foreground">
                   Nome da opção
@@ -1915,14 +1915,6 @@ function OptionEditDialog({
                   options={availableSubmodules.map((value) => ({ value, label: value }))}
                 />
               </div>
-              <label className="block space-y-2 text-xs text-muted-foreground">
-                Descrição da opção
-                <textarea
-                  value={draft.observation}
-                  onChange={(event) => update("observation", event.target.value)}
-                  className="min-h-24 w-full resize-y rounded-md border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
-                />
-              </label>
               <label className="block space-y-2 text-[12.5px] font-medium text-foreground">
                 Tags
                 <Input
@@ -1938,8 +1930,16 @@ function OptionEditDialog({
                   ))}
                 </datalist>
               </label>
+              <label className="block space-y-2 text-[12.5px] font-medium text-foreground">
+                Descrição da opção
+                <textarea
+                  value={draft.observation}
+                  onChange={(event) => update("observation", event.target.value)}
+                  className="min-h-24 w-full resize-y rounded-md border bg-background px-3 py-2 text-sm font-normal text-foreground outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
             </TabsContent>
-            <TabsContent value="checklist" className="mt-4">
+            <TabsContent value="checklist" className="mt-4 pb-2">
               <div className="divide-y rounded-md border">
                 {hadronChecklist.map((item) => (
                   <label
