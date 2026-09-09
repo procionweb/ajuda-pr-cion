@@ -1803,20 +1803,37 @@ function OptionEditDialog({
                 </label>
                 <div>
                   <p className="mb-2 text-xs text-muted-foreground">Prioridade</p>
-                  <div className="flex gap-2">
-                    {["Baixa", "Media", "Alta"].map((value) => (
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      [
+                        "1",
+                        "Baixa",
+                        "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
+                      ],
+                      [
+                        "2",
+                        "Média",
+                        "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300",
+                      ],
+                      [
+                        "3",
+                        "Alta",
+                        "border-rose-300 bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300",
+                      ],
+                    ].map(([value, label, activeClass]) => (
                       <Button
                         key={value}
                         type="button"
                         size="sm"
-                        variant={
-                          normalizeOccurrenceText(draft.priority) === normalizeOccurrenceText(value)
-                            ? "default"
-                            : "outline"
-                        }
+                        variant="outline"
+                        className={cn(
+                          "cursor-pointer gap-1.5",
+                          draft.priority === value && activeClass,
+                        )}
                         onClick={() => update("priority", value)}
                       >
-                        {value === "Media" ? "Média" : value}
+                        <span className="h-2 w-2 rounded-full bg-current" />
+                        {label}
                       </Button>
                     ))}
                   </div>
@@ -1898,12 +1915,10 @@ function OptionEditDialog({
                         : current,
                     );
                   }}
-                  options={moduleOptions
-                    .slice(1)
-                    .map((value) => ({
-                      value,
-                      label: `${moduleOptions.indexOf(value)} : ${value}`,
-                    }))}
+                  options={moduleOptions.slice(1).map((value) => ({
+                    value,
+                    label: `${moduleOptions.indexOf(value)} : ${value}`,
+                  }))}
                 />
                 <OptionSelect
                   label="Submódulo"
@@ -2076,24 +2091,46 @@ function OptionImportedOccurrences({ option }: { option: HadronOption }) {
   };
   const timelineEvents: TicketEvent[] = rows.flatMap((occurrence) => {
     const events: TicketEvent[] = [];
-    if (occurrence.occurredAt) {
+    const occurrenceMetadata = [
+      occurrence.testBase ? `Base de testes: ${occurrence.testBase}` : "",
+      occurrence.operatingSystem ? `Sistema operacional: ${occurrence.operatingSystem}` : "",
+    ].filter(Boolean);
+    const openedAt = normalizeLegacyOccurrenceTimestamp(
+      occurrence.sourceCreatedAt || occurrence.occurredAt,
+    );
+    if (openedAt) {
       events.push({
         id: `hadron-${occurrence.id}-occurrence`,
         kind: occurrence.kind === "ocorrencia" ? "created" : "note",
-        when: occurrence.occurredAt,
+        when: openedAt,
         actor: collaboratorName(occurrence.reporter),
         actorType: "suporte",
-        description: occurrence.occurrenceText || "Ocorrência sem descrição.",
+        description: [
+          occurrence.occurrenceText || "Ocorrência sem descrição.",
+          ...occurrenceMetadata,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
       });
     }
     if (occurrence.solvedAt && (occurrence.solutionText || occurrence.solutionHtml)) {
       events.push({
         id: `hadron-${occurrence.id}-solution`,
-        kind: occurrence.reviewedAt ? "closed" : "solution",
-        when: occurrence.solvedAt,
+        kind: "solution",
+        when: normalizeLegacyOccurrenceTimestamp(occurrence.solvedAt)!,
         actor: collaboratorName(occurrence.solver),
         actorType: "suporte",
         description: occurrence.solutionText || "Solução registrada.",
+      });
+    }
+    if (occurrence.reviewedAt) {
+      events.push({
+        id: `hadron-${occurrence.id}-review`,
+        kind: "closed",
+        when: normalizeLegacyOccurrenceTimestamp(occurrence.reviewedAt)!,
+        actor: collaboratorName(occurrence.reporter),
+        actorType: "suporte",
+        description: `Ocorrência revisada${occurrence.solutionText ? ` após a solução: ${occurrence.solutionText}` : "."}`,
       });
     }
     return events;
@@ -3089,10 +3126,20 @@ function htmlToText(value: string) {
 
 function formatCatalogDate(value: string) {
   if (!value) return "Não informada";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  }
   const parsed = new Date(value.replace(" ", "T"));
   return Number.isNaN(parsed.getTime())
     ? value
     : parsed.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+function normalizeLegacyOccurrenceTimestamp(value: string | null | undefined) {
+  if (!value) return null;
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/);
+  return match ? `${match[1]}T${match[2]}` : value;
 }
 
 function ParametersTable({ query, onOpen }: TableProps) {

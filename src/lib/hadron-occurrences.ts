@@ -17,6 +17,9 @@ export type HadronOccurrence = {
   operatingSystem: string;
   testBase: string;
   status: string;
+  modifiedBy: string;
+  sourceCreatedAt: string | null;
+  sourceModifiedAt: string | null;
 };
 
 type OccurrenceFilters = {
@@ -48,6 +51,9 @@ function mapOccurrence(row: Record<string, unknown>): HadronOccurrence {
     operatingSystem: String(row.operating_system || ""),
     testBase: String(row.test_base || ""),
     status: String(row.status || ""),
+    modifiedBy: String(row.modified_by || ""),
+    sourceCreatedAt: row.source_created_at ? String(row.source_created_at) : null,
+    sourceModifiedAt: row.source_modified_at ? String(row.source_modified_at) : null,
   };
 }
 
