@@ -13,6 +13,15 @@ export type HadronOption = {
   observation: string;
   call: string;
   executable: string;
+  tester: string;
+  releaseOwner: string;
+  approvalOwner: string;
+  hadronOwner: string;
+  openedAt: string;
+  approvedAt: string;
+  hadronAt: string;
+  tags: string;
+  listView: string;
   moduleId: string;
   submoduleId: string;
   updatedAt: string;
@@ -43,6 +52,15 @@ export const hadronOptions: HadronOption[] = (
   observation: item.observation,
   call: item.call,
   executable: item.executable,
+  tester: item.tester,
+  releaseOwner: item.releaseOwner,
+  approvalOwner: item.approvalOwner,
+  hadronOwner: item.hadronOwner,
+  openedAt: item.openedAt,
+  approvedAt: item.approvedAt,
+  hadronAt: item.hadronAt,
+  tags: item.tags,
+  listView: item.listView,
   moduleId: item.moduleId,
   submoduleId: item.submoduleId,
   updatedAt: item.updatedAt,

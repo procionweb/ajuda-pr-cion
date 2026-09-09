@@ -52,7 +52,12 @@ import {
 import { cn } from "@/lib/utils";
 import { erpVersions, formatVersionDate } from "@/lib/erp-versions";
 import { hadronOptions, type HadronOption } from "@/lib/hadron-options";
-import { modulesMap } from "@/lib/modules-map";
+import { moduleOptions, modulesMap } from "@/lib/modules-map";
+import {
+  collaboratorLabel,
+  findCollaborator,
+  useCollaborators,
+} from "@/lib/collaborators-store";
 import { cvsArticles } from "@/lib/cvs-catalogs-imported";
 import { getCategory, kbArticlesFull } from "@/lib/kb-data";
 import { ticketsStore, useTickets, type TicketEvent } from "@/lib/tickets-store";
@@ -999,6 +1004,7 @@ function OptionsTable({ query, onOpen }: TableProps) {
   const [optionOverrides, setOptionOverrides] = useState<Record<string, Partial<HadronOption>>>({});
   const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
   const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
+  const [previewingOption, setPreviewingOption] = useState<HadronOption | null>(null);
   const [editingOption, setEditingOption] = useState<HadronOption | null>(null);
   const [deactivatingOption, setDeactivatingOption] = useState<HadronOption | null>(null);
   const [optionQuery, setOptionQuery] = useState("");
@@ -1406,7 +1412,7 @@ function OptionsTable({ query, onOpen }: TableProps) {
                           variant="ghost"
                           title="Prévia das ocorrências"
                           className="h-7 w-7 cursor-pointer"
-                          onClick={() => setViewingOption(option)}
+                          onClick={() => setPreviewingOption(option)}
                         >
                           <ClipboardCheck className="h-4 w-4" />
                         </Button>
@@ -1496,6 +1502,11 @@ function OptionsTable({ query, onOpen }: TableProps) {
           />
         )}
       </section>
+      <OptionOccurrencesPreviewDialog
+        option={previewingOption}
+        onClose={() => setPreviewingOption(null)}
+        onOpen={onOpen}
+      />
       <OptionEditDialog
         option={editingOption}
         onClose={() => setEditingOption(null)}
@@ -1545,9 +1556,12 @@ function HadronOptionPage({
 }) {
   const priority = normalizeOptionPriority(option.priority);
   const PriorityIcon = priority.icon;
+  const moduleName = getOptionModuleName(option);
+  const submoduleName = getOptionSubmoduleName(option);
   return (
     <section className="space-y-4">
-      <header className="flex flex-wrap items-start justify-between gap-4 rounded-md border bg-card p-4 shadow-sm">
+      <header className="rounded-md border border-rose-200 bg-rose-50/70 p-4 shadow-sm dark:border-rose-900/60 dark:bg-rose-950/20">
+        <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Button
             type="button"
@@ -1569,8 +1583,9 @@ function HadronOptionPage({
               </Badge>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              {option.moduleId || "Módulo não informado"} ·{" "}
-              {option.submoduleId || "Submódulo não informado"}
+              <span className="font-medium text-primary">{moduleName}</span>
+              {" / "}
+              <span className="font-medium text-primary">{submoduleName}</span>
             </p>
           </div>
         </div>
@@ -1583,6 +1598,28 @@ function HadronOptionPage({
             Sair
           </Button>
         </div>
+        </div>
+        <div className="mt-4 grid gap-x-5 gap-y-3 border-t border-rose-200/70 pt-4 sm:grid-cols-3 lg:grid-cols-6 dark:border-rose-900/50">
+          <OptionHeaderMeta label="Data" value={formatCatalogDate(option.openedAt)} />
+          <OptionHeaderMeta label="Responsável" value={option.owner} />
+          <OptionHeaderMeta label="Tester" value={option.tester} />
+          <OptionHeaderMeta label="Formulário" value={option.form} />
+          <OptionHeaderMeta label="DLL/EXE" value={option.executable} />
+          <OptionHeaderMeta label="Liberação" value={option.releaseOwner} />
+          <OptionHeaderMeta
+            label="Aprovação"
+            value={joinOptionMeta(formatCatalogDate(option.approvedAt), option.approvalOwner)}
+          />
+          <OptionHeaderMeta
+            label="Hádron"
+            value={joinOptionMeta(formatCatalogDate(option.hadronAt), option.hadronOwner)}
+          />
+        </div>
+        {option.observation && (
+          <p className="mt-4 border-t border-rose-200/70 pt-4 text-sm leading-6 dark:border-rose-900/50">
+            {option.observation}
+          </p>
+        )}
       </header>
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="rounded-md border bg-card p-4 shadow-sm">
@@ -1674,6 +1711,45 @@ function HadronOptionPage({
       </div>
     </section>
   );
+}
+
+function OptionHeaderMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-xs font-medium" title={value || "Não informado"}>
+        {value || "Não informado"}
+      </p>
+    </div>
+  );
+}
+
+function joinOptionMeta(date: string, owner: string) {
+  return [date !== "-" ? date : "", owner].filter(Boolean).join(" · ");
+}
+
+function getOptionModuleName(option: HadronOption) {
+  const index = Number(option.moduleId);
+  return Number.isInteger(index) && moduleOptions[index]
+    ? moduleOptions[index]
+    : option.moduleId
+      ? `Módulo ${option.moduleId}`
+      : "Módulo não informado";
+}
+
+function getOptionSubmoduleName(option: HadronOption) {
+  const legacyNames: Record<string, string> = {
+    "1:20": "CADASTROS BÁSICOS",
+  };
+  const legacyName = legacyNames[`${option.moduleId}:${option.submoduleId}`];
+  if (legacyName) return legacyName;
+  const submodules = modulesMap[getOptionModuleName(option)] || [];
+  const index = Number(option.submoduleId) / 10 - 2;
+  return Number.isInteger(index) && submodules[index]
+    ? submodules[index]
+    : option.submoduleId
+      ? `Submódulo ${option.submoduleId}`
+      : "Submódulo não informado";
 }
 
 function OptionEditDialog({
@@ -1877,6 +1953,7 @@ function OptionImportedOccurrences({
   const [rows, setRows] = useState<HadronOccurrence[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const { allCollaborators } = useCollaborators({ onlyActive: false });
 
   useEffect(() => {
     let active = true;
@@ -1900,30 +1977,78 @@ function OptionImportedOccurrences({
   }, [option.id, page]);
 
   const pageCount = Math.max(1, Math.ceil(total / 25));
+  const collaboratorName = (operator: string) => {
+    const collaborator = findCollaborator(allCollaborators, operator);
+    return collaborator ? collaboratorLabel(collaborator) : operator || "Não informado";
+  };
   return (
-    <div className="overflow-hidden rounded-md border">
+    <div>
       <div className="flex items-center justify-between border-b bg-muted/20 px-3 py-2">
         <span className="text-xs text-muted-foreground">
           {total.toLocaleString("pt-BR")} ocorrências vinculadas
         </span>
       </div>
-      <div className="divide-y">
+      <div className="relative ml-5 border-l py-3 pl-7">
         {rows.map((occurrence) => (
-          <button
+          <article
             key={occurrence.id}
-            type="button"
-            onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
-            className="grid w-full cursor-pointer gap-2 px-3 py-3 text-left hover:bg-muted/30 md:grid-cols-[110px_minmax(0,1fr)_110px_32px]"
+            className="relative mb-5 last:mb-0"
           >
-            <span className="text-xs capitalize text-muted-foreground">{occurrence.kind}</span>
-            <span className="line-clamp-2 text-sm leading-5">
-              {occurrence.occurrenceText || "Sem descrição"}
+            <span
+              className={cn(
+                "absolute -left-[43px] top-2 grid h-8 w-8 place-items-center rounded-full border-4 border-card text-white",
+                occurrence.reviewedAt
+                  ? "bg-emerald-500"
+                  : occurrence.kind === "ocorrencia"
+                    ? "bg-rose-500"
+                    : "bg-amber-500",
+              )}
+            >
+              {occurrence.reviewedAt ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : occurrence.kind === "ocorrencia" ? (
+                <Bug className="h-4 w-4" />
+              ) : (
+                <Wrench className="h-4 w-4" />
+              )}
             </span>
-            <span className="text-xs text-muted-foreground">
-              {formatOccurrenceDate(occurrence.occurredAt)}
-            </span>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </button>
+            <div className="overflow-hidden rounded-md border bg-background">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-rose-50 px-4 py-3 text-xs dark:bg-rose-950/25">
+                <span className="font-medium">
+                  <UserRound className="mr-1.5 inline h-3.5 w-3.5" />
+                  {collaboratorName(occurrence.reporter)}
+                  <span className="ml-2 font-normal text-muted-foreground">
+                    {formatOccurrenceDate(occurrence.occurredAt)}
+                  </span>
+                </span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  title="Abrir ocorrência"
+                  className="h-7 w-7 cursor-pointer"
+                  onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="space-y-4 p-4">
+                <LegacyRichContent
+                  value={occurrence.occurrenceHtml || occurrence.occurrenceText || "Sem descrição."}
+                />
+                {(occurrence.solutionHtml || occurrence.solutionText) && (
+                  <div className="border-t pt-4">
+                    <p className="mb-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                      <CheckCircle2 className="mr-1.5 inline h-3.5 w-3.5" />
+                      Solução por {collaboratorName(occurrence.solver)} ·{" "}
+                      {formatOccurrenceDate(occurrence.solvedAt)}
+                    </p>
+                    <LegacyRichContent value={occurrence.solutionHtml || occurrence.solutionText} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </article>
         ))}
         {loading && (
           <p className="p-8 text-center text-sm text-muted-foreground">Carregando ocorrências...</p>
@@ -1944,6 +2069,42 @@ function OptionImportedOccurrences({
         />
       )}
     </div>
+  );
+}
+
+function OptionOccurrencesPreviewDialog({
+  option,
+  onClose,
+  onOpen,
+}: {
+  option: HadronOption | null;
+  onClose: () => void;
+  onOpen: (detail: Detail) => void;
+}) {
+  return (
+    <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[88vh] max-w-3xl overflow-hidden p-0">
+        {option && (
+          <>
+            <div className="border-b px-6 py-5">
+              <DialogTitle className="flex items-center gap-2 text-lg font-medium">
+                Ocorrências <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+              </DialogTitle>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <span>Opção: {option.option}</span>
+                <Badge className="bg-rose-600 text-white hover:bg-rose-600">CORREÇÕES</Badge>
+              </div>
+            </div>
+            <div className="max-h-[68vh] overflow-y-auto px-5 py-4">
+              <OptionImportedOccurrences option={option} onOpen={onOpen} />
+            </div>
+            <div className="flex justify-end border-t px-6 py-4">
+              <Button variant="outline" onClick={onClose}>Fechar</Button>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
