@@ -5,6 +5,7 @@ import {
   Bug,
   Boxes,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   ClipboardCheck,
   Code2,
@@ -1804,41 +1805,11 @@ function OptionEditDialog({
                   />
                 </label>
                 <div>
-                  <p className="mb-2 text-xs text-muted-foreground">Prioridade</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      [
-                        "0",
-                        "Baixa",
-                        "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
-                      ],
-                      [
-                        "1",
-                        "Média",
-                        "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300",
-                      ],
-                      [
-                        "2",
-                        "Alta",
-                        "border-rose-300 bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300",
-                      ],
-                    ].map(([value, label, activeClass]) => (
-                      <Button
-                        key={value}
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className={cn(
-                          "cursor-pointer gap-1.5",
-                          draft.priority === value && activeClass,
-                        )}
-                        onClick={() => update("priority", value)}
-                      >
-                        <span className="h-2 w-2 rounded-full bg-current" />
-                        {label}
-                      </Button>
-                    ))}
-                  </div>
+                  <p className="mb-2 text-[12.5px] font-medium text-foreground">Prioridade</p>
+                  <HadronPrioritySegmented
+                    value={draft.priority}
+                    onChange={(value) => update("priority", value)}
+                  />
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -1916,7 +1887,10 @@ function OptionEditDialog({
                         : current,
                     );
                   }}
-                  options={HADRON_OPTION_MODULES.slice(1).map(([value, label]) => ({ value, label }))}
+                  options={HADRON_OPTION_MODULES.slice(1).map(([value, label]) => ({
+                    value,
+                    label,
+                  }))}
                 />
                 <OptionSelect
                   label="Submódulo"
@@ -1986,10 +1960,10 @@ function OptionSelect({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <label className="space-y-2 text-xs text-muted-foreground">
+    <label className="space-y-2 text-[12.5px] font-medium text-foreground">
       {label}
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-9 w-full cursor-pointer text-[13px]">
+        <SelectTrigger className="h-9 w-full cursor-pointer text-[13px] font-normal text-foreground">
           <SelectValue placeholder="Selecione" />
         </SelectTrigger>
         <SelectContent>
@@ -2014,10 +1988,81 @@ function OptionField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="space-y-2 text-xs text-muted-foreground">
+    <label className="space-y-2 text-[12.5px] font-medium text-foreground">
       {label}
-      <Input value={value} onChange={(event) => onChange(event.target.value)} />
+      <Input
+        className="font-normal text-foreground"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </label>
+  );
+}
+
+function HadronPrioritySegmented({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const priorities = [
+    {
+      value: "0",
+      label: "Baixa",
+      icon: ChevronDown,
+      base: "border-success/25 bg-success/10 dark:bg-success/15",
+      active: "border-success/70 bg-success/15 ring-2 ring-success/40 shadow-sm",
+      iconClass: "bg-success text-success-foreground",
+      textClass: "text-success",
+    },
+    {
+      value: "1",
+      label: "Média",
+      icon: Minus,
+      base: "border-warning/30 bg-warning/12 dark:bg-warning/15",
+      active: "border-warning/70 bg-warning/20 ring-2 ring-warning/40 shadow-sm",
+      iconClass: "bg-warning text-warning-foreground",
+      textClass: "text-warning-foreground",
+    },
+    {
+      value: "2",
+      label: "Alta",
+      icon: ArrowUp,
+      base: "border-destructive/25 bg-destructive/10 dark:bg-destructive/15",
+      active: "border-destructive/70 bg-destructive/15 ring-2 ring-destructive/40 shadow-sm",
+      iconClass: "bg-destructive text-destructive-foreground",
+      textClass: "text-destructive",
+    },
+  ];
+  return (
+    <div role="radiogroup" aria-label="Prioridade" className="grid grid-cols-3 gap-2">
+      {priorities.map((priority) => {
+        const Icon = priority.icon;
+        const active = value === priority.value;
+        return (
+          <button
+            key={priority.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(priority.value)}
+            className={cn(
+              "flex h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              priority.base,
+              active && priority.active,
+            )}
+          >
+            <span
+              className={cn("grid h-4 w-4 place-items-center rounded-full", priority.iconClass)}
+            >
+              <Icon className="h-2.5 w-2.5" strokeWidth={3} />
+            </span>
+            <span className={priority.textClass}>{priority.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -2054,7 +2099,13 @@ function openImportedOccurrence(
   });
 }
 
-function OptionImportedOccurrences({ option }: { option: HadronOption }) {
+function OptionImportedOccurrences({
+  option,
+  latestOnly = false,
+}: {
+  option: HadronOption;
+  latestOnly?: boolean;
+}) {
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<HadronOccurrence[]>([]);
   const [total, setTotal] = useState(0);
@@ -2064,7 +2115,11 @@ function OptionImportedOccurrences({ option }: { option: HadronOption }) {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    void listHadronOccurrences({ page, pageSize: 25, optionIds: [option.id] })
+    void listHadronOccurrences({
+      page: latestOnly ? 1 : page,
+      pageSize: latestOnly ? 1 : 25,
+      optionIds: [option.id],
+    })
       .then((result) => {
         if (!active) return;
         setRows(result.rows);
@@ -2080,7 +2135,7 @@ function OptionImportedOccurrences({ option }: { option: HadronOption }) {
     return () => {
       active = false;
     };
-  }, [option.id, page]);
+  }, [latestOnly, option.id, page]);
 
   const pageCount = Math.max(1, Math.ceil(total / 25));
   const collaboratorName = (operator: string) => {
@@ -2091,7 +2146,9 @@ function OptionImportedOccurrences({ option }: { option: HadronOption }) {
     <div>
       <div className="flex items-center justify-between border-b bg-muted/20 px-3 py-2">
         <span className="text-xs text-muted-foreground">
-          {total.toLocaleString("pt-BR")} ocorrências vinculadas
+          {latestOnly
+            ? "Última atualização"
+            : `${total.toLocaleString("pt-BR")} ocorrências vinculadas`}
         </span>
       </div>
       <div className="py-4">
@@ -2117,7 +2174,7 @@ function OptionImportedOccurrences({ option }: { option: HadronOption }) {
           <p className="p-8 text-center text-sm text-muted-foreground">Carregando ocorrências...</p>
         )}
       </div>
-      {!loading && total > 0 && (
+      {!latestOnly && !loading && total > 0 && (
         <TablePagination
           noun="ocorrências"
           page={page}
@@ -2142,7 +2199,9 @@ function HadronOccurrenceTimelineItem({
   isLast: boolean;
 }) {
   const reviewed = Boolean(occurrence.reviewedAt);
-  const solved = Boolean(occurrence.solvedAt && (occurrence.solutionHtml || occurrence.solutionText));
+  const solved = Boolean(
+    occurrence.solvedAt && (occurrence.solutionHtml || occurrence.solutionText),
+  );
   const color = reviewed ? "#20ad74" : solved ? "#d79531" : "#e43d55";
   const softColor = reviewed
     ? "rgba(32,173,116,.24)"
@@ -2212,7 +2271,10 @@ function HadronOccurrenceTimelineItem({
         </div>
         {(occurrence.testBase || occurrence.operatingSystem) && (
           <p className="mt-2 text-[11px] text-muted-foreground">
-            {[occurrence.testBase && `Base: ${occurrence.testBase}`, occurrence.operatingSystem && `Sistema: ${occurrence.operatingSystem}`]
+            {[
+              occurrence.testBase && `Base: ${occurrence.testBase}`,
+              occurrence.operatingSystem && `Sistema: ${occurrence.operatingSystem}`,
+            ]
               .filter(Boolean)
               .join(" · ")}
           </p>
@@ -2231,12 +2293,21 @@ function HadronOccurrenceTimelineItem({
             </div>
           </div>
         )}
-        {(occurrence.approvedAt || occurrence.hadronAt || occurrence.status || occurrence.modifiedBy) && (
+        {(occurrence.approvedAt ||
+          occurrence.hadronAt ||
+          occurrence.status ||
+          occurrence.modifiedBy) && (
           <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10.5px] text-muted-foreground">
-            {occurrence.approvedAt && <span>Aprovada em {formatOccurrenceDate(occurrence.approvedAt)}</span>}
-            {occurrence.hadronAt && <span>Liberada em {formatOccurrenceDate(occurrence.hadronAt)}</span>}
+            {occurrence.approvedAt && (
+              <span>Aprovada em {formatOccurrenceDate(occurrence.approvedAt)}</span>
+            )}
+            {occurrence.hadronAt && (
+              <span>Liberada em {formatOccurrenceDate(occurrence.hadronAt)}</span>
+            )}
             {occurrence.status && <span>Status: {hadronOptionStatusLabel(occurrence.status)}</span>}
-            {occurrence.modifiedBy && <span>Alterada por {collaboratorNameFallback(occurrence.modifiedBy)}</span>}
+            {occurrence.modifiedBy && (
+              <span>Alterada por {collaboratorNameFallback(occurrence.modifiedBy)}</span>
+            )}
           </p>
         )}
       </article>
@@ -2256,7 +2327,9 @@ function hadronOptionStatusLabel(status: string) {
       "9": "Testes",
       "10": "Hádron",
       "90": "Desativada",
-    }[status] || status || "Desenvolvimento"
+    }[status] ||
+    status ||
+    "Desenvolvimento"
   );
 }
 
@@ -2282,7 +2355,7 @@ function OptionOccurrencesPreviewDialog({
               </div>
             </div>
             <div className="max-h-[68vh] overflow-y-auto px-5 py-4">
-              <OptionImportedOccurrences option={option} />
+              <OptionImportedOccurrences option={option} latestOnly />
             </div>
             <div className="flex justify-end border-t px-6 py-4">
               <Button variant="outline" onClick={onClose}>
