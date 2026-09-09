@@ -42,6 +42,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Info } from "lucide-react";
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
+import { TicketTimelineList } from "@/components/tickets/TicketTimelineList";
 import {
   Select,
   SelectContent,
@@ -357,6 +358,7 @@ function HadronPage() {
   const [status, setStatus] = useState("todos");
   const [detail, setDetail] = useState<Detail | null>(null);
   const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
+  const [editingOption, setEditingOption] = useState<HadronOption | null>(null);
   const viewingOptionTickets = useMemo(
     () =>
       viewingOption
@@ -413,11 +415,7 @@ function HadronPage() {
             tickets={viewingOptionTickets}
             disabled={false}
             onBack={() => setViewingOption(null)}
-            onEdit={() => {
-              setViewingOption(null);
-              setTab("opcoes");
-            }}
-            onOpen={setDetail}
+            onEdit={() => setEditingOption(viewingOption)}
           />
         ) : (
         <Tabs value={tab} onValueChange={setTab}>
@@ -481,6 +479,20 @@ function HadronPage() {
         </Tabs>
         )}
       </div>
+
+      <OptionEditDialog
+        option={editingOption}
+        onClose={() => setEditingOption(null)}
+        onSave={(option) => {
+          const overrides = JSON.parse(localStorage.getItem("hadron-option-overrides") || "{}");
+          localStorage.setItem(
+            "hadron-option-overrides",
+            JSON.stringify({ ...overrides, [option.id]: option }),
+          );
+          setViewingOption(option);
+          setEditingOption(null);
+        }}
+      />
 
       <Dialog open={!!detail} onOpenChange={(open) => !open && setDetail(null)}>
         <DialogContent
@@ -998,7 +1010,7 @@ function getHadronOptionDate(
   return approved?.closedAt || approved?.updatedAt || option.updatedAt;
 }
 
-function OptionsTable({ query, onOpen }: TableProps) {
+function OptionsTable({ query }: TableProps) {
   const tickets = useTickets();
   const [occurrenceCounts, setOccurrenceCounts] = useState<Record<string, number>>({});
   const [optionOverrides, setOptionOverrides] = useState<Record<string, Partial<HadronOption>>>({});
@@ -1180,14 +1192,20 @@ function OptionsTable({ query, onOpen }: TableProps) {
   if (viewingOption) {
     const row = optionsWithTickets.find(({ option }) => option.id === viewingOption.id);
     return (
-      <HadronOptionPage
-        option={row?.option || viewingOption}
-        tickets={row?.related || []}
-        disabled={row?.disabled || false}
-        onBack={() => setViewingOption(null)}
-        onEdit={() => setEditingOption(row?.option || viewingOption)}
-        onOpen={onOpen}
-      />
+      <>
+        <HadronOptionPage
+          option={row?.option || viewingOption}
+          tickets={row?.related || []}
+          disabled={row?.disabled || false}
+          onBack={() => setViewingOption(null)}
+          onEdit={() => setEditingOption(row?.option || viewingOption)}
+        />
+        <OptionEditDialog
+          option={editingOption}
+          onClose={() => setEditingOption(null)}
+          onSave={persistOverride}
+        />
+      </>
     );
   }
   return (
@@ -1505,7 +1523,6 @@ function OptionsTable({ query, onOpen }: TableProps) {
       <OptionOccurrencesPreviewDialog
         option={previewingOption}
         onClose={() => setPreviewingOption(null)}
-        onOpen={onOpen}
       />
       <OptionEditDialog
         option={editingOption}
@@ -1545,14 +1562,12 @@ function HadronOptionPage({
   disabled,
   onBack,
   onEdit,
-  onOpen,
 }: {
   option: HadronOption;
   tickets: TicketRow[];
   disabled: boolean;
   onBack: () => void;
   onEdit: () => void;
-  onOpen: (detail: Detail) => void;
 }) {
   const priority = normalizeOptionPriority(option.priority);
   const PriorityIcon = priority.icon;
@@ -1560,7 +1575,7 @@ function HadronOptionPage({
   const submoduleName = getOptionSubmoduleName(option);
   return (
     <section className="space-y-4">
-      <header className="rounded-md border border-rose-200 bg-rose-50/70 p-4 shadow-sm dark:border-rose-900/60 dark:bg-rose-950/20">
+      <header className="rounded-md border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Button
@@ -1599,7 +1614,7 @@ function HadronOptionPage({
           </Button>
         </div>
         </div>
-        <div className="mt-4 grid gap-x-5 gap-y-3 border-t border-rose-200/70 pt-4 sm:grid-cols-3 lg:grid-cols-6 dark:border-rose-900/50">
+        <div className="mt-4 grid gap-x-5 gap-y-3 border-t pt-4 sm:grid-cols-3 lg:grid-cols-6">
           <OptionHeaderMeta label="Data" value={formatCatalogDate(option.openedAt)} />
           <OptionHeaderMeta label="Responsável" value={option.owner} />
           <OptionHeaderMeta label="Tester" value={option.tester} />
@@ -1616,7 +1631,7 @@ function HadronOptionPage({
           />
         </div>
         {option.observation && (
-          <p className="mt-4 border-t border-rose-200/70 pt-4 text-sm leading-6 dark:border-rose-900/50">
+          <p className="mt-4 border-t pt-4 text-sm leading-6">
             {option.observation}
           </p>
         )}
@@ -1630,7 +1645,7 @@ function HadronOptionPage({
               <TabsTrigger value="logs">Logs</TabsTrigger>
             </TabsList>
             <TabsContent value="ocorrencias" className="mt-5">
-              <OptionImportedOccurrences option={option} onOpen={onOpen} />
+              <OptionImportedOccurrences option={option} />
             </TabsContent>
             <TabsContent
               value="releases"
@@ -1944,10 +1959,8 @@ function openImportedOccurrence(
 
 function OptionImportedOccurrences({
   option,
-  onOpen,
 }: {
   option: HadronOption;
-  onOpen: (detail: Detail) => void;
 }) {
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<HadronOccurrence[]>([]);
@@ -1981,6 +1994,30 @@ function OptionImportedOccurrences({
     const collaborator = findCollaborator(allCollaborators, operator);
     return collaborator ? collaboratorLabel(collaborator) : operator || "Não informado";
   };
+  const timelineEvents: TicketEvent[] = rows.flatMap((occurrence) => {
+    const events: TicketEvent[] = [];
+    if (occurrence.occurredAt) {
+      events.push({
+        id: `hadron-${occurrence.id}-occurrence`,
+        kind: occurrence.kind === "ocorrencia" ? "created" : "note",
+        when: occurrence.occurredAt,
+        actor: collaboratorName(occurrence.reporter),
+        actorType: "suporte",
+        description: occurrence.occurrenceText || "Ocorrência sem descrição.",
+      });
+    }
+    if (occurrence.solvedAt && (occurrence.solutionText || occurrence.solutionHtml)) {
+      events.push({
+        id: `hadron-${occurrence.id}-solution`,
+        kind: occurrence.reviewedAt ? "closed" : "solution",
+        when: occurrence.solvedAt,
+        actor: collaboratorName(occurrence.solver),
+        actorType: "suporte",
+        description: occurrence.solutionText || "Solução registrada.",
+      });
+    }
+    return events;
+  });
   return (
     <div>
       <div className="flex items-center justify-between border-b bg-muted/20 px-3 py-2">
@@ -1988,75 +2025,16 @@ function OptionImportedOccurrences({
           {total.toLocaleString("pt-BR")} ocorrências vinculadas
         </span>
       </div>
-      <div className="relative ml-5 border-l py-3 pl-7">
-        {rows.map((occurrence) => (
-          <article
-            key={occurrence.id}
-            className="relative mb-5 last:mb-0"
-          >
-            <span
-              className={cn(
-                "absolute -left-[43px] top-2 grid h-8 w-8 place-items-center rounded-full border-4 border-card text-white",
-                occurrence.reviewedAt
-                  ? "bg-emerald-500"
-                  : occurrence.kind === "ocorrencia"
-                    ? "bg-rose-500"
-                    : "bg-amber-500",
-              )}
-            >
-              {occurrence.reviewedAt ? (
-                <CheckCircle2 className="h-4 w-4" />
-              ) : occurrence.kind === "ocorrencia" ? (
-                <Bug className="h-4 w-4" />
-              ) : (
-                <Wrench className="h-4 w-4" />
-              )}
-            </span>
-            <div className="overflow-hidden rounded-md border bg-background">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-rose-50 px-4 py-3 text-xs dark:bg-rose-950/25">
-                <span className="font-medium">
-                  <UserRound className="mr-1.5 inline h-3.5 w-3.5" />
-                  {collaboratorName(occurrence.reporter)}
-                  <span className="ml-2 font-normal text-muted-foreground">
-                    {formatOccurrenceDate(occurrence.occurredAt)}
-                  </span>
-                </span>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  title="Abrir ocorrência"
-                  className="h-7 w-7 cursor-pointer"
-                  onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="space-y-4 p-4">
-                <LegacyRichContent
-                  value={occurrence.occurrenceHtml || occurrence.occurrenceText || "Sem descrição."}
-                />
-                {(occurrence.solutionHtml || occurrence.solutionText) && (
-                  <div className="border-t pt-4">
-                    <p className="mb-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                      <CheckCircle2 className="mr-1.5 inline h-3.5 w-3.5" />
-                      Solução por {collaboratorName(occurrence.solver)} ·{" "}
-                      {formatOccurrenceDate(occurrence.solvedAt)}
-                    </p>
-                    <LegacyRichContent value={occurrence.solutionHtml || occurrence.solutionText} />
-                  </div>
-                )}
-              </div>
-            </div>
-          </article>
-        ))}
+      <div className="py-4">
+        {!loading && (
+          <TicketTimelineList
+            events={timelineEvents}
+            variant="compact"
+            emptyLabel="Nenhuma ocorrência vinculada a esta opção."
+          />
+        )}
         {loading && (
           <p className="p-8 text-center text-sm text-muted-foreground">Carregando ocorrências...</p>
-        )}
-        {!loading && !rows.length && (
-          <p className="p-8 text-center text-sm text-muted-foreground">
-            Nenhuma ocorrência vinculada a esta opção.
-          </p>
         )}
       </div>
       {!loading && total > 0 && (
@@ -2075,11 +2053,9 @@ function OptionImportedOccurrences({
 function OptionOccurrencesPreviewDialog({
   option,
   onClose,
-  onOpen,
 }: {
   option: HadronOption | null;
   onClose: () => void;
-  onOpen: (detail: Detail) => void;
 }) {
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
@@ -2096,7 +2072,7 @@ function OptionOccurrencesPreviewDialog({
               </div>
             </div>
             <div className="max-h-[68vh] overflow-y-auto px-5 py-4">
-              <OptionImportedOccurrences option={option} onOpen={onOpen} />
+              <OptionImportedOccurrences option={option} />
             </div>
             <div className="flex justify-end border-t px-6 py-4">
               <Button variant="outline" onClick={onClose}>Fechar</Button>
