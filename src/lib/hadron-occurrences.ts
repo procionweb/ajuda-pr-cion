@@ -19,6 +19,8 @@ export type HadronOccurrence = {
   testBase: string;
   status: string;
   modifiedBy: string;
+  versionLegacyId: string;
+  baseAddress: string;
   sourceCreatedAt: string | null;
   sourceModifiedAt: string | null;
 };
@@ -54,9 +56,37 @@ function mapOccurrence(row: Record<string, unknown>): HadronOccurrence {
     testBase: String(row.test_base || ""),
     status: String(row.status || ""),
     modifiedBy: String(row.modified_by || ""),
+    versionLegacyId: String(row.version_legacy_id || ""),
+    baseAddress: String(row.base_address || ""),
     sourceCreatedAt: row.source_created_at ? String(row.source_created_at) : null,
     sourceModifiedAt: row.source_modified_at ? String(row.source_modified_at) : null,
   };
+}
+
+export async function updateHadronOccurrenceSolution({
+  id,
+  solution,
+  operator,
+}: {
+  id: number;
+  solution: string;
+  operator: string;
+}) {
+  const solvedAt = new Date().toISOString();
+  const { error } = await supabase
+    .from("hadron_occurrences")
+    .update({
+      solution_html: "",
+      solution_text: solution.trim(),
+      solver: operator,
+      solved_at: solvedAt,
+      status: "8",
+      modified_by: operator,
+      source_modified_at: solvedAt,
+    })
+    .eq("id", id);
+  if (error) throw error;
+  return solvedAt;
 }
 
 export async function listHadronOccurrences(filters: OccurrenceFilters) {

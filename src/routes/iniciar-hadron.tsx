@@ -67,6 +67,7 @@ import {
   getHadronOccurrenceCounts,
   listHadronOccurrences,
   listHadronOccurrenceOperators,
+  updateHadronOccurrenceSolution,
   type HadronOccurrence,
 } from "@/lib/hadron-occurrences";
 
@@ -1772,6 +1773,18 @@ function OptionEditDialog({
   const [draft, setDraft] = useState<HadronOption | null>(option);
   const { collaborators } = useCollaborators();
   useEffect(() => setDraft(option), [option]);
+  const tagSuggestions = useMemo(
+    () =>
+      [
+        ...new Set(
+          hadronOptions
+            .flatMap((item) => item.tags.split(/[,;]+/))
+            .map((tag) => tag.trim())
+            .filter(Boolean),
+        ),
+      ].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [],
+  );
   if (!draft) return null;
   const update = (field: keyof HadronOption, value: string) =>
     setDraft((current) => (current ? { ...current, [field]: value } : current));
@@ -1797,9 +1810,10 @@ function OptionEditDialog({
           <div className="max-h-[65vh] overflow-y-auto px-6 pb-4">
             <TabsContent value="opcao" className="mt-3 space-y-4">
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
-                <label className="space-y-2 text-xs text-muted-foreground">
+                <label className="space-y-2 text-[12.5px] font-medium text-foreground">
                   Nome da opção
                   <Input
+                    className="font-normal text-foreground"
                     value={draft.description}
                     onChange={(event) => update("description", event.target.value)}
                   />
@@ -1909,11 +1923,21 @@ function OptionEditDialog({
                   className="min-h-24 w-full resize-y rounded-md border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
                 />
               </label>
-              <OptionField
-                label="Tags"
-                value={draft.tags}
-                onChange={(value) => update("tags", value)}
-              />
+              <label className="block space-y-2 text-[12.5px] font-medium text-foreground">
+                Tags
+                <Input
+                  list="hadron-option-tags"
+                  className="font-normal text-foreground"
+                  value={draft.tags}
+                  onChange={(event) => update("tags", event.target.value)}
+                  placeholder="Digite ou selecione uma tag"
+                />
+                <datalist id="hadron-option-tags">
+                  {tagSuggestions.map((tag) => (
+                    <option key={tag} value={tag} />
+                  ))}
+                </datalist>
+              </label>
             </TabsContent>
             <TabsContent value="checklist" className="mt-4">
               <div className="divide-y rounded-md border">
@@ -2110,6 +2134,8 @@ function OptionImportedOccurrences({
   const [rows, setRows] = useState<HadronOccurrence[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [solutionOccurrence, setSolutionOccurrence] = useState<HadronOccurrence | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const { allCollaborators } = useCollaborators({ onlyActive: false });
 
   useEffect(() => {
@@ -2135,7 +2161,7 @@ function OptionImportedOccurrences({
     return () => {
       active = false;
     };
-  }, [latestOnly, option.id, page]);
+  }, [latestOnly, option.id, page, reloadKey]);
 
   const pageCount = Math.max(1, Math.ceil(total / 25));
   const collaboratorName = (operator: string) => {
@@ -2143,47 +2169,61 @@ function OptionImportedOccurrences({
     return collaborator ? collaboratorLabel(collaborator) : operator || "Não informado";
   };
   return (
-    <div>
-      <div className="flex items-center justify-between border-b bg-muted/20 px-3 py-2">
-        <span className="text-xs text-muted-foreground">
-          {latestOnly
-            ? "Última atualização"
-            : `${total.toLocaleString("pt-BR")} ocorrências vinculadas`}
-        </span>
+    <>
+      <div>
+        <div className="flex items-center justify-between border-b bg-muted/20 px-3 py-2">
+          <span className="text-xs text-muted-foreground">
+            {latestOnly
+              ? "Última atualização"
+              : `${total.toLocaleString("pt-BR")} ocorrências vinculadas`}
+          </span>
+        </div>
+        <div className="py-4">
+          {!loading && rows.length > 0 && (
+            <ol className="mx-auto max-w-full">
+              {rows.map((occurrence, index) => (
+                <HadronOccurrenceTimelineItem
+                  key={occurrence.id}
+                  occurrence={occurrence}
+                  reporter={collaboratorName(occurrence.reporter)}
+                  solver={collaboratorName(occurrence.solver)}
+                  isLast={index === rows.length - 1}
+                  onInformSolution={setSolutionOccurrence}
+                />
+              ))}
+            </ol>
+          )}
+          {!loading && rows.length === 0 && (
+            <p className="py-10 text-center text-[13px] text-muted-foreground">
+              Nenhuma ocorrência vinculada a esta opção.
+            </p>
+          )}
+          {loading && (
+            <p className="p-8 text-center text-sm text-muted-foreground">
+              Carregando ocorrências...
+            </p>
+          )}
+        </div>
+        {!latestOnly && !loading && total > 0 && (
+          <TablePagination
+            noun="ocorrências"
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            onPageChange={setPage}
+          />
+        )}
       </div>
-      <div className="py-4">
-        {!loading && rows.length > 0 && (
-          <ol className="mx-auto max-w-full">
-            {rows.map((occurrence, index) => (
-              <HadronOccurrenceTimelineItem
-                key={occurrence.id}
-                occurrence={occurrence}
-                reporter={collaboratorName(occurrence.reporter)}
-                solver={collaboratorName(occurrence.solver)}
-                isLast={index === rows.length - 1}
-              />
-            ))}
-          </ol>
-        )}
-        {!loading && rows.length === 0 && (
-          <p className="py-10 text-center text-[13px] text-muted-foreground">
-            Nenhuma ocorrência vinculada a esta opção.
-          </p>
-        )}
-        {loading && (
-          <p className="p-8 text-center text-sm text-muted-foreground">Carregando ocorrências...</p>
-        )}
-      </div>
-      {!latestOnly && !loading && total > 0 && (
-        <TablePagination
-          noun="ocorrências"
-          page={page}
-          pageCount={pageCount}
-          total={total}
-          onPageChange={setPage}
-        />
-      )}
-    </div>
+      <HadronSolutionDialog
+        occurrence={solutionOccurrence}
+        option={option}
+        onClose={() => setSolutionOccurrence(null)}
+        onSaved={() => {
+          setSolutionOccurrence(null);
+          setReloadKey((current) => current + 1);
+        }}
+      />
+    </>
   );
 }
 
@@ -2192,11 +2232,13 @@ function HadronOccurrenceTimelineItem({
   reporter,
   solver,
   isLast,
+  onInformSolution,
 }: {
   occurrence: HadronOccurrence;
   reporter: string;
   solver: string;
   isLast: boolean;
+  onInformSolution: (occurrence: HadronOccurrence) => void;
 }) {
   const reviewed = Boolean(occurrence.reviewedAt);
   const solved = Boolean(
@@ -2269,6 +2311,17 @@ function HadronOccurrenceTimelineItem({
         <div className="mt-1 text-[13px] leading-5 text-foreground">
           <LegacyRichContent value={occurrence.occurrenceHtml || occurrence.occurrenceText} />
         </div>
+        {!solved && (
+          <Button
+            type="button"
+            size="sm"
+            className="mt-3 cursor-pointer"
+            onClick={() => onInformSolution(occurrence)}
+          >
+            <Wrench className="mr-2 h-4 w-4" />
+            Informar solução
+          </Button>
+        )}
         {(occurrence.testBase || occurrence.operatingSystem) && (
           <p className="mt-2 text-[11px] text-muted-foreground">
             {[
@@ -2312,6 +2365,100 @@ function HadronOccurrenceTimelineItem({
         )}
       </article>
     </li>
+  );
+}
+
+function HadronSolutionDialog({
+  occurrence,
+  option,
+  onClose,
+  onSaved,
+}: {
+  occurrence: HadronOccurrence | null;
+  option: HadronOption;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [solution, setSolution] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => setSolution(""), [occurrence?.id]);
+  if (!occurrence) return null;
+  const operator = currentUser.operator || currentUser.name;
+  const save = async () => {
+    if (!solution.trim()) {
+      toast.error("Informe a solução da ocorrência.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateHadronOccurrenceSolution({ id: occurrence.id, solution, operator });
+      toast.success("Solução registrada com sucesso.");
+      onSaved();
+    } catch {
+      toast.error("Não foi possível registrar a solução.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
+        <DialogTitle className="sr-only">Informar solução</DialogTitle>
+        <DetailModalHeader
+          dense
+          icon={Wrench}
+          protocol={option.option}
+          title={option.description}
+          meta="Informar solução"
+          onClose={onClose}
+        />
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
+          <div className="max-h-48 overflow-y-auto rounded-md border bg-muted/20 p-4">
+            <p className="mb-2 text-[12.5px] font-medium text-foreground">Ocorrência</p>
+            <LegacyRichContent value={occurrence.occurrenceHtml || occurrence.occurrenceText} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <SolutionMeta label="Tipo" value="Ocorrência" />
+            <SolutionMeta label="Operador" value={operator} />
+            <SolutionMeta
+              label="Cliente ou caminho da base"
+              value={occurrence.baseAddress || occurrence.testBase || "Não informado"}
+            />
+            <SolutionMeta label="Versão" value={occurrence.versionLegacyId || "Não informada"} />
+          </div>
+          <label className="block space-y-2 text-[12.5px] font-medium text-foreground">
+            Solução
+            <textarea
+              value={solution}
+              onChange={(event) => setSolution(event.target.value)}
+              rows={7}
+              placeholder="Descreva a correção realizada, testes e orientações necessárias..."
+              className="w-full resize-y rounded-md border bg-background p-3 text-[13px] font-normal text-foreground outline-none focus:ring-2 focus:ring-ring"
+            />
+          </label>
+        </div>
+        <DialogFooter className="shrink-0 gap-2 border-t bg-card px-5 py-3 sm:gap-2">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={() => void save()} disabled={saving || !solution.trim()}>
+            <Wrench className="mr-2 h-4 w-4" />
+            {saving ? "Salvando..." : "Salvar solução"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SolutionMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[12px] font-medium text-foreground">{label}</p>
+      <p className="mt-1 min-h-9 rounded-md border bg-muted/15 px-3 py-2 text-[13px] text-foreground">
+        {value}
+      </p>
+    </div>
   );
 }
 
