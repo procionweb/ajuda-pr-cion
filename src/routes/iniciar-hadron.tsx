@@ -54,6 +54,12 @@ import {
 import { cn } from "@/lib/utils";
 import { erpVersions, formatVersionDate } from "@/lib/erp-versions";
 import { hadronOptions, type HadronOption } from "@/lib/hadron-options";
+import {
+  acquireHadronOptionLock,
+  listHadronOptionLocks,
+  releaseHadronOptionLock,
+  type HadronOptionLock,
+} from "@/lib/hadron-option-locks";
 import { moduleOptions, modulesMap } from "@/lib/modules-map";
 import { collaboratorLabel, findCollaborator, useCollaborators } from "@/lib/collaborators-store";
 import { cvsArticles } from "@/lib/cvs-catalogs-imported";
@@ -1008,6 +1014,7 @@ function getHadronOptionDate(
 
 function OptionsTable({ query }: TableProps) {
   const tickets = useTickets();
+  const { session } = usePortalAuth();
   const [occurrenceCounts, setOccurrenceCounts] = useState<Record<string, number>>({});
   const [optionOverrides, setOptionOverrides] = useState<Record<string, Partial<HadronOption>>>({});
   const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
@@ -1015,6 +1022,7 @@ function OptionsTable({ query }: TableProps) {
   const [previewingOption, setPreviewingOption] = useState<HadronOption | null>(null);
   const [editingOption, setEditingOption] = useState<HadronOption | null>(null);
   const [deactivatingOption, setDeactivatingOption] = useState<HadronOption | null>(null);
+  const [optionLocks, setOptionLocks] = useState<Record<string, HadronOptionLock>>({});
   const [optionQuery, setOptionQuery] = useState("");
   const [formQuery, setFormQuery] = useState("");
   const [operator, setOperator] = useState("todos");
@@ -1033,6 +1041,20 @@ function OptionsTable({ query }: TableProps) {
       setOptionOverrides({});
       setDisabledOptions([]);
     }
+  }, []);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      void listHadronOptionLocks()
+        .then((locks) => active && setOptionLocks(locks))
+        .catch(() => undefined);
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 5000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
   }, []);
   useEffect(() => {
     void getHadronOccurrenceCounts()
@@ -1185,6 +1207,50 @@ function OptionsTable({ query }: TableProps) {
     localStorage.setItem("hadron-disabled-options", JSON.stringify(next));
     setDeactivatingOption(null);
   };
+  const openLockedOption = async (option: HadronOption, edit = false) => {
+    if (!session?.user.id) {
+      toast.error("Sua sessão não está disponível.");
+      return;
+    }
+    const operator = currentUser.operator || currentUser.name;
+    try {
+      const result = await acquireHadronOptionLock(option.id, operator);
+      if (!result.acquired) {
+        toast.error(`Opção ocupada por ${result.lockedBy}.`);
+        void listHadronOptionLocks().then(setOptionLocks);
+        return;
+      }
+      setOptionLocks((current) => ({
+        ...current,
+        [option.id]: {
+          optionId: option.id,
+          userId: session.user.id,
+          operator,
+          lockedAt: new Date().toISOString(),
+        },
+      }));
+      setViewingOption(option);
+      if (edit) setEditingOption(option);
+    } catch {
+      toast.error("Não foi possível reservar esta opção.");
+    }
+  };
+  const leaveOption = async () => {
+    if (!viewingOption) return;
+    const optionId = viewingOption.id;
+    try {
+      await releaseHadronOptionLock(optionId);
+      setOptionLocks((current) => {
+        const next = { ...current };
+        delete next[optionId];
+        return next;
+      });
+      setEditingOption(null);
+      setViewingOption(null);
+    } catch {
+      toast.error("Não foi possível liberar esta opção.");
+    }
+  };
   if (viewingOption) {
     const row = optionsWithTickets.find(({ option }) => option.id === viewingOption.id);
     return (
@@ -1193,7 +1259,7 @@ function OptionsTable({ query }: TableProps) {
           option={row?.option || viewingOption}
           tickets={row?.related || []}
           disabled={row?.disabled || false}
-          onBack={() => setViewingOption(null)}
+          onBack={() => void leaveOption()}
           onEdit={() => setEditingOption(row?.option || viewingOption)}
         />
         <OptionEditDialog
@@ -1345,6 +1411,10 @@ function OptionsTable({ query }: TableProps) {
             </thead>
             <tbody>
               {pagedRows.map(({ option, active, latest, related, disabled }) => {
+                const optionLock = optionLocks[option.id];
+                const lockedByAnother = Boolean(
+                  optionLock && optionLock.userId !== session?.user.id,
+                );
                 const optionStatus = getHadronOptionStatus(option, active.length, disabled);
                 const statusDisplay = {
                   desenvolvimento: {
@@ -1404,7 +1474,19 @@ function OptionsTable({ query }: TableProps) {
                         )}
                       />
                     </td>
-                    <td className="break-words px-2 py-3 font-medium">{option.option}</td>
+                    <td className="break-words px-2 py-3 font-medium">
+                      <span className="inline-flex items-center gap-1.5">
+                        {option.option}
+                        {optionLock && (
+                          <span
+                            className="grid h-4 w-4 place-items-center rounded-full bg-rose-500 text-white"
+                            title={`Ocupada por ${optionLock.operator}`}
+                          >
+                            <Minus className="h-3 w-3" strokeWidth={3} />
+                          </span>
+                        )}
+                      </span>
+                    </td>
                     <td className="break-words px-2 py-3">{option.form || "Não informado"}</td>
                     <td className="break-words px-2 py-3 text-primary">{option.description}</td>
                     <td className="break-words px-2 py-3">
@@ -1417,7 +1499,7 @@ function OptionsTable({ query }: TableProps) {
                     <td className="break-words px-2 py-3">{latest?.module || "Não informado"}</td>
                     <td className="break-words px-2 py-3">{latest?.owner || "Não informado"}</td>
                     <td className="px-2 py-3">
-                      <div className="grid grid-cols-2 justify-items-center gap-0.5">
+                      <div className="flex items-center justify-center gap-0">
                         <Button
                           type="button"
                           size="icon"
@@ -1434,7 +1516,8 @@ function OptionsTable({ query }: TableProps) {
                           variant="ghost"
                           title="Visualizar opção"
                           className="h-7 w-7 cursor-pointer"
-                          onClick={() => setViewingOption(option)}
+                          disabled={lockedByAnother}
+                          onClick={() => void openLockedOption(option)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -1444,7 +1527,8 @@ function OptionsTable({ query }: TableProps) {
                           variant="ghost"
                           title="Editar opção"
                           className="h-7 w-7 cursor-pointer"
-                          onClick={() => setEditingOption(option)}
+                          disabled={lockedByAnother}
+                          onClick={() => void openLockedOption(option, true)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
