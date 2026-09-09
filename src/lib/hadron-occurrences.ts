@@ -14,6 +14,7 @@ export type HadronOccurrence = {
   solvedAt: string | null;
   reviewedAt: string | null;
   approvedAt: string | null;
+  hadronAt: string | null;
   operatingSystem: string;
   testBase: string;
   status: string;
@@ -48,6 +49,7 @@ function mapOccurrence(row: Record<string, unknown>): HadronOccurrence {
     solvedAt: row.solved_at ? String(row.solved_at) : null,
     reviewedAt: row.reviewed_at ? String(row.reviewed_at) : null,
     approvedAt: row.approved_at ? String(row.approved_at) : null,
+    hadronAt: row.hadron_at ? String(row.hadron_at) : null,
     operatingSystem: String(row.operating_system || ""),
     testBase: String(row.test_base || ""),
     status: String(row.status || ""),

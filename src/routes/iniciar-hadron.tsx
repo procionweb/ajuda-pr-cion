@@ -1586,7 +1586,7 @@ function HadronOptionPage({
                   {option.option} - {option.description}
                 </h2>
                 <Badge variant={disabled ? "secondary" : "outline"}>
-                  {disabled ? "Desativada" : option.status || "Ativa"}
+                  {disabled ? "Desativada" : hadronOptionStatusLabel(option.status)}
                 </Badge>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -1672,7 +1672,7 @@ function HadronOptionPage({
                   : "mt-2 bg-rose-600 text-white hover:bg-rose-600"
               }
             >
-              {disabled ? "DESATIVADA" : option.status || "CORREÇÕES"}
+              {disabled ? "DESATIVADA" : hadronOptionStatusLabel(option.status).toUpperCase()}
             </Badge>
           </div>
           <div className="border-t pt-4">
@@ -1734,9 +1734,11 @@ function joinOptionMeta(date: string, owner: string) {
 }
 
 function getOptionModuleName(option: HadronOption) {
-  const index = Number(option.moduleId);
-  return Number.isInteger(index) && moduleOptions[index]
-    ? moduleOptions[index]
+  const moduleName = HADRON_OPTION_MODULES.find(([id]) => id === option.moduleId)?.[1]
+    .replace(/^\d+\s*:\s*/, "")
+    .replace("BÁSICO", "BASICO");
+  return moduleName
+    ? moduleName
     : option.moduleId
       ? `Módulo ${option.moduleId}`
       : "Módulo não informado";
@@ -1806,17 +1808,17 @@ function OptionEditDialog({
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       [
-                        "1",
+                        "0",
                         "Baixa",
                         "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300",
                       ],
                       [
-                        "2",
+                        "1",
                         "Média",
                         "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300",
                       ],
                       [
-                        "3",
+                        "2",
                         "Alta",
                         "border-rose-300 bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300",
                       ],
@@ -1884,9 +1886,9 @@ function OptionEditDialog({
                   label="Característica"
                   value={draft.characteristic || "cadastro"}
                   onChange={(value) => update("characteristic", value)}
-                  options={["cadastro", "processo", "relatorio", "consulta"].map((value) => ({
+                  options={HADRON_OPTION_CHARACTERISTICS.slice(1).map(([value, label]) => ({
                     value,
-                    label: value.charAt(0).toUpperCase() + value.slice(1),
+                    label,
                   }))}
                 />
                 <label className="flex items-end gap-2 pb-2 text-xs text-muted-foreground">
@@ -1902,23 +1904,19 @@ function OptionEditDialog({
               <div className="grid gap-3 sm:grid-cols-2">
                 <OptionSelect
                   label="Módulo"
-                  value={selectedModule}
+                  value={draft.moduleId}
                   onChange={(value) => {
-                    update("moduleId", String(moduleOptions.indexOf(value)));
                     setDraft((current) =>
                       current
                         ? {
                             ...current,
-                            moduleId: String(moduleOptions.indexOf(value)),
+                            moduleId: value,
                             submoduleId: "20",
                           }
                         : current,
                     );
                   }}
-                  options={moduleOptions.slice(1).map((value) => ({
-                    value,
-                    label: `${moduleOptions.indexOf(value)} : ${value}`,
-                  }))}
+                  options={HADRON_OPTION_MODULES.slice(1).map(([value, label]) => ({ value, label }))}
                 />
                 <OptionSelect
                   label="Submódulo"
@@ -2089,52 +2087,6 @@ function OptionImportedOccurrences({ option }: { option: HadronOption }) {
     const collaborator = findCollaborator(allCollaborators, operator);
     return collaborator ? collaboratorLabel(collaborator) : operator || "Não informado";
   };
-  const timelineEvents: TicketEvent[] = rows.flatMap((occurrence) => {
-    const events: TicketEvent[] = [];
-    const occurrenceMetadata = [
-      occurrence.testBase ? `Base de testes: ${occurrence.testBase}` : "",
-      occurrence.operatingSystem ? `Sistema operacional: ${occurrence.operatingSystem}` : "",
-    ].filter(Boolean);
-    const openedAt = normalizeLegacyOccurrenceTimestamp(
-      occurrence.sourceCreatedAt || occurrence.occurredAt,
-    );
-    if (openedAt) {
-      events.push({
-        id: `hadron-${occurrence.id}-occurrence`,
-        kind: occurrence.kind === "ocorrencia" ? "created" : "note",
-        when: openedAt,
-        actor: collaboratorName(occurrence.reporter),
-        actorType: "suporte",
-        description: [
-          occurrence.occurrenceText || "Ocorrência sem descrição.",
-          ...occurrenceMetadata,
-        ]
-          .filter(Boolean)
-          .join("\n\n"),
-      });
-    }
-    if (occurrence.solvedAt && (occurrence.solutionText || occurrence.solutionHtml)) {
-      events.push({
-        id: `hadron-${occurrence.id}-solution`,
-        kind: "solution",
-        when: normalizeLegacyOccurrenceTimestamp(occurrence.solvedAt)!,
-        actor: collaboratorName(occurrence.solver),
-        actorType: "suporte",
-        description: occurrence.solutionText || "Solução registrada.",
-      });
-    }
-    if (occurrence.reviewedAt) {
-      events.push({
-        id: `hadron-${occurrence.id}-review`,
-        kind: "closed",
-        when: normalizeLegacyOccurrenceTimestamp(occurrence.reviewedAt)!,
-        actor: collaboratorName(occurrence.reporter),
-        actorType: "suporte",
-        description: `Ocorrência revisada${occurrence.solutionText ? ` após a solução: ${occurrence.solutionText}` : "."}`,
-      });
-    }
-    return events;
-  });
   return (
     <div>
       <div className="flex items-center justify-between border-b bg-muted/20 px-3 py-2">
@@ -2143,13 +2095,23 @@ function OptionImportedOccurrences({ option }: { option: HadronOption }) {
         </span>
       </div>
       <div className="py-4">
-        {!loading && (
-          <TicketTimelineList
-            events={timelineEvents}
-            variant="compact"
-            showActorInHeader
-            emptyLabel="Nenhuma ocorrência vinculada a esta opção."
-          />
+        {!loading && rows.length > 0 && (
+          <ol className="mx-auto max-w-full">
+            {rows.map((occurrence, index) => (
+              <HadronOccurrenceTimelineItem
+                key={occurrence.id}
+                occurrence={occurrence}
+                reporter={collaboratorName(occurrence.reporter)}
+                solver={collaboratorName(occurrence.solver)}
+                isLast={index === rows.length - 1}
+              />
+            ))}
+          </ol>
+        )}
+        {!loading && rows.length === 0 && (
+          <p className="py-10 text-center text-[13px] text-muted-foreground">
+            Nenhuma ocorrência vinculada a esta opção.
+          </p>
         )}
         {loading && (
           <p className="p-8 text-center text-sm text-muted-foreground">Carregando ocorrências...</p>
@@ -2165,6 +2127,136 @@ function OptionImportedOccurrences({ option }: { option: HadronOption }) {
         />
       )}
     </div>
+  );
+}
+
+function HadronOccurrenceTimelineItem({
+  occurrence,
+  reporter,
+  solver,
+  isLast,
+}: {
+  occurrence: HadronOccurrence;
+  reporter: string;
+  solver: string;
+  isLast: boolean;
+}) {
+  const reviewed = Boolean(occurrence.reviewedAt);
+  const solved = Boolean(occurrence.solvedAt && (occurrence.solutionHtml || occurrence.solutionText));
+  const color = reviewed ? "#20ad74" : solved ? "#d79531" : "#e43d55";
+  const softColor = reviewed
+    ? "rgba(32,173,116,.24)"
+    : solved
+      ? "rgba(215,149,49,.24)"
+      : "rgba(228,61,85,.22)";
+  const Icon = reviewed ? CheckCircle2 : solved ? Wrench : Bug;
+  const openedAt = occurrence.occurredAt || occurrence.sourceCreatedAt;
+
+  return (
+    <li className="relative grid min-h-[120px] grid-cols-[60px_minmax(0,1fr)] gap-3">
+      {!isLast && (
+        <span
+          aria-hidden
+          className="absolute left-[29px] top-[52px] h-[calc(100%-32px)] w-[3px] -translate-x-1/2 rounded-full"
+          style={{ backgroundColor: softColor }}
+        />
+      )}
+      <div className="relative flex justify-center pt-1">
+        <span
+          aria-hidden
+          className="absolute top-0 h-[58px] w-[58px] rounded-full border-[5px]"
+          style={{ borderColor: softColor }}
+        />
+        <span
+          aria-hidden
+          className="absolute left-1/2 top-[6px] h-2 w-2 -translate-x-1/2 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+        <span
+          className="relative mt-[13px] grid h-8 w-8 place-items-center rounded-full text-white shadow-sm"
+          style={{ backgroundColor: color }}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+        <span
+          aria-hidden
+          className="absolute left-1/2 top-[54px] h-2 w-2 -translate-x-1/2 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+      </div>
+      <article className="min-w-0 pb-7 pt-0.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+          <span
+            className="inline-flex min-w-[96px] items-center justify-center rounded-full px-2.5 py-0.5 font-medium text-white shadow-sm"
+            style={{ backgroundColor: color }}
+          >
+            {formatOccurrenceDate(openedAt)}
+          </span>
+          <span className="font-medium text-foreground">{reporter}</span>
+          {occurrence.sourceModifiedAt && (
+            <span className="text-muted-foreground">
+              Atualizada em {formatOccurrenceDate(occurrence.sourceModifiedAt)}
+            </span>
+          )}
+          {occurrence.reviewedAt && (
+            <span className="text-muted-foreground">
+              Revisado em {formatOccurrenceDate(occurrence.reviewedAt)} por {reporter}
+            </span>
+          )}
+        </div>
+        <h3 className="mt-2 text-[11px] font-semibold uppercase" style={{ color }}>
+          {reviewed ? "Ocorrência revisada" : solved ? "Solução informada" : "Ocorrência aberta"}
+        </h3>
+        <div className="mt-1 text-[13px] leading-5 text-foreground">
+          <LegacyRichContent value={occurrence.occurrenceHtml || occurrence.occurrenceText} />
+        </div>
+        {(occurrence.testBase || occurrence.operatingSystem) && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            {[occurrence.testBase && `Base: ${occurrence.testBase}`, occurrence.operatingSystem && `Sistema: ${occurrence.operatingSystem}`]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        )}
+        {solved && (
+          <div className="mt-3 rounded-md border bg-muted/25 p-3">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-foreground">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <span>{solver}</span>
+              <span className="text-muted-foreground">
+                {formatOccurrenceDate(occurrence.solvedAt)}
+              </span>
+            </div>
+            <div className="mt-2 text-[13px] leading-5">
+              <LegacyRichContent value={occurrence.solutionHtml || occurrence.solutionText} />
+            </div>
+          </div>
+        )}
+        {(occurrence.approvedAt || occurrence.hadronAt || occurrence.status || occurrence.modifiedBy) && (
+          <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10.5px] text-muted-foreground">
+            {occurrence.approvedAt && <span>Aprovada em {formatOccurrenceDate(occurrence.approvedAt)}</span>}
+            {occurrence.hadronAt && <span>Liberada em {formatOccurrenceDate(occurrence.hadronAt)}</span>}
+            {occurrence.status && <span>Status: {hadronOptionStatusLabel(occurrence.status)}</span>}
+            {occurrence.modifiedBy && <span>Alterada por {collaboratorNameFallback(occurrence.modifiedBy)}</span>}
+          </p>
+        )}
+      </article>
+    </li>
+  );
+}
+
+function collaboratorNameFallback(operator: string) {
+  return operator || "Não informado";
+}
+
+function hadronOptionStatusLabel(status: string) {
+  return (
+    {
+      "4": "Correções",
+      "8": "Aprovada",
+      "9": "Testes",
+      "10": "Hádron",
+      "90": "Desativada",
+    }[status] || status || "Desenvolvimento"
   );
 }
 
@@ -2794,14 +2886,14 @@ type TicketRow = ReturnType<typeof useTickets>[number];
 
 function normalizeOptionPriority(value: string | undefined) {
   const normalized = (value || "").trim().toLowerCase();
-  if (["alta", "1"].includes(normalized)) {
+  if (["alta", "2"].includes(normalized)) {
     return {
       label: "Alta",
       icon: ArrowUp,
       className: "border-destructive/20 bg-destructive/12 text-destructive",
     };
   }
-  if (["media", "média", "2"].includes(normalized)) {
+  if (["media", "média", "1"].includes(normalized)) {
     return {
       label: "Média",
       icon: Minus,
