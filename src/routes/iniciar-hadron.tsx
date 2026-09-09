@@ -417,6 +417,7 @@ function HadronPage() {
             tickets={viewingOptionTickets}
             disabled={false}
             onBack={() => setViewingOption(null)}
+            onExit={() => setViewingOption(null)}
             onEdit={() => setEditingOption(viewingOption)}
           />
         ) : (
@@ -1061,6 +1062,15 @@ function OptionsTable({ query }: TableProps) {
       .then(setOccurrenceCounts)
       .catch(() => setOccurrenceCounts({}));
   }, []);
+  useEffect(() => {
+    if (!viewingOption) return;
+    const returnToOptions = () => {
+      setEditingOption(null);
+      setViewingOption(null);
+    };
+    window.addEventListener("popstate", returnToOptions);
+    return () => window.removeEventListener("popstate", returnToOptions);
+  }, [viewingOption]);
   const optionsWithTickets = useMemo(() => {
     const grouped = new Map<string, TicketRow[]>();
     tickets.forEach((ticket) => {
@@ -1229,11 +1239,24 @@ function OptionsTable({ query }: TableProps) {
           lockedAt: new Date().toISOString(),
         },
       }));
+      window.history.pushState(
+        { ...window.history.state, hadronOptionId: option.id },
+        "",
+        window.location.href,
+      );
       setViewingOption(option);
       if (edit) setEditingOption(option);
     } catch {
       toast.error("Não foi possível reservar esta opção.");
     }
+  };
+  const returnToOptions = () => {
+    setEditingOption(null);
+    if (window.history.state?.hadronOptionId === viewingOption?.id) {
+      window.history.back();
+      return;
+    }
+    setViewingOption(null);
   };
   const leaveOption = async () => {
     if (!viewingOption) return;
@@ -1247,6 +1270,7 @@ function OptionsTable({ query }: TableProps) {
       });
       setEditingOption(null);
       setViewingOption(null);
+      if (window.history.state?.hadronOptionId === optionId) window.history.back();
     } catch {
       toast.error("Não foi possível liberar esta opção.");
     }
@@ -1259,7 +1283,8 @@ function OptionsTable({ query }: TableProps) {
           option={row?.option || viewingOption}
           tickets={row?.related || []}
           disabled={row?.disabled || false}
-          onBack={() => void leaveOption()}
+          onBack={returnToOptions}
+          onExit={() => void leaveOption()}
           onEdit={() => setEditingOption(row?.option || viewingOption)}
         />
         <OptionEditDialog
@@ -1639,12 +1664,14 @@ function HadronOptionPage({
   tickets,
   disabled,
   onBack,
+  onExit,
   onEdit,
 }: {
   option: HadronOption;
   tickets: TicketRow[];
   disabled: boolean;
   onBack: () => void;
+  onExit: () => void;
   onEdit: () => void;
 }) {
   const priority = normalizeOptionPriority(option.priority);
@@ -1687,7 +1714,7 @@ function HadronOptionPage({
               <Pencil className="mr-2 h-4 w-4" />
               Alterar
             </Button>
-            <Button type="button" onClick={onBack} className="cursor-pointer">
+            <Button type="button" onClick={onExit} className="cursor-pointer">
               Sair
             </Button>
           </div>
