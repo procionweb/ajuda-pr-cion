@@ -152,6 +152,21 @@ export async function getHadronOccurrenceCounts() {
   ) as Record<string, number>;
 }
 
+export async function getHadronOccurrenceKindCounts() {
+  const kinds = ["aviso", "sugestao", "aprovacao", "solucao", "revisada", "ocorrencia"];
+  const counts = await Promise.all(
+    kinds.map(async (kind) => {
+      const { count, error } = await supabase
+        .from("hadron_occurrences")
+        .select("id", { count: "exact", head: true })
+        .eq("kind", kind);
+      if (error) throw error;
+      return [kind, count || 0] as const;
+    }),
+  );
+  return Object.fromEntries(counts) as Record<string, number>;
+}
+
 export async function listHadronOccurrenceOperators() {
   const { data, error } = await supabase.rpc("get_hadron_occurrence_operators");
   if (error) throw error;

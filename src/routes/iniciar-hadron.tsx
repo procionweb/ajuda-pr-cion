@@ -81,6 +81,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import {
   deleteHadronOccurrence,
+  getHadronOccurrenceKindCounts,
   listHadronOccurrences,
   listHadronOccurrenceOperators,
   reviewHadronOccurrence,
@@ -2685,6 +2686,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
   const [pageSize, setPageSize] = useState(25);
   const [rows, setRows] = useState<HadronOccurrence[]>([]);
   const [total, setTotal] = useState(0);
+  const [kindCounts, setKindCounts] = useState<Record<string, number>>({});
   const [operators, setOperators] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
@@ -2721,6 +2723,12 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
       .then(setOperators)
       .catch(() => setOperators([]));
   }, []);
+
+  useEffect(() => {
+    void getHadronOccurrenceKindCounts()
+      .then(setKindCounts)
+      .catch(() => setKindCounts({}));
+  }, [reloadKey]);
 
   useEffect(() => {
     let active = true;
@@ -2991,6 +2999,35 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
               Nenhuma ocorrência encontrada.
             </p>
           )}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-1 gap-y-2 border-t px-4 py-3 text-xs text-muted-foreground">
+          {[
+            ["aviso", "Aviso", Flag, "text-slate-500"],
+            ["sugestao", "Sugestão/Solicitação", Sparkles, "text-amber-500"],
+            ["aprovacao", "Aprovação", ClipboardCheck, "text-sky-600"],
+            ["solucao", "Solução", Wrench, "text-emerald-600"],
+            ["revisada", "Revisada", CheckCircle2, "text-green-600"],
+            ["ocorrencia", "Ocorrência", Bug, "text-rose-600"],
+          ].map(([value, label, Icon, color], index) => (
+            <div key={String(value)} className="flex items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setKind(kind === value ? "todos" : String(value));
+                  setPage(1);
+                }}
+                className={cn(
+                  "flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 font-medium uppercase transition-colors hover:bg-muted",
+                  kind === value && "bg-muted text-foreground",
+                )}
+                aria-pressed={kind === value}
+              >
+                <Icon className={cn("h-3.5 w-3.5", color)} />
+                {String(label)} ({kindCounts[String(value)] || 0})
+              </button>
+              {index < 5 && <span aria-hidden="true">|</span>}
+            </div>
+          ))}
         </div>
       </section>
       {!loading && total > 0 && (
@@ -4394,135 +4431,238 @@ function ChecklistTable({ query, onOpen }: TableProps) {
 function ReleasesTable({ query, onOpen }: TableProps) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [optionQuery, setOptionQuery] = useState("");
+  const [releaseType, setReleaseType] = useState("todos");
+  const [operator, setOperator] = useState("todos");
+  const [dateType, setDateType] = useState("release");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const normalizedQuery = normalizeOccurrenceText(query);
+  const normalizedOptionQuery = normalizeOccurrenceText(optionQuery);
+  const operators = useMemo(
+    () => [...new Set(cvsArticles.map((release) => release.owner).filter(Boolean))].sort(),
+    [],
+  );
   const rows = useMemo(
     () =>
       cvsArticles
         .map((release) => ({
           release,
           option: findReleaseOption(release.title),
+          type: releaseTypeFromTitle(release.title),
         }))
-        .filter(
-          ({ release, option }) =>
-            !normalizedQuery ||
-            normalizeOccurrenceText(
-              [
-                release.id,
-                release.title,
-                release.status,
-                option?.option,
-                option?.form,
-                option?.description,
-              ]
-                .filter(Boolean)
-                .join(" "),
-            ).includes(normalizedQuery),
-        ),
-    [normalizedQuery],
+        .filter(({ release, option, type }) => {
+          const optionText = normalizeOccurrenceText(
+            `${option?.option || ""} ${option?.form || ""} ${release.title}`,
+          );
+          const searchableText = normalizeOccurrenceText(
+            [
+              release.id,
+              release.title,
+              release.status,
+              option?.option,
+              option?.form,
+              option?.description,
+            ]
+              .filter(Boolean)
+              .join(" "),
+          );
+          const selectedDate = dateType === "versao" ? release.updatedAt : release.createdAt;
+          const dateValue = selectedDate ? new Date(selectedDate.replace(" ", "T")).getTime() : 0;
+          if (normalizedQuery && !searchableText.includes(normalizedQuery)) return false;
+          if (normalizedOptionQuery && !optionText.includes(normalizedOptionQuery)) return false;
+          if (releaseType !== "todos" && type !== releaseType) return false;
+          if (operator !== "todos" && release.owner !== operator) return false;
+          if (dateFrom && dateValue < new Date(`${dateFrom}T00:00:00`).getTime()) return false;
+          if (dateTo && dateValue > new Date(`${dateTo}T23:59:59`).getTime()) return false;
+          return true;
+        }),
+    [dateFrom, dateTo, dateType, normalizedOptionQuery, normalizedQuery, operator, releaseType],
   );
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(page, pageCount);
   const pagedRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  const clearFilters = () => {
+    setOptionQuery("");
+    setReleaseType("todos");
+    setOperator("todos");
+    setDateType("release");
+    setDateFrom("");
+    setDateTo("");
+    setPage(1);
+  };
+
   return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <div className="border-b px-5 py-4">
-        <h2 className="font-semibold">Releases</h2>
-        <p className="text-sm text-muted-foreground">
-          Histórico de publicações carregado do catálogo oficial importado.
-        </p>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1180px] text-sm">
-          <thead className="border-b bg-muted/35 text-left text-xs font-medium text-muted-foreground">
-            <tr>
-              <th className="w-14 px-4 py-3">Tipo</th>
-              <th className="w-40 px-4 py-3">Opção/Formulário</th>
-              <th className="min-w-[360px] px-4 py-3">Descrição</th>
-              <th className="w-44 px-4 py-3">Módulo/Submódulo</th>
-              <th className="w-32 px-4 py-3">Responsável</th>
-              <th className="w-20 px-4 py-3 text-center">Cliques</th>
-              <th className="w-24 px-4 py-3">Versão</th>
-              <th className="w-32 px-4 py-3">Data</th>
-              <th className="w-20 px-4 py-3 text-center">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {pagedRows.map(({ release, option }) => (
-              <tr key={release.id} className="transition-colors hover:bg-muted/30">
-                <td className="px-4 py-3">
-                  <Sparkles
-                    className={cn(
-                      "h-4 w-4",
-                      release.status === "publish" ? "text-amber-500" : "text-muted-foreground",
-                    )}
-                  />
-                </td>
-                <td className="px-4 py-3 font-medium">
-                  {option ? `${option.option}/${option.form || option.option}` : "Não informado"}
-                </td>
-                <td className="px-4 py-3">{release.title}</td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {release.moduleId ? `Módulo ${release.moduleId}` : "Não informado"}
-                  {release.submoduleId && (
-                    <>
-                      <br />
-                      <span className="text-xs">Submódulo {release.submoduleId}</span>
-                    </>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {release.owner || "Não informado"}
-                </td>
-                <td className="px-4 py-3 text-center text-muted-foreground">{release.clicks}</td>
-                <td className="px-4 py-3 text-muted-foreground">{release.status}</td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {formatCatalogDate(release.updatedAt)}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-center gap-1">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="icon"
-                      title="Abrir release na Base de Conhecimento"
-                    >
-                      <Link to="/base-de-conhecimento" search={{ release: release.id }}>
-                        <Globe2 className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Visualizar release"
-                      onClick={() =>
-                        onOpen({
-                          title: release.title,
-                          subtitle: option
-                            ? `${option.option}/${option.form || option.option}`
-                            : `Release ${release.id}`,
-                          body: "",
-                          meta: [],
-                          release: createReleaseDetail(release, option),
-                        })
-                      }
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {pagedRows.length === 0 && (
+    <>
+      <section className="overflow-hidden rounded-md border bg-card shadow-sm">
+        <div className="border-b px-4 py-4">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-lg font-medium">Releases</h2>
+            <span className="text-xs text-muted-foreground">
+              {rows.length.toLocaleString("pt-BR")} registros
+            </span>
+          </div>
+          <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.2fr_.85fr_.85fr_.8fr_1.35fr_auto]">
+            <Input
+              value={optionQuery}
+              onChange={(event) => {
+                setOptionQuery(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Opção ou formulário"
+            />
+            <OccurrenceSelect
+              value={releaseType}
+              onValueChange={(value) => {
+                setReleaseType(value);
+                setPage(1);
+              }}
+              items={[
+                ["todos", "Tipo de release"],
+                ["correcao", "Correção"],
+                ["alteracao", "Alteração"],
+                ["novidade", "Novidade"],
+                ["outro", "Não classificado"],
+              ]}
+            />
+            <OccurrenceSelect
+              value={operator}
+              onValueChange={(value) => {
+                setOperator(value);
+                setPage(1);
+              }}
+              items={[
+                ["todos", "Operador"],
+                ...operators.map((item) => [item, item] as [string, string]),
+              ]}
+            />
+            <OccurrenceSelect
+              value={dateType}
+              onValueChange={(value) => {
+                setDateType(value);
+                setPage(1);
+              }}
+              items={[
+                ["release", "Data do release"],
+                ["versao", "Data da atualização"],
+              ]}
+            />
+            <DateRangeFilter
+              from={dateFrom}
+              to={dateTo}
+              onChange={(start, end) => {
+                setDateFrom(start);
+                setDateTo(end);
+                setPage(1);
+              }}
+            />
+            <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
+              Limpar
+            </Button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1180px] text-sm">
+            <thead className="border-b bg-muted/35 text-left text-xs font-medium text-muted-foreground">
               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground">
-                  Nenhum release encontrado.
-                </td>
+                <th className="w-14 px-4 py-3">Tipo</th>
+                <th className="w-40 px-4 py-3">Opção/Formulário</th>
+                <th className="min-w-[360px] px-4 py-3">Descrição</th>
+                <th className="w-44 px-4 py-3">Módulo/Submódulo</th>
+                <th className="w-32 px-4 py-3">Responsável</th>
+                <th className="w-20 px-4 py-3 text-center">Cliques</th>
+                <th className="w-24 px-4 py-3">Versão</th>
+                <th className="w-32 px-4 py-3">Data</th>
+                <th className="w-20 px-4 py-3 text-center">Ações</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y">
+              {pagedRows.map(({ release, option, type }) => (
+                <tr key={release.id} className="transition-colors hover:bg-muted/30">
+                  <td className="px-4 py-3">
+                    <Sparkles
+                      className={cn(
+                        "h-4 w-4",
+                        type === "correcao"
+                          ? "text-rose-500"
+                          : type === "alteracao"
+                            ? "text-sky-600"
+                            : type === "novidade"
+                              ? "text-amber-500"
+                              : "text-muted-foreground",
+                      )}
+                    />
+                  </td>
+                  <td className="px-4 py-3 font-medium">
+                    {option ? `${option.option}/${option.form || option.option}` : "Não informado"}
+                  </td>
+                  <td className="px-4 py-3">{release.title}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {release.moduleId ? `Módulo ${release.moduleId}` : "Não informado"}
+                    {release.submoduleId && (
+                      <>
+                        <br />
+                        <span className="text-xs">Submódulo {release.submoduleId}</span>
+                      </>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {release.owner || "Não informado"}
+                  </td>
+                  <td className="px-4 py-3 text-center text-muted-foreground">{release.clicks}</td>
+                  <td className="px-4 py-3 text-muted-foreground">Não informada</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <span className="block">{formatCatalogDate(release.createdAt)}</span>
+                    <span className="text-xs">
+                      Atualizado {formatCatalogDate(release.updatedAt)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-center gap-1">
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon"
+                        title="Abrir release na Base de Conhecimento"
+                      >
+                        <Link to="/base-de-conhecimento" search={{ release: release.id }}>
+                          <Globe2 className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Visualizar release"
+                        onClick={() =>
+                          onOpen({
+                            title: release.title,
+                            subtitle: option
+                              ? `${option.option}/${option.form || option.option}`
+                              : `Release ${release.id}`,
+                            body: "",
+                            meta: [],
+                            release: createReleaseDetail(release, option),
+                          })
+                        }
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {pagedRows.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground">
+                    Nenhum release encontrado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
       <TablePagination
         noun="releases"
         page={currentPage}
@@ -4535,8 +4675,23 @@ function ReleasesTable({ query, onOpen }: TableProps) {
           setPage(1);
         }}
       />
-    </div>
+    </>
   );
+}
+
+function releaseTypeFromTitle(title: string) {
+  const normalized = normalizeOccurrenceText(title);
+  if (normalized.includes("correcao") || normalized.includes("ajuste")) return "correcao";
+  if (normalized.includes("alteracao") || normalized.includes("alterado")) return "alteracao";
+  if (
+    normalized.includes("novidade") ||
+    normalized.includes("novo ") ||
+    normalized.includes("nova ") ||
+    normalized.startsWith("novo") ||
+    normalized.startsWith("nova")
+  )
+    return "novidade";
+  return "outro";
 }
 
 function findReleaseOption(title: string) {
