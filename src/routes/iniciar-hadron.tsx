@@ -1637,21 +1637,21 @@ function OptionsTable({ query }: TableProps) {
             ))}
           </div>
         </div>
-        {!!rows.length && (
-          <TablePagination
-            noun="opções"
-            page={safePage}
-            pageCount={pageCount}
-            pageSize={pageSize}
-            total={rows.length}
-            onPageChange={setPage}
-            onPageSizeChange={(value) => {
-              setPageSize(value);
-              setPage(1);
-            }}
-          />
-        )}
       </section>
+      {!!rows.length && (
+        <TablePagination
+          noun="opções"
+          page={safePage}
+          pageCount={pageCount}
+          pageSize={pageSize}
+          total={rows.length}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value);
+            setPage(1);
+          }}
+        />
+      )}
       <OptionOccurrencesPreviewDialog
         option={previewingOption}
         onClose={() => setPreviewingOption(null)}
@@ -2795,199 +2795,204 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <section className="overflow-hidden rounded-md border bg-card shadow-sm">
-      <div className="border-b px-4 py-4">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-lg font-medium">Ocorrências</h2>
-          <span className="text-xs text-muted-foreground">
-            {total.toLocaleString("pt-BR")} registros
-          </span>
+    <>
+      <section className="overflow-hidden rounded-md border bg-card shadow-sm">
+        <div className="border-b px-4 py-4">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-lg font-medium">Ocorrências</h2>
+            <span className="text-xs text-muted-foreground">
+              {total.toLocaleString("pt-BR")} registros
+            </span>
+          </div>
+          <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[.8fr_.7fr_.85fr_.85fr_.85fr_.8fr_1.35fr_auto]">
+            <Input
+              value={optionQuery}
+              onChange={(event) => {
+                setOptionQuery(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Opção"
+            />
+            <Input
+              value={formQuery}
+              onChange={(event) => {
+                setFormQuery(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Formulário"
+            />
+            <OccurrenceSelect
+              value={kind}
+              onValueChange={(value) => {
+                setKind(value);
+                setPage(1);
+              }}
+              items={[
+                ["todos", "Todos os tipos"],
+                ["ocorrencia", "Ocorrência"],
+                ["aprovacao", "Aprovação"],
+                ["sugestao", "Sugestão"],
+                ["solucao", "Solução"],
+                ["revisada", "Revisada"],
+                ["aviso", "Aviso"],
+              ]}
+            />
+            <OccurrenceSelect
+              value={userType}
+              onValueChange={(value) => {
+                setUserType(value);
+                setPage(1);
+              }}
+              items={[
+                ["todos", "Tipo de usuário"],
+                ["responsavel", "Responsável"],
+                ["ocorrencia", "Ocorrência"],
+                ["solucao", "Solução"],
+              ]}
+            />
+            <OccurrenceSelect
+              value={operator}
+              onValueChange={(value) => {
+                setOperator(value);
+                setPage(1);
+              }}
+              items={[
+                ["todos", "Todos os operadores"],
+                ...operators.map((item) => [item, item] as [string, string]),
+              ]}
+            />
+            <OccurrenceSelect
+              value={dateType}
+              onValueChange={(value) => {
+                setDateType(value);
+                setPage(1);
+              }}
+              items={[
+                ["ocorrencia", "Data da ocorrência"],
+                ["solucao", "Data da solução"],
+                ["revisao", "Data da revisão"],
+              ]}
+            />
+            <DateRangeFilter
+              from={dateFrom}
+              to={dateTo}
+              onChange={(start, end) => {
+                setDateFrom(start);
+                setDateTo(end);
+                setPage(1);
+              }}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="h-9 cursor-pointer"
+            >
+              Limpar
+            </Button>
+          </div>
         </div>
-        <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[.8fr_.7fr_.85fr_.85fr_.85fr_.8fr_1.35fr_auto]">
-          <Input
-            value={optionQuery}
-            onChange={(event) => {
-              setOptionQuery(event.target.value);
-              setPage(1);
-            }}
-            placeholder="Opção"
-          />
-          <Input
-            value={formQuery}
-            onChange={(event) => {
-              setFormQuery(event.target.value);
-              setPage(1);
-            }}
-            placeholder="Formulário"
-          />
-          <OccurrenceSelect
-            value={kind}
-            onValueChange={(value) => {
-              setKind(value);
-              setPage(1);
-            }}
-            items={[
-              ["todos", "Todos os tipos"],
-              ["ocorrencia", "Ocorrência"],
-              ["aprovacao", "Aprovação"],
-              ["sugestao", "Sugestão"],
-              ["solucao", "Solução"],
-              ["revisada", "Revisada"],
-              ["aviso", "Aviso"],
-            ]}
-          />
-          <OccurrenceSelect
-            value={userType}
-            onValueChange={(value) => {
-              setUserType(value);
-              setPage(1);
-            }}
-            items={[
-              ["todos", "Tipo de usuário"],
-              ["responsavel", "Responsável"],
-              ["ocorrencia", "Ocorrência"],
-              ["solucao", "Solução"],
-            ]}
-          />
-          <OccurrenceSelect
-            value={operator}
-            onValueChange={(value) => {
-              setOperator(value);
-              setPage(1);
-            }}
-            items={[
-              ["todos", "Todos os operadores"],
-              ...operators.map((item) => [item, item] as [string, string]),
-            ]}
-          />
-          <OccurrenceSelect
-            value={dateType}
-            onValueChange={(value) => {
-              setDateType(value);
-              setPage(1);
-            }}
-            items={[
-              ["ocorrencia", "Data da ocorrência"],
-              ["solucao", "Data da solução"],
-              ["revisao", "Data da revisão"],
-            ]}
-          />
-          <DateRangeFilter
-            from={dateFrom}
-            to={dateTo}
-            onChange={(start, end) => {
-              setDateFrom(start);
-              setDateTo(end);
-              setPage(1);
-            }}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="h-9 cursor-pointer"
-          >
-            Limpar
-          </Button>
-        </div>
-      </div>
-      <div className="overflow-hidden">
-        <table className="w-full table-fixed text-left text-[11px] xl:text-xs">
-          <thead className="border-b bg-muted/20 text-primary">
-            <tr>
-              <th className="w-[4%] px-2 py-3 text-center font-medium">Tipo</th>
-              <th className="w-[8%] px-2 py-3 font-medium">Opção/Form.</th>
-              <th className="w-[14%] px-2 py-3 font-medium">Descrição</th>
-              <th className="px-3 py-3 font-medium">Detalhes</th>
-              <th className="w-[7%] px-2 py-3 font-medium">Responsável</th>
-              <th className="w-[10%] px-2 py-3 font-medium">Ocorrência / Operador</th>
-              <th className="w-[10%] px-2 py-3 font-medium">Solução / Operador</th>
-              <th className="w-[8%] px-2 py-3 font-medium">Revisão</th>
-              <th className="w-[13%] px-2 py-3 text-center font-medium">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {rows.map((occurrence) => {
-              const option = hadronOptionsById.get(occurrence.optionLegacyId);
-              return (
-                <tr key={occurrence.id} className="align-top hover:bg-muted/25">
-                  <td className="px-3 py-3 text-center">
-                    <ImportedOccurrenceTypeIcon occurrence={occurrence} />
-                  </td>
-                  <td className="break-words px-2 py-3 font-medium">
-                    {option
-                      ? `${option.option}/${option.form || option.option}`
-                      : occurrence.optionLegacyId}
-                  </td>
-                  <td className="px-2 py-3 font-medium text-primary">
-                    <p className="line-clamp-2 break-words">
-                      {option?.description || "Descrição não informada"}
-                    </p>
-                  </td>
-                  <td className="max-w-lg px-3 py-3">
-                    <p className="line-clamp-3 leading-5">
-                      {occurrence.occurrenceText || "Sem descrição"}
-                    </p>
-                  </td>
-                  <td className="px-3 py-3">{option?.owner || "-"}</td>
-                  <td className="px-3 py-3">
-                    <OccurrenceDate value={occurrence.occurredAt} operator={occurrence.reporter} />
-                  </td>
-                  <td className="px-3 py-3">
-                    <OccurrenceDate value={occurrence.solvedAt} operator={occurrence.solver} />
-                  </td>
-                  <td className="px-3 py-3 text-emerald-600">
-                    {occurrence.reviewedAt ? formatOccurrenceDate(occurrence.reviewedAt) : "-"}
-                  </td>
-                  <td className="px-2 py-3">
-                    <div className="flex flex-nowrap items-center justify-center gap-0.5 whitespace-nowrap">
-                      {occurrence.solvedAt && !occurrence.reviewedAt && (
+        <div className="overflow-hidden">
+          <table className="w-full table-fixed text-left text-[11px] xl:text-xs">
+            <thead className="border-b bg-muted/20 text-primary">
+              <tr>
+                <th className="w-[4%] px-2 py-3 text-center font-medium">Tipo</th>
+                <th className="w-[8%] px-2 py-3 font-medium">Opção/Form.</th>
+                <th className="w-[14%] px-2 py-3 font-medium">Descrição</th>
+                <th className="px-3 py-3 font-medium">Detalhes</th>
+                <th className="w-[7%] px-2 py-3 font-medium">Responsável</th>
+                <th className="w-[10%] px-2 py-3 font-medium">Ocorrência / Operador</th>
+                <th className="w-[10%] px-2 py-3 font-medium">Solução / Operador</th>
+                <th className="w-[8%] px-2 py-3 font-medium">Revisão</th>
+                <th className="w-[13%] px-2 py-3 text-center font-medium">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {rows.map((occurrence) => {
+                const option = hadronOptionsById.get(occurrence.optionLegacyId);
+                return (
+                  <tr key={occurrence.id} className="align-top hover:bg-muted/25">
+                    <td className="px-3 py-3 text-center">
+                      <ImportedOccurrenceTypeIcon occurrence={occurrence} />
+                    </td>
+                    <td className="break-words px-2 py-3 font-medium">
+                      {option
+                        ? `${option.option}/${option.form || option.option}`
+                        : occurrence.optionLegacyId}
+                    </td>
+                    <td className="px-2 py-3 font-medium text-primary">
+                      <p className="line-clamp-2 break-words">
+                        {option?.description || "Descrição não informada"}
+                      </p>
+                    </td>
+                    <td className="max-w-lg px-3 py-3">
+                      <p className="line-clamp-3 leading-5">
+                        {occurrence.occurrenceText || "Sem descrição"}
+                      </p>
+                    </td>
+                    <td className="px-3 py-3">{option?.owner || "-"}</td>
+                    <td className="px-3 py-3">
+                      <OccurrenceDate
+                        value={occurrence.occurredAt}
+                        operator={occurrence.reporter}
+                      />
+                    </td>
+                    <td className="px-3 py-3">
+                      <OccurrenceDate value={occurrence.solvedAt} operator={occurrence.solver} />
+                    </td>
+                    <td className="px-3 py-3 text-emerald-600">
+                      {occurrence.reviewedAt ? formatOccurrenceDate(occurrence.reviewedAt) : "-"}
+                    </td>
+                    <td className="px-2 py-3">
+                      <div className="flex flex-nowrap items-center justify-center gap-0.5 whitespace-nowrap">
+                        {occurrence.solvedAt && !occurrence.reviewedAt && (
+                          <Button
+                            size="sm"
+                            className="h-8 shrink-0 cursor-pointer px-2 text-[10px]"
+                            onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
+                          >
+                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                            Revisar
+                          </Button>
+                        )}
                         <Button
-                          size="sm"
-                          className="h-8 shrink-0 cursor-pointer px-2 text-[10px]"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0 cursor-pointer"
+                          title="Ver ocorrência"
                           onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
                         >
-                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                          Revisar
+                          <Eye className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 shrink-0 cursor-pointer"
-                        title="Ver ocorrência"
-                        onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 shrink-0 cursor-pointer text-destructive hover:text-destructive"
-                        title="Remover ocorrência"
-                        onClick={() => setRemovingOccurrence(occurrence)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {loading && (
-          <p className="p-10 text-center text-sm text-muted-foreground">
-            Carregando ocorrências...
-          </p>
-        )}
-        {!loading && !rows.length && (
-          <p className="p-10 text-center text-sm text-muted-foreground">
-            Nenhuma ocorrência encontrada.
-          </p>
-        )}
-      </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0 cursor-pointer text-destructive hover:text-destructive"
+                          title="Remover ocorrência"
+                          onClick={() => setRemovingOccurrence(occurrence)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {loading && (
+            <p className="p-10 text-center text-sm text-muted-foreground">
+              Carregando ocorrências...
+            </p>
+          )}
+          {!loading && !rows.length && (
+            <p className="p-10 text-center text-sm text-muted-foreground">
+              Nenhuma ocorrência encontrada.
+            </p>
+          )}
+        </div>
+      </section>
       {!loading && total > 0 && (
         <TablePagination
           noun="ocorrências"
@@ -3039,7 +3044,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </section>
+    </>
   );
 }
 
@@ -3365,7 +3370,7 @@ function TablePagination({
   onPageSizeChange?: (pageSize: number) => void;
 }) {
   return (
-    <div className="relative z-10 -mx-px -mb-px mt-4 border-t-[14px] border-background bg-background">
+    <div className="mt-4">
       <ListPaginationFooter
         page={page - 1}
         pageCount={pageCount}
