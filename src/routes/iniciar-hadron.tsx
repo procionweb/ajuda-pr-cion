@@ -4691,8 +4691,8 @@ function ReleasesTable({ query, onOpen }: TableProps) {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1180px] text-sm">
-            <thead className="border-b bg-muted/35 text-left text-xs font-medium text-muted-foreground">
+          <table className="w-full min-w-[1180px] text-left text-[11px] xl:text-xs">
+            <thead className="border-b bg-muted/20 text-primary">
               <tr>
                 <th className="w-14 px-4 py-3">Tipo</th>
                 <th className="w-40 px-4 py-3">Opção/Formulário</th>
@@ -4725,8 +4725,8 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                   <td className="px-4 py-3 font-medium">
                     {option ? `${option.option}/${option.form || option.option}` : "Não informado"}
                   </td>
-                  <td className="px-4 py-3">{release.title}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-4 py-3 font-medium text-primary">{release.title}</td>
+                  <td className="px-4 py-3">
                     {release.moduleId ? `Módulo ${release.moduleId}` : "Não informado"}
                     {release.submoduleId && (
                       <>
@@ -4735,14 +4735,12 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                       </>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {release.owner || "Não informado"}
+                  <td className="px-4 py-3">{release.owner || "Não informado"}</td>
+                  <td className="px-4 py-3 text-center">{release.clicks}</td>
+                  <td className="px-4 py-3">
+                    {getReleaseVersionLabel(release.version, release.updatedAt)}
                   </td>
-                  <td className="px-4 py-3 text-center text-muted-foreground">{release.clicks}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {release.version || "Não informada"}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-4 py-3">
                     <span className="block">{formatCatalogDate(release.createdAt)}</span>
                     <span className="text-xs">
                       Atualizado {formatCatalogDate(release.updatedAt)}
@@ -4781,7 +4779,10 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                             description: release.description,
                             tags: release.tags,
                             createdAt: release.createdAt,
-                            version: release.version || "nao-informada",
+                            version:
+                              release.version ||
+                              inferReleaseVersion(release.updatedAt)?.data_versao ||
+                              "nao-informada",
                             releaseType: type,
                             permission: "clientes",
                             option: option?.option || release.id,
@@ -4875,7 +4876,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                     ...erpVersions.map(
                       (version) =>
                         [
-                          version.versao,
+                          version.data_versao,
                           `${version.versao} - ${formatVersionDate(version.data_versao)}`,
                         ] as [string, string],
                     ),
@@ -5052,6 +5053,19 @@ function releaseTypeFromTitle(title: string) {
   )
     return "novidade";
   return "outro";
+}
+
+function inferReleaseVersion(updatedAt: string) {
+  const updatedDate = updatedAt.slice(0, 10);
+  return erpVersions.find((version) => version.data_versao <= updatedDate);
+}
+
+function getReleaseVersionLabel(version: string | undefined, updatedAt: string) {
+  const matched = version && erpVersions.find((item) => item.data_versao === version);
+  const selected = matched || inferReleaseVersion(updatedAt);
+  if (selected) return `${selected.versao} - ${formatVersionDate(selected.data_versao)}`;
+  if (version && version !== "nao-informada") return version;
+  return "Não informada";
 }
 
 function findReleaseOption(title: string) {
