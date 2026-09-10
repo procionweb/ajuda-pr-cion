@@ -3000,34 +3000,34 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-x-1 gap-y-2 border-t px-4 py-3 text-xs text-muted-foreground">
-          {[
-            ["aviso", "Aviso", Flag, "text-slate-500"],
-            ["sugestao", "Sugestão/Solicitação", Sparkles, "text-amber-500"],
-            ["aprovacao", "Aprovação", ClipboardCheck, "text-sky-600"],
-            ["solucao", "Solução", Wrench, "text-emerald-600"],
-            ["revisada", "Revisada", CheckCircle2, "text-green-600"],
-            ["ocorrencia", "Ocorrência", Bug, "text-rose-600"],
-          ].map(([value, label, Icon, color], index) => (
-            <div key={String(value)} className="flex items-center">
+        <div className="border-t bg-muted/15 px-4 py-3">
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              ["aviso", "AVISO", "bg-slate-600"],
+              ["sugestao", "SUGESTÃO/SOLICITAÇÃO", "bg-amber-500"],
+              ["aprovacao", "APROVAÇÃO", "bg-sky-600"],
+              ["solucao", "SOLUÇÃO", "bg-emerald-600"],
+              ["revisada", "REVISADA", "bg-green-600"],
+              ["ocorrencia", "OCORRÊNCIA", "bg-rose-600"],
+            ].map(([value, label, color]) => (
               <button
                 type="button"
+                key={String(value)}
                 onClick={() => {
                   setKind(kind === value ? "todos" : String(value));
                   setPage(1);
                 }}
-                className={cn(
-                  "flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 font-medium uppercase transition-colors hover:bg-muted",
-                  kind === value && "bg-muted text-foreground",
-                )}
                 aria-pressed={kind === value}
+                className={cn(
+                  "inline-flex cursor-pointer items-center px-2 py-1 text-[10px] font-semibold text-white transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  color,
+                  kind === value && "ring-2 ring-ring ring-offset-2",
+                )}
               >
-                <Icon className={cn("h-3.5 w-3.5", color)} />
-                {String(label)} ({kindCounts[String(value)] || 0})
+                {label} ({kindCounts[String(value)] || 0})
               </button>
-              {index < 5 && <span aria-hidden="true">|</span>}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
       {!loading && total > 0 && (
