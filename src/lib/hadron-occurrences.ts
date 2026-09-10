@@ -105,6 +105,11 @@ export async function reviewHadronOccurrence(id: number, operator: string) {
   return reviewedAt;
 }
 
+export async function deleteHadronOccurrence(id: number) {
+  const { error } = await supabase.from("hadron_occurrences").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function listHadronOccurrences(filters: OccurrenceFilters) {
   const pageSize = filters.pageSize || 50;
   let request = supabase

@@ -41,6 +41,16 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Info } from "lucide-react";
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { TicketTimelineList } from "@/components/tickets/TicketTimelineList";
@@ -70,6 +80,7 @@ import { usePortalAuth } from "@/lib/portal-auth";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import {
+  deleteHadronOccurrence,
   listHadronOccurrences,
   listHadronOccurrenceOperators,
   reviewHadronOccurrence,
@@ -360,8 +371,7 @@ function HadronPage() {
   const { department } = usePortalAuth();
   const hasAdvancedHadronAccess = ["admin", "development", "tester"].includes(department || "");
   const [tab, setTab] = useState("visao-geral");
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("todos");
+  const query = "";
   const [detail, setDetail] = useState<Detail | null>(null);
   const [reviewingOccurrence, setReviewingOccurrence] = useState(false);
   const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
@@ -416,28 +426,6 @@ function HadronPage() {
                 </p>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar no Hadron..."
-                className="pl-9"
-              />
-            </div>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="w-36 cursor-pointer">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="pendentes">Pendentes</SelectItem>
-                <SelectItem value="concluidos">Concluidos</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </header>
 
@@ -2700,6 +2688,8 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
   const [operators, setOperators] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
+  const [removingOccurrence, setRemovingOccurrence] = useState<HadronOccurrence | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     const reload = () => setReloadKey((current) => current + 1);
@@ -2820,7 +2810,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
               setOptionQuery(event.target.value);
               setPage(1);
             }}
-            placeholder="Opção ou descrição"
+            placeholder="Opção"
           />
           <Input
             value={formQuery}
@@ -2970,6 +2960,15 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 cursor-pointer text-destructive hover:text-destructive"
+                      title="Remover ocorrência"
+                      onClick={() => setRemovingOccurrence(occurrence)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </td>
                 </tr>
               );
@@ -3001,6 +3000,43 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
           }}
         />
       )}
+      <AlertDialog
+        open={Boolean(removingOccurrence)}
+        onOpenChange={(open) => !open && !removing && setRemovingOccurrence(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover ocorrência?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá definitivamente a ocorrência selecionada do Hádron.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={removing}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async (event) => {
+                event.preventDefault();
+                if (!removingOccurrence) return;
+                setRemoving(true);
+                try {
+                  await deleteHadronOccurrence(removingOccurrence.id);
+                  setRemovingOccurrence(null);
+                  setReloadKey((current) => current + 1);
+                  toast.success("Ocorrência removida com sucesso.");
+                } catch {
+                  toast.error("Não foi possível remover a ocorrência.");
+                } finally {
+                  setRemoving(false);
+                }
+              }}
+            >
+              {removing ? "Removendo..." : "Remover"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
@@ -3752,6 +3788,8 @@ function normalizeLegacyOccurrenceTimestamp(value: string | null | undefined) {
 }
 
 function ParametersTable({ query, onOpen }: TableProps) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState("");
   const [option, setOption] = useState("");
   const [form, setForm] = useState("");
@@ -3849,7 +3887,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {rows.map((parameter, index) => (
+            {rows.slice((page - 1) * pageSize, page * pageSize).map((parameter, index) => (
               <tr
                 key={parameter.id}
                 className={cn(
@@ -3918,9 +3956,18 @@ function ParametersTable({ query, onOpen }: TableProps) {
           </tbody>
         </table>
       </div>
-      <div className="border-t px-4 py-3 text-xs text-muted-foreground">
-        Página 1 de 1, mostrando {rows.length} de {rows.length} no total.
-      </div>
+      <TablePagination
+        noun="parâmetros"
+        page={page}
+        pageCount={Math.max(1, Math.ceil(rows.length / pageSize))}
+        pageSize={pageSize}
+        total={rows.length}
+        onPageChange={setPage}
+        onPageSizeChange={(value) => {
+          setPageSize(value);
+          setPage(1);
+        }}
+      />
     </section>
   );
 }
@@ -3933,6 +3980,8 @@ function parameterDateValue(value: string) {
 }
 
 function ModulesTable({ query, onOpen }: TableProps) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState("");
   const normalizedQuery = normalizeOccurrenceText(`${query} ${search}`);
   const rows = useMemo(
@@ -3997,7 +4046,7 @@ function ModulesTable({ query, onOpen }: TableProps) {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {rows.map((row) => (
+            {rows.slice((page - 1) * pageSize, page * pageSize).map((row) => (
               <tr key={row.id} className="align-top hover:bg-muted/20">
                 <td className="px-4 py-4 text-muted-foreground">{row.id}</td>
                 <td className="px-4 py-4">
@@ -4079,9 +4128,18 @@ function ModulesTable({ query, onOpen }: TableProps) {
           </tbody>
         </table>
       </div>
-      <div className="border-t px-4 py-3 text-xs text-muted-foreground">
-        {rows.length} módulo(s) encontrado(s)
-      </div>
+      <TablePagination
+        noun="módulos"
+        page={page}
+        pageCount={Math.max(1, Math.ceil(rows.length / pageSize))}
+        pageSize={pageSize}
+        total={rows.length}
+        onPageChange={setPage}
+        onPageSizeChange={(value) => {
+          setPageSize(value);
+          setPage(1);
+        }}
+      />
     </section>
   );
 }
@@ -4174,14 +4232,21 @@ function SerialsTable({ query }: TableProps) {
           </tbody>
         </table>
       </div>
-      <div className="border-t px-4 py-3 text-xs text-muted-foreground">
-        Página 1 de 1, mostrando 0 de 0 no total.
-      </div>
+      <TablePagination
+        noun="seriais"
+        page={1}
+        pageCount={1}
+        pageSize={25}
+        total={0}
+        onPageChange={() => undefined}
+      />
     </section>
   );
 }
 
 function ChecklistTable({ query, onOpen }: TableProps) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [filter, setFilter] = useState("");
   const normalizedQuery = normalizeOccurrenceText(`${query} ${filter}`);
   const rows = useMemo(
@@ -4232,65 +4297,67 @@ function ChecklistTable({ query, onOpen }: TableProps) {
             </tr>
           </thead>
           <tbody>
-            {rows.map(
-              ([id, characteristic, title, description, saved, createdAt, updatedAt], index) => (
-                <tr
-                  key={id}
-                  className={cn(
-                    "border-b transition-colors hover:bg-muted/40",
-                    index % 2 === 0 && "bg-muted/20",
-                  )}
-                >
-                  <td className="px-4 py-3">{characteristic}</td>
-                  <td className="px-4 py-3 font-medium">{title}</td>
-                  <td className="px-4 py-3">{description}</td>
-                  <td className="px-4 py-3 text-center">
-                    {saved ? (
-                      <Flag className="mx-auto h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
+            {rows
+              .slice((page - 1) * pageSize, page * pageSize)
+              .map(
+                ([id, characteristic, title, description, saved, createdAt, updatedAt], index) => (
+                  <tr
+                    key={id}
+                    className={cn(
+                      "border-b transition-colors hover:bg-muted/40",
+                      index % 2 === 0 && "bg-muted/20",
                     )}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-primary">
-                    <span>{createdAt}</span>
-                    <br />
-                    <span>{updatedAt}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Ver detalhes"
-                        className="cursor-pointer"
-                        onClick={() =>
-                          onOpen({
-                            title,
-                            subtitle: characteristic,
-                            body: description,
-                            meta: [
-                              `Criado em: ${createdAt}`,
-                              `Atualizado em: ${updatedAt}`,
-                              `Salvo: ${saved ? "Sim" : "Não"}`,
-                            ],
-                          })
-                        }
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Exclusão indisponível para registros legados"
-                        disabled
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ),
-            )}
+                  >
+                    <td className="px-4 py-3">{characteristic}</td>
+                    <td className="px-4 py-3 font-medium">{title}</td>
+                    <td className="px-4 py-3">{description}</td>
+                    <td className="px-4 py-3 text-center">
+                      {saved ? (
+                        <Flag className="mx-auto h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-primary">
+                      <span>{createdAt}</span>
+                      <br />
+                      <span>{updatedAt}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Ver detalhes"
+                          className="cursor-pointer"
+                          onClick={() =>
+                            onOpen({
+                              title,
+                              subtitle: characteristic,
+                              body: description,
+                              meta: [
+                                `Criado em: ${createdAt}`,
+                                `Atualizado em: ${updatedAt}`,
+                                `Salvo: ${saved ? "Sim" : "Não"}`,
+                              ],
+                            })
+                          }
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Exclusão indisponível para registros legados"
+                          disabled
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ),
+              )}
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
@@ -4301,9 +4368,18 @@ function ChecklistTable({ query, onOpen }: TableProps) {
           </tbody>
         </table>
       </div>
-      <div className="border-t px-4 py-3 text-xs text-muted-foreground">
-        {rows.length} item(ns) encontrado(s)
-      </div>
+      <TablePagination
+        noun="itens"
+        page={page}
+        pageCount={Math.max(1, Math.ceil(rows.length / pageSize))}
+        pageSize={pageSize}
+        total={rows.length}
+        onPageChange={setPage}
+        onPageSizeChange={(value) => {
+          setPageSize(value);
+          setPage(1);
+        }}
+      />
     </section>
   );
 }
