@@ -91,18 +91,12 @@ export async function updateHadronOccurrenceSolution({
   return solvedAt;
 }
 
-export async function reviewHadronOccurrence(id: number, operator: string) {
-  const reviewedAt = new Date().toISOString();
-  const { error } = await supabase
-    .from("hadron_occurrences")
-    .update({
-      reviewed_at: reviewedAt,
-      modified_by: operator,
-      source_modified_at: reviewedAt,
-    })
-    .eq("id", id);
+export async function reviewHadronOccurrence(id: number) {
+  const { data, error } = await supabase.rpc("review_hadron_occurrence", {
+    p_occurrence_id: id,
+  });
   if (error) throw error;
-  return reviewedAt;
+  return String(data);
 }
 
 export async function deleteHadronOccurrence(id: number) {

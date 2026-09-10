@@ -166,6 +166,15 @@ function KbIndexPage() {
             </Link>
           </Button>
         </div>
+      ) : search.from === "hadron-release" ? (
+        <div className="mb-3 flex">
+          <Button asChild variant="outline" size="sm" className="h-8 cursor-pointer rounded-lg">
+            <Link to="/iniciar-hadron" search={{ tab: "releases" }}>
+              <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+              Voltar ao release
+            </Link>
+          </Button>
+        </div>
       ) : null}
       <PageHeader
         title="Base de Conhecimento"

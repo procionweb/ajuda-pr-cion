@@ -93,6 +93,9 @@ const hadronOptionsById = new Map(hadronOptions.map((option) => [option.id, opti
 
 export const Route = createFileRoute("/iniciar-hadron")({
   head: () => ({ meta: [{ title: "Hadron - CRM Procion" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   component: HadronPage,
 });
 
@@ -370,8 +373,9 @@ const hadronParameters = [
 function HadronPage() {
   const tickets = useTickets();
   const { department } = usePortalAuth();
+  const search = Route.useSearch();
   const hasAdvancedHadronAccess = ["admin", "development", "tester"].includes(department || "");
-  const [tab, setTab] = useState("visao-geral");
+  const [tab, setTab] = useState(search.tab || "visao-geral");
   const query = "";
   const [detail, setDetail] = useState<Detail | null>(null);
   const [reviewingOccurrence, setReviewingOccurrence] = useState(false);
@@ -389,10 +393,7 @@ function HadronPage() {
     if (!occurrence?.id || occurrence.reviewedAt || !occurrence.solvedAt) return;
     setReviewingOccurrence(true);
     try {
-      const reviewedAt = await reviewHadronOccurrence(
-        occurrence.id,
-        currentUser.operator || currentUser.name,
-      );
+      const reviewedAt = await reviewHadronOccurrence(occurrence.id);
       setDetail((current) =>
         current?.hadronOccurrence
           ? {
@@ -403,8 +404,10 @@ function HadronPage() {
       );
       window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed"));
       toast.success("Ocorrência revisada com sucesso.");
-    } catch {
-      toast.error("Não foi possível revisar a ocorrência.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível revisar a ocorrência.",
+      );
     } finally {
       setReviewingOccurrence(false);
     }
@@ -565,7 +568,10 @@ function HadronPage() {
               </Button>
               {detail?.hadronOccurrence?.id &&
                 detail.hadronOccurrence.solvedAt &&
-                !detail.hadronOccurrence.reviewedAt && (
+                !detail.hadronOccurrence.reviewedAt &&
+                (department === "admin" ||
+                  normalizeOccurrenceText(detail.hadronOccurrence.reporter) ===
+                    normalizeOccurrenceText(currentUser.operator)) && (
                   <Button
                     onClick={() => void confirmOccurrenceReview()}
                     disabled={reviewingOccurrence}
@@ -1065,6 +1071,12 @@ function OptionsTable({ query }: TableProps) {
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [occurrenceSummary, setOccurrenceSummary] = useState<Record<string, number>>({});
+  useEffect(() => {
+    void getHadronOccurrenceKindCounts()
+      .then(setOccurrenceSummary)
+      .catch(() => setOccurrenceSummary({}));
+  }, []);
   useEffect(() => {
     try {
       setOptionOverrides(JSON.parse(localStorage.getItem("hadron-option-overrides") || "{}"));
@@ -1611,7 +1623,8 @@ function OptionsTable({ query }: TableProps) {
             <strong className="font-medium text-foreground">Média de atraso:</strong>{" "}
             {optionSummary.averageDelay} dias (sendo exibido)
           </p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <strong className="font-medium text-foreground">Opções:</strong>
             {[
               ["DESENVOLVIMENTO", optionSummary.development, "bg-slate-600", "desenvolvimento"],
               ["CORREÇÕES", optionSummary.corrections, "bg-rose-600", "correcoes"],
@@ -1635,6 +1648,23 @@ function OptionsTable({ query }: TableProps) {
               >
                 {label} ({count})
               </button>
+            ))}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-1">
+            <strong className="font-medium text-foreground">Ocorrências:</strong>
+            {[
+              ["aviso", "AVISO", Flag, "text-slate-500"],
+              ["sugestao", "SUGESTÃO/SOLICITAÇÃO", Sparkles, "text-amber-500"],
+              ["aprovacao", "APROVAÇÃO", ClipboardCheck, "text-sky-600"],
+              ["solucao", "SOLUÇÃO", Wrench, "text-emerald-600"],
+              ["revisada", "REVISADA", CheckCircle2, "text-green-600"],
+              ["ocorrencia", "OCORRÊNCIA", Bug, "text-rose-600"],
+            ].map(([value, label, Icon, color], index) => (
+              <span key={String(value)} className="inline-flex items-center gap-1">
+                <Icon className={cn("h-3.5 w-3.5", color)} />
+                {String(label)} ({occurrenceSummary[String(value)] || 0})
+                {index < 5 && <span aria-hidden="true">|</span>}
+              </span>
             ))}
           </div>
         </div>
@@ -2281,6 +2311,9 @@ function OptionImportedOccurrences({
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
+  const [reviewOccurrence, setReviewOccurrence] = useState<HadronOccurrence | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  const { department } = usePortalAuth();
 
   useEffect(() => {
     const reload = () => setReloadKey((current) => current + 1);
@@ -2341,6 +2374,12 @@ function OptionImportedOccurrences({
                   solver={collaboratorName(occurrence.solver)}
                   isLast={index === rows.length - 1}
                   onInformSolution={setSolutionOccurrence}
+                  canReview={
+                    department === "admin" ||
+                    normalizeOccurrenceText(occurrence.reporter) ===
+                      normalizeOccurrenceText(currentUser.operator)
+                  }
+                  onInformReview={setReviewOccurrence}
                 />
               ))}
             </ol>
@@ -2380,6 +2419,47 @@ function OptionImportedOccurrences({
           setReloadKey((current) => current + 1);
         }}
       />
+      <AlertDialog
+        open={Boolean(reviewOccurrence)}
+        onOpenChange={(open) => !open && !reviewing && setReviewOccurrence(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar revisão desta ocorrência?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A ocorrência será marcada como revisada pelo operador que realizou a abertura.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reviewing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={reviewing}
+              onClick={async (event) => {
+                event.preventDefault();
+                if (!reviewOccurrence) return;
+                setReviewing(true);
+                try {
+                  await reviewHadronOccurrence(reviewOccurrence.id);
+                  setReviewOccurrence(null);
+                  setReloadKey((current) => current + 1);
+                  window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed"));
+                  toast.success("Ocorrência revisada com sucesso.");
+                } catch (error) {
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : "Não foi possível revisar a ocorrência.",
+                  );
+                } finally {
+                  setReviewing(false);
+                }
+              }}
+            >
+              {reviewing ? "Revisando..." : "Informar revisão"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
@@ -2390,12 +2470,16 @@ function HadronOccurrenceTimelineItem({
   solver,
   isLast,
   onInformSolution,
+  canReview,
+  onInformReview,
 }: {
   occurrence: HadronOccurrence;
   reporter: string;
   solver: string;
   isLast: boolean;
   onInformSolution: (occurrence: HadronOccurrence) => void;
+  canReview: boolean;
+  onInformReview: (occurrence: HadronOccurrence) => void;
 }) {
   const reviewed = Boolean(occurrence.reviewedAt);
   const solved = Boolean(
@@ -2502,6 +2586,17 @@ function HadronOccurrenceTimelineItem({
               <LegacyRichContent value={occurrence.solutionHtml || occurrence.solutionText} />
             </div>
           </div>
+        )}
+        {occurrence.kind === "ocorrencia" && solved && !reviewed && canReview && (
+          <Button
+            type="button"
+            size="sm"
+            className="mt-3 cursor-pointer"
+            onClick={() => onInformReview(occurrence)}
+          >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            Informar revisão
+          </Button>
         )}
         {(occurrence.approvedAt ||
           occurrence.hadronAt ||
@@ -2674,6 +2769,7 @@ function OptionOccurrencesPreviewDialog({
 }
 
 function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
+  const { department } = usePortalAuth();
   const [optionQuery, setOptionQuery] = useState("");
   const [formQuery, setFormQuery] = useState("");
   const [kind, setKind] = useState("todos");
@@ -2954,16 +3050,21 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
                     </td>
                     <td className="px-2 py-3">
                       <div className="flex flex-nowrap items-center justify-center gap-0.5 whitespace-nowrap">
-                        {occurrence.solvedAt && !occurrence.reviewedAt && (
-                          <Button
-                            size="sm"
-                            className="h-8 shrink-0 cursor-pointer px-2 text-[10px]"
-                            onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
-                          >
-                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                            Revisar
-                          </Button>
-                        )}
+                        {occurrence.kind === "ocorrencia" &&
+                          occurrence.solvedAt &&
+                          !occurrence.reviewedAt &&
+                          (department === "admin" ||
+                            normalizeOccurrenceText(occurrence.reporter) ===
+                              normalizeOccurrenceText(currentUser.operator)) && (
+                            <Button
+                              size="sm"
+                              className="h-8 shrink-0 cursor-pointer px-2 text-[10px]"
+                              onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
+                            >
+                              <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                              Revisar
+                            </Button>
+                          )}
                         <Button
                           size="icon"
                           variant="ghost"
@@ -3800,6 +3901,13 @@ function normalizeLegacyUrl(value: string) {
   return "";
 }
 
+function normalizeLegacyHtml(value: string) {
+  return value.replace(/(<img[^>]+src=["'])([^"']+)(["'])/gi, (_match, before, src, after) => {
+    const normalized = normalizeLegacyUrl(src);
+    return normalized ? `${before}${normalized}${after}` : `${before}${src}${after}`;
+  });
+}
+
 function htmlToText(value: string) {
   return value
     .replace(/<[^>]+>/g, " ")
@@ -4631,7 +4739,9 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                     {release.owner || "Não informado"}
                   </td>
                   <td className="px-4 py-3 text-center text-muted-foreground">{release.clicks}</td>
-                  <td className="px-4 py-3 text-muted-foreground">Não informada</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {release.version || "Não informada"}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     <span className="block">{formatCatalogDate(release.createdAt)}</span>
                     <span className="text-xs">
@@ -4648,7 +4758,11 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                       >
                         <Link
                           to="/base-de-conhecimento/"
-                          search={{ release: release.id, search: release.title }}
+                          search={{
+                            release: release.id,
+                            search: release.title,
+                            from: "hadron-release",
+                          }}
                         >
                           <Globe2 className="h-4 w-4" />
                         </Link>
@@ -4667,6 +4781,10 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                             description: release.description,
                             tags: release.tags,
                             createdAt: release.createdAt,
+                            version: release.version || "nao-informada",
+                            releaseType: type,
+                            permission: "clientes",
+                            option: option?.option || release.id,
                           })
                         }
                       >
@@ -4730,30 +4848,12 @@ function ReleasesTable({ query, onOpen }: TableProps) {
         open={Boolean(editingRelease)}
         onOpenChange={(open) => !open && setEditingRelease(null)}
       >
-        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
-          <DialogTitle>Editar release</DialogTitle>
+        <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto">
+          <DialogTitle>Release</DialogTitle>
           {editingRelease && (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-6">
               <label className="space-y-1 text-sm md:col-span-2">
-                <span>Descrição</span>
-                <Input
-                  value={editingRelease.title}
-                  onChange={(event) =>
-                    setEditingRelease({ ...editingRelease, title: event.target.value })
-                  }
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span>Responsável</span>
-                <Input
-                  value={editingRelease.owner}
-                  onChange={(event) =>
-                    setEditingRelease({ ...editingRelease, owner: event.target.value })
-                  }
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span>Data do release</span>
+                <span>Data Release</span>
                 <Input
                   type="datetime-local"
                   value={editingRelease.createdAt.replace(" ", "T").slice(0, 16)}
@@ -4765,7 +4865,62 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                   }
                 />
               </label>
-              <label className="space-y-1 text-sm">
+              <label className="space-y-1 text-sm md:col-span-4">
+                <span>Versão Hádron</span>
+                <OccurrenceSelect
+                  value={editingRelease.version}
+                  onValueChange={(version) => setEditingRelease({ ...editingRelease, version })}
+                  items={[
+                    ["nao-informada", "Não informada"],
+                    ...erpVersions.map(
+                      (version) =>
+                        [
+                          version.versao,
+                          `${version.versao} - ${formatVersionDate(version.data_versao)}`,
+                        ] as [string, string],
+                    ),
+                  ]}
+                />
+              </label>
+              <label className="space-y-1 text-sm md:col-span-2">
+                <span>Tipo Release</span>
+                <OccurrenceSelect
+                  value={editingRelease.releaseType}
+                  onValueChange={(releaseType) =>
+                    setEditingRelease({ ...editingRelease, releaseType })
+                  }
+                  items={[
+                    ["correcao", "Correção"],
+                    ["alteracao", "Alteração"],
+                    ["novidade", "Novidade"],
+                    ["outro", "Não classificado"],
+                  ]}
+                />
+              </label>
+              <label className="space-y-1 text-sm md:col-span-2">
+                <span>Permissão</span>
+                <OccurrenceSelect
+                  value={editingRelease.permission}
+                  onValueChange={(permission) =>
+                    setEditingRelease({ ...editingRelease, permission })
+                  }
+                  items={[
+                    ["publico", "Público"],
+                    ["clientes", "Clientes"],
+                    ["empresa", "Empresa"],
+                  ]}
+                />
+              </label>
+              <label className="space-y-1 text-sm md:col-span-2">
+                <span>Opção</span>
+                <Input
+                  value={editingRelease.option}
+                  onChange={(event) =>
+                    setEditingRelease({ ...editingRelease, option: event.target.value })
+                  }
+                />
+              </label>
+              <label className="space-y-1 text-sm md:col-span-3">
                 <span>Módulo</span>
                 <Input
                   value={editingRelease.moduleId}
@@ -4774,7 +4929,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                   }
                 />
               </label>
-              <label className="space-y-1 text-sm">
+              <label className="space-y-1 text-sm md:col-span-3">
                 <span>Submódulo</span>
                 <Input
                   value={editingRelease.submoduleId}
@@ -4783,23 +4938,40 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                   }
                 />
               </label>
-              <label className="space-y-1 text-sm md:col-span-2">
+              <label className="space-y-1 text-sm md:col-span-6">
+                <span>Descrição</span>
+                <Input
+                  value={editingRelease.title}
+                  onChange={(event) =>
+                    setEditingRelease({ ...editingRelease, title: event.target.value })
+                  }
+                />
+              </label>
+              <label className="space-y-1 text-sm md:col-span-6">
+                <span>Detalhes do release</span>
+                <div
+                  key={editingRelease.id}
+                  contentEditable
+                  suppressContentEditableWarning
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeLegacyHtml(editingRelease.description),
+                  }}
+                  onBlur={(event) =>
+                    setEditingRelease({
+                      ...editingRelease,
+                      description: event.currentTarget.innerHTML,
+                    })
+                  }
+                  className="min-h-64 w-full overflow-auto rounded-md border bg-background p-3 text-sm leading-6 outline-none focus:ring-2 focus:ring-ring [&_img]:my-3 [&_img]:max-w-full [&_img]:object-contain"
+                />
+              </label>
+              <label className="space-y-1 text-sm md:col-span-6">
                 <span>Tags</span>
                 <Input
                   value={editingRelease.tags}
                   onChange={(event) =>
                     setEditingRelease({ ...editingRelease, tags: event.target.value })
                   }
-                />
-              </label>
-              <label className="space-y-1 text-sm md:col-span-2">
-                <span>Detalhes do release</span>
-                <textarea
-                  value={editingRelease.description}
-                  onChange={(event) =>
-                    setEditingRelease({ ...editingRelease, description: event.target.value })
-                  }
-                  className="min-h-48 w-full resize-y rounded-md border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </label>
             </div>
@@ -4861,6 +5033,10 @@ type ReleaseOverride = {
   description: string;
   tags: string;
   createdAt: string;
+  version: string;
+  releaseType: string;
+  permission: string;
+  option: string;
 };
 
 function releaseTypeFromTitle(title: string) {
