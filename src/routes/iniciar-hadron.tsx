@@ -70,7 +70,6 @@ import { usePortalAuth } from "@/lib/portal-auth";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import {
-  getHadronOccurrenceCounts,
   listHadronOccurrences,
   listHadronOccurrenceOperators,
   updateHadronOccurrenceSolution,
@@ -1016,7 +1015,6 @@ function getHadronOptionDate(
 function OptionsTable({ query }: TableProps) {
   const tickets = useTickets();
   const { session } = usePortalAuth();
-  const [occurrenceCounts, setOccurrenceCounts] = useState<Record<string, number>>({});
   const [optionOverrides, setOptionOverrides] = useState<Record<string, Partial<HadronOption>>>({});
   const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
   const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
@@ -1057,11 +1055,6 @@ function OptionsTable({ query }: TableProps) {
       active = false;
       window.clearInterval(timer);
     };
-  }, []);
-  useEffect(() => {
-    void getHadronOccurrenceCounts()
-      .then(setOccurrenceCounts)
-      .catch(() => setOccurrenceCounts({}));
   }, []);
   useEffect(() => {
     if (!viewingOption) return;
@@ -1422,7 +1415,7 @@ function OptionsTable({ query }: TableProps) {
                   "Opção",
                   "Formulário",
                   "Descrição",
-                  "Ocorrências",
+                  "Chamada",
                   "Data",
                   "DLL EXE",
                   "Módulo / Submódulo",
@@ -1468,11 +1461,7 @@ function OptionsTable({ query }: TableProps) {
                     className: "bg-muted text-muted-foreground hover:bg-muted",
                   },
                 }[optionStatus];
-                const priority = active.some((ticket) => ticket.priority === "Alta")
-                  ? "Alta"
-                  : active.some((ticket) => ticket.priority === "Media")
-                    ? "Media"
-                    : "Baixa";
+                const priority = normalizeOptionPriority(option.priority).label;
                 return (
                   <tr
                     key={option.id}
@@ -1515,15 +1504,18 @@ function OptionsTable({ query }: TableProps) {
                     </td>
                     <td className="break-words px-2 py-3">{option.form || "Não informado"}</td>
                     <td className="break-words px-2 py-3 text-primary">{option.description}</td>
+                    <td className="break-words px-2 py-3">{option.call || "Não informado"}</td>
                     <td className="break-words px-2 py-3">
-                      {occurrenceCounts[option.id]?.toLocaleString("pt-BR") || "0"}
+                      {option.openedAt ? formatCatalogDate(option.openedAt) : "Não informado"}
                     </td>
                     <td className="break-words px-2 py-3">
-                      {latest ? formatOccurrenceDate(latest.updatedAt) : "Não informado"}
+                      {option.executable || "Não informado"}
                     </td>
-                    <td className="break-words px-2 py-3">Não informado</td>
-                    <td className="break-words px-2 py-3">{latest?.module || "Não informado"}</td>
-                    <td className="break-words px-2 py-3">{latest?.owner || "Não informado"}</td>
+                    <td className="break-words px-2 py-3">
+                      {[option.moduleId, option.submoduleId].filter(Boolean).join(" - ") ||
+                        "Não informado"}
+                    </td>
+                    <td className="break-words px-2 py-3">{option.owner || "Não informado"}</td>
                     <td className="px-2 py-3">
                       <div className="flex items-center justify-center gap-0">
                         <Button
