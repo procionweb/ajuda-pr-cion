@@ -2904,7 +2904,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
               <th className="w-[10%] px-2 py-3 font-medium">Ocorrência / Operador</th>
               <th className="w-[10%] px-2 py-3 font-medium">Solução / Operador</th>
               <th className="w-[8%] px-2 py-3 font-medium">Revisão</th>
-              <th className="w-[11%] px-2 py-3 text-center font-medium">Ações</th>
+              <th className="w-[13%] px-2 py-3 text-center font-medium">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -2940,35 +2940,37 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
                   <td className="px-3 py-3 text-emerald-600">
                     {occurrence.reviewedAt ? formatOccurrenceDate(occurrence.reviewedAt) : "-"}
                   </td>
-                  <td className="px-2 py-3 text-center">
-                    {occurrence.solvedAt && !occurrence.reviewedAt && (
+                  <td className="px-2 py-3">
+                    <div className="flex flex-nowrap items-center justify-center gap-0.5 whitespace-nowrap">
+                      {occurrence.solvedAt && !occurrence.reviewedAt && (
+                        <Button
+                          size="sm"
+                          className="h-8 shrink-0 cursor-pointer px-2 text-[10px]"
+                          onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
+                        >
+                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                          Revisar
+                        </Button>
+                      )}
                       <Button
-                        size="sm"
-                        className="mr-1 h-7 cursor-pointer px-2 text-[10px]"
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 shrink-0 cursor-pointer"
+                        title="Ver ocorrência"
                         onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
                       >
-                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                        Revisar
+                        <Eye className="h-4 w-4" />
                       </Button>
-                    )}
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 cursor-pointer"
-                      title="Ver ocorrência"
-                      onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 cursor-pointer text-destructive hover:text-destructive"
-                      title="Remover ocorrência"
-                      onClick={() => setRemovingOccurrence(occurrence)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 shrink-0 cursor-pointer text-destructive hover:text-destructive"
+                        title="Remover ocorrência"
+                        onClick={() => setRemovingOccurrence(occurrence)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -3363,7 +3365,7 @@ function TablePagination({
   onPageSizeChange?: (pageSize: number) => void;
 }) {
   return (
-    <div className="mt-3">
+    <div className="relative z-10 -mx-px -mb-px mt-4 border-t-[14px] border-background bg-background">
       <ListPaginationFooter
         page={page - 1}
         pageCount={pageCount}
