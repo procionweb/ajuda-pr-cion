@@ -64,6 +64,7 @@ import {
 import { cn } from "@/lib/utils";
 import { erpVersions, formatVersionDate } from "@/lib/erp-versions";
 import { hadronOptions, type HadronOption } from "@/lib/hadron-options";
+import { hadronModuleNames, hadronReleases, hadronSubmoduleNames } from "@/lib/hadron-releases";
 import {
   acquireHadronOptionLock,
   listHadronOptionLocks,
@@ -643,7 +644,7 @@ function Overview({
       ListChecks,
       "text-cyan-600 bg-cyan-500/10",
     ],
-    ["Releases", String(cvsArticles.length), PackageCheck, "text-amber-600 bg-amber-500/10"],
+    ["Releases", String(hadronReleases.length), PackageCheck, "text-amber-600 bg-amber-500/10"],
     [
       "Versão Hádron",
       latestVersion
@@ -794,11 +795,12 @@ function Overview({
             <span>Data</span>
             <span>Ações</span>
           </div>
-          {[...cvsArticles]
+          {[...hadronReleases]
             .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
             .slice(0, 12)
             .map((release) => {
-              const option = findReleaseOption(release.title);
+              const option =
+                hadronOptionsById.get(release.optionId) || findReleaseOption(release.title);
               const releaseDetail = createReleaseDetail(release, option);
               return (
                 <div
@@ -826,7 +828,9 @@ function Overview({
                   </button>
                   <span>
                     <span className="block truncate">{release.owner || "Não informado"}</span>
-                    <span className="text-muted-foreground">{release.status}</span>
+                    <span className="text-muted-foreground">
+                      {getReleaseVersionLabel(release.version)}
+                    </span>
                   </span>
                   <span className="text-primary">{formatCatalogDate(release.updatedAt)}</span>
                   <span className="flex items-center justify-end gap-1">
@@ -837,7 +841,10 @@ function Overview({
                       className="h-7 w-7 cursor-pointer"
                       title="Abrir release na Base de Conhecimento"
                     >
-                      <Link to="/base-de-conhecimento" search={{ release: release.id }}>
+                      <Link
+                        to="/base-de-conhecimento"
+                        search={{ search: release.title, from: "hadron-release" }}
+                      >
                         <Globe2 className="h-4 w-4" />
                       </Link>
                     </Button>
@@ -1603,7 +1610,7 @@ function OptionsTable({ query }: TableProps) {
                           className="h-7 w-7 cursor-pointer text-destructive hover:text-destructive"
                           onClick={() => setDeactivatingOption(option)}
                         >
-                          <X className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>
@@ -1774,7 +1781,7 @@ function HadronOptionPage({
               <Pencil className="mr-2 h-4 w-4" />
               Alterar
             </Button>
-            <Button type="button" onClick={onExit} className="cursor-pointer">
+            <Button type="button" variant="destructive" onClick={onExit} className="cursor-pointer">
               Sair
             </Button>
           </div>
@@ -2741,18 +2748,17 @@ function OptionOccurrencesPreviewDialog({
 }) {
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[88vh] max-w-3xl overflow-hidden p-0">
+      <DialogContent className="max-h-[88vh] max-w-3xl gap-0 overflow-hidden p-0 [&>button]:hidden">
         {option && (
           <>
-            <div className="border-b px-6 py-5">
-              <DialogTitle className="flex items-center gap-2 text-lg font-medium">
-                Ocorrências <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
-              </DialogTitle>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <span>Opção: {option.option}</span>
-                <Badge className="bg-rose-600 text-white hover:bg-rose-600">CORREÇÕES</Badge>
-              </div>
-            </div>
+            <DialogTitle className="sr-only">Ocorrências</DialogTitle>
+            <DetailModalHeader
+              icon={ClipboardCheck}
+              title="Ocorrências"
+              meta={`Opção: ${option.option}`}
+              chips={<Badge className="bg-rose-600 text-white hover:bg-rose-600">CORREÇÕES</Badge>}
+              onClose={onClose}
+            />
             <div className="max-h-[68vh] overflow-y-auto px-5 py-4">
               <OptionImportedOccurrences option={option} latestOnly />
             </div>
@@ -3790,27 +3796,28 @@ function HadronOccurrenceDetailView({ occurrence }: { occurrence: HadronOccurren
 }
 
 function createReleaseDetail(
-  release: (typeof cvsArticles)[number],
+  release: (typeof hadronReleases)[number] & { version?: string },
   option: ReturnType<typeof findReleaseOption>,
 ): ReleaseDetail {
   return {
     id: release.id,
     title: release.title,
     content: release.description,
-    option: option?.option || release.id,
-    form: option?.form || option?.option || release.id,
+    option: release.option || option?.option || release.id,
+    form: release.form || option?.form || option?.option || release.id,
     owner: release.owner || option?.owner || "Não informado",
-    version: "Não informada",
+    version: getReleaseVersionLabel(release.version),
     date: release.updatedAt || release.createdAt,
-    module: option?.moduleId
-      ? `Módulo ${option.moduleId}`
-      : release.moduleId
-        ? `Módulo ${release.moduleId}`
+    module: release.moduleId
+      ? hadronModuleNames.get(release.moduleId) || `Módulo ${release.moduleId}`
+      : option?.moduleId
+        ? `Módulo ${option.moduleId}`
         : "Não informado",
-    submodule: option?.submoduleId
-      ? `Submódulo ${option.submoduleId}`
-      : release.submoduleId
-        ? `Submódulo ${release.submoduleId}`
+    submodule: release.submoduleId
+      ? hadronSubmoduleNames.get(`${release.moduleId}:${release.submoduleId}`) ||
+        `Submódulo ${release.submoduleId}`
+      : option?.submoduleId
+        ? `Submódulo ${option.submoduleId}`
         : "Não informado",
     clicks: release.clicks,
   };
@@ -4556,18 +4563,18 @@ function ReleasesTable({ query, onOpen }: TableProps) {
   const normalizedQuery = normalizeOccurrenceText(query);
   const normalizedOptionQuery = normalizeOccurrenceText(optionQuery);
   const operators = useMemo(
-    () => [...new Set(cvsArticles.map((release) => release.owner).filter(Boolean))].sort(),
+    () => [...new Set(hadronReleases.map((release) => release.owner).filter(Boolean))].sort(),
     [],
   );
   const rows = useMemo(
     () =>
-      cvsArticles
+      hadronReleases
         .filter((release) => !removedReleaseIds.has(release.id))
         .map((release) => ({ ...release, ...releaseOverrides[release.id] }))
         .map((release) => ({
           release,
-          option: findReleaseOption(release.title),
-          type: releaseTypeFromTitle(release.title),
+          option: hadronOptionsById.get(release.optionId) || findReleaseOption(release.title),
+          type: release.releaseType,
         }))
         .filter(({ release, option, type }) => {
           const optionText = normalizeOccurrenceText(
@@ -4723,23 +4730,27 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                     />
                   </td>
                   <td className="px-4 py-3 font-medium">
-                    {option ? `${option.option}/${option.form || option.option}` : "Não informado"}
+                    {release.option || option?.option || "Não informado"}/
+                    {release.form || option?.form || release.option || "Não informado"}
                   </td>
                   <td className="px-4 py-3 font-medium text-primary">{release.title}</td>
                   <td className="px-4 py-3">
-                    {release.moduleId ? `Módulo ${release.moduleId}` : "Não informado"}
+                    {release.moduleId
+                      ? hadronModuleNames.get(release.moduleId) || `Módulo ${release.moduleId}`
+                      : "Não informado"}
                     {release.submoduleId && (
                       <>
                         <br />
-                        <span className="text-xs">Submódulo {release.submoduleId}</span>
+                        <span className="text-xs">
+                          {hadronSubmoduleNames.get(`${release.moduleId}:${release.submoduleId}`) ||
+                            `Submódulo ${release.submoduleId}`}
+                        </span>
                       </>
                     )}
                   </td>
                   <td className="px-4 py-3">{release.owner || "Não informado"}</td>
                   <td className="px-4 py-3 text-center">{release.clicks}</td>
-                  <td className="px-4 py-3">
-                    {getReleaseVersionLabel(release.version, release.updatedAt)}
-                  </td>
+                  <td className="px-4 py-3">{getReleaseVersionLabel(release.version)}</td>
                   <td className="px-4 py-3">
                     <span className="block">{formatCatalogDate(release.createdAt)}</span>
                     <span className="text-xs">
@@ -4779,13 +4790,10 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                             description: release.description,
                             tags: release.tags,
                             createdAt: release.createdAt,
-                            version:
-                              release.version ||
-                              inferReleaseVersion(release.updatedAt)?.data_versao ||
-                              "nao-informada",
+                            version: release.version || "nao-informada",
                             releaseType: type,
-                            permission: "clientes",
-                            option: option?.option || release.id,
+                            permission: release.permission,
+                            option: release.option || option?.option || release.id,
                           })
                         }
                       >
@@ -4849,10 +4857,19 @@ function ReleasesTable({ query, onOpen }: TableProps) {
         open={Boolean(editingRelease)}
         onOpenChange={(open) => !open && setEditingRelease(null)}
       >
-        <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto">
-          <DialogTitle>Release</DialogTitle>
+        <DialogContent className="max-h-[92vh] max-w-5xl gap-0 overflow-hidden p-0 [&>button]:hidden">
+          <DialogTitle className="sr-only">Editar release</DialogTitle>
+          <DetailModalHeader
+            icon={Rocket}
+            title="Editar release"
+            protocol={editingRelease ? `Release ${editingRelease.id}` : undefined}
+            meta={editingRelease?.title}
+            onClose={() => setEditingRelease(null)}
+            accentClassName="bg-amber-500"
+            iconWrapClassName="bg-amber-500 text-white"
+          />
           {editingRelease && (
-            <div className="grid gap-4 md:grid-cols-6">
+            <div className="grid max-h-[70vh] gap-4 overflow-y-auto px-5 py-4 md:grid-cols-6">
               <label className="space-y-1 text-sm md:col-span-2">
                 <span>Data Release</span>
                 <Input
@@ -4977,7 +4994,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
               </label>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="border-t px-5 py-4">
             <Button variant="outline" onClick={() => setEditingRelease(null)}>
               Fechar
             </Button>
@@ -5040,30 +5057,9 @@ type ReleaseOverride = {
   option: string;
 };
 
-function releaseTypeFromTitle(title: string) {
-  const normalized = normalizeOccurrenceText(title);
-  if (normalized.includes("correcao") || normalized.includes("ajuste")) return "correcao";
-  if (normalized.includes("alteracao") || normalized.includes("alterado")) return "alteracao";
-  if (
-    normalized.includes("novidade") ||
-    normalized.includes("novo ") ||
-    normalized.includes("nova ") ||
-    normalized.startsWith("novo") ||
-    normalized.startsWith("nova")
-  )
-    return "novidade";
-  return "outro";
-}
-
-function inferReleaseVersion(updatedAt: string) {
-  const updatedDate = updatedAt.slice(0, 10);
-  return erpVersions.find((version) => version.data_versao <= updatedDate);
-}
-
-function getReleaseVersionLabel(version: string | undefined, updatedAt: string) {
+function getReleaseVersionLabel(version: string | undefined) {
   const matched = version && erpVersions.find((item) => item.data_versao === version);
-  const selected = matched || inferReleaseVersion(updatedAt);
-  if (selected) return `${selected.versao} - ${formatVersionDate(selected.data_versao)}`;
+  if (matched) return `${matched.versao} - ${formatVersionDate(matched.data_versao)}`;
   if (version && version !== "nao-informada") return version;
   return "Não informada";
 }
