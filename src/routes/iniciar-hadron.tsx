@@ -118,6 +118,9 @@ type HadronOccurrenceDetail = {
   description: string;
   solution: string;
   status: string;
+  reviewedAt?: string | null;
+  version?: string;
+  baseAddress?: string;
   events?: TicketEvent[];
 };
 
@@ -2228,6 +2231,9 @@ function openImportedOccurrence(
       solution:
         occurrence.solutionHtml || occurrence.solutionText || "Solução ainda não registrada.",
       status: occurrence.status || occurrence.kind,
+      reviewedAt: occurrence.reviewedAt,
+      version: occurrence.versionLegacyId,
+      baseAddress: occurrence.baseAddress || occurrence.testBase,
     },
   });
 }
@@ -2636,6 +2642,8 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
   const [formQuery, setFormQuery] = useState("");
   const [kind, setKind] = useState("todos");
   const [operator, setOperator] = useState("todos");
+  const [userType, setUserType] = useState("todos");
+  const [dateType, setDateType] = useState("ocorrencia");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
@@ -2648,7 +2656,8 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
   const optionIds = useMemo(() => {
     const optionTerm = normalizeOccurrenceText(optionQuery);
     const formTerm = normalizeOccurrenceText(formQuery);
-    if (!optionTerm && !formTerm) return undefined;
+    const ownerTerm = userType === "responsavel" && operator !== "todos" ? operator : "";
+    if (!optionTerm && !formTerm && !ownerTerm) return undefined;
     const ids = hadronOptions
       .filter(
         (option) =>
@@ -2656,11 +2665,12 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
             normalizeOccurrenceText(`${option.option} ${option.description}`).includes(
               optionTerm,
             )) &&
-          (!formTerm || normalizeOccurrenceText(option.form).includes(formTerm)),
+          (!formTerm || normalizeOccurrenceText(option.form).includes(formTerm)) &&
+          (!ownerTerm || option.owner === ownerTerm),
       )
       .map((option) => option.id);
     return ids.length ? ids : ["__none__"];
-  }, [formQuery, optionQuery]);
+  }, [formQuery, operator, optionQuery, userType]);
 
   useEffect(() => {
     void listHadronOccurrenceOperators()
@@ -2678,6 +2688,20 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
         optionIds,
         kind,
         operator,
+        operatorField:
+          userType === "responsavel"
+            ? "owner"
+            : userType === "ocorrencia"
+              ? "reporter"
+              : userType === "solucao"
+                ? "solver"
+                : undefined,
+        dateField:
+          dateType === "solucao"
+            ? "solved_at"
+            : dateType === "revisao"
+              ? "reviewed_at"
+              : "occurred_at",
         dateFrom,
         dateTo,
         query,
@@ -2699,13 +2723,15 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [dateFrom, dateTo, kind, operator, optionIds, page, pageSize, query]);
+  }, [dateFrom, dateTo, dateType, kind, operator, optionIds, page, pageSize, query, userType]);
 
   const clearFilters = () => {
     setOptionQuery("");
     setFormQuery("");
     setKind("todos");
     setOperator("todos");
+    setUserType("todos");
+    setDateType("ocorrencia");
     setDateFrom("");
     setDateTo("");
     setPage(1);
@@ -2721,7 +2747,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
             {total.toLocaleString("pt-BR")} registros
           </span>
         </div>
-        <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.2fr_.7fr_.75fr_.8fr_1.4fr_auto]">
+        <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[.8fr_.7fr_.85fr_.85fr_.85fr_.8fr_1.35fr_auto]">
           <Input
             value={optionQuery}
             onChange={(event) => {
@@ -2749,8 +2775,22 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
               ["ocorrencia", "Ocorrência"],
               ["aprovacao", "Aprovação"],
               ["sugestao", "Sugestão"],
+              ["solucao", "Solução"],
               ["revisada", "Revisada"],
               ["aviso", "Aviso"],
+            ]}
+          />
+          <OccurrenceSelect
+            value={userType}
+            onValueChange={(value) => {
+              setUserType(value);
+              setPage(1);
+            }}
+            items={[
+              ["todos", "Tipo de usuário"],
+              ["responsavel", "Responsável"],
+              ["ocorrencia", "Ocorrência"],
+              ["solucao", "Solução"],
             ]}
           />
           <OccurrenceSelect
@@ -2762,6 +2802,18 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
             items={[
               ["todos", "Todos os operadores"],
               ...operators.map((item) => [item, item] as [string, string]),
+            ]}
+          />
+          <OccurrenceSelect
+            value={dateType}
+            onValueChange={(value) => {
+              setDateType(value);
+              setPage(1);
+            }}
+            items={[
+              ["ocorrencia", "Data da ocorrência"],
+              ["solucao", "Data da solução"],
+              ["revisao", "Data da revisão"],
             ]}
           />
           <DateRangeFilter
@@ -2785,15 +2837,16 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1180px] text-left text-xs">
+        <table className="w-full min-w-[1500px] text-left text-xs">
           <thead className="border-b bg-muted/20 text-primary">
             <tr>
-              <th className="w-24 px-3 py-3 font-medium">Tipo</th>
+              <th className="w-16 px-3 py-3 text-center font-medium">Tipo</th>
               <th className="w-32 px-3 py-3 font-medium">Opção/Form.</th>
-              <th className="px-3 py-3 font-medium">Ocorrência</th>
+              <th className="w-56 px-3 py-3 font-medium">Descrição</th>
+              <th className="px-3 py-3 font-medium">Detalhes</th>
               <th className="w-24 px-3 py-3 font-medium">Responsável</th>
-              <th className="w-28 px-3 py-3 font-medium">Data</th>
-              <th className="px-3 py-3 font-medium">Solução</th>
+              <th className="w-32 px-3 py-3 font-medium">Ocorrência / Operador</th>
+              <th className="w-32 px-3 py-3 font-medium">Solução / Operador</th>
               <th className="w-28 px-3 py-3 font-medium">Revisão</th>
               <th className="w-16 px-3 py-3 text-center font-medium">Ações</th>
             </tr>
@@ -2803,21 +2856,28 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
               const option = hadronOptionsById.get(occurrence.optionLegacyId);
               return (
                 <tr key={occurrence.id} className="align-top hover:bg-muted/25">
-                  <td className="px-3 py-3 capitalize">{occurrence.kind}</td>
+                  <td className="px-3 py-3 text-center">
+                    <ImportedOccurrenceTypeIcon occurrence={occurrence} />
+                  </td>
                   <td className="px-3 py-3 font-medium">
                     {option
                       ? `${option.option}/${option.form || option.option}`
                       : occurrence.optionLegacyId}
+                  </td>
+                  <td className="px-3 py-3 font-medium text-primary">
+                    {option?.description || "Descrição não informada"}
                   </td>
                   <td className="max-w-lg px-3 py-3">
                     <p className="line-clamp-3 leading-5">
                       {occurrence.occurrenceText || "Sem descrição"}
                     </p>
                   </td>
-                  <td className="px-3 py-3">{occurrence.reporter || "-"}</td>
-                  <td className="px-3 py-3">{formatOccurrenceDate(occurrence.occurredAt)}</td>
-                  <td className="max-w-md px-3 py-3 text-muted-foreground">
-                    <p className="line-clamp-3 leading-5">{occurrence.solutionText || "-"}</p>
+                  <td className="px-3 py-3">{option?.owner || "-"}</td>
+                  <td className="px-3 py-3">
+                    <OccurrenceDate value={occurrence.occurredAt} operator={occurrence.reporter} />
+                  </td>
+                  <td className="px-3 py-3">
+                    <OccurrenceDate value={occurrence.solvedAt} operator={occurrence.solver} />
                   </td>
                   <td className="px-3 py-3 text-emerald-600">
                     {occurrence.reviewedAt ? formatOccurrenceDate(occurrence.reviewedAt) : "-"}
@@ -3299,6 +3359,27 @@ function OccurrenceTypeIcon({ ticket }: { ticket: TicketRow }) {
     </span>
   );
 }
+function ImportedOccurrenceTypeIcon({ occurrence }: { occurrence: HadronOccurrence }) {
+  const reviewed = Boolean(occurrence.reviewedAt) || occurrence.kind === "revisada";
+  const solved = Boolean(occurrence.solvedAt) || occurrence.kind === "solucao";
+  const Icon = reviewed ? CheckCircle2 : solved ? Wrench : Bug;
+  const label = reviewed ? "Revisada" : solved ? "Solução" : occurrence.kind || "Ocorrência";
+  return (
+    <span
+      title={label}
+      className={cn(
+        "mx-auto grid h-7 w-7 place-items-center rounded-full",
+        reviewed
+          ? "bg-emerald-500/10 text-emerald-600"
+          : solved
+            ? "bg-amber-500/10 text-amber-600"
+            : "bg-rose-500/10 text-rose-600",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+    </span>
+  );
+}
 function formatOccurrenceDate(value: string | null | undefined) {
   if (!value) return "-";
   const parsed = new Date(value);
@@ -3438,6 +3519,11 @@ function HadronOccurrenceDetailView({ occurrence }: { occurrence: HadronOccurren
           {occurrence.solvedAt && (
             <span>Solucionada em {formatOccurrenceDate(occurrence.solvedAt)}</span>
           )}
+          {occurrence.reviewedAt && (
+            <span>Revisada em {formatOccurrenceDate(occurrence.reviewedAt)}</span>
+          )}
+          {occurrence.version && <span>Versão: {occurrence.version}</span>}
+          {occurrence.baseAddress && <span>Base: {occurrence.baseAddress}</span>}
         </div>
       </div>
     </div>

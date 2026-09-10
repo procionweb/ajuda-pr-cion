@@ -31,6 +31,8 @@ type OccurrenceFilters = {
   optionIds?: string[];
   kind?: string;
   operator?: string;
+  operatorField?: "owner" | "reporter" | "solver";
+  dateField?: "occurred_at" | "solved_at" | "reviewed_at";
   dateFrom?: string;
   dateTo?: string;
   query?: string;
@@ -100,10 +102,15 @@ export async function listHadronOccurrences(filters: OccurrenceFilters) {
   if (filters.optionIds?.length) request = request.in("option_legacy_id", filters.optionIds);
   if (filters.kind && filters.kind !== "todos") request = request.eq("kind", filters.kind);
   if (filters.operator && filters.operator !== "todos") {
-    request = request.or(`reporter.eq.${filters.operator},solver.eq.${filters.operator}`);
+    if (filters.operatorField === "reporter") request = request.eq("reporter", filters.operator);
+    else if (filters.operatorField === "solver") request = request.eq("solver", filters.operator);
+    else if (filters.operatorField === "owner") {
+      // O responsável pertence ao cadastro da opção e é filtrado no cliente.
+    } else request = request.or(`reporter.eq.${filters.operator},solver.eq.${filters.operator}`);
   }
-  if (filters.dateFrom) request = request.gte("occurred_at", `${filters.dateFrom}T00:00:00-03:00`);
-  if (filters.dateTo) request = request.lte("occurred_at", `${filters.dateTo}T23:59:59-03:00`);
+  const dateField = filters.dateField || "occurred_at";
+  if (filters.dateFrom) request = request.gte(dateField, `${filters.dateFrom}T00:00:00-03:00`);
+  if (filters.dateTo) request = request.lte(dateField, `${filters.dateTo}T23:59:59-03:00`);
   if (filters.query?.trim()) {
     const term = filters.query.trim().replace(/[,%()]/g, " ");
     request = request.or(`occurrence_text.ilike.%${term}%,solution_text.ilike.%${term}%`);
