@@ -15,10 +15,7 @@ import {
   X,
   Boxes,
 } from "lucide-react";
-import {
-  filterArticlesByModule,
-  getModuleBySlug,
-} from "@/lib/module-link";
+import { filterArticlesByModule, getModuleBySlug } from "@/lib/module-link";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { EmptyState } from "@/components/portal/EmptyState";
 import { Card } from "@/components/ui/card";
@@ -48,8 +45,7 @@ export const Route = createFileRoute("/base-de-conhecimento/")({
       { title: "Base de Conhecimento — Portal Prócion" },
       {
         name: "description",
-        content:
-          "Manuais, guias, erros e correções, legislação e novidades da Prócion Sistemas.",
+        content: "Manuais, guias, erros e correções, legislação e novidades da Prócion Sistemas.",
       },
     ],
   }),
@@ -62,7 +58,6 @@ export const Route = createFileRoute("/base-de-conhecimento/")({
   }),
   component: KbIndexPage,
 });
-
 
 const categoryIcon: Record<KbCategoryId, React.ComponentType<{ className?: string }>> = {
   guia: BookOpen,
@@ -93,17 +88,18 @@ function tokenize(input: string): string[] {
 function KbIndexPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const [query, setQuery] = useState(search.search ?? "");
   const [activeCategory, setActiveCategory] = useState<KbCategoryId | "all">("all");
   const selectedRelease = useMemo(
-    () => search.release ? cvsArticles.find((article) => article.id === search.release) : undefined,
+    () =>
+      search.release ? cvsArticles.find((article) => article.id === search.release) : undefined,
     [search.release],
   );
+  const [query, setQuery] = useState(search.search ?? selectedRelease?.title ?? "");
 
   // Sync query state when URL param changes (chip click from other page)
   useEffect(() => {
-    setQuery(search.search ?? "");
-  }, [search.search]);
+    setQuery(search.search ?? selectedRelease?.title ?? "");
+  }, [search.search, selectedRelease]);
 
   const countByCategory = useMemo(() => {
     const c: Record<string, number> = {};
@@ -115,10 +111,7 @@ function KbIndexPage() {
   const tokens = useMemo(() => tokenize(trimmed), [trimmed]);
   const hasSearch = trimmed.length > 0;
 
-  const activeModule = useMemo(
-    () => getModuleBySlug(search.modulo),
-    [search.modulo],
-  );
+  const activeModule = useMemo(() => getModuleBySlug(search.modulo), [search.modulo]);
 
   const moduleFiltered = useMemo(
     () => (activeModule ? filterArticlesByModule(kbArticlesFull, activeModule) : kbArticlesFull),
@@ -166,12 +159,7 @@ function KbIndexPage() {
     <AppShell>
       {search.from === "chamado" && search.ticketId ? (
         <div className="mb-3 flex">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="h-8 cursor-pointer rounded-lg"
-          >
+          <Button asChild variant="outline" size="sm" className="h-8 cursor-pointer rounded-lg">
             <Link to="/chamados" search={{ ticket: search.ticketId }}>
               <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
               Voltar ao chamado
@@ -189,11 +177,22 @@ function KbIndexPage() {
         <section className="mb-6 overflow-hidden rounded-lg border bg-card shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3 border-b px-5 py-4">
             <div className="min-w-0">
-              <div className="mb-1 flex items-center gap-2 text-xs text-primary"><Sparkles className="h-4 w-4" /> Release Hádron</div>
-              <h2 className="text-lg font-semibold leading-snug text-foreground">{selectedRelease.title}</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Responsável: {selectedRelease.owner || "Não informado"} · Atualizado em {formatReleaseDate(selectedRelease.updatedAt)}</p>
+              <div className="mb-1 flex items-center gap-2 text-xs text-primary">
+                <Sparkles className="h-4 w-4" /> Release Hádron
+              </div>
+              <h2 className="text-lg font-semibold leading-snug text-foreground">
+                {selectedRelease.title}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Responsável: {selectedRelease.owner || "Não informado"} · Atualizado em{" "}
+                {formatReleaseDate(selectedRelease.updatedAt)}
+              </p>
             </div>
-            <Button asChild variant="outline" size="sm"><Link to="/base-de-conhecimento" search={{}}>Voltar para a base</Link></Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/base-de-conhecimento" search={{}}>
+                Voltar para a base
+              </Link>
+            </Button>
           </div>
           <div className="grid gap-5 p-5 lg:grid-cols-[190px_minmax(0,1fr)]">
             <aside className="space-y-3 text-sm lg:border-r lg:pr-5">
@@ -201,11 +200,14 @@ function KbIndexPage() {
               <ReleaseField label="Status" value={selectedRelease.status || "Não informado"} />
               <ReleaseField label="Cliques" value={String(selectedRelease.clicks || 0)} />
             </aside>
-            <ReleaseContent value={selectedRelease.description || "Este release não possui detalhes no JSON importado."} />
+            <ReleaseContent
+              value={
+                selectedRelease.description || "Este release não possui detalhes no JSON importado."
+              }
+            />
           </div>
         </section>
       )}
-
 
       <Card className="p-4 mb-6">
         <div className="relative">
@@ -259,7 +261,6 @@ function KbIndexPage() {
           </Button>
         </div>
       )}
-
 
       {hasSearch && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
@@ -350,20 +351,14 @@ function KbIndexPage() {
                     <Badge className={cn("text-[10px]", categoryToneClass(a.category))}>
                       {getCategory(a.category).name}
                     </Badge>
-                    <span className="text-[11px] text-muted-foreground">
-                      {a.module}
-                    </span>
+                    <span className="text-[11px] text-muted-foreground">{a.module}</span>
                     <span className="text-[11px] text-muted-foreground">·</span>
-                    <span className="text-[11px] text-muted-foreground">
-                      {a.readTime}
-                    </span>
+                    <span className="text-[11px] text-muted-foreground">{a.readTime}</span>
                   </div>
                   <p className="font-semibold leading-snug group-hover:text-primary transition-colors">
                     {a.title}
                   </p>
-                  <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">
-                    {a.summary}
-                  </p>
+                  <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">{a.summary}</p>
                   <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {a.tags.slice(0, 3).map((t) => (
@@ -393,17 +388,40 @@ function KbIndexPage() {
 }
 
 function ReleaseField({ label, value }: { label: string; value: string }) {
-  return <div className="border-b pb-3"><p className="text-[10px] uppercase text-muted-foreground">{label}</p><p className="mt-1 text-foreground">{value}</p></div>;
+  return (
+    <div className="border-b pb-3">
+      <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
+      <p className="mt-1 text-foreground">{value}</p>
+    </div>
+  );
 }
 
 function ReleaseContent({ value }: { value: string }) {
-  const images = [...value.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi)].map((match) => normalizeReleaseUrl(match[1])).filter(Boolean);
-  const paragraphs = value.replace(/<img[^>]*>/gi, " ").split(/<\/?(?:p|div|h[1-6]|li|ul|ol|br)[^>]*>/gi).map(stripReleaseHtml).filter(Boolean);
-  return <div className="min-w-0 space-y-3 text-sm leading-6 text-foreground">
-    <h3 className="font-medium">Detalhes do release</h3>
-    {paragraphs.map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 20)}`}>{paragraph}</p>)}
-    {images.map((src) => <img key={src} src={src} alt="Imagem do release" loading="lazy" className="max-h-[620px] max-w-full rounded-md border bg-white object-contain" />)}
-  </div>;
+  const images = [...value.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi)]
+    .map((match) => normalizeReleaseUrl(match[1]))
+    .filter(Boolean);
+  const paragraphs = value
+    .replace(/<img[^>]*>/gi, " ")
+    .split(/<\/?(?:p|div|h[1-6]|li|ul|ol|br)[^>]*>/gi)
+    .map(stripReleaseHtml)
+    .filter(Boolean);
+  return (
+    <div className="min-w-0 space-y-3 text-sm leading-6 text-foreground">
+      <h3 className="font-medium">Detalhes do release</h3>
+      {paragraphs.map((paragraph, index) => (
+        <p key={`${index}-${paragraph.slice(0, 20)}`}>{paragraph}</p>
+      ))}
+      {images.map((src) => (
+        <img
+          key={src}
+          src={src}
+          alt="Imagem do release"
+          loading="lazy"
+          className="max-h-[620px] max-w-full rounded-md border bg-white object-contain"
+        />
+      ))}
+    </div>
+  );
 }
 
 function normalizeReleaseUrl(value: string) {
@@ -412,12 +430,23 @@ function normalizeReleaseUrl(value: string) {
 }
 
 function stripReleaseHtml(value: string) {
-  return value.replace(/<[^>]+>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/&amp;/gi, "&").replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function formatReleaseDate(value: string) {
   const parsed = new Date(value.replace(" ", "T"));
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  return Number.isNaN(parsed.getTime())
+    ? value
+    : parsed.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
 function CategoryPill({

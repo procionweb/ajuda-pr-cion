@@ -3699,7 +3699,7 @@ function createReleaseDetail(
     option: option?.option || release.id,
     form: option?.form || option?.option || release.id,
     owner: release.owner || option?.owner || "Não informado",
-    version: release.status || "Não informada",
+    version: "Não informada",
     date: release.updatedAt || release.createdAt,
     module: option?.moduleId
       ? `Módulo ${option.moduleId}`
@@ -4437,6 +4437,14 @@ function ReleasesTable({ query, onOpen }: TableProps) {
   const [dateType, setDateType] = useState("release");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [releaseOverrides, setReleaseOverrides] = useState<Record<string, ReleaseOverride>>({});
+  const [removedReleaseIds, setRemovedReleaseIds] = useState<Set<string>>(() => new Set());
+  const [editingRelease, setEditingRelease] = useState<(ReleaseOverride & { id: string }) | null>(
+    null,
+  );
+  const [removingRelease, setRemovingRelease] = useState<{ id: string; title: string } | null>(
+    null,
+  );
   const normalizedQuery = normalizeOccurrenceText(query);
   const normalizedOptionQuery = normalizeOccurrenceText(optionQuery);
   const operators = useMemo(
@@ -4446,6 +4454,8 @@ function ReleasesTable({ query, onOpen }: TableProps) {
   const rows = useMemo(
     () =>
       cvsArticles
+        .filter((release) => !removedReleaseIds.has(release.id))
+        .map((release) => ({ ...release, ...releaseOverrides[release.id] }))
         .map((release) => ({
           release,
           option: findReleaseOption(release.title),
@@ -4477,7 +4487,17 @@ function ReleasesTable({ query, onOpen }: TableProps) {
           if (dateTo && dateValue > new Date(`${dateTo}T23:59:59`).getTime()) return false;
           return true;
         }),
-    [dateFrom, dateTo, dateType, normalizedOptionQuery, normalizedQuery, operator, releaseType],
+    [
+      dateFrom,
+      dateTo,
+      dateType,
+      normalizedOptionQuery,
+      normalizedQuery,
+      operator,
+      releaseOverrides,
+      releaseType,
+      removedReleaseIds,
+    ],
   );
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -4574,7 +4594,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                 <th className="w-20 px-4 py-3 text-center">Cliques</th>
                 <th className="w-24 px-4 py-3">Versão</th>
                 <th className="w-32 px-4 py-3">Data</th>
-                <th className="w-20 px-4 py-3 text-center">Ações</th>
+                <th className="w-40 px-4 py-3 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -4619,16 +4639,47 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex justify-center gap-1">
+                    <div className="flex flex-nowrap justify-center gap-0.5">
                       <Button
                         asChild
                         variant="ghost"
                         size="icon"
                         title="Abrir release na Base de Conhecimento"
                       >
-                        <Link to="/base-de-conhecimento" search={{ release: release.id }}>
+                        <Link
+                          to="/base-de-conhecimento/"
+                          search={{ release: release.id, search: release.title }}
+                        >
                           <Globe2 className="h-4 w-4" />
                         </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Editar release"
+                        onClick={() =>
+                          setEditingRelease({
+                            id: release.id,
+                            title: release.title,
+                            owner: release.owner,
+                            moduleId: release.moduleId,
+                            submoduleId: release.submoduleId,
+                            description: release.description,
+                            tags: release.tags,
+                            createdAt: release.createdAt,
+                          })
+                        }
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Remover release"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setRemovingRelease({ id: release.id, title: release.title })}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -4675,9 +4726,142 @@ function ReleasesTable({ query, onOpen }: TableProps) {
           setPage(1);
         }}
       />
+      <Dialog
+        open={Boolean(editingRelease)}
+        onOpenChange={(open) => !open && setEditingRelease(null)}
+      >
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogTitle>Editar release</DialogTitle>
+          {editingRelease && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="space-y-1 text-sm md:col-span-2">
+                <span>Descrição</span>
+                <Input
+                  value={editingRelease.title}
+                  onChange={(event) =>
+                    setEditingRelease({ ...editingRelease, title: event.target.value })
+                  }
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span>Responsável</span>
+                <Input
+                  value={editingRelease.owner}
+                  onChange={(event) =>
+                    setEditingRelease({ ...editingRelease, owner: event.target.value })
+                  }
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span>Data do release</span>
+                <Input
+                  type="datetime-local"
+                  value={editingRelease.createdAt.replace(" ", "T").slice(0, 16)}
+                  onChange={(event) =>
+                    setEditingRelease({
+                      ...editingRelease,
+                      createdAt: event.target.value.replace("T", " "),
+                    })
+                  }
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span>Módulo</span>
+                <Input
+                  value={editingRelease.moduleId}
+                  onChange={(event) =>
+                    setEditingRelease({ ...editingRelease, moduleId: event.target.value })
+                  }
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span>Submódulo</span>
+                <Input
+                  value={editingRelease.submoduleId}
+                  onChange={(event) =>
+                    setEditingRelease({ ...editingRelease, submoduleId: event.target.value })
+                  }
+                />
+              </label>
+              <label className="space-y-1 text-sm md:col-span-2">
+                <span>Tags</span>
+                <Input
+                  value={editingRelease.tags}
+                  onChange={(event) =>
+                    setEditingRelease({ ...editingRelease, tags: event.target.value })
+                  }
+                />
+              </label>
+              <label className="space-y-1 text-sm md:col-span-2">
+                <span>Detalhes do release</span>
+                <textarea
+                  value={editingRelease.description}
+                  onChange={(event) =>
+                    setEditingRelease({ ...editingRelease, description: event.target.value })
+                  }
+                  className="min-h-48 w-full resize-y rounded-md border bg-background p-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingRelease(null)}>
+              Fechar
+            </Button>
+            <Button
+              onClick={() => {
+                if (!editingRelease) return;
+                const { id, ...changes } = editingRelease;
+                setReleaseOverrides((current) => ({ ...current, [id]: changes }));
+                setEditingRelease(null);
+                toast.success("Release atualizado com sucesso.");
+              }}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog
+        open={Boolean(removingRelease)}
+        onOpenChange={(open) => !open && setRemovingRelease(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover release?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O release “{removingRelease?.title}” será removido da listagem.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (!removingRelease) return;
+                setRemovedReleaseIds((current) => new Set(current).add(removingRelease.id));
+                setRemovingRelease(null);
+                toast.success("Release removido com sucesso.");
+              }}
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
+
+type ReleaseOverride = {
+  title: string;
+  owner: string;
+  moduleId: string;
+  submoduleId: string;
+  description: string;
+  tags: string;
+  createdAt: string;
+};
 
 function releaseTypeFromTitle(title: string) {
   const normalized = normalizeOccurrenceText(title);
