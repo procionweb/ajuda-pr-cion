@@ -72,6 +72,7 @@ import { toast } from "sonner";
 import {
   listHadronOccurrences,
   listHadronOccurrenceOperators,
+  reviewHadronOccurrence,
   updateHadronOccurrenceSolution,
   type HadronOccurrence,
 } from "@/lib/hadron-occurrences";
@@ -108,6 +109,7 @@ type ReleaseDetail = {
 };
 
 type HadronOccurrenceDetail = {
+  id?: number;
   option: string;
   form: string;
   kind: ReturnType<typeof occurrenceKind>;
@@ -361,6 +363,7 @@ function HadronPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("todos");
   const [detail, setDetail] = useState<Detail | null>(null);
+  const [reviewingOccurrence, setReviewingOccurrence] = useState(false);
   const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
   const [editingOption, setEditingOption] = useState<HadronOption | null>(null);
   const viewingOptionTickets = useMemo(
@@ -370,6 +373,31 @@ function HadronPage() {
         : [],
     [tickets, viewingOption],
   );
+  const confirmOccurrenceReview = async () => {
+    const occurrence = detail?.hadronOccurrence;
+    if (!occurrence?.id || occurrence.reviewedAt || !occurrence.solvedAt) return;
+    setReviewingOccurrence(true);
+    try {
+      const reviewedAt = await reviewHadronOccurrence(
+        occurrence.id,
+        currentUser.operator || currentUser.name,
+      );
+      setDetail((current) =>
+        current?.hadronOccurrence
+          ? {
+              ...current,
+              hadronOccurrence: { ...current.hadronOccurrence, reviewedAt, kind: "revisado" },
+            }
+          : current,
+      );
+      window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed"));
+      toast.success("Ocorrência revisada com sucesso.");
+    } catch {
+      toast.error("Não foi possível revisar a ocorrência.");
+    } finally {
+      setReviewingOccurrence(false);
+    }
+  };
 
   return (
     <AppShell>
@@ -542,10 +570,22 @@ function HadronPage() {
                 </p>
               </>
             )}
-            <div className="flex justify-end">
-              <Button onClick={() => setDetail(null)} className="cursor-pointer">
-                Concluir visualizacao
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDetail(null)} className="cursor-pointer">
+                Fechar
               </Button>
+              {detail?.hadronOccurrence?.id &&
+                detail.hadronOccurrence.solvedAt &&
+                !detail.hadronOccurrence.reviewedAt && (
+                  <Button
+                    onClick={() => void confirmOccurrenceReview()}
+                    disabled={reviewingOccurrence}
+                    className="cursor-pointer"
+                  >
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    {reviewingOccurrence ? "Revisando..." : "Revisar"}
+                  </Button>
+                )}
             </div>
           </div>
         </DialogContent>
@@ -2216,6 +2256,7 @@ function openImportedOccurrence(
     body: occurrence.occurrenceText || "Sem descrição.",
     meta: [],
     hadronOccurrence: {
+      id: occurrence.id,
       option: option?.option || occurrence.optionLegacyId,
       form: option?.form || option?.option || "-",
       kind: occurrence.reviewedAt
@@ -2250,8 +2291,14 @@ function OptionImportedOccurrences({
   const [rows, setRows] = useState<HadronOccurrence[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [solutionOccurrence, setSolutionOccurrence] = useState<HadronOccurrence | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    const reload = () => setReloadKey((current) => current + 1);
+    window.addEventListener("hadron-occurrence-reviewed", reload);
+    return () => window.removeEventListener("hadron-occurrence-reviewed", reload);
+  }, []);
+  const [solutionOccurrence, setSolutionOccurrence] = useState<HadronOccurrence | null>(null);
   const { allCollaborators } = useCollaborators({ onlyActive: false });
 
   useEffect(() => {
@@ -2652,6 +2699,13 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
   const [total, setTotal] = useState(0);
   const [operators, setOperators] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    const reload = () => setReloadKey((current) => current + 1);
+    window.addEventListener("hadron-occurrence-reviewed", reload);
+    return () => window.removeEventListener("hadron-occurrence-reviewed", reload);
+  }, []);
 
   const optionIds = useMemo(() => {
     const optionTerm = normalizeOccurrenceText(optionQuery);
@@ -2723,7 +2777,19 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [dateFrom, dateTo, dateType, kind, operator, optionIds, page, pageSize, query, userType]);
+  }, [
+    dateFrom,
+    dateTo,
+    dateType,
+    kind,
+    operator,
+    optionIds,
+    page,
+    pageSize,
+    query,
+    reloadKey,
+    userType,
+  ]);
 
   const clearFilters = () => {
     setOptionQuery("");
@@ -2836,19 +2902,19 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
           </Button>
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1500px] text-left text-xs">
+      <div className="overflow-hidden">
+        <table className="w-full table-fixed text-left text-[11px] xl:text-xs">
           <thead className="border-b bg-muted/20 text-primary">
             <tr>
-              <th className="w-16 px-3 py-3 text-center font-medium">Tipo</th>
-              <th className="w-32 px-3 py-3 font-medium">Opção/Form.</th>
-              <th className="w-56 px-3 py-3 font-medium">Descrição</th>
+              <th className="w-[4%] px-2 py-3 text-center font-medium">Tipo</th>
+              <th className="w-[8%] px-2 py-3 font-medium">Opção/Form.</th>
+              <th className="w-[14%] px-2 py-3 font-medium">Descrição</th>
               <th className="px-3 py-3 font-medium">Detalhes</th>
-              <th className="w-24 px-3 py-3 font-medium">Responsável</th>
-              <th className="w-32 px-3 py-3 font-medium">Ocorrência / Operador</th>
-              <th className="w-32 px-3 py-3 font-medium">Solução / Operador</th>
-              <th className="w-28 px-3 py-3 font-medium">Revisão</th>
-              <th className="w-16 px-3 py-3 text-center font-medium">Ações</th>
+              <th className="w-[7%] px-2 py-3 font-medium">Responsável</th>
+              <th className="w-[10%] px-2 py-3 font-medium">Ocorrência / Operador</th>
+              <th className="w-[10%] px-2 py-3 font-medium">Solução / Operador</th>
+              <th className="w-[8%] px-2 py-3 font-medium">Revisão</th>
+              <th className="w-[11%] px-2 py-3 text-center font-medium">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -2859,13 +2925,15 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
                   <td className="px-3 py-3 text-center">
                     <ImportedOccurrenceTypeIcon occurrence={occurrence} />
                   </td>
-                  <td className="px-3 py-3 font-medium">
+                  <td className="break-words px-2 py-3 font-medium">
                     {option
                       ? `${option.option}/${option.form || option.option}`
                       : occurrence.optionLegacyId}
                   </td>
-                  <td className="px-3 py-3 font-medium text-primary">
-                    {option?.description || "Descrição não informada"}
+                  <td className="px-2 py-3 font-medium text-primary">
+                    <p className="line-clamp-2 break-words">
+                      {option?.description || "Descrição não informada"}
+                    </p>
                   </td>
                   <td className="max-w-lg px-3 py-3">
                     <p className="line-clamp-3 leading-5">
@@ -2882,7 +2950,17 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
                   <td className="px-3 py-3 text-emerald-600">
                     {occurrence.reviewedAt ? formatOccurrenceDate(occurrence.reviewedAt) : "-"}
                   </td>
-                  <td className="px-3 py-3 text-center">
+                  <td className="px-2 py-3 text-center">
+                    {occurrence.solvedAt && !occurrence.reviewedAt && (
+                      <Button
+                        size="sm"
+                        className="mr-1 h-7 cursor-pointer px-2 text-[10px]"
+                        onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
+                      >
+                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                        Revisar
+                      </Button>
+                    )}
                     <Button
                       size="icon"
                       variant="ghost"
