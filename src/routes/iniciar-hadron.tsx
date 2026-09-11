@@ -5474,7 +5474,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                     <span className="mr-1 text-muted-foreground">{article.id} -</span>
                     {article.title}
                   </td>
-                  <td className="px-3 py-2.5">{getCategory(article.category).name}</td>
+                  <td className="px-3 py-2.5">{articleCategoryLabel(article.category)}</td>
                   <td className="whitespace-nowrap px-3 py-2.5">{article.author}</td>
                   <td className="px-3 py-2.5">
                     <span className="block">{hadronModuleNames.get(article.moduleId) || `Módulo ${article.moduleId}`}</span>
