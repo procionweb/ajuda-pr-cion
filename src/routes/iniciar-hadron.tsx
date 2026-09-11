@@ -17,7 +17,7 @@ import {
   Flag,
   GitBranch,
   History,
-  Globe2,
+  ExternalLink,
   KeyRound,
   ListChecks,
   ClipboardList,
@@ -104,6 +104,28 @@ import {
 } from "@/lib/hadron-occurrences";
 
 const hadronOptionsById = new Map(hadronOptions.map((option) => [option.id, option]));
+const releaseOptionSelectItems = [
+  ...new Map(
+    hadronOptions.map((option) => [
+      option.option,
+      [
+        option.option,
+        `${option.option}/${option.form || option.option} - ${option.description}`,
+      ] as [string, string],
+    ]),
+  ).values(),
+].sort((a, b) => a[1].localeCompare(b[1], "pt-BR", { numeric: true }));
+const releaseModuleSelectItems = [...hadronModuleNames.entries()]
+  .sort((a, b) => Number(a[0]) - Number(b[0]))
+  .map(([id, name]) => [id, `${id} : ${name}`] as [string, string]);
+
+const releaseSubmoduleSelectItems = (moduleId: string) => [
+  ["none", "Selecione um submódulo"] as [string, string],
+  ...[...hadronSubmoduleNames.entries()]
+    .filter(([key]) => key.startsWith(`${moduleId}:`))
+    .sort((a, b) => a[1].localeCompare(b[1], "pt-BR"))
+    .map(([key, name]) => [key.split(":")[1], name] as [string, string]),
+];
 
 export const Route = createFileRoute("/iniciar-hadron")({
   head: () => ({ meta: [{ title: "Hadron - CRM Procion" }] }),
@@ -736,7 +758,7 @@ function Overview({
                         to="/base-de-conhecimento"
                         search={{ search: release.title, from: "hadron-release" }}
                       >
-                        <Globe2 className="h-4 w-4" />
+                        <ExternalLink className="h-4 w-4" />
                       </Link>
                     </Button>
                     <Button
@@ -4071,45 +4093,11 @@ function ReleaseMeta({ label, value }: { label: string; value: string }) {
 }
 
 function LegacyRichContent({ value }: { value: string }) {
-  const images = [...value.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi)]
-    .map((match) => normalizeLegacyUrl(match[1]))
-    .filter(Boolean);
-  const links = [...value.matchAll(/<a[^>]+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gis)]
-    .map((match) => ({ href: normalizeLegacyUrl(match[1]), label: htmlToText(match[2]) }))
-    .filter((link) => link.href);
-  const paragraphs = value
-    .replace(/<img[^>]*>/gi, " ")
-    .replace(/<a[^>]*>(.*?)<\/a>/gis, "$1")
-    .split(/<\/?(?:p|div|h[1-6]|li|ul|ol|br)[^>]*>/gi)
-    .map(htmlToText)
-    .filter(Boolean);
-
   return (
-    <div className="space-y-3 text-sm leading-6 text-foreground">
-      {paragraphs.map((paragraph, index) => (
-        <p key={`${index}-${paragraph.slice(0, 24)}`}>{paragraph}</p>
-      ))}
-      {images.map((src) => (
-        <img
-          key={src}
-          src={src}
-          alt="Imagem vinculada ao registro"
-          loading="lazy"
-          className="max-h-[520px] w-auto max-w-full rounded-md border bg-white object-contain"
-        />
-      ))}
-      {links.map((link) => (
-        <a
-          key={link.href}
-          href={link.href}
-          target="_blank"
-          rel="noreferrer"
-          className="block break-all text-primary hover:underline"
-        >
-          {link.label || link.href}
-        </a>
-      ))}
-    </div>
+    <div
+      className="space-y-3 text-sm leading-6 text-foreground [&_a]:break-all [&_a]:text-primary [&_a]:underline [&_img]:my-4 [&_img]:max-h-[720px] [&_img]:w-auto [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:bg-white [&_img]:object-contain [&_li]:ml-5 [&_ol]:list-decimal [&_p]:min-h-4 [&_ul]:list-disc"
+      dangerouslySetInnerHTML={{ __html: sanitizeLegacyHtml(value) }}
+    />
   );
 }
 
@@ -4125,6 +4113,13 @@ function normalizeLegacyHtml(value: string) {
     const normalized = normalizeLegacyUrl(src);
     return normalized ? `${before}${normalized}${after}` : `${before}${src}${after}`;
   });
+}
+
+function sanitizeLegacyHtml(value: string) {
+  return normalizeLegacyHtml(value)
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/\son\w+\s*=\s*(["']).*?\1/gi, "")
+    .replace(/javascript:/gi, "");
 }
 
 function htmlToText(value: string) {
@@ -4150,6 +4145,11 @@ function formatCatalogDate(value: string) {
   return Number.isNaN(parsed.getTime())
     ? value
     : parsed.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+function releaseTimestamp(value: string) {
+  const parsed = new Date(value.replace(" ", "T")).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 function normalizeLegacyOccurrenceTimestamp(value: string | null | undefined) {
@@ -4826,7 +4826,12 @@ function ReleasesTable({ query, onOpen }: TableProps) {
           if (dateFrom && dateValue < new Date(`${dateFrom}T00:00:00`).getTime()) return false;
           if (dateTo && dateValue > new Date(`${dateTo}T23:59:59`).getTime()) return false;
           return true;
-        }),
+        })
+        .sort(
+          (a, b) =>
+            releaseTimestamp(b.release.createdAt || b.release.updatedAt) -
+            releaseTimestamp(a.release.createdAt || a.release.updatedAt),
+        ),
     [
       dateFrom,
       dateTo,
@@ -4934,8 +4939,8 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                 <th className="w-32 px-4 py-3">Responsável</th>
                 <th className="w-20 px-4 py-3 text-center">Cliques</th>
                 <th className="w-24 px-4 py-3">Versão</th>
-                <th className="w-32 px-4 py-3">Data</th>
-                <th className="w-40 px-4 py-3 text-center">Ações</th>
+                <th className="w-48 px-4 py-3">Data</th>
+                <th className="w-24 px-4 py-3 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -4977,14 +4982,14 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                   <td className="px-4 py-3">{release.owner || "Não informado"}</td>
                   <td className="px-4 py-3 text-center">{release.clicks}</td>
                   <td className="px-4 py-3">{getReleaseVersionLabel(release.version)}</td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-3">
                     <span className="block">{formatCatalogDate(release.createdAt)}</span>
-                    <span className="text-xs">
+                    <span className="block text-xs">
                       Atualizado {formatCatalogDate(release.updatedAt)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-nowrap justify-center gap-0.5">
+                    <div className="mx-auto grid w-fit grid-cols-2 gap-0.5">
                       <Button
                         asChild
                         variant="ghost"
@@ -4999,7 +5004,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                             from: "hadron-release",
                           }}
                         >
-                          <Globe2 className="h-4 w-4" />
+                          <ExternalLink className="h-4 w-4 text-sky-700" />
                         </Link>
                       </Button>
                       <Button
@@ -5023,7 +5028,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                           })
                         }
                       >
-                        <Pencil className="h-4 w-4" />
+                        <FilePenLine className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -5157,29 +5162,32 @@ function ReleasesTable({ query, onOpen }: TableProps) {
               </label>
               <label className="space-y-1 text-sm md:col-span-2">
                 <span>Opção</span>
-                <Input
+                <OccurrenceSelect
                   value={editingRelease.option}
-                  onChange={(event) =>
-                    setEditingRelease({ ...editingRelease, option: event.target.value })
+                  onValueChange={(option) =>
+                    setEditingRelease({ ...editingRelease, option })
                   }
+                  items={releaseOptionSelectItems}
                 />
               </label>
               <label className="space-y-1 text-sm md:col-span-3">
                 <span>Módulo</span>
-                <Input
+                <OccurrenceSelect
                   value={editingRelease.moduleId}
-                  onChange={(event) =>
-                    setEditingRelease({ ...editingRelease, moduleId: event.target.value })
+                  onValueChange={(moduleId) =>
+                    setEditingRelease({ ...editingRelease, moduleId, submoduleId: "" })
                   }
+                  items={releaseModuleSelectItems}
                 />
               </label>
               <label className="space-y-1 text-sm md:col-span-3">
                 <span>Submódulo</span>
-                <Input
+                <OccurrenceSelect
                   value={editingRelease.submoduleId}
-                  onChange={(event) =>
-                    setEditingRelease({ ...editingRelease, submoduleId: event.target.value })
+                  onValueChange={(submoduleId) =>
+                    setEditingRelease({ ...editingRelease, submoduleId })
                   }
+                  items={releaseSubmoduleSelectItems(editingRelease.moduleId)}
                 />
               </label>
               <label className="space-y-1 text-sm md:col-span-6">
