@@ -5362,38 +5362,79 @@ function VersionsTable({ query, onOpen }: TableProps) {
 }
 
 function ArticlesTable({ query, onOpen }: TableProps) {
-  const statusById = useMemo(
-    () => new Map(cvsArticles.map((article) => [article.id, article.status])),
+  void onOpen;
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("todos");
+  const [operator, setOperator] = useState("todos");
+  const [status, setStatus] = useState("todos");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [overrides, setOverrides] = useState<Record<string, ArticleDraft>>({});
+  const [removedIds, setRemovedIds] = useState<Set<string>>(() => new Set());
+  const [viewingArticle, setViewingArticle] = useState<ArticleDraft | null>(null);
+  const [editingArticle, setEditingArticle] = useState<ArticleDraft | null>(null);
+  const [removingArticle, setRemovingArticle] = useState<ArticleDraft | null>(null);
+  const normalizedQuery = normalizeOccurrenceText(`${query} ${title}`.trim());
+  const categories = useMemo(
+    () => [...new Set(cvsArticles.map((article) => article.category).filter(Boolean))].sort(),
     [],
   );
-  const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
+  const operators = useMemo(
+    () => [...new Set(cvsArticles.map((article) => article.owner).filter(Boolean))].sort(),
+    [],
+  );
   const rows = useMemo(
     () =>
-      kbArticlesFull.filter((article) =>
-        [
-          article.id,
-          article.title,
-          article.author,
-          article.module,
-          getCategory(article.category).name,
-        ]
-          .join(" ")
-          .toLocaleLowerCase("pt-BR")
-          .includes(normalizedQuery),
-      ),
-    [normalizedQuery],
+      cvsArticles
+        .filter((article) => !removedIds.has(article.id))
+        .map((article) => articleDraft(article, overrides[article.id]))
+        .filter((article) => {
+          const haystack = normalizeOccurrenceText(
+            `${article.id} ${article.title} ${article.owner} ${article.category} ${article.tags}`,
+          );
+          const date = releaseTimestamp(article.updatedAt || article.createdAt);
+          if (normalizedQuery && !haystack.includes(normalizedQuery)) return false;
+          if (category !== "todos" && article.category !== category) return false;
+          if (operator !== "todos" && article.owner !== operator) return false;
+          if (status !== "todos" && article.status !== status) return false;
+          if (dateFrom && date < new Date(`${dateFrom}T00:00:00`).getTime()) return false;
+          if (dateTo && date > new Date(`${dateTo}T23:59:59`).getTime()) return false;
+          return true;
+        })
+        .sort((a, b) => releaseTimestamp(b.updatedAt) - releaseTimestamp(a.updatedAt)),
+    [category, dateFrom, dateTo, normalizedQuery, operator, overrides, removedIds, status],
   );
 
+  const clearFilters = () => {
+    setTitle("");
+    setCategory("todos");
+    setOperator("todos");
+    setStatus("todos");
+    setDateFrom("");
+    setDateTo("");
+  };
+
   return (
-    <section className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <div>
-          <h2 className="text-sm font-medium">Artigos</h2>
-          <p className="text-xs text-muted-foreground">{rows.length} artigos do catálogo Hádron.</p>
+    <>
+      <section className="overflow-hidden rounded-md border bg-card shadow-sm">
+        <div className="border-b px-4 py-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-lg font-medium">Artigos</h2>
+              <span className="text-xs text-muted-foreground">{rows.length} registros</span>
+            </div>
+            <Badge variant="secondary">Fonte: cvs_articles.json</Badge>
+          </div>
+          <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.35fr_1fr_1fr_1fr_1.35fr_auto]">
+            <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Título" />
+            <OccurrenceSelect value={category} onValueChange={setCategory} items={[["todos", "Categoria"], ...categories.map((item) => [item, articleCategoryLabel(item)] as [string, string])]} />
+            <OccurrenceSelect value={operator} onValueChange={setOperator} items={[["todos", "Operador"], ...operators.map((item) => [item, item] as [string, string])]} />
+            <OccurrenceSelect value={status} onValueChange={setStatus} items={[["todos", "Status"], ["0", "Não publicado"], ["1", "Publicado"], ["2", "Em análise"]]} />
+            <DateRangeFilter from={dateFrom} to={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
+            <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>Limpar</Button>
+          </div>
         </div>
-        <Badge variant="secondary">Fonte: cvs_articles.json</Badge>
-      </div>
-      <div className="overflow-x-auto">
+        <div className="overflow-x-auto">
         <table className="w-full min-w-[1180px] text-left text-xs">
           <thead className="border-b bg-muted/35 text-[11px] text-muted-foreground">
             <tr>
@@ -5416,7 +5457,8 @@ function ArticlesTable({ query, onOpen }: TableProps) {
           </thead>
           <tbody>
             {rows.map((article, index) => {
-              const published = statusById.get(article.id) === "1";
+              const published = article.status === "1";
+              const baseArticle = findBaseArticle(article.id);
               return (
                 <tr
                   key={article.id}
@@ -5435,52 +5477,48 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                   <td className="px-3 py-2.5">{getCategory(article.category).name}</td>
                   <td className="whitespace-nowrap px-3 py-2.5">{article.author}</td>
                   <td className="px-3 py-2.5">
-                    <span className="block">{article.module}</span>
+                    <span className="block">{hadronModuleNames.get(article.moduleId) || `Módulo ${article.moduleId}`}</span>
                     <span className="text-[10px] text-muted-foreground">
-                      {article.tags.slice(0, 2).join(" / ") || "Não informado"}
+                      {hadronSubmoduleNames.get(`${article.moduleId}:${article.submoduleId}`) || `Submódulo ${article.submoduleId}`}
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
                     <Badge variant={published ? "default" : "secondary"}>
-                      {published ? "Publicado" : "Em análise"}
+                      {articleStatusLabel(article.status)}
                     </Badge>
                   </td>
-                  <td className="px-3 py-2.5 text-center text-muted-foreground">-</td>
+                  <td className="px-3 py-2.5 text-center text-muted-foreground">{article.clicks}</td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-primary">
                     {formatHadronArticleDate(article.updatedAt)}
                   </td>
                   <td className="px-3 py-2.5">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-0.5">
+                      {baseArticle && (
+                        <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Abrir artigo na Base de Conhecimento">
+                          <Link to="/base-de-conhecimento/$slug" params={{ slug: baseArticle.slug }}>
+                            <ExternalLink className="h-4 w-4 text-sky-700" />
+                          </Link>
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
                         title="Visualizar artigo"
-                        onClick={() =>
-                          onOpen({
-                            title: article.title,
-                            subtitle: `${getCategory(article.category).name} - ${article.module}`,
-                            body: article.summary,
-                            meta: [
-                              `Responsável: ${article.author}`,
-                              `Atualizado: ${formatHadronArticleDate(article.updatedAt)}`,
-                              `Status: ${published ? "Publicado" : "Em análise"}`,
-                              `Artigo: ${article.id}`,
-                            ],
-                          })
-                        }
+                        onClick={() => setViewingArticle(article)}
                       >
-                        <Eye className="h-4 w-4" />
+                        <ScanEye className="h-4 w-4 text-sky-700" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar artigo">
-                        <Pencil className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar artigo" onClick={() => setEditingArticle(article)}>
+                        <FilePenLine className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        title="Artigos importados não podem ser excluídos"
-                        disabled
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        title="Remover artigo"
+                        onClick={() => setRemovingArticle(article)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -5491,19 +5529,144 @@ function ArticlesTable({ query, onOpen }: TableProps) {
             })}
           </tbody>
         </table>
-      </div>
+        </div>
       {rows.length === 0 && (
         <div className="px-4 py-12 text-center text-sm text-muted-foreground">
           Nenhum artigo encontrado.
         </div>
       )}
-    </section>
+      </section>
+      <ArticleViewDialog article={viewingArticle} onClose={() => setViewingArticle(null)} />
+      <ArticleEditDialog
+        article={editingArticle}
+        onClose={() => setEditingArticle(null)}
+        onSave={(article) => {
+          setOverrides((current) => ({ ...current, [article.id]: article }));
+          setEditingArticle(null);
+          toast.success("Artigo atualizado com sucesso.");
+        }}
+      />
+      <AlertDialog open={Boolean(removingArticle)} onOpenChange={(open) => !open && setRemovingArticle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Remover artigo?</AlertDialogTitle><AlertDialogDescription>O artigo “{removingArticle?.title}” será removido da listagem.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { if (!removingArticle) return; setRemovedIds((current) => new Set(current).add(removingArticle.id)); setRemovingArticle(null); toast.success("Artigo removido com sucesso."); }}>Remover</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+type ArticleDraft = {
+  id: string;
+  title: string;
+  status: string;
+  description: string;
+  category: string;
+  owner: string;
+  clicks: number;
+  tags: string;
+  permission: string;
+  emailCopy: string;
+  relatedArticleIds: string;
+  relatedReleaseIds: string;
+  moduleId: string;
+  submoduleId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+function articleDraft(
+  article: (typeof cvsArticles)[number],
+  override?: ArticleDraft,
+): ArticleDraft {
+  return override || {
+    ...article,
+    permission: "1",
+    emailCopy: "",
+    relatedArticleIds: "",
+  };
+}
+
+function findBaseArticle(id: string) {
+  return kbArticlesFull.find((article) => article.id === `AP-${id}`);
+}
+
+function articleCategoryLabel(value: string) {
+  return ({
+    guia: "Guia",
+    manual: "Manual",
+    erros: "Erros e Correções",
+    legislacao: "Legislação",
+    comunicacao: "Comunicação",
+    novidades: "Novidades",
+    atualizacoes: "Atualizações",
+  } as Record<string, string>)[value] || value;
+}
+
+function articleStatusLabel(value: string) {
+  return ({ "0": "Não publicado", "1": "Publicado", "2": "Em análise" } as Record<string, string>)[value] || "Em análise";
+}
+
+function ArticleViewDialog({ article, onClose }: { article: ArticleDraft | null; onClose: () => void }) {
+  return (
+    <Dialog open={Boolean(article)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+        <DialogTitle className="sr-only">Visualizar artigo</DialogTitle>
+        <DetailModalHeader icon={BookOpenText} title={article?.title || "Artigo"} protocol={article ? `Artigo ${article.id}` : undefined} meta={article ? `${articleCategoryLabel(article.category)} · ${article.owner}` : undefined} onClose={onClose} accentClassName="bg-sky-600" iconWrapClassName="bg-sky-600 text-white" />
+        {article && (
+          <div className="grid min-h-0 flex-1 overflow-y-auto px-5 py-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-5">
+            <aside className="space-y-4 border-b pb-4 lg:min-h-[58vh] lg:border-b-0 lg:border-r lg:pr-5">
+              <ReleaseMeta label="Categoria" value={articleCategoryLabel(article.category)} />
+              <ReleaseMeta label="Permissão" value={article.permission === "1" ? "Clientes" : article.permission === "2" ? "Empresa" : "Público"} />
+              <ReleaseMeta label="Status" value={articleStatusLabel(article.status)} />
+              <ReleaseMeta label="Módulo e submódulo" value={`${hadronModuleNames.get(article.moduleId) || article.moduleId} · ${hadronSubmoduleNames.get(`${article.moduleId}:${article.submoduleId}`) || article.submoduleId}`} />
+              <ReleaseMeta label="Responsável" value={article.owner} />
+              <ReleaseMeta label="Visualizações" value={String(article.clicks)} />
+              <ReleaseMeta label="Atualizado" value={formatHadronArticleDate(article.updatedAt)} />
+            </aside>
+            <section className="min-w-0 pt-4 lg:pt-0">
+              <h3 className="mb-4 text-sm font-medium">Detalhes</h3>
+              <LegacyRichContent value={article.description || "Sem conteúdo informado."} />
+            </section>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ArticleEditDialog({ article, onClose, onSave }: { article: ArticleDraft | null; onClose: () => void; onSave: (article: ArticleDraft) => void }) {
+  const [draft, setDraft] = useState<ArticleDraft | null>(article);
+  useEffect(() => setDraft(article), [article]);
+  if (!draft) return null;
+  const update = <K extends keyof ArticleDraft,>(field: K, value: ArticleDraft[K]) => setDraft((current) => current ? { ...current, [field]: value } : current);
+  const submodules = releaseSubmoduleSelectItems(draft.moduleId);
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+        <DialogTitle className="sr-only">Editar artigo</DialogTitle>
+        <DetailModalHeader icon={FilePenLine} title="Editar artigo" protocol={`Artigo ${draft.id}`} meta={draft.title} onClose={onClose} accentClassName="bg-sky-600" iconWrapClassName="bg-sky-600 text-white" />
+        <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 py-4 md:grid-cols-6">
+          <label className="space-y-1 text-sm md:col-span-2"><span>Categoria</span><OccurrenceSelect value={draft.category} onValueChange={(value) => update("category", value)} items={[["guia", "Guia"], ["manual", "Manual"], ["erros", "Erros e Correções"], ["legislacao", "Legislação"], ["comunicacao", "Comunicação"], ["novidades", "Novidades"], ["atualizacoes", "Atualizações"]]} /></label>
+          <label className="space-y-1 text-sm md:col-span-2"><span>Permissão</span><OccurrenceSelect value={draft.permission} onValueChange={(value) => update("permission", value)} items={[["0", "Público"], ["1", "Clientes"], ["2", "Empresa"]]} /></label>
+          <label className="space-y-1 text-sm md:col-span-2"><span>Status</span><OccurrenceSelect value={draft.status} onValueChange={(value) => update("status", value)} items={[["0", "Não publicado"], ["1", "Publicado"], ["2", "Em análise"]]} /></label>
+          <label className="space-y-1 text-sm md:col-span-3"><span>Módulo</span><OccurrenceSelect value={draft.moduleId} onValueChange={(moduleId) => setDraft({ ...draft, moduleId, submoduleId: "none" })} items={releaseModuleSelectItems} /></label>
+          <label className="space-y-1 text-sm md:col-span-3"><span>Submódulo</span><OccurrenceSelect value={draft.submoduleId} onValueChange={(value) => update("submoduleId", value)} items={submodules} /></label>
+          <label className="space-y-1 text-sm md:col-span-6"><span>Título</span><Input value={draft.title} onChange={(event) => update("title", event.target.value)} /></label>
+          <label className="space-y-1 text-sm md:col-span-6"><span>Conteúdo do artigo</span><div key={draft.id} contentEditable suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: normalizeLegacyHtml(draft.description) }} onBlur={(event) => update("description", event.currentTarget.innerHTML)} className="min-h-72 w-full overflow-auto rounded-md border bg-background p-3 text-sm leading-6 outline-none focus:ring-2 focus:ring-ring [&_img]:my-3 [&_img]:max-w-full" /></label>
+          <label className="space-y-1 text-sm md:col-span-6"><span>E-mail com cópia</span><Input value={draft.emailCopy} onChange={(event) => update("emailCopy", event.target.value)} placeholder="Separe os endereços por ;" /></label>
+          <label className="space-y-1 text-sm md:col-span-6"><span>Tags</span><Input value={draft.tags} onChange={(event) => update("tags", event.target.value)} /></label>
+          <label className="space-y-1 text-sm md:col-span-3"><span>Artigos relacionados</span><Input value={draft.relatedArticleIds} onChange={(event) => update("relatedArticleIds", event.target.value)} placeholder="IDs separados por vírgula" /></label>
+          <label className="space-y-1 text-sm md:col-span-3"><span>Releases relacionados</span><Input value={draft.relatedReleaseIds} onChange={(event) => update("relatedReleaseIds", event.target.value)} placeholder="IDs separados por vírgula" /></label>
+        </div>
+        <DialogFooter className="shrink-0 border-t px-5 py-4"><Button variant="outline" onClick={onClose}>Fechar</Button><Button onClick={() => { if (!draft.title.trim()) { toast.error("Informe o título do artigo."); return; } onSave({ ...draft, updatedAt: new Date().toISOString() }); }}>Salvar</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 function formatHadronArticleDate(value: string) {
-  const date = new Date(`${value}T12:00:00`);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString("pt-BR");
+  return formatCatalogDate(value);
 }
 
 type TableProps = { query: string; onOpen: (d: Detail) => void };
