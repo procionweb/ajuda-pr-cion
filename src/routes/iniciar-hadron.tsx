@@ -1652,6 +1652,13 @@ function HadronOptionPage({
     tags: option.tags || "",
   });
   const optionReleases = hadronReleases.filter((release) => release.optionId === option.id);
+  const releaseModuleItems = [...hadronModuleNames.entries()].map(([id, name]) => [
+    id,
+    `${id} : ${name}`,
+  ] as [string, string]);
+  const releaseSubmoduleItems = [...hadronSubmoduleNames.entries()]
+    .filter(([key]) => key.startsWith(`${releaseDraft.moduleId}:`))
+    .map(([key, name]) => [key.split(":")[1], name] as [string, string]);
   useEffect(() => {
     if (!newReleaseOpen) return;
     void listHadronOccurrences({ page: 1, pageSize: 20, optionIds: [option.id] })
@@ -1861,21 +1868,23 @@ function HadronOptionPage({
         </DialogContent>
       </Dialog>
       <Dialog open={newReleaseOpen} onOpenChange={setNewReleaseOpen}>
-        <DialogContent className="max-w-5xl gap-0 overflow-hidden p-0 [&>button]:hidden">
+        <DialogContent className="flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">Novo release</DialogTitle>
           <DetailModalHeader icon={Rocket} title="Novo release" protocol={`Opção ${option.option}`} meta={option.description} onClose={() => setNewReleaseOpen(false)} accentClassName="bg-amber-500" iconWrapClassName="bg-amber-500 text-white" />
-          <div className="grid gap-4 px-5 py-5 md:grid-cols-6">
-            <label className="space-y-1 text-sm md:col-span-2"><span>Tipo Release</span><OccurrenceSelect value={releaseDraft.releaseType} onValueChange={(releaseType) => setReleaseDraft({...releaseDraft,releaseType})} items={[["correcao","Correção"],["alteracao","Alteração"],["novidade","Novidade"]]} /></label>
-            <label className="space-y-1 text-sm md:col-span-2"><span>Permissão</span><OccurrenceSelect value={releaseDraft.permission} onValueChange={(permission) => setReleaseDraft({...releaseDraft,permission})} items={[["clientes","Clientes"],["publico","Público"],["empresa","Empresa"]]} /></label>
-            <label className="space-y-1 text-sm md:col-span-2"><span>Opção</span><Input readOnly value={`${option.id} - ${option.option}/${option.form} - ${option.description}`} /></label>
-            <label className="space-y-1 text-sm md:col-span-3"><span>Módulo</span><Input value={releaseDraft.moduleId} onChange={(e) => setReleaseDraft({...releaseDraft,moduleId:e.target.value})} /></label>
-            <label className="space-y-1 text-sm md:col-span-3"><span>Submódulo</span><Input value={releaseDraft.submoduleId} onChange={(e) => setReleaseDraft({...releaseDraft,submoduleId:e.target.value})} /></label>
-            <label className="space-y-1 text-sm md:col-span-6"><span>Descrição</span><Input value={releaseDraft.title} onChange={(e) => setReleaseDraft({...releaseDraft,title:e.target.value})} /></label>
-            <label className="space-y-1 text-sm md:col-span-6"><span>Detalhes do release</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={releaseDraft.description} onChange={(e) => setReleaseDraft({...releaseDraft,description:e.target.value})} /></label>
-            <label className="space-y-1 text-sm md:col-span-6"><span>Tags</span><Input value={releaseDraft.tags} onChange={(e) => setReleaseDraft({...releaseDraft,tags:e.target.value})} /></label>
-            <section className="space-y-2 border-t pt-4 md:col-span-6">
+          <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto px-5 py-4 lg:grid-cols-[minmax(0,2fr)_minmax(240px,1fr)]">
+            <div className="grid content-start gap-3 md:grid-cols-6">
+              <label className="min-w-0 space-y-1 text-sm md:col-span-2"><span>Tipo Release</span><OccurrenceSelect value={releaseDraft.releaseType} onValueChange={(releaseType) => setReleaseDraft({...releaseDraft,releaseType})} items={[["correcao","Correção"],["alteracao","Alteração"],["novidade","Novidade"]]} /></label>
+              <label className="min-w-0 space-y-1 text-sm md:col-span-2"><span>Permissão</span><OccurrenceSelect value={releaseDraft.permission} onValueChange={(permission) => setReleaseDraft({...releaseDraft,permission})} items={[["clientes","Clientes"],["publico","Público"],["empresa","Empresa"]]} /></label>
+              <label className="min-w-0 space-y-1 text-sm md:col-span-2"><span>Opção</span><Input className="truncate" title={`${option.id} - ${option.option}/${option.form} - ${option.description}`} readOnly value={`${option.id} - ${option.option}/${option.form} - ${option.description}`} /></label>
+              <label className="min-w-0 space-y-1 text-sm md:col-span-3"><span>Módulo</span><OccurrenceSelect value={releaseDraft.moduleId} onValueChange={(moduleId) => { const firstSubmodule = [...hadronSubmoduleNames.keys()].find((key) => key.startsWith(`${moduleId}:`))?.split(":")[1] || ""; setReleaseDraft({...releaseDraft,moduleId,submoduleId:firstSubmodule}); }} items={releaseModuleItems} /></label>
+              <label className="min-w-0 space-y-1 text-sm md:col-span-3"><span>Submódulo</span><OccurrenceSelect value={releaseDraft.submoduleId} onValueChange={(submoduleId) => setReleaseDraft({...releaseDraft,submoduleId})} items={releaseSubmoduleItems.length ? releaseSubmoduleItems : [[releaseDraft.submoduleId || "sem-submodulo", "Nenhum submódulo disponível"]]} /></label>
+              <label className="space-y-1 text-sm md:col-span-6"><span>Descrição</span><Input value={releaseDraft.title} onChange={(e) => setReleaseDraft({...releaseDraft,title:e.target.value})} /></label>
+              <label className="space-y-1 text-sm md:col-span-6"><span>Detalhes do release</span><textarea className="min-h-40 w-full resize-y rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={releaseDraft.description} onChange={(e) => setReleaseDraft({...releaseDraft,description:e.target.value})} /></label>
+              <label className="min-w-0 space-y-1 text-sm md:col-span-6"><span>Tags</span><Input className="w-full" value={releaseDraft.tags} onChange={(e) => setReleaseDraft({...releaseDraft,tags:e.target.value})} /></label>
+            </div>
+            <section className="min-w-0 space-y-2 border-t pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
               <h3 className="text-sm font-medium">Ocorrências</h3>
-              <div className="max-h-44 divide-y overflow-y-auto rounded-md border bg-muted/10 px-3">
+              <div className="max-h-[390px] divide-y overflow-y-auto rounded-md border bg-muted/10 px-3">
                 {releaseOccurrences.map((occurrence) => (
                   <div key={occurrence.id} className="py-2 text-xs">
                     <div className="flex flex-wrap justify-between gap-2 text-muted-foreground">
@@ -1895,7 +1904,7 @@ function HadronOptionPage({
               </div>
             </section>
           </div>
-          <DialogFooter className="border-t px-5 py-4"><Button variant="outline" onClick={() => setNewReleaseOpen(false)}>Fechar</Button><Button disabled={savingRelease} onClick={() => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const releases = JSON.parse(localStorage.getItem("hadron-custom-releases") || "[]"); releases.push({id:`novo-${Date.now()}`,optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,version:"nao-informada",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}); localStorage.setItem("hadron-custom-releases",JSON.stringify(releases)); window.dispatchEvent(new CustomEvent("hadron-releases-updated")); setSavingRelease(false); setNewReleaseOpen(false); toast.success("Release criado com sucesso."); }}>Salvar</Button></DialogFooter>
+          <DialogFooter className="shrink-0 border-t bg-card px-5 py-4"><Button variant="outline" onClick={() => setNewReleaseOpen(false)}>Fechar</Button><Button disabled={savingRelease} onClick={() => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const releases = JSON.parse(localStorage.getItem("hadron-custom-releases") || "[]"); releases.push({id:`novo-${Date.now()}`,optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,version:"nao-informada",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}); localStorage.setItem("hadron-custom-releases",JSON.stringify(releases)); window.dispatchEvent(new CustomEvent("hadron-releases-updated")); setSavingRelease(false); setNewReleaseOpen(false); toast.success("Release criado com sucesso."); }}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
