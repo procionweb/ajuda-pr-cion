@@ -4,9 +4,9 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const downloads = path.join(process.env.USERPROFILE || "", "Downloads");
-const articlesPath = process.argv[2] || path.join(downloads, "cvs_articles.json");
-const optionsPath = process.argv[3] || path.join(downloads, "cvs_options.json");
+const jsonDirectory = path.join(process.env.USERPROFILE || "", "Downloads", "json");
+const articlesPath = process.argv[2] || path.join(jsonDirectory, "cvs_articles (1).json");
+const optionsPath = process.argv[3] || path.join(jsonDirectory, "cvs_options (1).json");
 const outputPath = path.join(root, "src", "lib", "cvs-catalogs-imported.ts");
 
 function tableRows(file, expectedTable) {

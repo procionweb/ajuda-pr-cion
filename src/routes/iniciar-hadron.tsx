@@ -5615,19 +5615,13 @@ function articleDraft(
   article: (typeof cvsArticles)[number],
   override?: ArticleDraft,
 ): ArticleDraft {
-  const importedPermission =
-    "permission" in article ? String(article.permission || "") : "";
-
   return override || {
     ...article,
-    permission:
-      importedPermission || (legacyCompanyArticleIds.has(article.id) ? "2" : "1"),
+    permission: article.permission,
     emailCopy: "",
     relatedArticleIds: "",
   };
 }
-
-const legacyCompanyArticleIds = new Set(["157", "158", "163"]);
 
 function findBaseArticle(id: string) {
   return kbArticlesFull.find((article) => article.id === `AP-${id}`);
