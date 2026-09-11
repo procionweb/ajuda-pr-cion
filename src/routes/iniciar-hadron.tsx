@@ -1766,13 +1766,40 @@ function HadronOptionPage({
                   {optionReleases.length} releases vinculados
                 </span>
               </div>
-              {optionReleases.slice(0, 20).map((release) => (
-                <div key={release.id} className="border-b py-3 text-sm">
-                  <p className="font-medium text-primary">{release.title}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {release.owner || "Não informado"} · {formatCatalogDate(release.createdAt)}
-                  </p>
-                </div>
+              {optionReleases.map((release) => (
+                <article key={release.id} className="space-y-3 border-b py-4 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Sparkles
+                      className={cn(
+                        "mt-0.5 h-4 w-4 shrink-0",
+                        release.releaseType === "correcao"
+                          ? "text-rose-500"
+                          : release.releaseType === "alteracao"
+                            ? "text-sky-600"
+                            : "text-amber-500",
+                      )}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-medium text-primary">
+                        {release.option}/{release.form || release.option} - {release.title}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {hadronModuleNames.get(release.moduleId) || "Módulo não informado"}
+                        {release.submoduleId
+                          ? ` | ${hadronSubmoduleNames.get(`${release.moduleId}:${release.submoduleId}`) || "Submódulo não informado"}`
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                    <span>{formatCatalogDate(release.createdAt)}</span>
+                    <span>{release.owner || "Não informado"} - {release.tester || "Não informado"}</span>
+                    <span>Versão: {getReleaseVersionLabel(release.version)}</span>
+                  </div>
+                  <div className="rounded-md border bg-background p-3 text-sm leading-6">
+                    <LegacyRichContent value={release.description || "Sem detalhes informados."} />
+                  </div>
+                </article>
               ))}
               {!optionReleases.length && (
                 <p className="py-8 text-center text-sm text-muted-foreground">
@@ -1781,6 +1808,9 @@ function HadronOptionPage({
               )}
             </TabsContent>
             <TabsContent value="logs" className="mt-5 space-y-2">
+              <div className="hidden grid-cols-[1fr_1.5fr_1fr_auto] gap-1 border-b bg-muted/20 px-2 py-2 text-xs font-medium text-primary md:grid">
+                <span>Controlador/Ação</span><span>URL/Informação extra</span><span>Operador/IP</span><span>Data</span>
+              </div>
               {optionLogs.map((log) => (
                 <div key={log.id} className="grid gap-1 border-b py-3 text-xs md:grid-cols-[1fr_1.5fr_1fr_auto]">
                   <span className="font-medium">{log.controller}/{log.action || "-"}</span>
@@ -1790,7 +1820,22 @@ function HadronOptionPage({
                 </div>
               ))}
               {logsLoading && <p className="py-8 text-center text-sm text-muted-foreground">Carregando logs...</p>}
-              {!logsLoading && !optionLogs.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhum log disponível para esta opção.</p>}
+              {!logsLoading && !optionLogs.length && (
+                <div className="divide-y">
+                  {[
+                    ["Atualização", option.updatedAt, option.owner],
+                    ["Aprovação", option.approvedAt, option.approvalOwner],
+                    ["Liberação Hádron", option.hadronAt, option.hadronOwner],
+                  ].filter(([, date]) => Boolean(date)).map(([action, date, operator]) => (
+                    <div key={action} className="grid gap-1 px-2 py-3 text-xs md:grid-cols-[1fr_1.5fr_1fr_auto]">
+                      <span className="font-medium">CvsOptions/{action}</span>
+                      <span className="text-muted-foreground">Opção {option.id} - {option.option}/{option.form}</span>
+                      <span>{operator || option.owner || "Não informado"}</span>
+                      <span className="text-muted-foreground">{formatCatalogDate(date)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </section>
