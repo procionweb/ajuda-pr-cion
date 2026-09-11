@@ -1275,6 +1275,7 @@ function OptionsTable({ query }: TableProps) {
             <h2 className="text-lg font-medium">Opções</h2>
             <Button
               type="button"
+              className="h-10 w-40 cursor-pointer"
               onClick={() =>
                 setEditingOption({
                   id: `novo-${Date.now()}`,
@@ -1391,7 +1392,7 @@ function OptionsTable({ query }: TableProps) {
                 setPage(1);
               }}
             />
-            <Button type="button" className="cursor-pointer px-7">
+            <Button type="button" className="h-10 w-40 cursor-pointer px-4">
               <Search className="mr-2 h-4 w-4" />
               Buscar
             </Button>
@@ -4059,8 +4060,8 @@ function createReleaseDetail(
 
 function ReleaseDetailView({ release }: { release: ReleaseDetail }) {
   return (
-    <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-      <aside className="space-y-4 lg:border-r lg:pr-5">
+    <div className="grid gap-5 lg:min-h-[56vh] lg:grid-cols-[220px_minmax(0,1fr)]">
+      <aside className="h-full space-y-4 lg:border-r lg:pr-5">
         <ReleaseMeta label="Opção/Formulário" value={`${release.option}/${release.form}`} />
         <ReleaseMeta label="Data do release" value={formatCatalogDate(release.date)} />
         <ReleaseMeta label="Versão Hádron" value={release.version} />
