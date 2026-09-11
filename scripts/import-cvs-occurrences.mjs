@@ -14,6 +14,16 @@ function text(value) {
   return value === null || value === undefined ? null : String(value).trim() || null;
 }
 
+function legacyDate(value) {
+  const normalized = text(value);
+  if (!normalized) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return `${normalized}T00:00:00-03:00`;
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/.test(normalized)) {
+    return `${normalized.replace(" ", "T")}-03:00`;
+  }
+  return normalized;
+}
+
 function plainText(value) {
   return String(value || "")
     .replace(/<br\s*\/?\s*>/gi, " ")
@@ -36,13 +46,13 @@ const rows = source.data.map((row) => ({
   occurrence_html: String(row.ocorrencia || ""),
   occurrence_text: plainText(row.ocorrencia),
   reporter: text(row.usuario_ocorrencia),
-  occurred_at: text(row.data_ocorrencia),
+  occurred_at: legacyDate(row.data_ocorrencia),
   solution_html: String(row.solucao || ""),
   solution_text: plainText(row.solucao),
   solver: text(row.usuario_solucao),
-  solved_at: text(row.data_solucao),
-  reviewed_at: text(row.data_revisao),
-  approved_at: text(row.data_aprovado),
+  solved_at: legacyDate(row.data_solucao),
+  reviewed_at: legacyDate(row.data_revisao),
+  approved_at: legacyDate(row.data_aprovado),
   modified_by: text(row.usuario_modificado),
   operating_system: text(row.sist_operacional),
   test_base: text(row.base_testes),
@@ -50,10 +60,10 @@ const rows = source.data.map((row) => ({
   parent_occurrence_id: text(row.cvs_occurrences_id),
   cobol_error: text(row.cobol_error),
   status: text(row.status),
-  hadron_at: text(row.data_hadron),
+  hadron_at: legacyDate(row.data_hadron),
   base_address: text(row.endereco_base),
-  source_created_at: text(row.created),
-  source_modified_at: text(row.modified),
+  source_created_at: legacyDate(row.created),
+  source_modified_at: legacyDate(row.modified),
   imported_at: new Date().toISOString(),
 }));
 

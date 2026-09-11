@@ -4,6 +4,7 @@ import {
   BookOpenText,
   Bug,
   Boxes,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -24,6 +25,7 @@ import {
   Minus,
   PackageCheck,
   Pencil,
+  Plus,
   Rocket,
   Search,
   ScanEye,
@@ -85,6 +87,7 @@ import { usePortalAuth } from "@/lib/portal-auth";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import {
+  createHadronOccurrence,
   deleteHadronOccurrence,
   getHadronOccurrenceKindCounts,
   listHadronOccurrences,
@@ -1620,6 +1623,27 @@ function HadronOptionPage({
   const moduleName = getOptionModuleName(option);
   const submoduleName = getOptionSubmoduleName(option);
   const optionChecklist = getHadronOptionChecklist(option.id);
+  const [newOccurrenceOpen, setNewOccurrenceOpen] = useState(false);
+  const [newReleaseOpen, setNewReleaseOpen] = useState(false);
+  const [savingOccurrence, setSavingOccurrence] = useState(false);
+  const [savingRelease, setSavingRelease] = useState(false);
+  const [occurrenceDraft, setOccurrenceDraft] = useState({
+    kind: "ocorrencia",
+    operator: currentUser.operator,
+    baseAddress: "",
+    versionLegacyId: erpVersions[0]?.id || "",
+    occurrence: "",
+  });
+  const [releaseDraft, setReleaseDraft] = useState({
+    releaseType: "novidade",
+    permission: "clientes",
+    moduleId: option.moduleId,
+    submoduleId: option.submoduleId,
+    title: "",
+    description: "",
+    tags: option.tags || "",
+  });
+  const optionReleases = hadronReleases.filter((release) => release.optionId === option.id);
   return (
     <section className="space-y-4">
       <header className="rounded-md border bg-card p-4 shadow-sm">
@@ -1690,13 +1714,37 @@ function HadronOptionPage({
               <TabsTrigger value="logs">Logs</TabsTrigger>
             </TabsList>
             <TabsContent value="ocorrencias" className="mt-5">
-              <OptionImportedOccurrences option={option} />
+              <OptionImportedOccurrences
+                option={option}
+                onCreate={() => setNewOccurrenceOpen(true)}
+              />
             </TabsContent>
             <TabsContent
               value="releases"
-              className="mt-5 rounded-md border bg-background p-5 text-sm text-muted-foreground"
+              className="mt-5 space-y-3"
             >
-              Os releases desta opção são apresentados na aba Releases do Hádron.
+              <div className="flex items-center justify-between border-b pb-3">
+                <span className="text-xs text-muted-foreground">
+                  {optionReleases.length} releases vinculados
+                </span>
+                <Button size="sm" onClick={() => setNewReleaseOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Novo release
+                </Button>
+              </div>
+              {optionReleases.slice(0, 20).map((release) => (
+                <div key={release.id} className="border-b py-3 text-sm">
+                  <p className="font-medium text-primary">{release.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {release.owner || "Não informado"} · {formatCatalogDate(release.createdAt)}
+                  </p>
+                </div>
+              ))}
+              {!optionReleases.length && (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  Nenhum release vinculado a esta opção.
+                </p>
+              )}
             </TabsContent>
             <TabsContent value="logs" className="mt-5 space-y-2">
               {tickets.length ? (
@@ -1754,20 +1802,12 @@ function HadronOptionPage({
                   <span className={cn(item.title === "Processar" && "font-semibold")}>
                     {item.title}
                   </span>
-                  <input
-                    type="checkbox"
-                    checked={item.check1}
-                    readOnly
-                    aria-label={`${item.title}, primeira validação`}
-                    className="h-3.5 w-3.5 accent-emerald-500"
-                  />
-                  <input
-                    type="checkbox"
-                    checked={item.check2}
-                    readOnly
-                    aria-label={`${item.title}, segunda validação`}
-                    className="h-3.5 w-3.5 accent-emerald-500"
-                  />
+                  <span className="grid h-4 w-4 place-items-center" aria-label={`${item.title}, primeira validação`}>
+                    {item.check1 && <Check className="h-4 w-4 text-emerald-600" strokeWidth={3} />}
+                  </span>
+                  <span className="grid h-4 w-4 place-items-center" aria-label={`${item.title}, segunda validação`}>
+                    {item.check2 && <Check className="h-4 w-4 text-emerald-600" strokeWidth={3} />}
+                  </span>
                 </div>
               ))}
               {!optionChecklist.length && (
@@ -1786,6 +1826,37 @@ function HadronOptionPage({
           </div>
         </aside>
       </div>
+      <Dialog open={newOccurrenceOpen} onOpenChange={setNewOccurrenceOpen}>
+        <DialogContent className="max-w-5xl gap-0 overflow-hidden p-0 [&>button]:hidden">
+          <DialogTitle className="sr-only">Nova ocorrência</DialogTitle>
+          <DetailModalHeader icon={Bug} title="Nova ocorrência" protocol={`Opção ${option.option}`} meta={option.description} onClose={() => setNewOccurrenceOpen(false)} accentClassName="bg-rose-500" iconWrapClassName="bg-rose-500 text-white" />
+          <div className="grid gap-4 px-5 py-5 md:grid-cols-6">
+            <label className="space-y-1 text-sm"><span>Tipo</span><OccurrenceSelect value={occurrenceDraft.kind} onValueChange={(kind) => setOccurrenceDraft({...occurrenceDraft, kind})} items={[["ocorrencia","Ocorrência"],["aviso","Aviso"],["sugestao","Sugestão/Solicitação"],["aprovacao","Aprovação"]]} /></label>
+            <label className="space-y-1 text-sm md:col-span-2"><span>Operador</span><Input value={occurrenceDraft.operator} readOnly /></label>
+            <label className="space-y-1 text-sm md:col-span-2"><span>Cliente ou caminho da base</span><Input value={occurrenceDraft.baseAddress} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, baseAddress:e.target.value})} /></label>
+            <label className="space-y-1 text-sm"><span>Versão</span><OccurrenceSelect value={occurrenceDraft.versionLegacyId} onValueChange={(versionLegacyId) => setOccurrenceDraft({...occurrenceDraft, versionLegacyId})} items={erpVersions.map((v) => [v.id, `${v.versao} - ${formatVersionDate(v.data_versao)}`])} /></label>
+            <label className="space-y-1 text-sm md:col-span-6"><span>Descreva a ocorrência</span><span className="block text-xs text-muted-foreground">Caso necessário, inclua os detalhes que permitam reproduzir o problema.</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={occurrenceDraft.occurrence} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, occurrence:e.target.value})} /></label>
+          </div>
+          <DialogFooter className="border-t px-5 py-4"><Button variant="outline" onClick={() => setNewOccurrenceOpen(false)}>Fechar</Button><Button disabled={savingOccurrence} onClick={async () => { if (!occurrenceDraft.baseAddress.trim() || !occurrenceDraft.occurrence.trim()) { toast.error("Informe a base e descreva a ocorrência."); return; } setSavingOccurrence(true); try { await createHadronOccurrence({optionLegacyId:option.id,...occurrenceDraft}); setNewOccurrenceOpen(false); setOccurrenceDraft({...occurrenceDraft,baseAddress:"",occurrence:""}); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Ocorrência criada com sucesso."); } catch(error) { toast.error(error instanceof Error ? error.message : "Não foi possível criar a ocorrência."); } finally { setSavingOccurrence(false); } }}>{savingOccurrence ? "Salvando..." : "Salvar"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={newReleaseOpen} onOpenChange={setNewReleaseOpen}>
+        <DialogContent className="max-w-5xl gap-0 overflow-hidden p-0 [&>button]:hidden">
+          <DialogTitle className="sr-only">Novo release</DialogTitle>
+          <DetailModalHeader icon={Rocket} title="Novo release" protocol={`Opção ${option.option}`} meta={option.description} onClose={() => setNewReleaseOpen(false)} accentClassName="bg-amber-500" iconWrapClassName="bg-amber-500 text-white" />
+          <div className="grid gap-4 px-5 py-5 md:grid-cols-6">
+            <label className="space-y-1 text-sm md:col-span-2"><span>Tipo Release</span><OccurrenceSelect value={releaseDraft.releaseType} onValueChange={(releaseType) => setReleaseDraft({...releaseDraft,releaseType})} items={[["correcao","Correção"],["alteracao","Alteração"],["novidade","Novidade"]]} /></label>
+            <label className="space-y-1 text-sm md:col-span-2"><span>Permissão</span><OccurrenceSelect value={releaseDraft.permission} onValueChange={(permission) => setReleaseDraft({...releaseDraft,permission})} items={[["clientes","Clientes"],["publico","Público"],["empresa","Empresa"]]} /></label>
+            <label className="space-y-1 text-sm md:col-span-2"><span>Opção</span><Input readOnly value={`${option.id} - ${option.option}/${option.form} - ${option.description}`} /></label>
+            <label className="space-y-1 text-sm md:col-span-3"><span>Módulo</span><Input value={releaseDraft.moduleId} onChange={(e) => setReleaseDraft({...releaseDraft,moduleId:e.target.value})} /></label>
+            <label className="space-y-1 text-sm md:col-span-3"><span>Submódulo</span><Input value={releaseDraft.submoduleId} onChange={(e) => setReleaseDraft({...releaseDraft,submoduleId:e.target.value})} /></label>
+            <label className="space-y-1 text-sm md:col-span-6"><span>Descrição</span><Input value={releaseDraft.title} onChange={(e) => setReleaseDraft({...releaseDraft,title:e.target.value})} /></label>
+            <label className="space-y-1 text-sm md:col-span-6"><span>Detalhes do release</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={releaseDraft.description} onChange={(e) => setReleaseDraft({...releaseDraft,description:e.target.value})} /></label>
+            <label className="space-y-1 text-sm md:col-span-6"><span>Tags</span><Input value={releaseDraft.tags} onChange={(e) => setReleaseDraft({...releaseDraft,tags:e.target.value})} /></label>
+          </div>
+          <DialogFooter className="border-t px-5 py-4"><Button variant="outline" onClick={() => setNewReleaseOpen(false)}>Fechar</Button><Button disabled={savingRelease} onClick={() => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const releases = JSON.parse(localStorage.getItem("hadron-custom-releases") || "[]"); releases.push({id:`novo-${Date.now()}`,optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,version:"nao-informada",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}); localStorage.setItem("hadron-custom-releases",JSON.stringify(releases)); window.dispatchEvent(new CustomEvent("hadron-releases-updated")); setSavingRelease(false); setNewReleaseOpen(false); toast.success("Release criado com sucesso."); }}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
@@ -2210,9 +2281,11 @@ function openImportedOccurrence(
 function OptionImportedOccurrences({
   option,
   latestOnly = false,
+  onCreate,
 }: {
   option: HadronOption;
   latestOnly?: boolean;
+  onCreate?: () => void;
 }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -2271,6 +2344,7 @@ function OptionImportedOccurrences({
               ? "Última atualização"
               : `${total.toLocaleString("pt-BR")} ocorrências vinculadas`}
           </span>
+          {!latestOnly && onCreate && <Button size="sm" onClick={onCreate}><Plus className="mr-2 h-4 w-4" />Nova ocorrência</Button>}
         </div>
         <div className="py-4">
           {!loading && rows.length > 0 && (
@@ -2980,7 +3054,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
                           title="Ver ocorrência"
                           onClick={() => openImportedOccurrence(occurrence, option, onOpen)}
                         >
-                          <Eye className="h-4 w-4" />
+                          <ScanEye className="h-4 w-4 text-sky-700" />
                         </Button>
                         <Button
                           size="icon"
@@ -4456,6 +4530,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
   const [dateTo, setDateTo] = useState("");
   const [releaseOverrides, setReleaseOverrides] = useState<Record<string, ReleaseOverride>>({});
   const [removedReleaseIds, setRemovedReleaseIds] = useState<Set<string>>(() => new Set());
+  const [customReleases, setCustomReleases] = useState<typeof hadronReleases>([]);
   const [editingRelease, setEditingRelease] = useState<(ReleaseOverride & { id: string }) | null>(
     null,
   );
@@ -4464,13 +4539,25 @@ function ReleasesTable({ query, onOpen }: TableProps) {
   );
   const normalizedQuery = normalizeOccurrenceText(query);
   const normalizedOptionQuery = normalizeOccurrenceText(optionQuery);
+  useEffect(() => {
+    const load = () => {
+      try {
+        setCustomReleases(JSON.parse(localStorage.getItem("hadron-custom-releases") || "[]"));
+      } catch {
+        setCustomReleases([]);
+      }
+    };
+    load();
+    window.addEventListener("hadron-releases-updated", load);
+    return () => window.removeEventListener("hadron-releases-updated", load);
+  }, []);
   const operators = useMemo(
-    () => [...new Set(hadronReleases.map((release) => release.owner).filter(Boolean))].sort(),
-    [],
+    () => [...new Set([...hadronReleases, ...customReleases].map((release) => release.owner).filter(Boolean))].sort(),
+    [customReleases],
   );
   const rows = useMemo(
     () =>
-      hadronReleases
+      [...hadronReleases, ...customReleases]
         .filter((release) => !removedReleaseIds.has(release.id))
         .map((release) => ({ ...release, ...releaseOverrides[release.id] }))
         .map((release) => ({
@@ -4507,6 +4594,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
     [
       dateFrom,
       dateTo,
+      customReleases,
       dateType,
       normalizedOptionQuery,
       normalizedQuery,
@@ -4726,7 +4814,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                           })
                         }
                       >
-                        <Eye className="h-4 w-4" />
+                          <ScanEye className="h-4 w-4 text-sky-700" />
                       </Button>
                     </div>
                   </td>

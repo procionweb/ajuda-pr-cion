@@ -99,6 +99,26 @@ export async function reviewHadronOccurrence(id: number) {
   return String(data);
 }
 
+export async function createHadronOccurrence(input: {
+  optionLegacyId: string;
+  kind: string;
+  occurrence: string;
+  operator: string;
+  baseAddress: string;
+  versionLegacyId: string;
+}) {
+  const { data, error } = await supabase.rpc("create_hadron_occurrence", {
+    p_option_legacy_id: input.optionLegacyId,
+    p_kind: input.kind,
+    p_occurrence: input.occurrence.trim(),
+    p_operator: input.operator,
+    p_base_address: input.baseAddress.trim(),
+    p_version_legacy_id: input.versionLegacyId || null,
+  });
+  if (error) throw error;
+  return Number(data);
+}
+
 export async function deleteHadronOccurrence(id: number) {
   const { error } = await supabase.from("hadron_occurrences").delete().eq("id", id);
   if (error) throw error;
