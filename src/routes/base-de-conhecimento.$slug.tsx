@@ -33,7 +33,12 @@ import {
   kanbanModules,
 } from "@/lib/kanban-data";
 
+type ArticleSearch = { from?: string };
+
 export const Route = createFileRoute("/base-de-conhecimento/$slug")({
+  validateSearch: (search: Record<string, unknown>): ArticleSearch => ({
+    from: typeof search.from === "string" ? search.from : undefined,
+  }),
   loader: ({ params }): { article: KbArticle } => {
     const article = getArticleBySlug(params.slug);
     if (!article) throw notFound();
@@ -84,6 +89,7 @@ function formatDate(iso: string) {
 
 function ArticleDetailPage() {
   const { article } = Route.useLoaderData() as { article: KbArticle };
+  const search = Route.useSearch();
   const navigate = useNavigate();
   const related = getRelatedArticles(article);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -133,6 +139,16 @@ function ArticleDetailPage() {
 
   return (
     <AppShell>
+      {search.from === "hadron-article" && (
+        <div className="mb-3 flex">
+          <Button asChild variant="outline" size="sm" className="h-8 cursor-pointer rounded-lg">
+            <Link to="/iniciar-hadron" search={{ tab: "artigos" }}>
+              <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+              Voltar para artigos
+            </Link>
+          </Button>
+        </div>
+      )}
       <Breadcrumbs
         items={[
           { label: "Base de Conhecimento", to: "/base-de-conhecimento" },

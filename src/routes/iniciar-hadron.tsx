@@ -5404,6 +5404,13 @@ function ArticlesTable({ query, onOpen }: TableProps) {
         .sort((a, b) => releaseTimestamp(b.updatedAt) - releaseTimestamp(a.updatedAt)),
     [category, dateFrom, dateTo, normalizedQuery, operator, overrides, removedIds, status],
   );
+  const articleStatusCounts = useMemo(
+    () => ({
+      published: rows.filter((article) => article.status === "1").length,
+      analysis: rows.filter((article) => article.status === "2").length,
+    }),
+    [rows],
+  );
 
   const clearFilters = () => {
     setTitle("");
@@ -5475,7 +5482,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                     {article.title}
                   </td>
                   <td className="px-3 py-2.5">{articleCategoryLabel(article.category)}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5">{article.author}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5">{article.owner}</td>
                   <td className="px-3 py-2.5">
                     <span className="block">{hadronModuleNames.get(article.moduleId) || `Módulo ${article.moduleId}`}</span>
                     <span className="text-[10px] text-muted-foreground">
@@ -5495,7 +5502,11 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                     <div className="flex items-center justify-end gap-0.5">
                       {baseArticle && (
                         <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Abrir artigo na Base de Conhecimento">
-                          <Link to="/base-de-conhecimento/$slug" params={{ slug: baseArticle.slug }}>
+                          <Link
+                            to="/base-de-conhecimento/$slug"
+                            params={{ slug: baseArticle.slug }}
+                            search={{ from: "hadron-article" }}
+                          >
                             <ExternalLink className="h-4 w-4 text-sky-700" />
                           </Link>
                         </Button>
@@ -5515,7 +5526,6 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7"
                         className="h-8 w-8 text-destructive hover:text-destructive"
                         title="Remover artigo"
                         onClick={() => setRemovingArticle(article)}
@@ -5535,6 +5545,17 @@ function ArticlesTable({ query, onOpen }: TableProps) {
           Nenhum artigo encontrado.
         </div>
       )}
+        <footer className="flex flex-wrap items-center gap-6 border-t bg-muted/15 px-4 py-3 text-sm">
+          <span className="text-xs font-medium uppercase text-muted-foreground">Status dos artigos</span>
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            Publicados <strong>{articleStatusCounts.published}</strong>
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+            Em análise <strong>{articleStatusCounts.analysis}</strong>
+          </span>
+        </footer>
       </section>
       <ArticleViewDialog article={viewingArticle} onClose={() => setViewingArticle(null)} />
       <ArticleEditDialog
