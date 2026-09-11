@@ -37,3 +37,37 @@ $$;
 
 revoke all on function public.record_hadron_option_log(text, text, text) from public;
 grant execute on function public.record_hadron_option_log(text, text, text) to authenticated;
+
+create or replace function public.list_hadron_option_logs(
+  p_option_id text,
+  p_limit integer default 50
+)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(jsonb_agg(to_jsonb(log_row) order by log_row.crm_created_at desc), '[]'::jsonb)
+  from (
+    select
+      logs.id,
+      logs.controller,
+      logs.action,
+      logs.client_acronym,
+      logs.url,
+      logs.info,
+      logs.operator,
+      host(logs.ip_address) as ip_address,
+      logs.device,
+      logs.crm_created_at
+    from public.auth_logs logs
+    where logs.controller = 'CvsOptions'
+      and logs.params @> jsonb_build_array(trim(p_option_id))
+    order by logs.crm_created_at desc
+    limit greatest(1, least(coalesce(p_limit, 50), 100))
+  ) log_row;
+$$;
+
+revoke all on function public.list_hadron_option_logs(text, integer) from public;
+grant execute on function public.list_hadron_option_logs(text, integer) to authenticated;

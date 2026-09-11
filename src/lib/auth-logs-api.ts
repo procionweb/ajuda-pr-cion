@@ -127,15 +127,10 @@ export async function listConfigurationAuthLogs(
 }
 
 export async function listHadronOptionLogs(optionId: string, limit = 50) {
-  const { data, error } = await supabase
-    .from("auth_logs")
-    .select(
-      "id, controller, action, client_acronym, url, info, operator, ip_address, device, crm_created_at",
-    )
-    .eq("controller", "CvsOptions")
-    .contains("params", [optionId])
-    .order("crm_created_at", { ascending: false })
-    .limit(limit);
+  const { data, error } = await supabase.rpc("list_hadron_option_logs", {
+    p_option_id: optionId,
+    p_limit: limit,
+  });
   if (error) throw error;
 
   return ((data || []) as RawRow[]).map((row) => ({
