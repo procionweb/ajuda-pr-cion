@@ -86,7 +86,12 @@ import { currentUser } from "@/lib/mock-data";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { formatLogDate, listHadronOptionLogs, type AuthLogRow } from "@/lib/auth-logs-api";
+import {
+  formatLogDate,
+  listHadronOptionLogs,
+  recordHadronOptionLog,
+  type AuthLogRow,
+} from "@/lib/auth-logs-api";
 import {
   createHadronOccurrence,
   deleteHadronOccurrence,
@@ -1176,6 +1181,7 @@ function OptionsTable({ query }: TableProps) {
         window.location.href,
       );
       setViewingOption(option);
+      void recordHadronOptionLog(option.id, "view", "occupied");
       if (edit) setEditingOption(option);
     } catch {
       toast.error("Não foi possível reservar esta opção.");
@@ -1201,6 +1207,7 @@ function OptionsTable({ query }: TableProps) {
       });
       setEditingOption(null);
       setViewingOption(null);
+      void recordHadronOptionLog(optionId, "closedOp", "online");
       if (window.history.state?.hadronOptionId === optionId) window.history.back();
     } catch {
       toast.error("Não foi possível liberar esta opção.");
@@ -1655,13 +1662,15 @@ function HadronOptionPage({
     description: "",
     tags: option.tags || "",
   });
-  const optionReleases = hadronReleases.filter(
-    (release) =>
-      Boolean(release.version) &&
-      (release.optionId === option.id ||
-        release.option === option.option ||
-        release.form === option.form),
-  );
+  const optionReleases = hadronReleases
+    .filter(
+      (release) =>
+        Boolean(release.version) &&
+        (release.optionId === option.id ||
+          release.option === option.option ||
+          release.form === option.form),
+    )
+    .sort((a, b) => (b.createdAt || b.updatedAt).localeCompare(a.createdAt || a.updatedAt));
   const releaseModuleItems = [...hadronModuleNames.entries()].map(([id, name]) => [
     id,
     `${id} : ${name}`,
@@ -1676,11 +1685,20 @@ function HadronOptionPage({
       .catch(() => setReleaseOccurrences([]));
   }, [newReleaseOpen, option.id]);
   useEffect(() => {
-    setLogsLoading(true);
-    void listHadronOptionLogs(option.id)
-      .then(setOptionLogs)
-      .catch(() => setOptionLogs([]))
-      .finally(() => setLogsLoading(false));
+    const loadLogs = () => {
+      setLogsLoading(true);
+      void listHadronOptionLogs(option.id)
+        .then(setOptionLogs)
+        .catch(() => setOptionLogs([]))
+        .finally(() => setLogsLoading(false));
+    };
+    const reloadLogs = (event: Event) => {
+      const optionId = (event as CustomEvent<string>).detail;
+      if (!optionId || optionId === option.id) loadLogs();
+    };
+    loadLogs();
+    window.addEventListener("hadron-option-log-created", reloadLogs);
+    return () => window.removeEventListener("hadron-option-log-created", reloadLogs);
   }, [option.id]);
   return (
     <section className="space-y-4">
@@ -1714,7 +1732,7 @@ function HadronOptionPage({
             </div>
           </div>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onEdit} className="cursor-pointer">
+            <Button type="button" variant="outline" onClick={() => { void recordHadronOptionLog(option.id, "edit", "Alteração da opção"); onEdit(); }} className="cursor-pointer">
               <Pencil className="mr-2 h-4 w-4" />
               Alterar
             </Button>
@@ -1745,7 +1763,16 @@ function HadronOptionPage({
       </header>
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="rounded-md border bg-card p-4 shadow-sm">
-          <Tabs defaultValue="ocorrencias">
+          <Tabs
+            defaultValue="ocorrencias"
+            onValueChange={(value) =>
+              void recordHadronOptionLog(
+                option.id,
+                value === "logs" ? "logs" : value === "releases" ? "releases" : "ajaxOccurrences",
+                value === "logs" ? "Visualização dos logs" : value === "releases" ? "Visualização dos releases" : "Visualização das ocorrências",
+              )
+            }
+          >
             <TabsList className="justify-start bg-transparent p-0">
               <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
               <TabsTrigger value="releases">Releases</TabsTrigger>
@@ -1754,7 +1781,10 @@ function HadronOptionPage({
             <TabsContent value="ocorrencias" className="mt-5">
               <OptionImportedOccurrences
                 option={option}
-                onCreate={() => setNewOccurrenceOpen(true)}
+                onCreate={() => {
+                  void recordHadronOptionLog(option.id, "addOccurrence", "Nova ocorrência");
+                  setNewOccurrenceOpen(true);
+                }}
               />
             </TabsContent>
             <TabsContent
@@ -1903,7 +1933,7 @@ function HadronOptionPage({
               <Bug className="h-4 w-4 text-muted-foreground" />
               Releases <span className="font-normal text-muted-foreground">Próxima versão</span>
             </p>
-            <Button size="sm" onClick={() => setNewReleaseOpen(true)}>
+            <Button size="sm" onClick={() => { void recordHadronOptionLog(option.id, "addRelease", "Novo release"); setNewReleaseOpen(true); }}>
               <Plus className="mr-2 h-4 w-4" />
               Novo
             </Button>

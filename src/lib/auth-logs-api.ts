@@ -152,6 +152,21 @@ export async function listHadronOptionLogs(optionId: string, limit = 50) {
   })) satisfies AuthLogRow[];
 }
 
+export async function recordHadronOptionLog(
+  optionId: string,
+  action: string,
+  info: string,
+) {
+  const { error } = await supabase.rpc("record_hadron_option_log", {
+    p_option_id: optionId,
+    p_action: action,
+    p_info: info,
+  });
+  if (error) return false;
+  window.dispatchEvent(new CustomEvent("hadron-option-log-created", { detail: optionId }));
+  return true;
+}
+
 /** dd/MM/aa HH:mm */
 export function formatLogDate(iso: string | null): string {
   if (!iso) return "—";
