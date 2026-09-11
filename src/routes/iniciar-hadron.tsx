@@ -144,6 +144,8 @@ type HadronOccurrenceDetail = {
   solution: string;
   status: string;
   reviewedAt?: string | null;
+  approvedAt?: string | null;
+  optionStatus?: string;
   version?: string;
   baseAddress?: string;
   events?: TicketEvent[];
@@ -411,6 +413,11 @@ function HadronPage() {
             icon={Info}
             title={detail?.title ?? ""}
             meta={detail?.subtitle}
+            chips={
+              detail?.hadronOccurrence?.optionStatus === "9" ? (
+                <Badge className="bg-cyan-600 text-white hover:bg-cyan-600">APROVADA</Badge>
+              ) : undefined
+            }
             onClose={() => setDetail(null)}
           />
           <div className="max-h-[68vh] space-y-4 overflow-y-auto px-5 py-4">
@@ -1627,6 +1634,7 @@ function HadronOptionPage({
   const [newReleaseOpen, setNewReleaseOpen] = useState(false);
   const [savingOccurrence, setSavingOccurrence] = useState(false);
   const [savingRelease, setSavingRelease] = useState(false);
+  const [releaseOccurrences, setReleaseOccurrences] = useState<HadronOccurrence[]>([]);
   const [occurrenceDraft, setOccurrenceDraft] = useState({
     kind: "ocorrencia",
     operator: currentUser.operator,
@@ -1644,6 +1652,12 @@ function HadronOptionPage({
     tags: option.tags || "",
   });
   const optionReleases = hadronReleases.filter((release) => release.optionId === option.id);
+  useEffect(() => {
+    if (!newReleaseOpen) return;
+    void listHadronOccurrences({ page: 1, pageSize: 20, optionIds: [option.id] })
+      .then((result) => setReleaseOccurrences(result.rows))
+      .catch(() => setReleaseOccurrences([]));
+  }, [newReleaseOpen, option.id]);
   return (
     <section className="space-y-4">
       <header className="rounded-md border bg-card p-4 shadow-sm">
@@ -1727,10 +1741,6 @@ function HadronOptionPage({
                 <span className="text-xs text-muted-foreground">
                   {optionReleases.length} releases vinculados
                 </span>
-                <Button size="sm" onClick={() => setNewReleaseOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo release
-                </Button>
               </div>
               {optionReleases.slice(0, 20).map((release) => (
                 <div key={release.id} className="border-b py-3 text-sm">
@@ -1824,18 +1834,28 @@ function HadronOptionPage({
               Formulário: <span className="text-foreground">{option.form || "Não informado"}</span>
             </p>
           </div>
+          <div className="border-t pt-4">
+            <p className="mb-3 flex items-center gap-2 text-sm font-medium">
+              <Bug className="h-4 w-4 text-muted-foreground" />
+              Releases <span className="font-normal text-muted-foreground">Próxima versão</span>
+            </p>
+            <Button size="sm" onClick={() => setNewReleaseOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo
+            </Button>
+          </div>
         </aside>
       </div>
       <Dialog open={newOccurrenceOpen} onOpenChange={setNewOccurrenceOpen}>
         <DialogContent className="max-w-5xl gap-0 overflow-hidden p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">Nova ocorrência</DialogTitle>
           <DetailModalHeader icon={Bug} title="Nova ocorrência" protocol={`Opção ${option.option}`} meta={option.description} onClose={() => setNewOccurrenceOpen(false)} accentClassName="bg-rose-500" iconWrapClassName="bg-rose-500 text-white" />
-          <div className="grid gap-4 px-5 py-5 md:grid-cols-6">
-            <label className="space-y-1 text-sm"><span>Tipo</span><OccurrenceSelect value={occurrenceDraft.kind} onValueChange={(kind) => setOccurrenceDraft({...occurrenceDraft, kind})} items={[["ocorrencia","Ocorrência"],["aviso","Aviso"],["sugestao","Sugestão/Solicitação"],["aprovacao","Aprovação"]]} /></label>
-            <label className="space-y-1 text-sm md:col-span-2"><span>Operador</span><Input value={occurrenceDraft.operator} readOnly /></label>
-            <label className="space-y-1 text-sm md:col-span-2"><span>Cliente ou caminho da base</span><Input value={occurrenceDraft.baseAddress} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, baseAddress:e.target.value})} /></label>
-            <label className="space-y-1 text-sm"><span>Versão</span><OccurrenceSelect value={occurrenceDraft.versionLegacyId} onValueChange={(versionLegacyId) => setOccurrenceDraft({...occurrenceDraft, versionLegacyId})} items={erpVersions.map((v) => [v.id, `${v.versao} - ${formatVersionDate(v.data_versao)}`])} /></label>
-            <label className="space-y-1 text-sm md:col-span-6"><span>Descreva a ocorrência</span><span className="block text-xs text-muted-foreground">Caso necessário, inclua os detalhes que permitam reproduzir o problema.</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={occurrenceDraft.occurrence} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, occurrence:e.target.value})} /></label>
+          <div className="grid gap-4 px-5 py-5 md:grid-cols-2 lg:grid-cols-4">
+            <label className="min-w-0 space-y-1 text-sm"><span>Tipo</span><OccurrenceSelect value={occurrenceDraft.kind} onValueChange={(kind) => setOccurrenceDraft({...occurrenceDraft, kind})} items={[["ocorrencia","Ocorrência"],["aviso","Aviso"],["sugestao","Sugestão/Solicitação"],["aprovacao","Aprovação"]]} /></label>
+            <label className="min-w-0 space-y-1 text-sm"><span>Operador</span><Input value={occurrenceDraft.operator} readOnly /></label>
+            <label className="min-w-0 space-y-1 text-sm"><span>Cliente ou caminho da base</span><Input value={occurrenceDraft.baseAddress} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, baseAddress:e.target.value})} /></label>
+            <label className="min-w-0 space-y-1 text-sm"><span>Versão</span><OccurrenceSelect value={occurrenceDraft.versionLegacyId} onValueChange={(versionLegacyId) => setOccurrenceDraft({...occurrenceDraft, versionLegacyId})} items={erpVersions.map((v) => [v.id, `${v.versao} - ${formatVersionDate(v.data_versao)}`])} /></label>
+            <label className="space-y-1 text-sm md:col-span-2 lg:col-span-4"><span>Descreva a ocorrência</span><span className="block text-xs text-muted-foreground">Caso necessário, inclua os detalhes que permitam reproduzir o problema.</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={occurrenceDraft.occurrence} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, occurrence:e.target.value})} /></label>
           </div>
           <DialogFooter className="border-t px-5 py-4"><Button variant="outline" onClick={() => setNewOccurrenceOpen(false)}>Fechar</Button><Button disabled={savingOccurrence} onClick={async () => { if (!occurrenceDraft.baseAddress.trim() || !occurrenceDraft.occurrence.trim()) { toast.error("Informe a base e descreva a ocorrência."); return; } setSavingOccurrence(true); try { await createHadronOccurrence({optionLegacyId:option.id,...occurrenceDraft}); setNewOccurrenceOpen(false); setOccurrenceDraft({...occurrenceDraft,baseAddress:"",occurrence:""}); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Ocorrência criada com sucesso."); } catch(error) { toast.error(error instanceof Error ? error.message : "Não foi possível criar a ocorrência."); } finally { setSavingOccurrence(false); } }}>{savingOccurrence ? "Salvando..." : "Salvar"}</Button></DialogFooter>
         </DialogContent>
@@ -1853,6 +1873,27 @@ function HadronOptionPage({
             <label className="space-y-1 text-sm md:col-span-6"><span>Descrição</span><Input value={releaseDraft.title} onChange={(e) => setReleaseDraft({...releaseDraft,title:e.target.value})} /></label>
             <label className="space-y-1 text-sm md:col-span-6"><span>Detalhes do release</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={releaseDraft.description} onChange={(e) => setReleaseDraft({...releaseDraft,description:e.target.value})} /></label>
             <label className="space-y-1 text-sm md:col-span-6"><span>Tags</span><Input value={releaseDraft.tags} onChange={(e) => setReleaseDraft({...releaseDraft,tags:e.target.value})} /></label>
+            <section className="space-y-2 border-t pt-4 md:col-span-6">
+              <h3 className="text-sm font-medium">Ocorrências</h3>
+              <div className="max-h-44 divide-y overflow-y-auto rounded-md border bg-muted/10 px-3">
+                {releaseOccurrences.map((occurrence) => (
+                  <div key={occurrence.id} className="py-2 text-xs">
+                    <div className="flex flex-wrap justify-between gap-2 text-muted-foreground">
+                      <span>{occurrence.reporter || "Não informado"}</span>
+                      <span>{formatOccurrenceDay(occurrence.occurredAt)}</span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-foreground">
+                      {occurrence.occurrenceText || "Sem descrição"}
+                    </p>
+                  </div>
+                ))}
+                {!releaseOccurrences.length && (
+                  <p className="py-6 text-center text-xs text-muted-foreground">
+                    Nenhuma ocorrência vinculada a esta opção.
+                  </p>
+                )}
+              </div>
+            </section>
           </div>
           <DialogFooter className="border-t px-5 py-4"><Button variant="outline" onClick={() => setNewReleaseOpen(false)}>Fechar</Button><Button disabled={savingRelease} onClick={() => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const releases = JSON.parse(localStorage.getItem("hadron-custom-releases") || "[]"); releases.push({id:`novo-${Date.now()}`,optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,version:"nao-informada",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}); localStorage.setItem("hadron-custom-releases",JSON.stringify(releases)); window.dispatchEvent(new CustomEvent("hadron-releases-updated")); setSavingRelease(false); setNewReleaseOpen(false); toast.success("Release criado com sucesso."); }}>Salvar</Button></DialogFooter>
         </DialogContent>
@@ -2272,6 +2313,8 @@ function openImportedOccurrence(
         occurrence.solutionHtml || occurrence.solutionText || "Solução ainda não registrada.",
       status: occurrence.status || occurrence.kind,
       reviewedAt: occurrence.reviewedAt,
+      approvedAt: occurrence.approvedAt,
+      optionStatus: option?.status,
       version: occurrence.versionLegacyId,
       baseAddress: occurrence.baseAddress || occurrence.testBase,
     },
@@ -2515,7 +2558,7 @@ function HadronOccurrenceTimelineItem({
             className="inline-flex min-w-[96px] items-center justify-center rounded-full px-2.5 py-0.5 font-medium text-white shadow-sm"
             style={{ backgroundColor: color }}
           >
-            {formatOccurrenceDate(openedAt)}
+            {formatOccurrenceDay(openedAt)}
           </span>
           <span className="font-medium text-foreground">{reporter}</span>
           {occurrence.sourceModifiedAt && (
@@ -2732,7 +2775,18 @@ function OptionOccurrencesPreviewDialog({
               icon={ClipboardCheck}
               title="Ocorrências"
               meta={`Opção: ${option.option}`}
-              chips={<Badge className="bg-rose-600 text-white hover:bg-rose-600">CORREÇÕES</Badge>}
+              chips={
+                <Badge
+                  className={cn(
+                    "text-white",
+                    option.status === "9"
+                      ? "bg-cyan-600 hover:bg-cyan-600"
+                      : "bg-rose-600 hover:bg-rose-600",
+                  )}
+                >
+                  {hadronOptionStatusLabel(option.status).toUpperCase()}
+                </Badge>
+              }
               onClose={onClose}
             />
             <div className="max-h-[68vh] overflow-y-auto px-5 py-4">
@@ -3022,6 +3076,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
                       <OccurrenceDate
                         value={occurrence.occurredAt}
                         operator={occurrence.reporter}
+                        dateOnly
                       />
                     </td>
                     <td className="px-3 py-3">
@@ -3056,15 +3111,19 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
                         >
                           <ScanEye className="h-4 w-4 text-sky-700" />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 shrink-0 cursor-pointer text-destructive hover:text-destructive"
-                          title="Remover ocorrência"
-                          onClick={() => setRemovingOccurrence(occurrence)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {["admin", "development"].includes(department || "") &&
+                          !occurrence.reviewedAt &&
+                          !occurrence.approvedAt && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0 cursor-pointer text-destructive hover:text-destructive"
+                              title="Remover ocorrência"
+                              onClick={() => setRemovingOccurrence(occurrence)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                       </div>
                     </td>
                   </tr>
@@ -3628,16 +3687,29 @@ function formatOccurrenceDate(value: string | null | undefined) {
     ? "-"
     : parsed.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
+function formatOccurrenceDay(value: string | null | undefined) {
+  if (!value) return "-";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? "-"
+    : parsed.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+      });
+}
 function OccurrenceDate({
   value,
   operator,
+  dateOnly = false,
 }: {
   value: string | null | undefined;
   operator: string;
+  dateOnly?: boolean;
 }) {
   return (
     <span>
-      {formatOccurrenceDate(value)}
+      {dateOnly ? formatOccurrenceDay(value) : formatOccurrenceDate(value)}
       {operator && (
         <>
           <br />
@@ -3707,7 +3779,7 @@ function HadronOccurrenceDetailView({ occurrence }: { occurrence: HadronOccurren
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b pb-3 text-xs">
           <span className="font-medium text-foreground">{occurrence.reporter}</span>
-          <span className="text-muted-foreground">{formatOccurrenceDate(occurrence.openedAt)}</span>
+          <span className="text-muted-foreground">{formatOccurrenceDay(occurrence.openedAt)}</span>
           {occurrence.solvedAt && (
             <>
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
@@ -3756,12 +3828,17 @@ function HadronOccurrenceDetailView({ occurrence }: { occurrence: HadronOccurren
           <span>
             Situação: <strong className="font-medium text-foreground">{occurrence.status}</strong>
           </span>
-          <span>Registrada em {formatOccurrenceDate(occurrence.openedAt)}</span>
+          <span>Registrada em {formatOccurrenceDay(occurrence.openedAt)}</span>
           {occurrence.solvedAt && (
             <span>Solucionada em {formatOccurrenceDate(occurrence.solvedAt)}</span>
           )}
           {occurrence.reviewedAt && (
             <span>Revisada em {formatOccurrenceDate(occurrence.reviewedAt)}</span>
+          )}
+          {occurrence.approvedAt && (
+            <span className="font-medium text-cyan-700">
+              Aprovada em {formatOccurrenceDate(occurrence.approvedAt)}
+            </span>
           )}
           {occurrence.version && <span>Versão: {occurrence.version}</span>}
           {occurrence.baseAddress && <span>Base: {occurrence.baseAddress}</span>}

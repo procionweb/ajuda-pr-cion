@@ -38,7 +38,9 @@ begin
     source_created_at, source_modified_at
   ) values (
     trim(p_option_legacy_id), lower(trim(coalesce(p_kind, 'ocorrencia'))),
-    trim(p_occurrence), v_operator, now(), '1', v_operator,
+    trim(p_occurrence), v_operator, now(),
+    case when lower(trim(coalesce(p_kind, 'ocorrencia'))) = 'ocorrencia' then '4' else null end,
+    v_operator,
     nullif(trim(coalesce(p_version_legacy_id, '')), ''), trim(p_base_address),
     trim(p_base_address), now(), now()
   ) returning id into v_id;

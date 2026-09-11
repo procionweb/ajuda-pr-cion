@@ -120,7 +120,9 @@ export async function createHadronOccurrence(input: {
 }
 
 export async function deleteHadronOccurrence(id: number) {
-  const { error } = await supabase.from("hadron_occurrences").delete().eq("id", id);
+  const { error } = await supabase.rpc("delete_hadron_occurrence", {
+    p_occurrence_id: id,
+  });
   if (error) throw error;
 }
 
