@@ -11,6 +11,7 @@ import {
   Code2,
   FileCode2,
   Eye,
+  FilePenLine,
   Filter,
   Flag,
   GitBranch,
@@ -18,12 +19,14 @@ import {
   Globe2,
   KeyRound,
   ListChecks,
+  ClipboardList,
   ListTodo,
   Minus,
   PackageCheck,
   Pencil,
   Rocket,
   Search,
+  ScanEye,
   SlidersHorizontal,
   Sparkles,
   ArrowUp,
@@ -64,6 +67,7 @@ import {
 import { cn } from "@/lib/utils";
 import { erpVersions, formatVersionDate } from "@/lib/erp-versions";
 import { hadronOptions, type HadronOption } from "@/lib/hadron-options";
+import { getHadronOptionChecklist, hadronChecklist } from "@/lib/hadron-checklist";
 import { hadronModuleNames, hadronReleases, hadronSubmoduleNames } from "@/lib/hadron-releases";
 import {
   acquireHadronOptionLock,
@@ -219,135 +223,6 @@ const operatorStats = [
   ["PRCWLS", 6],
   ["PRCGUI", 2],
   ["PRCAND", 1],
-] as const;
-
-const hadronChecklist = [
-  [
-    "direction",
-    "Elaborado",
-    "Direcionamento",
-    "Direcionamento de Impressão",
-    true,
-    "18/10/2019 11:17",
-    "18/10/2019 11:17",
-  ],
-  [
-    "pagination",
-    "Elaborado",
-    "Intervalo paginação",
-    "Intervalo de Páginas / Inicial / Final",
-    true,
-    "18/10/2019 11:17",
-    "18/10/2019 11:17",
-  ],
-  [
-    "ordering",
-    "Elaborado",
-    "Ordenação",
-    "Verificar ordenação/separação/quebra",
-    false,
-    "18/10/2019 11:17",
-    "18/10/2019 11:17",
-  ],
-  [
-    "data-integrity",
-    "Elaborado",
-    "Integridade dos dados",
-    "Verificar integridade e resultados de todos os Filtros e Intervalos utilizados",
-    false,
-    "18/10/2019 11:17",
-    "18/10/2019 11:17",
-  ],
-  [
-    "models",
-    "Elaborado",
-    "Modelos",
-    "Modelos dos Relatórios",
-    false,
-    "18/10/2019 11:17",
-    "18/10/2019 11:17",
-  ],
-  [
-    "alignment",
-    "Elaborado",
-    "Alinhamento",
-    "Alinhamento de Campos, Sintaxe em cada opção habilitada",
-    false,
-    "18/10/2019 11:17",
-    "18/10/2019 11:17",
-  ],
-  [
-    "print-types",
-    "Elaborado",
-    "Impres. tipos habilitados",
-    "Impressão nas opções habilitadas",
-    true,
-    "18/10/2019 11:17",
-    "18/10/2019 11:17",
-  ],
-  [
-    "print-enable",
-    "Elaborado",
-    "Hab. tipos impressão",
-    "Habilitação das opções de impressão (disponíveis/necessárias)",
-    true,
-    "18/10/2019 11:17",
-    "18/10/2019 11:17",
-  ],
-  [
-    "specific-integrity",
-    "Específico",
-    "Integridade",
-    "Consequência dos dados após processo",
-    false,
-    "01/11/2019 16:49",
-    "01/11/2019 16:49",
-  ],
-  [
-    "other-integrity",
-    "Outros s/ ACP",
-    "Integridade",
-    "Consequência dos dados após processo",
-    false,
-    "01/11/2019 16:48",
-    "01/11/2019 16:49",
-  ],
-  [
-    "process-integrity",
-    "Processos",
-    "Integridade",
-    "Consequência dos dados após processo",
-    false,
-    "01/11/2019 16:47",
-    "01/11/2019 16:47",
-  ],
-  [
-    "f3-item",
-    "F3",
-    "Escolher item",
-    "Escolher itens com tela preenchida ou durante sua montagem",
-    true,
-    "01/11/2019 16:43",
-    "01/11/2019 16:43",
-  ],
-  [
-    "f3-exit",
-    "F3",
-    "Saída com ESC",
-    "Sair com ESC logo na entrada do Formulário, após marcado um item e durante a montagem com vários itens",
-    true,
-    "01/11/2019 16:43",
-    "01/11/2019 16:46",
-  ],
-  [
-    "zebra",
-    "RHCD",
-    "Impressão Zebra",
-    "Teste em Impressora Zebra e similares",
-    false,
-    "01/11/2019 16:38",
-    "01/11/2019 16:38",
-  ],
 ] as const;
 
 const hadronParameters = [
@@ -1518,7 +1393,6 @@ function OptionsTable({ query }: TableProps) {
                     key={option.id}
                     className={cn(
                       "border-b transition-colors hover:bg-muted/40",
-                      optionStatus === "correcoes" && "bg-rose-50/80 dark:bg-rose-950/20",
                       disabled && "opacity-55",
                     )}
                   >
@@ -1577,7 +1451,7 @@ function OptionsTable({ query }: TableProps) {
                           className="h-7 w-7 cursor-pointer"
                           onClick={() => setPreviewingOption(option)}
                         >
-                          <ClipboardCheck className="h-4 w-4" />
+                          <ClipboardList className="h-4 w-4 text-cyan-700" />
                         </Button>
                         <Button
                           type="button"
@@ -1588,7 +1462,7 @@ function OptionsTable({ query }: TableProps) {
                           disabled={lockedByAnother}
                           onClick={() => void openLockedOption(option)}
                         >
-                          <Eye className="h-4 w-4" />
+                          <ScanEye className="h-4 w-4 text-sky-700" />
                         </Button>
                         <Button
                           type="button"
@@ -1599,7 +1473,7 @@ function OptionsTable({ query }: TableProps) {
                           disabled={lockedByAnother}
                           onClick={() => void openLockedOption(option, true)}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <FilePenLine className="h-4 w-4 text-amber-700" />
                         </Button>
                         <Button
                           type="button"
@@ -1745,6 +1619,7 @@ function HadronOptionPage({
   const PriorityIcon = priority.icon;
   const moduleName = getOptionModuleName(option);
   const submoduleName = getOptionSubmoduleName(option);
+  const optionChecklist = getHadronOptionChecklist(option.id);
   return (
     <section className="space-y-4">
       <header className="rounded-md border bg-card p-4 shadow-sm">
@@ -1869,18 +1744,35 @@ function HadronOptionPage({
           </div>
           <div className="border-t pt-4">
             <p className="text-xs font-medium uppercase text-muted-foreground">Checklist</p>
-            <div className="mt-3 space-y-2">
-              {hadronChecklist.slice(0, 8).map((item) => (
-                <label key={item[0]} className="flex items-center justify-between gap-3 text-xs">
-                  <span>{item[2]}</span>
+            <div className="mt-3 divide-y">
+              {optionChecklist.map((item) => (
+                <div
+                  key={item.id}
+                  className="grid grid-cols-[minmax(0,1fr)_18px_18px] items-center gap-2 py-1.5 text-xs"
+                  title={item.description}
+                >
+                  <span className={cn(item.title === "Processar" && "font-semibold")}>
+                    {item.title}
+                  </span>
                   <input
                     type="checkbox"
-                    checked={item[4]}
+                    checked={item.check1}
                     readOnly
-                    className="h-4 w-4 accent-primary"
+                    aria-label={`${item.title}, primeira validação`}
+                    className="h-3.5 w-3.5 accent-emerald-500"
                   />
-                </label>
+                  <input
+                    type="checkbox"
+                    checked={item.check2}
+                    readOnly
+                    aria-label={`${item.title}, segunda validação`}
+                    className="h-3.5 w-3.5 accent-emerald-500"
+                  />
+                </div>
               ))}
+              {!optionChecklist.length && (
+                <p className="py-2 text-xs text-muted-foreground">Nenhum check vinculado.</p>
+              )}
             </div>
           </div>
           <div className="border-t pt-4 text-xs text-muted-foreground">
@@ -1968,6 +1860,7 @@ function OptionEditDialog({
     setDraft((current) => (current ? { ...current, [field]: value } : current));
   const selectedModule = getOptionModuleName(draft);
   const availableSubmodules = modulesMap[selectedModule] || [];
+  const optionChecklist = getHadronOptionChecklist(draft.id);
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex h-[calc(100vh-2rem)] max-h-[760px] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
@@ -2119,21 +2012,30 @@ function OptionEditDialog({
             </TabsContent>
             <TabsContent value="checklist" className="mt-4 pb-2">
               <div className="divide-y rounded-md border">
-                {hadronChecklist.map((item) => (
-                  <label
-                    key={item[0]}
-                    className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-3 text-sm"
+                {optionChecklist.map((item) => (
+                  <div
+                    key={item.id}
+                    className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 px-4 py-3 text-sm"
                   >
                     <span>
-                      <strong className="font-medium">{item[2]}</strong>
-                      <span className="mt-1 block text-xs text-muted-foreground">{item[3]}</span>
+                      <strong className="font-medium">{item.title}</strong>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {item.description}
+                      </span>
                     </span>
                     <input
                       type="checkbox"
-                      defaultChecked={item[4]}
+                      defaultChecked={item.check1}
+                      aria-label={`${item.title}, primeira validação`}
                       className="h-4 w-4 accent-primary"
                     />
-                  </label>
+                    <input
+                      type="checkbox"
+                      defaultChecked={item.check2}
+                      aria-label={`${item.title}, segunda validação`}
+                      className="h-4 w-4 accent-primary"
+                    />
+                  </div>
                 ))}
               </div>
             </TabsContent>
