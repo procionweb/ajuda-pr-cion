@@ -85,6 +85,7 @@ const articles = tableRows(articlesPath, "cvs_articles")
     description: repairText(row.art_description),
     category: repairText(row.art_category),
     owner: repairText(row.art_collaborator),
+    permission: String(row.art_permission ?? row.permission ?? "1"),
     clicks: Number(row.art_clicks || 0),
     tags: repairText(row.art_tags),
     relatedReleaseIds: repairText(row.art_id_releases_related),

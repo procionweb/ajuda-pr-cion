@@ -5560,13 +5560,15 @@ function ArticlesTable({ query, onOpen }: TableProps) {
           Nenhum artigo encontrado.
         </div>
       )}
-        <footer className="flex flex-wrap items-center gap-2 border-t bg-muted/15 px-4 py-3 text-sm">
-          <span className="mr-2 text-xs font-medium uppercase text-muted-foreground">Status dos artigos</span>
-          <span className="inline-flex min-h-7 items-center bg-emerald-600 px-3 text-xs font-semibold uppercase text-white shadow-sm">
-            Publicados ({articleStatusCounts.published})
+        <footer className="flex flex-wrap items-center gap-6 border-t bg-muted/15 px-4 py-3 text-sm">
+          <span className="text-xs font-medium uppercase text-muted-foreground">Status dos artigos</span>
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            Publicados <strong>{articleStatusCounts.published}</strong>
           </span>
-          <span className="inline-flex min-h-7 items-center bg-amber-500 px-3 text-xs font-semibold uppercase text-white shadow-sm">
-            Em análise ({articleStatusCounts.analysis})
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+            Em análise <strong>{articleStatusCounts.analysis}</strong>
           </span>
         </footer>
       </section>
@@ -5613,13 +5615,19 @@ function articleDraft(
   article: (typeof cvsArticles)[number],
   override?: ArticleDraft,
 ): ArticleDraft {
+  const importedPermission =
+    "permission" in article ? String(article.permission || "") : "";
+
   return override || {
     ...article,
-    permission: "1",
+    permission:
+      importedPermission || (legacyCompanyArticleIds.has(article.id) ? "2" : "1"),
     emailCopy: "",
     relatedArticleIds: "",
   };
 }
+
+const legacyCompanyArticleIds = new Set(["157", "158", "163"]);
 
 function findBaseArticle(id: string) {
   return kbArticlesFull.find((article) => article.id === `AP-${id}`);
