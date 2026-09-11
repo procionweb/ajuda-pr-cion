@@ -952,6 +952,7 @@ function OptionsTable({ query }: TableProps) {
   const tickets = useTickets();
   const { session } = usePortalAuth();
   const [optionOverrides, setOptionOverrides] = useState<Record<string, Partial<HadronOption>>>({});
+  const [customOptions, setCustomOptions] = useState<HadronOption[]>([]);
   const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
   const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
   const [previewingOption, setPreviewingOption] = useState<HadronOption | null>(null);
@@ -978,9 +979,11 @@ function OptionsTable({ query }: TableProps) {
   useEffect(() => {
     try {
       setOptionOverrides(JSON.parse(localStorage.getItem("hadron-option-overrides") || "{}"));
+      setCustomOptions(JSON.parse(localStorage.getItem("hadron-custom-options") || "[]"));
       setDisabledOptions(JSON.parse(localStorage.getItem("hadron-disabled-options") || "[]"));
     } catch {
       setOptionOverrides({});
+      setCustomOptions([]);
       setDisabledOptions([]);
     }
   }, []);
@@ -1016,7 +1019,7 @@ function OptionsTable({ query }: TableProps) {
       group.push(ticket);
       grouped.set(optionId, group);
     });
-    return hadronOptions.map((sourceOption) => {
+    return [...hadronOptions, ...customOptions].map((sourceOption) => {
       const option = { ...sourceOption, ...optionOverrides[sourceOption.id] };
       const related = grouped.get(option.id) || [];
       const active = related.filter(
@@ -1028,7 +1031,7 @@ function OptionsTable({ query }: TableProps) {
       );
       return { option, active, latest, related, disabled: disabledOptions.includes(option.id) };
     });
-  }, [disabledOptions, optionOverrides, tickets]);
+  }, [customOptions, disabledOptions, optionOverrides, tickets]);
   const operators = useMemo(
     () => [...new Set(tickets.map((ticket) => ticket.owner).filter(Boolean))].sort(),
     [tickets],
@@ -1140,6 +1143,15 @@ function OptionsTable({ query }: TableProps) {
     return { ...counts, averageDelay };
   }, [optionsWithTickets]);
   const persistOverride = (option: HadronOption) => {
+    if (option.id.startsWith("novo-")) {
+      const created = { ...option, id: `local-${Date.now()}` };
+      const nextCustomOptions = [...customOptions, created];
+      setCustomOptions(nextCustomOptions);
+      localStorage.setItem("hadron-custom-options", JSON.stringify(nextCustomOptions));
+      setEditingOption(null);
+      toast.success("Opção criada com sucesso.");
+      return;
+    }
     const next = { ...optionOverrides, [option.id]: option };
     setOptionOverrides(next);
     localStorage.setItem("hadron-option-overrides", JSON.stringify(next));
@@ -1237,7 +1249,43 @@ function OptionsTable({ query }: TableProps) {
     <>
       <section className="overflow-hidden rounded-md border bg-card shadow-sm">
         <div className="border-b px-4 py-4">
-          <h2 className="text-lg font-medium">Opções</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-medium">Opções</h2>
+            <Button
+              type="button"
+              onClick={() =>
+                setEditingOption({
+                  id: `novo-${Date.now()}`,
+                  option: "",
+                  form: "",
+                  description: "",
+                  label: "",
+                  status: "0",
+                  owner: currentUser.operator,
+                  priority: "0",
+                  characteristic: "cadastro",
+                  observation: "",
+                  call: "",
+                  executable: "",
+                  tester: currentUser.operator,
+                  releaseOwner: "",
+                  approvalOwner: "",
+                  hadronOwner: "",
+                  openedAt: new Date().toISOString().slice(0, 10),
+                  approvedAt: "",
+                  hadronAt: "",
+                  tags: "",
+                  listView: "0",
+                  moduleId: "1",
+                  submoduleId: "20",
+                  updatedAt: new Date().toISOString(),
+                })
+              }
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Criar opção
+            </Button>
+          </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_.8fr_.75fr_.8fr_.8fr_.8fr_.75fr_.72fr_.72fr_auto]">
             <Input
               value={optionQuery}
@@ -2051,6 +2099,7 @@ function OptionEditDialog({
   const [draft, setDraft] = useState<HadronOption | null>(option);
   const { collaborators } = useCollaborators();
   useEffect(() => setDraft(option), [option]);
+  const isCreating = Boolean(draft?.id.startsWith("novo-"));
   const tagSuggestions = useMemo(
     () =>
       [
@@ -2068,17 +2117,21 @@ function OptionEditDialog({
     setDraft((current) => (current ? { ...current, [field]: value } : current));
   const selectedModule = getOptionModuleName(draft);
   const availableSubmodules = modulesMap[selectedModule] || [];
-  const optionChecklist = getHadronOptionChecklist(draft.id);
+  const optionChecklist = isCreating
+    ? hadronChecklist.map((item) => ({ ...item, check1: false, check2: false }))
+    : getHadronOptionChecklist(draft.id);
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex h-[calc(100vh-2rem)] max-h-[760px] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
-        <DialogTitle className="sr-only">Alterar opção Hádron</DialogTitle>
+        <DialogTitle className="sr-only">
+          {isCreating ? "Criar opção Hádron" : "Alterar opção Hádron"}
+        </DialogTitle>
         <DetailModalHeader
           dense
-          icon={Pencil}
+          icon={isCreating ? Plus : Pencil}
           title={draft.description || "Opção Hádron"}
           protocol={draft.option}
-          meta="Alterar opção Hádron"
+          meta={isCreating ? "Criar opção Hádron" : "Alterar opção Hádron"}
           onClose={onClose}
         />
         <Tabs defaultValue="opcao" className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -2253,7 +2306,17 @@ function OptionEditDialog({
           <Button variant="outline" onClick={onClose}>
             Fechar
           </Button>
-          <Button onClick={() => onSave(draft)}>Salvar</Button>
+          <Button
+            onClick={() => {
+              if (!draft.description.trim() || !draft.option.trim() || !draft.form.trim()) {
+                toast.error("Informe o nome, a opção e o formulário.");
+                return;
+              }
+              onSave({ ...draft, label: `${draft.description} (${draft.option} - ${draft.form})` });
+            }}
+          >
+            {isCreating ? "Criar opção" : "Salvar"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
