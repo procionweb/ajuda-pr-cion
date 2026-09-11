@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   BookOpenText,
+  Building2,
   Bug,
   Boxes,
   Check,
@@ -16,6 +17,7 @@ import {
   Filter,
   Flag,
   GitBranch,
+  Globe2,
   History,
   ExternalLink,
   KeyRound,
@@ -34,6 +36,7 @@ import {
   ArrowUp,
   Trash2,
   UserRound,
+  UsersRound,
   Wrench,
   X,
 } from "lucide-react";
@@ -5466,6 +5469,18 @@ function ArticlesTable({ query, onOpen }: TableProps) {
             {rows.map((article, index) => {
               const published = article.status === "1";
               const baseArticle = findBaseArticle(article.id);
+              const PermissionIcon =
+                article.permission === "2"
+                  ? Building2
+                  : article.permission === "1"
+                    ? UsersRound
+                    : Globe2;
+              const permissionLabel =
+                article.permission === "2"
+                  ? "Empresa"
+                  : article.permission === "1"
+                    ? "Clientes"
+                    : "Público";
               return (
                 <tr
                   key={article.id}
@@ -5475,7 +5490,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                   )}
                 >
                   <td className="px-3 py-2.5 text-muted-foreground">
-                    <UserRound className="h-4 w-4" />
+                    <PermissionIcon className="h-4 w-4" aria-label={permissionLabel} />
                   </td>
                   <td className="max-w-[420px] px-3 py-2.5 font-medium">
                     <span className="mr-1 text-muted-foreground">{article.id} -</span>
@@ -5545,15 +5560,13 @@ function ArticlesTable({ query, onOpen }: TableProps) {
           Nenhum artigo encontrado.
         </div>
       )}
-        <footer className="flex flex-wrap items-center gap-6 border-t bg-muted/15 px-4 py-3 text-sm">
-          <span className="text-xs font-medium uppercase text-muted-foreground">Status dos artigos</span>
-          <span className="inline-flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            Publicados <strong>{articleStatusCounts.published}</strong>
+        <footer className="flex flex-wrap items-center gap-2 border-t bg-muted/15 px-4 py-3 text-sm">
+          <span className="mr-2 text-xs font-medium uppercase text-muted-foreground">Status dos artigos</span>
+          <span className="inline-flex min-h-7 items-center bg-emerald-600 px-3 text-xs font-semibold uppercase text-white shadow-sm">
+            Publicados ({articleStatusCounts.published})
           </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-            Em análise <strong>{articleStatusCounts.analysis}</strong>
+          <span className="inline-flex min-h-7 items-center bg-amber-500 px-3 text-xs font-semibold uppercase text-white shadow-sm">
+            Em análise ({articleStatusCounts.analysis})
           </span>
         </footer>
       </section>
