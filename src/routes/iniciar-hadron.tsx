@@ -86,6 +86,7 @@ import { currentUser } from "@/lib/mock-data";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { formatLogDate, listHadronOptionLogs, type AuthLogRow } from "@/lib/auth-logs-api";
 import {
   createHadronOccurrence,
   deleteHadronOccurrence,
@@ -1630,11 +1631,14 @@ function HadronOptionPage({
   const moduleName = getOptionModuleName(option);
   const submoduleName = getOptionSubmoduleName(option);
   const optionChecklist = getHadronOptionChecklist(option.id);
+  const { allCollaborators } = useCollaborators({ onlyActive: true });
   const [newOccurrenceOpen, setNewOccurrenceOpen] = useState(false);
   const [newReleaseOpen, setNewReleaseOpen] = useState(false);
   const [savingOccurrence, setSavingOccurrence] = useState(false);
   const [savingRelease, setSavingRelease] = useState(false);
   const [releaseOccurrences, setReleaseOccurrences] = useState<HadronOccurrence[]>([]);
+  const [optionLogs, setOptionLogs] = useState<AuthLogRow[]>([]);
+  const [logsLoading, setLogsLoading] = useState(true);
   const [occurrenceDraft, setOccurrenceDraft] = useState({
     kind: "ocorrencia",
     operator: currentUser.operator,
@@ -1651,7 +1655,13 @@ function HadronOptionPage({
     description: "",
     tags: option.tags || "",
   });
-  const optionReleases = hadronReleases.filter((release) => release.optionId === option.id);
+  const optionReleases = hadronReleases.filter(
+    (release) =>
+      Boolean(release.version) &&
+      (release.optionId === option.id ||
+        release.option === option.option ||
+        release.form === option.form),
+  );
   const releaseModuleItems = [...hadronModuleNames.entries()].map(([id, name]) => [
     id,
     `${id} : ${name}`,
@@ -1665,6 +1675,13 @@ function HadronOptionPage({
       .then((result) => setReleaseOccurrences(result.rows))
       .catch(() => setReleaseOccurrences([]));
   }, [newReleaseOpen, option.id]);
+  useEffect(() => {
+    setLogsLoading(true);
+    void listHadronOptionLogs(option.id)
+      .then(setOptionLogs)
+      .catch(() => setOptionLogs([]))
+      .finally(() => setLogsLoading(false));
+  }, [option.id]);
   return (
     <section className="space-y-4">
       <header className="rounded-md border bg-card p-4 shadow-sm">
@@ -1764,21 +1781,16 @@ function HadronOptionPage({
               )}
             </TabsContent>
             <TabsContent value="logs" className="mt-5 space-y-2">
-              {tickets.length ? (
-                tickets.map((ticket) => (
-                  <div
-                    key={ticket.id}
-                    className="flex flex-wrap justify-between gap-2 border-b py-3 text-sm"
-                  >
-                    <span>{ticket.subject}</span>
-                    <span className="text-muted-foreground">
-                      {ticket.owner} · {formatOccurrenceDate(ticket.updatedAt)}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">Nenhum log disponível.</p>
-              )}
+              {optionLogs.map((log) => (
+                <div key={log.id} className="grid gap-1 border-b py-3 text-xs md:grid-cols-[1fr_1.5fr_1fr_auto]">
+                  <span className="font-medium">{log.controller}/{log.action || "-"}</span>
+                  <span className="truncate text-muted-foreground" title={log.info || log.url || ""}>{log.info || log.url || "Sem informação adicional"}</span>
+                  <span>{log.operator || "Não informado"}{log.ipAddress ? ` / ${log.ipAddress}` : ""}</span>
+                  <span className="text-muted-foreground">{formatLogDate(log.createdAt)}</span>
+                </div>
+              ))}
+              {logsLoading && <p className="py-8 text-center text-sm text-muted-foreground">Carregando logs...</p>}
+              {!logsLoading && !optionLogs.length && <p className="py-8 text-center text-sm text-muted-foreground">Nenhum log disponível para esta opção.</p>}
             </TabsContent>
           </Tabs>
         </section>
@@ -1858,8 +1870,8 @@ function HadronOptionPage({
           <DialogTitle className="sr-only">Nova ocorrência</DialogTitle>
           <DetailModalHeader icon={Bug} title="Nova ocorrência" protocol={`Opção ${option.option}`} meta={option.description} onClose={() => setNewOccurrenceOpen(false)} accentClassName="bg-rose-500" iconWrapClassName="bg-rose-500 text-white" />
           <div className="grid gap-4 px-5 py-5 md:grid-cols-2 lg:grid-cols-4">
-            <label className="min-w-0 space-y-1 text-sm"><span>Tipo</span><OccurrenceSelect value={occurrenceDraft.kind} onValueChange={(kind) => setOccurrenceDraft({...occurrenceDraft, kind})} items={[["ocorrencia","Ocorrência"],["aviso","Aviso"],["sugestao","Sugestão/Solicitação"],["aprovacao","Aprovação"]]} /></label>
-            <label className="min-w-0 space-y-1 text-sm"><span>Operador</span><Input value={occurrenceDraft.operator} readOnly /></label>
+            <label className="min-w-0 space-y-1 text-sm"><span>Tipo</span><OccurrenceSelect value={occurrenceDraft.kind} onValueChange={(kind) => setOccurrenceDraft({...occurrenceDraft, kind})} items={[["sugestao","Sugestão/Solicitação"],["aprovacao","Aprovação"],["ocorrencia","Ocorrência"],["solucao","Solução"],["aviso","Aviso"],["revisada","Revisada"]]} /></label>
+            <label className="min-w-0 space-y-1 text-sm"><span>Operador</span><OccurrenceSelect value={occurrenceDraft.operator} onValueChange={(operator) => setOccurrenceDraft({...occurrenceDraft,operator})} items={allCollaborators.map((collaborator) => [collaborator.acronym || collaborator.id, collaborator.acronym || collaboratorLabel(collaborator)] as [string,string])} /></label>
             <label className="min-w-0 space-y-1 text-sm"><span>Cliente ou caminho da base</span><Input value={occurrenceDraft.baseAddress} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, baseAddress:e.target.value})} /></label>
             <label className="min-w-0 space-y-1 text-sm"><span>Versão</span><OccurrenceSelect value={occurrenceDraft.versionLegacyId} onValueChange={(versionLegacyId) => setOccurrenceDraft({...occurrenceDraft, versionLegacyId})} items={erpVersions.map((v) => [v.id, `${v.versao} - ${formatVersionDate(v.data_versao)}`])} /></label>
             <label className="space-y-1 text-sm md:col-span-2 lg:col-span-4"><span>Descreva a ocorrência</span><span className="block text-xs text-muted-foreground">Caso necessário, inclua os detalhes que permitam reproduzir o problema.</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={occurrenceDraft.occurrence} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, occurrence:e.target.value})} /></label>

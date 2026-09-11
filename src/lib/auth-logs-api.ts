@@ -126,6 +126,32 @@ export async function listConfigurationAuthLogs(
   };
 }
 
+export async function listHadronOptionLogs(optionId: string, limit = 50) {
+  const { data, error } = await supabase
+    .from("auth_logs")
+    .select(
+      "id, controller, action, client_acronym, url, info, operator, ip_address, device, crm_created_at",
+    )
+    .eq("controller", "CvsOptions")
+    .contains("params", [optionId])
+    .order("crm_created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+
+  return ((data || []) as RawRow[]).map((row) => ({
+    id: row.id,
+    controller: row.controller,
+    action: row.action,
+    clientAcronym: row.client_acronym,
+    url: row.url,
+    info: row.info,
+    operator: row.operator,
+    ipAddress: row.ip_address,
+    device: row.device ?? null,
+    createdAt: row.crm_created_at,
+  })) satisfies AuthLogRow[];
+}
+
 /** dd/MM/aa HH:mm */
 export function formatLogDate(iso: string | null): string {
   if (!iso) return "—";
