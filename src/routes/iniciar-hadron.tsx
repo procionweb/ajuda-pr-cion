@@ -3623,7 +3623,7 @@ function OccurrenceSelect({
 }) {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="w-full cursor-pointer text-sm font-normal text-muted-foreground">
+      <SelectTrigger className="w-full cursor-pointer text-sm font-normal text-foreground">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -3972,15 +3972,22 @@ function LegacyRichContent({ value }: { value: string }) {
 
 function normalizeLegacyUrl(value: string) {
   const url = value.trim();
-  if (/^https?:\/\//i.test(url)) return url;
-  if (url.startsWith("/")) return `https://crm.procion.com${url}`;
-  return "";
+  if (/^(data:|blob:)/i.test(url)) return url;
+  try {
+    const parsed = new URL(url, "https://crm.procion.com/");
+    if (!/^https?:$/.test(parsed.protocol)) return "";
+    if (parsed.hostname === "crm.procion.com") {
+      parsed.protocol = "https:";
+      parsed.pathname = parsed.pathname.replace(/^\/webroot\//, "/");
+    }
+    return parsed.href;
+  } catch { return ""; }
 }
 
 function normalizeLegacyHtml(value: string) {
   return value.replace(/(<img[^>]+src=["'])([^"']+)(["'])/gi, (_match, before, src, after) => {
     const normalized = normalizeLegacyUrl(src);
-    return normalized ? `${before}${normalized}${after}` : `${before}${src}${after}`;
+    return normalized ? `${before}${normalized}${after} referrerpolicy="no-referrer" decoding="async"` : `${before}${src}${after}`;
   });
 }
 
@@ -5483,7 +5490,8 @@ function ArticlesTable({ query, onOpen }: TableProps) {
   const [viewingArticle, setViewingArticle] = useState<ArticleDraft | null>(null);
   const [editingArticle, setEditingArticle] = useState<ArticleDraft | null>(null);
   const [removingArticle, setRemovingArticle] = useState<ArticleDraft | null>(null);
-  const normalizedQuery = normalizeOccurrenceText(`${query} ${title}`.trim());
+  const normalizedQuery = normalizeOccurrenceText(query.trim());
+  const normalizedTitle = normalizeOccurrenceText(title.trim());
   const categories = useMemo(
     () => [...new Set(cvsArticles.map((article) => article.category).filter(Boolean))].sort(),
     [],
@@ -5503,15 +5511,17 @@ function ArticlesTable({ query, onOpen }: TableProps) {
           );
           const date = releaseTimestamp(article.updatedAt || article.createdAt);
           if (normalizedQuery && !haystack.includes(normalizedQuery)) return false;
+          if (normalizedTitle && !normalizeOccurrenceText(article.title).includes(normalizedTitle)) return false;
           if (category !== "todos" && article.category !== category) return false;
           if (operator !== "todos" && article.owner !== operator) return false;
           if (status !== "todos" && article.status !== status) return false;
+          if ((dateFrom || dateTo) && !date) return false;
           if (dateFrom && date < new Date(`${dateFrom}T00:00:00`).getTime()) return false;
-          if (dateTo && date > new Date(`${dateTo}T23:59:59`).getTime()) return false;
+          if (dateTo && date >= new Date(`${dateTo}T00:00:00`).setDate(new Date(`${dateTo}T00:00:00`).getDate() + 1)) return false;
           return true;
         })
         .sort((a, b) => releaseTimestamp(b.updatedAt) - releaseTimestamp(a.updatedAt)),
-    [category, dateFrom, dateTo, normalizedQuery, operator, overrides, removedIds, status],
+    [category, dateFrom, dateTo, normalizedQuery, normalizedTitle, operator, overrides, removedIds, status],
   );
   const articleStatusCounts = useMemo(
     () => ({
@@ -5539,7 +5549,6 @@ function ArticlesTable({ query, onOpen }: TableProps) {
               <h2 className="text-lg font-medium">Artigos</h2>
               <span className="text-xs text-muted-foreground">{rows.length} registros</span>
             </div>
-            <Badge variant="secondary">Fonte: cvs_articles.json</Badge>
           </div>
           <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.35fr_1fr_1fr_1fr_1.35fr_auto]">
             <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Título" />
@@ -5611,7 +5620,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
-                    <Badge variant={published ? "default" : "secondary"}>
+                    <Badge className={article.status === "2" ? "bg-amber-500 text-white hover:bg-amber-500" : undefined} variant={published ? "default" : "secondary"}>
                       {articleStatusLabel(article.status)}
                     </Badge>
                   </td>
