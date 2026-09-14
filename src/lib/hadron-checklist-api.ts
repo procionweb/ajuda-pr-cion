@@ -10,7 +10,11 @@ export async function loadOptionChecklist(optionId: string) {
     .eq("option_id", optionId);
   if (error) throw error;
   const values = new Map(data.map((row) => [row.check_id, row]));
-  return getHadronOptionChecklist(optionId).map((item) => ({
+  const customOptions = JSON.parse(localStorage.getItem("hadron-custom-options") || "[]");
+  const baseChecks =
+    customOptions.find((option: { id: string }) => option.id === optionId)?.checklist ||
+    getHadronOptionChecklist(optionId);
+  return (baseChecks as ReturnType<typeof getHadronOptionChecklist>).map((item) => ({
     ...item,
     check1: values.get(item.checkId)?.check1 ?? item.check1,
     check2: values.get(item.checkId)?.check2 ?? item.check2,

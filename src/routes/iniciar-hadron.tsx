@@ -1984,7 +1984,7 @@ function OptionEditDialog({
   const [editedChecks, setEditedChecks] = useState<ReturnType<typeof getHadronOptionChecklist>>([]);
   useEffect(() => {
     if (!option) return;
-    setEditedChecks(getHadronOptionChecklist(option.id));
+    setEditedChecks(option.id.startsWith("novo-") ? hadronChecklist.map((item) => ({id:item[0],checkId:item[0],characteristic:item[1],title:item[2],description:item[3],check1:false,check2:false})) : option.checklist || getHadronOptionChecklist(option.id));
     if (!option.id.startsWith("novo-")) void loadOptionChecklist(option.id).then(setEditedChecks).catch(() => toast.error("Não foi possível carregar o checklist."));
   }, [option]);
   const { collaborators } = useCollaborators();
@@ -2007,9 +2007,7 @@ function OptionEditDialog({
     setDraft((current) => (current ? { ...current, [field]: value } : current));
   const selectedModule = getOptionModuleName(draft);
   const availableSubmodules = modulesMap[selectedModule] || [];
-  const optionChecklist = isCreating
-    ? hadronChecklist.map((item) => ({ id: item[0], checkId: item[0], characteristic: item[1], title: item[2], description: item[3], check1: false, check2: false }))
-    : editedChecks;
+  const optionChecklist = editedChecks;
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex h-[calc(100vh-2rem)] max-h-[760px] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
@@ -2205,7 +2203,7 @@ function OptionEditDialog({
                   return;
                 }
               }
-              onSave({ ...draft, priority: draft.priority || "1", label: `${draft.description} (${draft.option} - ${draft.form})` });
+              onSave({ ...draft, checklist: editedChecks, priority: draft.priority || "1", label: `${draft.description} (${draft.option} - ${draft.form})` });
             }}
           >
             {isCreating ? "Criar opção" : "Salvar"}
@@ -2891,7 +2889,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
               optionTerm,
             )) &&
           (!formTerm || normalizeOccurrenceText(option.form).includes(formTerm)) &&
-          (!ownerTerm || option.owner === ownerTerm),
+          (!ownerTerm || normalizeOccurrenceText(option.owner) === normalizeOccurrenceText(ownerTerm)),
       )
       .map((option) => option.id);
     return ids.length ? ids : ["__none__"];
@@ -3045,7 +3043,9 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
               }}
               items={[
                 ["todos", "Todos os operadores"],
-                ...operators.map((item) => [item, item] as [string, string]),
+                ...(userType === "responsavel"
+                  ? [...new Set(hadronOptions.map((option) => option.owner.trim()).filter(Boolean))].sort()
+                  : operators).map((item) => [item, item] as [string, string]),
               ]}
             />
             <OccurrenceSelect

@@ -156,7 +156,11 @@ export async function listHadronOccurrences(filters: OccurrenceFilters) {
   }
   const dateField = filters.dateField || "occurred_at";
   if (filters.dateFrom) request = request.gte(dateField, `${filters.dateFrom}T00:00:00-03:00`);
-  if (filters.dateTo) request = request.lte(dateField, `${filters.dateTo}T23:59:59-03:00`);
+  if (filters.dateTo) {
+    const nextDay = new Date(`${filters.dateTo}T00:00:00Z`);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+    request = request.lt(dateField, `${nextDay.toISOString().slice(0, 10)}T00:00:00-03:00`);
+  }
   if (filters.query?.trim()) {
     const term = filters.query.trim().replace(/[,%()]/g, " ");
     request = request.or(`occurrence_text.ilike.%${term}%,solution_text.ilike.%${term}%`);

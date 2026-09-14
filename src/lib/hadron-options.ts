@@ -1,4 +1,5 @@
 import { cvsOptions } from "@/lib/cvs-catalogs-imported";
+import type { getHadronOptionChecklist } from "@/lib/hadron-checklist";
 
 export type HadronOption = {
   id: string;
@@ -8,6 +9,7 @@ export type HadronOption = {
   label: string;
   status: string;
   priority?: string;
+  checklist?: ReturnType<typeof getHadronOptionChecklist>;
   owner: string;
   characteristic: string;
   observation: string;
