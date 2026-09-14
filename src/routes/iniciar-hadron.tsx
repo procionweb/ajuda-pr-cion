@@ -3985,7 +3985,7 @@ function normalizeLegacyUrl(value: string) {
 }
 
 function normalizeLegacyHtml(value: string) {
-  return value.replace(/(<img[^>]+src=["'])([^"']+)(["'])/gi, (_match, before, src, after) => {
+  return value.replace(/(<img\b[^>]*?\ssrc=["'])([^"']+)(["'])/gi, (_match, before, src, after) => {
     const normalized = normalizeLegacyUrl(src);
     return normalized ? `${before}${normalized}${after} referrerpolicy="no-referrer" decoding="async"` : `${before}${src}${after}`;
   });
