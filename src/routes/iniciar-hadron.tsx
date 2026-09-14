@@ -2366,8 +2366,6 @@ function OptionImportedOccurrences({
   unresolved?: boolean;
   onCreate?: () => void;
 }) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
   const [rows, setRows] = useState<HadronOccurrence[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -2387,12 +2385,19 @@ function OptionImportedOccurrences({
   useEffect(() => {
     let active = true;
     setLoading(true);
-    void listHadronOccurrences({
-      page: latestOnly ? 1 : page,
-      pageSize: latestOnly ? 1 : pageSize,
-      optionIds: [option.id],
-      unresolved,
-    })
+    const load = async () => {
+      const collected: HadronOccurrence[] = [];
+      let total = 0;
+      for (let batch = 1; active; batch++) {
+        const result = await listHadronOccurrences({page:batch,pageSize:latestOnly ? 1 : 100,optionIds:[option.id],unresolved});
+        if (!active) return {rows:[],total:0};
+        collected.push(...result.rows);
+        total = result.total;
+        if (latestOnly || !result.rows.length || collected.length >= total) break;
+      }
+      return {rows:collected,total};
+    };
+    void load()
       .then((result) => {
         if (!active) return;
         setRows(result.rows);
@@ -2408,9 +2413,8 @@ function OptionImportedOccurrences({
     return () => {
       active = false;
     };
-  }, [latestOnly, unresolved, option.id, page, pageSize, reloadKey]);
+  }, [latestOnly, unresolved, option.id, reloadKey]);
 
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const collaboratorName = (operator: string) => {
     const collaborator = findCollaborator(allCollaborators, operator);
     return collaborator ? collaboratorLabel(collaborator) : operator || "Não informado";
@@ -2458,20 +2462,6 @@ function OptionImportedOccurrences({
             </p>
           )}
         </div>
-        {!latestOnly && !loading && total > 0 && (
-          <TablePagination
-            noun="ocorrências"
-            page={page}
-            pageCount={pageCount}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={setPage}
-            onPageSizeChange={(value) => {
-              setPageSize(value);
-              setPage(1);
-            }}
-          />
-        )}
       </div>
       <HadronSolutionDialog
         occurrence={solutionOccurrence}

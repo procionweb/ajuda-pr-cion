@@ -383,3 +383,7 @@ body.hadron-screen .lucide-external-link {
 body.hadron-screen .detail-modal-icon svg {
   color: inherit !important;
 }
+body.hadron-screen button:not(:disabled) .lucide-scan-eye,
+body.hadron-screen a .lucide-scan-eye {
+  cursor: pointer;
+}
