@@ -4441,6 +4441,13 @@ function ModulesTable({ query, onOpen }: TableProps) {
 }
 
 function SerialsTable({ query }: TableProps) {
+  type SerialRow = (typeof hadronSerials)[number];
+  const [items, setItems] = useState<SerialRow[]>(() => {
+    try { return JSON.parse(localStorage.getItem("hadron-serials") || "null") || [...hadronSerials]; } catch { return [...hadronSerials]; }
+  });
+  const [editingSerial, setEditingSerial] = useState<SerialRow | null>(null);
+  const [removingSerial, setRemovingSerial] = useState<SerialRow | null>(null);
+  const persistSerials = (next: SerialRow[]) => {localStorage.setItem("hadron-serials",JSON.stringify(next));setItems(next);};
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [serial, setSerial] = useState("");
@@ -4448,7 +4455,7 @@ function SerialsTable({ query }: TableProps) {
   const [operator, setOperator] = useState("todos");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const rows = hadronSerials.filter((item) => {
+  const rows = items.filter((item) => {
     const text = normalizeOccurrenceText(`${item.id} ${item.numero_serie} ${item.operador} ${item.cliente}`);
     const date = (item.created || item.modified || "").slice(0,10);
     return (!query || text.includes(normalizeOccurrenceText(query))) &&
@@ -4459,9 +4466,6 @@ function SerialsTable({ query }: TableProps) {
   });
   useEffect(() => setPage(1), [query, serial, acronym, operator, dateFrom, dateTo]);
   const formatSerialDate = (value: string | null) => value ? `${value.slice(8,10)}/${value.slice(5,7)}/${value.slice(0,4)} ${value.slice(11,16)}` : "—";
-  const hasFilter = Boolean(
-    query || serial || acronym || operator !== "todos" || dateFrom || dateTo,
-  );
   const clearFilters = () => {
     setSerial("");
     setAcronym("");
@@ -4475,7 +4479,7 @@ function SerialsTable({ query }: TableProps) {
     <section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="border-b p-4">
         <h2 className="text-lg font-medium">Seriais</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[1.2fr_.6fr_.8fr_.8fr_.8fr_auto]">
+        <div className="mt-4 grid items-center gap-3 md:grid-cols-2 xl:grid-cols-[1.2fr_.6fr_.8fr_.8fr_auto]">
           <Input
             value={serial}
             onChange={(event) => setSerial(event.target.value)}
@@ -4491,7 +4495,7 @@ function SerialsTable({ query }: TableProps) {
             onValueChange={setOperator}
             items={[
               ["todos", "Operador"],
-              ...Array.from(new Set(hadronSerials.map((item) => item.operador))).sort().map((item) => [item,item] as [string,string]),
+              ...Array.from(new Set(items.map((item) => item.operador))).sort().map((item) => [item,item] as [string,string]),
             ]}
           />
           <DateRangeFilter
@@ -4502,20 +4506,16 @@ function SerialsTable({ query }: TableProps) {
               setDateTo(end);
             }}
           />
-          <Button type="button" className="cursor-pointer px-8">
-            Buscar
-          </Button>
-        </div>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={clearFilters}
-          disabled={!hasFilter}
-          className="mt-3 cursor-pointer"
+          className="h-10 cursor-pointer bg-transparent px-3 hover:bg-sky-100 dark:hover:bg-sky-500/15"
         >
           Limpar
         </Button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[920px] text-left text-sm">
@@ -4526,12 +4526,13 @@ function SerialsTable({ query }: TableProps) {
               <th className="w-64 px-4 py-3">Operador</th>
               <th className="w-40 px-4 py-3">Cliente</th>
               <th className="w-44 px-4 py-3">Datas</th>
+              <th className="w-24 px-4 py-3 text-center">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {rows.slice((page-1)*pageSize,page*pageSize).map((item) => <tr key={item.id} className="hover:bg-muted/20"><td className="px-4 py-3 text-muted-foreground">{item.id}</td><td className="px-4 py-3 font-mono">{item.numero_serie}</td><td className="px-4 py-3">{item.operador}</td><td className="px-4 py-3">{item.cliente}</td><td className="px-4 py-3 whitespace-nowrap"><div>{formatSerialDate(item.created)}</div><div className="text-xs text-muted-foreground">Atualizado {formatSerialDate(item.modified)}</div></td></tr>)}
+            {rows.slice((page-1)*pageSize,page*pageSize).map((item) => <tr key={item.id} className="hover:bg-muted/20"><td className="px-4 py-3 text-muted-foreground">{item.id}</td><td className="px-4 py-3 font-mono">{item.numero_serie}</td><td className="px-4 py-3">{item.operador}</td><td className="px-4 py-3">{item.cliente}</td><td className="px-4 py-3 whitespace-nowrap"><div>{formatSerialDate(item.created)}</div><div className="text-xs text-muted-foreground">Atualizado {formatSerialDate(item.modified)}</div></td><td className="px-4 py-3"><div className="flex justify-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title="Editar serial" onClick={() => setEditingSerial({...item})}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" title="Excluir serial" onClick={() => setRemovingSerial(item)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}
             {rows.length === 0 && <tr>
-              <td colSpan={5} className="px-4 py-16 text-center">
+              <td colSpan={6} className="px-4 py-16 text-center">
                 <KeyRound className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
                 <p className="text-sm text-muted-foreground">Nenhum serial encontrado.</p>
               </td>
@@ -4549,6 +4550,8 @@ function SerialsTable({ query }: TableProps) {
         onPageChange={setPage}
         onPageSizeChange={(value) => { setPageSize(value); setPage(1); }}
       />
+      <Dialog open={Boolean(editingSerial)} onOpenChange={(open) => !open && setEditingSerial(null)}><DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden"><DialogTitle className="sr-only">Editar número de série</DialogTitle><DetailModalHeader icon={Pencil} title="Editar número de série" onClose={() => setEditingSerial(null)} />{editingSerial && <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"><label className="space-y-1 text-sm sm:col-span-2"><span>Número de série</span><Input value={editingSerial.numero_serie} onChange={(e) => setEditingSerial({...editingSerial,numero_serie:e.target.value})} /></label><label className="space-y-1 text-sm"><span>Descrição / operador</span><Input value={editingSerial.operador} onChange={(e) => setEditingSerial({...editingSerial,operador:e.target.value})} /></label><label className="space-y-1 text-sm"><span>Sigla</span><Input value={editingSerial.cliente} onChange={(e) => setEditingSerial({...editingSerial,cliente:e.target.value.toUpperCase()})} /></label></div>}<DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={() => {if(!editingSerial)return;if(!editingSerial.numero_serie.trim() || !editingSerial.operador.trim() || !editingSerial.cliente.trim()){toast.error("Preencha o número de série, descrição e sigla.");return;}persistSerials(items.map(item => item.id === editingSerial.id ? {...editingSerial,modified:new Date().toISOString()} : item));setEditingSerial(null);toast.success("Serial atualizado neste navegador.");}}>Salvar</Button></DialogFooter></DialogContent></Dialog>
+      <AlertDialog open={Boolean(removingSerial)} onOpenChange={(open) => !open && setRemovingSerial(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir serial?</AlertDialogTitle><AlertDialogDescription>Remover o número de série {removingSerial?.numero_serie} da lista deste navegador?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => {persistSerials(items.filter(item => item.id !== removingSerial?.id));setRemovingSerial(null);setPage(1);toast.success("Serial removido deste navegador.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </>
   );
 }
