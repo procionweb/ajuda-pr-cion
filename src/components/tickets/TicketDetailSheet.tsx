@@ -1016,6 +1016,9 @@ export function TicketDetailSheet({
               </div>
             </div>
             {/* fim body wrapper */}
+            <DialogFooter className="border-t border-border px-5 py-4">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+            </DialogFooter>
           </div>
           {/* fim painel esquerdo */}
 

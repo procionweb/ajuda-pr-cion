@@ -443,7 +443,7 @@ function HadronPage() {
         <DialogContent
           className={cn(
             detail?.release ? "max-w-5xl" : "max-w-2xl",
-            "gap-0 overflow-hidden bg-card p-0 [&>button]:hidden",
+            "flex flex-col gap-0 overflow-hidden bg-card p-0 [&>button]:hidden",
           )}
           onPointerDownOutside={(e) => e.preventDefault()}
         >
@@ -459,7 +459,7 @@ function HadronPage() {
             }
             onClose={() => setDetail(null)}
           />
-          <div className="max-h-[68vh] space-y-4 overflow-y-auto px-5 py-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
             {detail?.release ? (
               <ReleaseDetailView release={detail.release} />
             ) : detail?.hadronOccurrence ? (
@@ -4215,7 +4215,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
               <label className="space-y-1 text-sm"><span>Título</span><Input value={editing.title} onChange={(event) => setEditing({ ...editing, title: event.target.value })} /></label>
               <label className="space-y-1 text-sm"><span>Descrição</span><Input value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label>
             </div>
-            <div className="space-y-1 text-sm"><span>Mensagem</span><div key={editing.id} contentEditable suppressContentEditableWarning role="textbox" aria-label="Mensagem" aria-multiline="true" className="min-h-64 w-full rounded-md border bg-background p-3 text-sm leading-6 outline-none focus:ring-2 focus:ring-ring" dangerouslySetInnerHTML={{ __html: normalizeLegacyHtml(editing.message) }} onBlur={(event) => setEditing({ ...editing, message: event.currentTarget.innerHTML })} /></div>
+            <div className="space-y-1 text-sm"><span>Mensagem</span><RichTextEditor key={editing.id} value={normalizeLegacyHtml(editing.message)} onChange={(message) => setEditing({ ...editing, message })} minHeight={256} /></div>
             {editing.legends.map((legend, index) => <div key={index} className="grid items-end gap-3 border-b pb-3 md:grid-cols-[5rem_1fr_auto]">
               <label className="space-y-1 text-sm"><span>Título</span><Input value={legend.title} onChange={(event) => setEditing({ ...editing, legends: editing.legends.map((item, i) => i === index ? { ...item, title: event.target.value } : item) })} /></label>
               <label className="space-y-1 text-sm"><span>Legenda</span><textarea className="min-h-20 w-full rounded-md border bg-background p-3 text-sm" value={legend.caption} onChange={(event) => setEditing({ ...editing, legends: editing.legends.map((item, i) => i === index ? { ...item, caption: event.target.value } : item) })} /></label>
@@ -5337,20 +5337,16 @@ function ReleasesTable({ query, onOpen }: TableProps) {
               </label>
               <label className="space-y-1 text-sm md:col-span-6">
                 <span>Detalhes do release</span>
-                <div
+                <RichTextEditor
                   key={editingRelease.id}
-                  contentEditable
-                  suppressContentEditableWarning
-                  dangerouslySetInnerHTML={{
-                    __html: normalizeLegacyHtml(editingRelease.description),
-                  }}
-                  onBlur={(event) =>
+                  value={normalizeLegacyHtml(editingRelease.description)}
+                  onChange={(description) =>
                     setEditingRelease({
                       ...editingRelease,
-                      description: event.currentTarget.innerHTML,
+                      description,
                     })
                   }
-                  className="min-h-64 w-full overflow-auto rounded-md border bg-background p-3 text-sm leading-6 outline-none focus:ring-2 focus:ring-ring [&_img]:my-3 [&_img]:max-w-full [&_img]:object-contain"
+                  minHeight={256}
                 />
               </label>
               <label className="space-y-1 text-sm md:col-span-6">

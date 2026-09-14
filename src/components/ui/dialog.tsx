@@ -75,7 +75,7 @@ DialogHeader.displayName = "DialogHeader";
 
 const DialogFooter = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
+    className={cn("sticky bottom-0 z-10 flex shrink-0 flex-wrap items-center justify-end gap-2 bg-card sm:space-x-2", className)}
     {...props}
   >
     {!containsClose(children) && <DialogPrimitive.Close asChild><Button type="button" variant="outline">Fechar</Button></DialogPrimitive.Close>}

@@ -8,11 +8,15 @@
 - Removed the X from DetailModalHeader.
 - Option and article detail fields use the existing rich-text editor with upload and drag/drop.
 - Editor uploads are persisted to crm_editor_images with staff-only RLS; no new blob URLs are stored.
+- Ticket details have an explicit close footer inside the main panel.
+- Hadron detail content shrinks and scrolls independently of its close footer.
+- Shared footers do not shrink and wrap their actions when space is limited.
+- Release and parameter editing now uses the rich-text editor with upload and drag/drop.
 
 ## Remaining Work
 
 - Verify custom modals, sheets and headers outside the shared Dialog components.
-- Replace remaining plain-text detail fields across releases, parameters, occurrences, calendar and commercial forms.
+- Replace remaining plain-text detail fields in occurrence, calendar and commercial forms, and release creation inside an option.
 - Add model-level column sorting before pagination, including server-side paginated lists.
 - Migrate Hadron options, releases, articles, checklist, parameters, serials and versions from local/session state to shared database CRUD.
 - Review Kanban templates and calendar local event storage; separate preferences from business data.
