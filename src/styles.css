@@ -365,3 +365,18 @@ iframe[src*="lovable"] {
     touch-action: manipulation;
   }
 }
+body.hadron-screen .lucide-pencil,
+body.hadron-screen .lucide-file-pen-line {
+  color: #000 !important;
+}
+body.hadron-screen .lucide-eye,
+body.hadron-screen .lucide-scan-eye {
+  color: #0284c7 !important;
+}
+body.hadron-screen .lucide-trash-2 {
+  color: #dc2626 !important;
+}
+body.hadron-screen .lucide-earth,
+body.hadron-screen .lucide-external-link {
+  color: #059669 !important;
+}

@@ -37,6 +37,7 @@ type OccurrenceFilters = {
   dateFrom?: string;
   dateTo?: string;
   query?: string;
+  unresolved?: boolean;
 };
 
 function mapOccurrence(row: Record<string, unknown>): HadronOccurrence {
@@ -145,6 +146,7 @@ export async function listHadronOccurrences(filters: OccurrenceFilters) {
 
   if (filters.optionIds?.length) request = request.in("option_legacy_id", filters.optionIds);
   if (filters.kind && filters.kind !== "todos") request = request.eq("kind", filters.kind);
+  if (filters.unresolved) request = request.eq("kind", "ocorrencia").is("solved_at", null).is("reviewed_at", null);
   if (filters.operator && filters.operator !== "todos") {
     if (filters.operatorField === "reporter") request = request.eq("reporter", filters.operator);
     else if (filters.operatorField === "solver") request = request.eq("solver", filters.operator);
@@ -196,4 +198,11 @@ export async function listHadronOccurrenceOperators() {
   const { data, error } = await supabase.rpc("get_hadron_occurrence_operators");
   if (error) throw error;
   return (data || []).map((row: Record<string, unknown>) => String(row.operator));
+}
+
+export async function getHadronOverview() {
+  const {data,error} = await supabase.rpc("get_hadron_overview");
+  if (error) throw error;
+  const result = data as unknown as {general:Record<string,unknown>[];review:Record<string,unknown>[];options:{option_legacy_id:string;count:number}[];operators:{reporter:string;count:number}[];total:number;reviewTotal:number};
+  return {...result,general:result.general.map(mapOccurrence),review:result.review.map(mapOccurrence)};
 }

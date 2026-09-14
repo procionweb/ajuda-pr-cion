@@ -12,14 +12,12 @@ import {
   ClipboardCheck,
   Code2,
   FileCode2,
-  Eye,
   FilePenLine,
   Filter,
   Flag,
   GitBranch,
   Globe2,
   History,
-  ExternalLink,
   KeyRound,
   ListChecks,
   ClipboardList,
@@ -103,6 +101,7 @@ import {
   createHadronOccurrence,
   deleteHadronOccurrence,
   getHadronOccurrenceKindCounts,
+  getHadronOverview,
   listHadronOccurrences,
   listHadronOccurrenceOperators,
   reviewHadronOccurrence,
@@ -283,6 +282,10 @@ const hadronParameters: ParameterDraft[] = (
 }));
 
 function HadronPage() {
+  useEffect(() => {
+    document.body.classList.add("hadron-screen");
+    return () => document.body.classList.remove("hadron-screen");
+  }, []);
   const tickets = useTickets();
   const { department } = usePortalAuth();
   const search = Route.useSearch();
@@ -327,7 +330,7 @@ function HadronPage() {
 
   return (
     <AppShell>
-      <div className="space-y-5 [&_td_button_svg]:!text-primary [&_td_a_svg]:!text-primary">
+      <div className="hadron-page space-y-5">
         <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <Breadcrumbs items={[{ label: "Hadron" }]} />
@@ -510,50 +513,30 @@ function Overview({
   onOpen: (d: Detail) => void;
   onViewOption: (option: HadronOption) => void;
 }) {
-  const tickets = useTickets();
-  const active = useMemo(
-    () => tickets.filter((ticket) => !["Finalizado", "Cancelado"].includes(ticket.status)),
-    [tickets],
-  );
-  const completed = useMemo(
-    () => tickets.filter((ticket) => ["Finalizado", "Cancelado"].includes(ticket.status)),
-    [tickets],
-  );
+  const [dashboard,setDashboard] = useState<Awaited<ReturnType<typeof getHadronOverview>> | null>(null);
+  const [previewOption,setPreviewOption] = useState<HadronOption | null>(null);
+  useEffect(() => {
+    let active = true;
+    const load = () => getHadronOverview().then((data) => { if (active) setDashboard(data); }).catch(() => { if (active) toast.error("Não foi possível carregar a visão geral do Hádron."); });
+    void load();
+    window.addEventListener("hadron-occurrence-reviewed",load);
+    return () => { active=false; window.removeEventListener("hadron-occurrence-reviewed",load); };
+  }, []);
   const latestVersion = erpVersions[0];
-  const optionRows = useMemo(() => {
-    const grouped = new Map<string, TicketRow[]>();
-    tickets.forEach((ticket) => {
-      const optionId = findTicketOption(ticket)?.id;
-      if (!optionId) return;
-      grouped.set(optionId, [...(grouped.get(optionId) || []), ticket]);
-    });
-    return hadronOptions
-      .map((option) => ({ option, tickets: grouped.get(option.id) || [] }))
-      .sort(
-        (a, b) =>
-          b.tickets.length - a.tickets.length ||
-          a.option.option.localeCompare(b.option.option, "pt-BR", { numeric: true }),
-      );
-  }, [tickets]);
-  const overviewOperatorStats = useMemo(() => {
-    const totals = new Map<string, number>();
-    optionRows.forEach(({ option, tickets: related }) => {
-      if (related.length)
-        related.forEach((ticket) => totals.set(ticket.owner, (totals.get(ticket.owner) || 0) + 1));
-      else if (option.owner) totals.set(option.owner, (totals.get(option.owner) || 0) + 1);
-    });
-    return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
-  }, [optionRows]);
+  const optionRows = (dashboard?.options || []).map((row) => ({option:hadronOptionsById.get(row.option_legacy_id),count:Number(row.count)}))
+    .filter((row): row is {option:HadronOption;count:number} => Boolean(row.option && row.option.status !== "10"))
+    .sort((a,b) => a.option.option.localeCompare(b.option.option,"pt-BR",{numeric:true}));
+  const overviewOperatorStats = (dashboard?.operators || []).map((row) => [row.reporter,Number(row.count)] as const);
   const cards = [
     [
       "Ag. revisão / ocorrência",
-      `${active.length} / ${tickets.length}`,
+      `${dashboard?.reviewTotal || 0} / ${dashboard?.total || 0}`,
       ClipboardCheck,
       "text-rose-600 bg-rose-500/10",
     ],
     [
       "Opção ocorrência / total",
-      `${active.length} / ${hadronOptions.length}`,
+      `${optionRows.length} / ${hadronOptions.length}`,
       ListChecks,
       "text-cyan-600 bg-cyan-500/10",
     ],
@@ -588,36 +571,16 @@ function Overview({
             <h2 className="text-base font-medium">Opções</h2>
             <span className="text-[10px] text-primary">Exceto Hádron</span>
           </div>
-          <div className="grid grid-cols-[118px_36px_64px_minmax(190px,1fr)_92px_44px] border-b px-5 pb-2 text-[11px] text-muted-foreground">
+          <div className="grid grid-cols-[118px_64px_minmax(190px,1fr)_92px_44px] border-b px-5 pb-2 text-[11px] text-muted-foreground">
             <span>Status</span>
-            <span>P</span>
             <span>Opção</span>
             <span>Descrição</span>
             <span>Responsável</span>
             <span className="text-center">Ações</span>
           </div>
           <div className="h-72 overflow-y-auto px-3">
-            {optionRows.map(({ option, tickets: related }) => {
-              const openCount = related.filter(
-                (ticket) => !["Finalizado", "Cancelado"].includes(ticket.status),
-              ).length;
-              const count = Math.max(1, openCount);
-              const occurrencesForModal: TicketEvent[] = related.map((ticket) => ({
-                id: ticket.id,
-                kind: ["Finalizado", "Cancelado"].includes(ticket.status) ? "closed" : "status",
-                when: ticket.closedAt || ticket.updatedAt || ticket.openedAt,
-                actor: ticket.owner || option.owner || "Não informado",
-                actorType: "suporte",
-                description: `${ticket.subject}${ticket.description ? ` — ${ticket.description}` : ""}`,
-              }));
-              const openPreview = () =>
-                onOpen({
-                  title: "Ocorrências",
-                  subtitle: `Opção: ${option.option}`,
-                  body: option.observation || option.description,
-                  meta: [],
-                  occurrences: occurrencesForModal,
-                });
+            {optionRows.map(({option,count}) => {
+              const openPreview = () => setPreviewOption(option);
               return (
                 <div
                   key={option.id}
@@ -640,7 +603,7 @@ function Overview({
                     {option.description}
                   </button>
                   <span className="truncate text-muted-foreground">
-                    {related[0]?.owner || option.owner || "-"}
+                    {option.owner || "-"}
                   </span>
                   <Button
                     type="button"
@@ -650,7 +613,7 @@ function Overview({
                     className="h-8 w-8 cursor-pointer"
                     title="Prévia das ocorrências"
                   >
-                    <ClipboardCheck className="h-4 w-4" />
+                    <ScanEye className="h-4 w-4 text-sky-600" />
                   </Button>
                 </div>
               );
@@ -675,14 +638,14 @@ function Overview({
         </section>
         <HadronDashboardPanel title="Ocorrências" subtitle="Aguardando revisão">
           <HadronOccurrenceRows
-            rows={active.slice(0, 10)}
+            rows={dashboard?.review || []}
             onOpen={onOpen}
             empty="Nenhuma ocorrência aguardando revisão."
           />
         </HadronDashboardPanel>
         <HadronDashboardPanel title="Ocorrências" subtitle="Geral">
           <HadronOccurrenceRows
-            rows={[...active, ...completed].slice(0, 12)}
+            rows={dashboard?.general || []}
             onOpen={onOpen}
             empty="Nenhuma ocorrência registrada."
             variant="general"
@@ -745,9 +708,9 @@ function Overview({
                     >
                       <Link
                         to="/base-de-conhecimento"
-                        search={{ search: release.title, from: "hadron-release" }}
+                        search={{ release: release.id, search: release.title, from: "hadron-release" }}
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <Globe2 className="h-4 w-4 text-emerald-600" />
                       </Link>
                     </Button>
                     <Button
@@ -766,7 +729,7 @@ function Overview({
                         })
                       }
                     >
-                      <Eye className="h-4 w-4" />
+                      <ScanEye className="h-4 w-4" />
                     </Button>
                   </span>
                 </div>
@@ -774,6 +737,7 @@ function Overview({
             })}
         </HadronDashboardPanel>
       </div>
+      <OverviewOccurrencePreview option={previewOption} onClose={() => setPreviewOption(null)} />
     </div>
   );
 }
@@ -798,99 +762,32 @@ function HadronDashboardPanel({
   );
 }
 
-function HadronOccurrenceRows({
-  rows,
-  onOpen,
-  empty,
-  variant = "review",
-}: {
-  rows: ReturnType<typeof useTickets>;
-  onOpen: (d: Detail) => void;
-  empty: string;
-  variant?: "review" | "general";
+function HadronOccurrenceRows({rows,onOpen,empty,variant="review"}: {
+  rows: HadronOccurrence[]; onOpen:(d:Detail) => void; empty:string; variant?:"review" | "general";
 }) {
   if (!rows.length) return <p className="p-6 text-center text-xs text-muted-foreground">{empty}</p>;
-  if (variant === "general")
-    return (
-      <>
-        <div className="grid grid-cols-[28px_92px_minmax(130px,0.8fr)_minmax(220px,1.5fr)_92px_38px] gap-2 border-b bg-muted/25 px-3 py-2 text-[10px] uppercase text-muted-foreground">
-          <span>Tipo</span>
-          <span>Opção/Form.</span>
-          <span>Descrição</span>
-          <span>Ocorrência</span>
-          <span>Operador</span>
-          <span />
-        </div>
-        {rows.map((ticket) => {
-          const option = findTicketOption(ticket);
-          return (
-            <button
-              key={ticket.id}
-              type="button"
-              onClick={() => openOccurrence(ticket, option, onOpen)}
-              className="grid w-full cursor-pointer grid-cols-[28px_92px_minmax(130px,0.8fr)_minmax(220px,1.5fr)_92px_38px] items-center gap-2 border-b px-3 py-2 text-left text-[11px] transition-colors hover:bg-muted/40"
-            >
-              <OccurrenceTypeIcon ticket={ticket} />
-              <span className="truncate font-medium">
-                {option ? `${option.option}/${option.form || option.option}` : ticket.module}
-              </span>
-              <span className="line-clamp-2 font-medium leading-4">
-                {option?.description || ticket.subject}
-              </span>
-              <span className="line-clamp-2 leading-4 text-muted-foreground">
-                {htmlToText(ticket.description || ticket.subject)}
-              </span>
-              <OccurrenceDate value={ticket.openedAt} operator={ticket.owner} />
-              <span
-                className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground"
-                title="Ver prévia"
-              >
-                <ClipboardCheck className="h-4 w-4" />
-              </span>
-            </button>
-          );
-        })}
-      </>
-    );
-  return (
-    <>
-      <div className="grid grid-cols-[28px_92px_minmax(150px,1fr)_88px_88px_38px] gap-2 border-b bg-muted/25 px-3 py-2 text-[10px] uppercase text-muted-foreground">
-        <span>Tipo</span>
-        <span>Opç./Form.</span>
-        <span>Detalhes</span>
-        <span>Ocorrência</span>
-        <span>Solução</span>
-        <span />
-      </div>
-      {rows.map((ticket) => {
-        const option = findTicketOption(ticket);
-        return (
-          <button
-            key={ticket.id}
-            onClick={() => openOccurrence(ticket, option, onOpen)}
-            className="grid w-full cursor-pointer grid-cols-[28px_92px_minmax(150px,1fr)_88px_88px_38px] items-center gap-2 border-b px-3 py-2 text-left text-[11px] transition-colors hover:bg-muted/40"
-          >
-            <OccurrenceTypeIcon ticket={ticket} />
-            <span className="truncate font-medium">
-              {option ? `${option.option}/${option.form || option.option}` : ticket.module}
-            </span>
-            <span className="line-clamp-2 leading-4">{ticket.description || ticket.subject}</span>
-            <OccurrenceDate value={ticket.openedAt} operator={ticket.owner} />
-            <OccurrenceDate
-              value={ticket.closedAt}
-              operator={ticket.closedAt ? ticket.owner : ""}
-            />
-            <span
-              className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground"
-              title="Ver detalhes"
-            >
-              <ClipboardCheck className="h-4 w-4" />
-            </span>
-          </button>
-        );
-      })}
-    </>
-  );
+  return <div className="overflow-x-auto">
+    <div className="grid min-w-[640px] grid-cols-[28px_84px_minmax(120px,1fr)_minmax(160px,1.5fr)_100px_32px] gap-2 border-b bg-muted/25 px-3 py-2 text-[10px] uppercase text-muted-foreground"><span>Tipo</span><span>Opção/Form.</span><span>Descrição</span><span>Ocorrência</span><span>{variant === "review" ? "Solução" : "Operador"}</span><span /></div>
+    {rows.map((occurrence) => {
+      const option = hadronOptionsById.get(occurrence.optionLegacyId);
+      return <button key={occurrence.id} type="button" onClick={() => openImportedOccurrence(occurrence,option,onOpen)} className="grid min-w-[640px] w-full grid-cols-[28px_84px_minmax(120px,1fr)_minmax(160px,1.5fr)_100px_32px] items-center gap-2 border-b px-3 py-2 text-left text-[11px] hover:bg-muted/40">
+        <ImportedOccurrenceTypeIcon occurrence={occurrence} />
+        <span className="font-medium">{option ? `${option.option}/${option.form || option.option}` : occurrence.optionLegacyId}</span>
+        <span className="line-clamp-2 font-medium">{option?.description || "Descrição não informada"}</span>
+        <span className="line-clamp-2 leading-4 text-muted-foreground">{occurrence.occurrenceText}</span>
+        <OccurrenceDate value={variant === "review" ? occurrence.solvedAt : occurrence.occurredAt} operator={variant === "review" ? occurrence.solver : occurrence.reporter} />
+        <ScanEye className="h-4 w-4 text-sky-600" />
+      </button>;
+    })}
+  </div>;
+}
+
+function OverviewOccurrencePreview({option,onClose}: {option:HadronOption | null;onClose:() => void}) {
+  return <Dialog open={Boolean(option)} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <DialogContent className="max-h-[88vh] max-w-4xl gap-0 overflow-hidden p-0 [&>button]:hidden">
+      {option && <><DialogTitle className="sr-only">Ocorrências</DialogTitle><DetailModalHeader icon={ScanEye} title="Ocorrências" subtitle={`Opção: ${option.option}`} onClose={onClose} /><div className="overflow-y-auto px-5"><OptionImportedOccurrences option={option} unresolved /></div></>}
+    </DialogContent>
+  </Dialog>;
 }
 
 type HadronOptionStatus =
@@ -2472,10 +2369,12 @@ function openImportedOccurrence(
 function OptionImportedOccurrences({
   option,
   latestOnly = false,
+  unresolved = false,
   onCreate,
 }: {
   option: HadronOption;
   latestOnly?: boolean;
+  unresolved?: boolean;
   onCreate?: () => void;
 }) {
   const [page, setPage] = useState(1);
@@ -2503,6 +2402,7 @@ function OptionImportedOccurrences({
       page: latestOnly ? 1 : page,
       pageSize: latestOnly ? 1 : pageSize,
       optionIds: [option.id],
+      unresolved,
     })
       .then((result) => {
         if (!active) return;
@@ -2519,7 +2419,7 @@ function OptionImportedOccurrences({
     return () => {
       active = false;
     };
-  }, [latestOnly, option.id, page, pageSize, reloadKey]);
+  }, [latestOnly, unresolved, option.id, page, pageSize, reloadKey]);
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const collaboratorName = (operator: string) => {
@@ -2939,7 +2839,7 @@ function OptionOccurrencesPreviewDialog({
               onClose={onClose}
             />
             <div className="max-h-[68vh] overflow-y-auto px-5 py-4">
-              <OptionImportedOccurrences option={option} latestOnly />
+              <OptionImportedOccurrences option={option} unresolved />
             </div>
           </>
         )}
@@ -3645,7 +3545,7 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
                       className="cursor-pointer"
                       onClick={() => openOccurrence(ticket, option, onOpen)}
                     >
-                      <Eye className="h-4 w-4" />
+                      <ScanEye className="h-4 w-4" />
                     </Button>
                   </td>
                 </tr>
@@ -5204,7 +5104,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                             from: "hadron-release",
                           }}
                         >
-                          <ExternalLink className="h-4 w-4 text-sky-700" />
+                          <Globe2 className="h-4 w-4 text-sky-700" />
                         </Link>
                       </Button>
                       <Button
@@ -5715,7 +5615,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                             params={{ slug: baseArticle.slug }}
                             search={{ from: "hadron-article" }}
                           >
-                            <ExternalLink className="h-4 w-4 text-sky-700" />
+                            <Globe2 className="h-4 w-4 text-sky-700" />
                           </Link>
                         </Button>
                       )}

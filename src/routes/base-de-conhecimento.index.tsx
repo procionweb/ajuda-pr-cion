@@ -29,7 +29,7 @@ import {
   getCategory,
   type KbCategoryId,
 } from "@/lib/kb-data";
-import { cvsArticles } from "@/lib/cvs-catalogs-imported";
+import { hadronReleases } from "@/lib/hadron-releases";
 
 type KbSearch = {
   search?: string;
@@ -91,7 +91,7 @@ function KbIndexPage() {
   const [activeCategory, setActiveCategory] = useState<KbCategoryId | "all">("all");
   const selectedRelease = useMemo(
     () =>
-      search.release ? cvsArticles.find((article) => article.id === search.release) : undefined,
+      search.release ? hadronReleases.find((release) => release.id === search.release) : undefined,
     [search.release],
   );
   const [query, setQuery] = useState(search.search ?? selectedRelease?.title ?? "");
@@ -205,7 +205,7 @@ function KbIndexPage() {
           </div>
           <div className="grid gap-5 p-5 lg:grid-cols-[190px_minmax(0,1fr)]">
             <aside className="space-y-3 text-sm lg:border-r lg:pr-5">
-              <ReleaseField label="Categoria" value={selectedRelease.category || "Release"} />
+              <ReleaseField label="Categoria" value={selectedRelease.releaseType || "Release"} />
               <ReleaseField label="Status" value={selectedRelease.status || "Não informado"} />
               <ReleaseField label="Cliques" value={String(selectedRelease.clicks || 0)} />
             </aside>
