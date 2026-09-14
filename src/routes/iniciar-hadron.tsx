@@ -775,7 +775,7 @@ function HadronOccurrenceRows({rows,onOpen,empty,variant="review"}: {
         <span className="line-clamp-2 font-medium">{option?.description || "Descrição não informada"}</span>
         <span className="line-clamp-2 leading-4 text-muted-foreground">{occurrence.occurrenceText}</span>
         <OccurrenceDate value={variant === "review" ? occurrence.solvedAt : occurrence.occurredAt} operator={variant === "review" ? occurrence.solver : occurrence.reporter} />
-        <ScanEye className="h-4 w-4 text-sky-600" />
+        <span title="Visualizar ocorrência" className="grid h-8 w-8 cursor-pointer place-items-center rounded-md transition-colors hover:bg-sky-100 dark:hover:bg-sky-500/15"><ScanEye className="h-4 w-4 text-sky-600" /></span>
       </button>;
     })}
   </div>;
