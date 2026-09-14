@@ -57,7 +57,6 @@ const options = tableRows(optionsPath, "cvs_options")
     description: repairText(row.descricao),
     status: String(row.status || ""),
     owner: repairText(row.responsavel),
-    priority: String(row.prioridade || ""),
     characteristic: repairText(row.caracteristica),
     observation: repairText(row.observacao),
     call: repairText(row.chamada),

@@ -4,6 +4,7 @@ export type HadronOccurrence = {
   id: number;
   optionLegacyId: string;
   kind: string;
+  priority: string;
   occurrenceHtml: string;
   occurrenceText: string;
   reporter: string;
@@ -43,6 +44,7 @@ function mapOccurrence(row: Record<string, unknown>): HadronOccurrence {
     id: Number(row.id),
     optionLegacyId: String(row.option_legacy_id || ""),
     kind: String(row.kind || "ocorrencia"),
+    priority: String(row.priority ?? 1),
     occurrenceHtml: String(row.occurrence_html || ""),
     occurrenceText: String(row.occurrence_text || ""),
     reporter: String(row.reporter || ""),
@@ -106,6 +108,7 @@ export async function createHadronOccurrence(input: {
   operator: string;
   baseAddress: string;
   versionLegacyId: string;
+  priority: string;
 }) {
   const { data, error } = await supabase.rpc("create_hadron_occurrence", {
     p_option_legacy_id: input.optionLegacyId,
@@ -114,6 +117,7 @@ export async function createHadronOccurrence(input: {
     p_operator: input.operator,
     p_base_address: input.baseAddress.trim(),
     p_version_legacy_id: input.versionLegacyId || null,
+    p_priority: Number(input.priority),
   });
   if (error) throw error;
   return Number(data);
@@ -123,6 +127,11 @@ export async function deleteHadronOccurrence(id: number) {
   const { error } = await supabase.rpc("delete_hadron_occurrence", {
     p_occurrence_id: id,
   });
+  if (error) throw error;
+}
+
+export async function updateHadronOccurrencePriority(id: number, priority: string) {
+  const { error } = await supabase.rpc("set_hadron_occurrence_priority", {p_id:id,p_priority:Number(priority)});
   if (error) throw error;
 }
 

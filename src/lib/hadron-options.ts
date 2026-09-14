@@ -8,7 +8,6 @@ export type HadronOption = {
   label: string;
   status: string;
   owner: string;
-  priority: string;
   characteristic: string;
   observation: string;
   call: string;
@@ -47,7 +46,6 @@ export const hadronOptions: HadronOption[] = (
   label: `${item.description} (${item.option} - ${item.form || item.option})`,
   status: item.status,
   owner: item.owner,
-  priority: item.priority,
   characteristic: item.characteristic,
   observation: item.observation,
   call: item.call,

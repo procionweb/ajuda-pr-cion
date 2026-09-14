@@ -107,6 +107,7 @@ import {
   listHadronOccurrenceOperators,
   reviewHadronOccurrence,
   updateHadronOccurrenceSolution,
+  updateHadronOccurrencePriority,
   type HadronOccurrence,
 } from "@/lib/hadron-occurrences";
 
@@ -168,6 +169,7 @@ type ReleaseDetail = {
 
 type HadronOccurrenceDetail = {
   id?: number;
+  priority?: string;
   option: string;
   form: string;
   kind: ReturnType<typeof occurrenceKind>;
@@ -192,7 +194,6 @@ const options = [
     title: "Cadastro de Tabelas de Tributacoes",
     description: "Ajustes e melhorias nas regras fiscais.",
     owner: "PRCEDU",
-    priority: "Alta",
     status: "Correcao",
   },
   {
@@ -200,7 +201,6 @@ const options = [
     title: "Cadastro de Operadores",
     description: "Permissões e configurações dos usuários.",
     owner: "PRCEDU",
-    priority: "Media",
     status: "Melhoria",
   },
   {
@@ -208,7 +208,6 @@ const options = [
     title: "Complementos Gerais N.C.M.",
     description: "Manutencao dos complementos tributarios.",
     owner: "PRCWAG",
-    priority: "Alta",
     status: "Correcao",
   },
   {
@@ -216,7 +215,6 @@ const options = [
     title: "Emissão de Nota Fiscal Eletrônica",
     description: "Validacoes e retorno da SEFAZ.",
     owner: "PRCJUL",
-    priority: "Baixa",
     status: "Evolucao",
   },
 ];
@@ -612,8 +610,6 @@ function Overview({
                 actorType: "suporte",
                 description: `${ticket.subject}${ticket.description ? ` — ${ticket.description}` : ""}`,
               }));
-              const priority = normalizeOptionPriority(related[0]?.priority || option.priority);
-              const PriorityIcon = priority.icon;
               const openPreview = () =>
                 onOpen({
                   title: "Ocorrências",
@@ -625,7 +621,7 @@ function Overview({
               return (
                 <div
                   key={option.id}
-                  className="grid min-h-9 grid-cols-[118px_36px_64px_minmax(190px,1fr)_92px_44px] items-center border-b bg-background px-2 text-xs transition-colors hover:bg-muted/40"
+                  className="grid min-h-9 grid-cols-[118px_64px_minmax(190px,1fr)_92px_44px] items-center border-b bg-background px-2 text-xs transition-colors hover:bg-muted/40"
                 >
                   <span className="flex items-center gap-1">
                     <Badge className="h-5 rounded-sm bg-rose-500 px-1.5 text-[9px] text-white hover:bg-rose-500">
@@ -634,15 +630,6 @@ function Overview({
                     <span className="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] text-white">
                       {count}
                     </span>
-                  </span>
-                  <span
-                    className={cn(
-                      "grid h-6 w-6 place-items-center rounded-full border",
-                      priority.className,
-                    )}
-                    title={`Prioridade ${priority.label}`}
-                  >
-                    <PriorityIcon className="h-3.5 w-3.5" />
                   </span>
                   <span className="text-muted-foreground">{option.option}</span>
                   <button
@@ -1287,7 +1274,6 @@ function OptionsTable({ query }: TableProps) {
                   label: "",
                   status: "0",
                   owner: currentUser.operator,
-                  priority: "0",
                   characteristic: "cadastro",
                   observation: "",
                   call: "",
@@ -1413,10 +1399,9 @@ function OptionsTable({ query }: TableProps) {
           <table className="w-full table-fixed text-left text-[11px] xl:text-xs">
             <colgroup>
               <col className="w-[9%]" />
-              <col className="w-[3%]" />
               <col className="w-[6%]" />
               <col className="w-[6%]" />
-              <col className="w-[19%]" />
+              <col className="w-[22%]" />
               <col className="w-[15%]" />
               <col className="w-[9%]" />
               <col className="w-[7%]" />
@@ -1428,7 +1413,6 @@ function OptionsTable({ query }: TableProps) {
               <tr>
                 {[
                   "Status",
-                  "P",
                   "Opção",
                   "Formulário",
                   "Descrição",
@@ -1478,7 +1462,6 @@ function OptionsTable({ query }: TableProps) {
                     className: "bg-muted text-muted-foreground hover:bg-muted",
                   },
                 }[optionStatus];
-                const priority = normalizeOptionPriority(option.priority).label;
                 return (
                   <tr
                     key={option.id}
@@ -1491,19 +1474,6 @@ function OptionsTable({ query }: TableProps) {
                       <Badge className={cn("whitespace-nowrap", statusDisplay.className)}>
                         {statusDisplay.label}
                       </Badge>
-                    </td>
-                    <td className="px-2 py-3">
-                      <span
-                        title={`Prioridade ${priority}`}
-                        className={cn(
-                          "block h-3 w-3 rounded-full",
-                          priority === "Alta"
-                            ? "bg-rose-500"
-                            : priority === "Media"
-                              ? "bg-amber-500"
-                              : "bg-emerald-500",
-                        )}
-                      />
                     </td>
                     <td className="break-words px-2 py-3 font-medium">
                       <span className="inline-flex items-center gap-1.5">
@@ -1706,8 +1676,6 @@ function HadronOptionPage({
   onExit: () => void;
   onEdit: () => void;
 }) {
-  const priority = normalizeOptionPriority(option.priority);
-  const PriorityIcon = priority.icon;
   const moduleName = getOptionModuleName(option);
   const submoduleName = getOptionSubmoduleName(option);
   const optionChecklist = getHadronOptionChecklist(option.id);
@@ -1721,6 +1689,7 @@ function HadronOptionPage({
   const [logsLoading, setLogsLoading] = useState(true);
   const [occurrenceDraft, setOccurrenceDraft] = useState({
     kind: "ocorrencia",
+    priority: "1",
     operator: currentUser.operator,
     baseAddress: "",
     versionLegacyId: erpVersions[0]?.id || "",
@@ -1956,18 +1925,6 @@ function HadronOptionPage({
             </Badge>
           </div>
           <div className="border-t pt-4">
-            <p className="text-xs font-medium uppercase text-muted-foreground">Prioridade</p>
-            <span
-              className={cn(
-                "mt-2 inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs",
-                priority.className,
-              )}
-            >
-              <PriorityIcon className="h-3.5 w-3.5" />
-              {priority.label}
-            </span>
-          </div>
-          <div className="border-t pt-4">
             <p className="text-xs font-medium uppercase text-muted-foreground">Checklist</p>
             <div className="mt-3 divide-y">
               {optionChecklist.map((item) => (
@@ -2022,6 +1979,7 @@ function HadronOptionPage({
             <label className="min-w-0 space-y-1 text-sm"><span>Operador</span><OccurrenceSelect value={occurrenceDraft.operator} onValueChange={(operator) => setOccurrenceDraft({...occurrenceDraft,operator})} items={allCollaborators.map((collaborator) => [collaborator.acronym || collaborator.id, collaborator.acronym || collaboratorLabel(collaborator)] as [string,string])} /></label>
             <label className="min-w-0 space-y-1 text-sm"><span>Cliente ou caminho da base</span><Input value={occurrenceDraft.baseAddress} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, baseAddress:e.target.value})} /></label>
             <label className="min-w-0 space-y-1 text-sm"><span>Versão</span><OccurrenceSelect value={occurrenceDraft.versionLegacyId} onValueChange={(versionLegacyId) => setOccurrenceDraft({...occurrenceDraft, versionLegacyId})} items={erpVersions.map((v) => [v.id, `${v.versao} - ${formatVersionDate(v.data_versao)}`])} /></label>
+            <div className="space-y-1 md:col-span-2"><p className="text-sm">Prioridade</p><HadronPrioritySegmented value={occurrenceDraft.priority} onChange={(priority) => setOccurrenceDraft({...occurrenceDraft,priority})} /></div>
             <label className="space-y-1 text-sm md:col-span-2 lg:col-span-4"><span>Descreva a ocorrência</span><span className="block text-xs text-muted-foreground">Caso necessário, inclua os detalhes que permitam reproduzir o problema.</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={occurrenceDraft.occurrence} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, occurrence:e.target.value})} /></label>
           </div>
           <DialogFooter className="border-t px-5 py-4"><Button disabled={savingOccurrence} onClick={async () => { if (!occurrenceDraft.baseAddress.trim() || !occurrenceDraft.occurrence.trim()) { toast.error("Informe a base e descreva a ocorrência."); return; } setSavingOccurrence(true); try { await createHadronOccurrence({optionLegacyId:option.id,...occurrenceDraft}); setNewOccurrenceOpen(false); setOccurrenceDraft({...occurrenceDraft,baseAddress:"",occurrence:""}); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Ocorrência criada com sucesso."); } catch(error) { toast.error(error instanceof Error ? error.message : "Não foi possível criar a ocorrência."); } finally { setSavingOccurrence(false); } }}>{savingOccurrence ? "Salvando..." : "Salvar"}</Button></DialogFooter>
@@ -2166,7 +2124,7 @@ function OptionEditDialog({
           </TabsList>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6">
             <TabsContent value="opcao" className="mt-3 space-y-4 pb-2">
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
+              <div className="grid gap-3">
                 <label className="space-y-2 text-[12.5px] font-medium text-foreground">
                   Nome da opção
                   <Input
@@ -2175,13 +2133,6 @@ function OptionEditDialog({
                     onChange={(event) => update("description", event.target.value)}
                   />
                 </label>
-                <div>
-                  <p className="mb-2 text-[12.5px] font-medium text-foreground">Prioridade</p>
-                  <HadronPrioritySegmented
-                    value={draft.priority}
-                    onChange={(value) => update("priority", value)}
-                  />
-                </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <OptionField
@@ -2463,6 +2414,21 @@ function HadronPrioritySegmented({
   );
 }
 
+function OccurrencePriorityField({occurrence}: {occurrence: Pick<HadronOccurrence,"id" | "priority">}) {
+  const {department} = usePortalAuth();
+  const [value,setValue] = useState(occurrence.priority);
+  const [saving,setSaving] = useState(false);
+  useEffect(() => setValue(occurrence.priority), [occurrence.id,occurrence.priority]);
+  const display = normalizeOccurrencePriority(value);
+  if (!["admin","development","support","specialist"].includes(department || "")) return <Badge className={display.className}>{display.label}</Badge>;
+  return <Select value={value} disabled={saving} onValueChange={async (priority) => {
+    setSaving(true);
+    try { await updateHadronOccurrencePriority(occurrence.id, priority); setValue(priority); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Prioridade salva."); }
+    catch { toast.error("Não foi possível salvar a prioridade."); }
+    finally { setSaving(false); }
+  }}><SelectTrigger aria-label={`Prioridade da ocorrência ${occurrence.id}`} className={cn("h-8 min-w-24 text-xs",display.className)}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="0">Baixa</SelectItem><SelectItem value="1">Média</SelectItem><SelectItem value="2">Alta</SelectItem></SelectContent></Select>;
+}
+
 function openImportedOccurrence(
   occurrence: HadronOccurrence,
   option: HadronOption | undefined,
@@ -2478,6 +2444,7 @@ function openImportedOccurrence(
     meta: [],
     hadronOccurrence: {
       id: occurrence.id,
+      priority: occurrence.priority,
       option: option?.option || occurrence.optionLegacyId,
       form: option?.form || option?.option || "-",
       kind: occurrence.reviewedAt
@@ -2742,6 +2709,7 @@ function HadronOccurrenceTimelineItem({
             {formatOccurrenceDay(openedAt)}
           </span>
           <span className="font-medium text-foreground">{reporter}</span>
+          <OccurrencePriorityField occurrence={occurrence} />
           {occurrence.sourceModifiedAt && (
             <span className="text-muted-foreground">
               Atualizada em {formatOccurrenceDate(occurrence.sourceModifiedAt)}
@@ -3214,6 +3182,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
             <thead className="border-b bg-muted/20 text-primary">
               <tr>
                 <th className="w-[4%] px-2 py-3 text-center font-medium">Tipo</th>
+                <th className="w-28 px-2 py-3 font-medium">Prioridade</th>
                 <th className="w-[8%] px-2 py-3 font-medium">Opção/Form.</th>
                 <th className="w-[14%] px-2 py-3 font-medium">Descrição</th>
                 <th className="px-3 py-3 font-medium">Detalhes</th>
@@ -3232,6 +3201,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
                     <td className="px-3 py-3 text-center">
                       <ImportedOccurrenceTypeIcon occurrence={occurrence} />
                     </td>
+                    <td className="px-2 py-3"><OccurrencePriorityField occurrence={occurrence} /></td>
                     <td className="break-words px-2 py-3 font-medium">
                       {option
                         ? `${option.option}/${option.form || option.option}`
@@ -3773,7 +3743,7 @@ function normalizeOccurrenceText(value: unknown) {
 
 type TicketRow = ReturnType<typeof useTickets>[number];
 
-function normalizeOptionPriority(value: string | undefined) {
+function normalizeOccurrencePriority(value: string | undefined) {
   const normalized = (value || "").trim().toLowerCase();
   if (["alta", "2"].includes(normalized)) {
     return {
@@ -3955,6 +3925,7 @@ function HadronOccurrenceDetailView({ occurrence }: { occurrence: HadronOccurren
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b pb-3 text-xs">
           <span className="font-medium text-foreground">{occurrence.reporter}</span>
+          {occurrence.id && occurrence.priority !== undefined && <OccurrencePriorityField occurrence={{id:occurrence.id,priority:occurrence.priority}} />}
           <span className="text-muted-foreground">{formatOccurrenceDay(occurrence.openedAt)}</span>
           {occurrence.solvedAt && (
             <>
@@ -5941,7 +5912,6 @@ function optionDetail(o: (typeof options)[number]): Detail {
     body: o.description,
     meta: [
       `Status: ${o.status}`,
-      `Prioridade: ${o.priority}`,
       `Responsável: ${o.owner}`,
       "Origem: CRM Hadron",
     ],
