@@ -2031,7 +2031,7 @@ function OptionEditDialog({
           </TabsList>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6">
             <TabsContent value="opcao" className="mt-3 space-y-4 pb-2">
-              <div className="grid gap-3">
+              <div className="grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_300px]">
                 <label className="space-y-2 text-[12.5px] font-medium text-foreground">
                   Nome da opção
                   <Input
@@ -2040,9 +2040,9 @@ function OptionEditDialog({
                     onChange={(event) => update("description", event.target.value)}
                   />
                 </label>
+                <div className="w-full max-w-[300px] space-y-2"><p className="text-sm font-medium">Prioridade</p><HadronPrioritySegmented value={draft.priority || "1"} onChange={(priority) => update("priority", priority)} /></div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {isCreating && <div className="space-y-2 sm:col-span-2 lg:col-span-4"><p className="text-sm font-medium">Prioridade</p><HadronPrioritySegmented value={draft.priority || "1"} onChange={(priority) => update("priority", priority)} /></div>}
                 <OptionField
                   label="Opção"
                   value={draft.option}
@@ -2205,7 +2205,7 @@ function OptionEditDialog({
                   return;
                 }
               }
-              onSave({ ...draft, ...(isCreating ? {priority: draft.priority || "1"} : {}), label: `${draft.description} (${draft.option} - ${draft.form})` });
+              onSave({ ...draft, priority: draft.priority || "1", label: `${draft.description} (${draft.option} - ${draft.form})` });
             }}
           >
             {isCreating ? "Criar opção" : "Salvar"}
@@ -2842,7 +2842,7 @@ function OptionOccurrencesPreviewDialog({
               onClose={onClose}
             />
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              <OptionImportedOccurrences option={option} unresolved />
+              <OptionImportedOccurrences option={option} />
             </div>
           </>
         )}
