@@ -5461,47 +5461,53 @@ function findReleaseOption(title: string) {
 }
 
 function VersionsTable({ query, onOpen }: TableProps) {
-  const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
-  const rows = erpVersions.filter((version) =>
-    Object.values(version).some((value) =>
-      value.toLocaleLowerCase("pt-BR").includes(normalizedQuery),
-    ),
-  );
-
-  return (
-    <DataCard
-      title="Versões do ERP"
-      subtitle="Histórico oficial das versões liberadas do Hadron."
-      headers={["Versão", "Liberação", "Runtime", "Arquivos", "Base", "Alteração"]}
-    >
-      {rows.map((version) => (
-        <DataRow
-          key={version.id}
-          onClick={() =>
-            onOpen({
-              title: `Versão ${version.versao}`,
-              subtitle: `Liberada em ${formatVersionDate(version.data_versao)}`,
-              body: "Registro técnico da versão liberada do ERP Hadron.",
-              meta: [
-                `Runtime: ${formatVersionDate(version.data_runtime)}`,
-                `Arquivos: ${formatVersionDate(version.data_arq)}`,
-                `Base: ${formatVersionDate(version.data_arq_bas)}`,
-                `Alteração: ${formatVersionDate(version.data_alterar)}`,
-              ],
-            })
-          }
-          cells={[
-            version.versao,
-            formatVersionDate(version.data_versao),
-            formatVersionDate(version.data_runtime),
-            formatVersionDate(version.data_arq),
-            formatVersionDate(version.data_arq_bas),
-            formatVersionDate(version.data_alterar),
-          ]}
-        />
-      ))}
-    </DataCard>
-  );
+  void onOpen;
+  type VersionRow = (typeof erpVersions)[number];
+  type DateField = Exclude<keyof VersionRow, "id" | "versao">;
+  const dateFields: [DateField,string][] = [["data_versao","Data da versão"],["data_runtime","Runtime"],["data_arq","Arquivos"],["data_arq_bas","Arq. Base"],["data_alterar","Alterar"]];
+  const [items,setItems] = useState<VersionRow[]>(() => {try{return JSON.parse(localStorage.getItem("hadron-versions") || "null") || [...erpVersions];}catch{return [...erpVersions];}});
+  const [draft,setDraft] = useState<VersionRow | null>(null);
+  const [removing,setRemoving] = useState<VersionRow | null>(null);
+  const [versionQuery,setVersionQuery] = useState("");
+  const [dateField,setDateField] = useState<DateField>("data_versao");
+  const [dateFrom,setDateFrom] = useState("");
+  const [dateTo,setDateTo] = useState("");
+  const [page,setPage] = useState(1);
+  const [pageSize,setPageSize] = useState(25);
+  const creating = Boolean(draft?.id.startsWith("novo-"));
+  const persist = (next:VersionRow[]) => {localStorage.setItem("hadron-versions",JSON.stringify(next));setItems(next);};
+  const rows = items.filter(version => {
+    const global = normalizeOccurrenceText(query);
+    const term = normalizeOccurrenceText(versionQuery);
+    const date = version[dateField]?.slice(0,10);
+    return (!global || normalizeOccurrenceText(Object.values(version).join(" ")).includes(global)) &&
+      (!term || normalizeOccurrenceText(version.versao).includes(term)) &&
+      (!dateFrom || Boolean(date && date >= dateFrom)) && (!dateTo || Boolean(date && date <= dateTo));
+  }).sort((a,b) => b.data_versao.localeCompare(a.data_versao) || b.id.localeCompare(a.id));
+  useEffect(() => setPage(1),[query,versionQuery,dateField,dateFrom,dateTo]);
+  const clearFilters = () => {setVersionQuery("");setDateField("data_versao");setDateFrom("");setDateTo("");setPage(1);};
+  const pageCount = Math.max(1,Math.ceil(rows.length/pageSize));
+  const currentPage = Math.min(page,pageCount);
+  const save = () => {
+    if(!draft)return;
+    if(!draft.versao.trim() || dateFields.some(([field]) => !/^\d{4}-\d{2}-\d{2}$/.test(draft[field]))) {toast.error("Preencha a versão e todas as datas.");return;}
+    if(items.some(item => item.id !== draft.id && item.versao.trim() === draft.versao.trim() && item.data_versao === draft.data_versao)){toast.error("Esta versão já está cadastrada para a data informada.");return;}
+    const saved = {...draft,versao:draft.versao.trim(),id:creating ? `local-${Date.now()}` : draft.id};
+    persist(creating ? [...items,saved] : items.map(item => item.id === saved.id ? saved : item));
+    setDraft(null);clearFilters();toast.success(creating ? "Versão criada neste navegador." : "Versão atualizada neste navegador.");
+  };
+  return <>
+    <section className="overflow-hidden rounded-md border bg-card shadow-sm">
+      <div className="border-b p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-medium">Versões do ERP</h2><Button className="h-10 cursor-pointer gap-2" onClick={() => {const today=new Date().toISOString().slice(0,10);setDraft({id:`novo-${Date.now()}`,versao:"",data_versao:today,data_runtime:today,data_arq:today,data_arq_bas:today,data_alterar:today});}}><Plus className="h-4 w-4" />Criar versão</Button></div>
+        <div className="mt-4 grid items-center gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.5fr_auto]"><Input placeholder="Versão" value={versionQuery} onChange={e => setVersionQuery(e.target.value)} /><OccurrenceSelect value={dateField} onValueChange={value => setDateField(value as DateField)} items={dateFields} /><DateRangeFilter from={dateFrom} to={dateTo} onChange={(from,to) => {setDateFrom(from);setDateTo(to);}} /><Button variant="ghost" className="h-10 cursor-pointer bg-transparent px-3 hover:bg-sky-100 dark:hover:bg-sky-500/15" onClick={clearFilters}>Limpar</Button></div>
+      </div>
+      <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b bg-muted/25 text-xs font-medium text-muted-foreground"><tr><th className="px-4 py-3">Versão</th>{dateFields.map(([field,label]) => <th key={field} className="px-4 py-3">{label}</th>)}<th className="w-24 px-4 py-3 text-center">Ações</th></tr></thead><tbody className="divide-y">{rows.slice((currentPage-1)*pageSize,currentPage*pageSize).map(version => <tr key={version.id} className="hover:bg-muted/20"><td className="px-4 py-3 font-medium">{version.versao}</td>{dateFields.map(([field]) => <td key={field} className="px-4 py-3">{formatVersionDate(version[field])}</td>)}<td className="px-4 py-3"><div className="flex justify-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title="Editar versão" onClick={() => setDraft({...version})}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" title="Excluir versão" onClick={() => setRemoving(version)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}{!rows.length && <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">Nenhuma versão encontrada.</td></tr>}</tbody></table></div>
+    </section>
+    <TablePagination noun="versões" page={currentPage} pageCount={pageCount} pageSize={pageSize} total={rows.length} onPageChange={setPage} onPageSizeChange={value => {setPageSize(value);setPage(1);}} />
+    <Dialog open={Boolean(draft)} onOpenChange={open => !open && setDraft(null)}><DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden"><DialogTitle className="sr-only">{creating ? "Criar versão" : "Editar versão"}</DialogTitle><DetailModalHeader icon={creating ? Plus : Pencil} title={creating ? "Criar versão" : "Editar versão"} onClose={() => setDraft(null)} />{draft && <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-2 lg:grid-cols-6"><label className="space-y-1 text-sm"><span>Versão</span><Input value={draft.versao} onChange={e => setDraft({...draft,versao:e.target.value})} /></label>{dateFields.map(([field,label]) => <label key={field} className="min-w-0 space-y-1 text-sm"><span>{label}</span><Input type="date" value={draft[field]} onChange={e => setDraft({...draft,[field]:e.target.value})} /></label>)}</div>}<DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={save}>Salvar</Button></DialogFooter></DialogContent></Dialog>
+    <AlertDialog open={Boolean(removing)} onOpenChange={open => !open && setRemoving(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir versão?</AlertDialogTitle><AlertDialogDescription>Remover a versão {removing?.versao} de {formatVersionDate(removing?.data_versao || "")} da lista deste navegador?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => {persist(items.filter(item => item.id !== removing?.id));setRemoving(null);setPage(1);toast.success("Versão removida deste navegador.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+  </>;
 }
 
 function ArticlesTable({ query, onOpen }: TableProps) {
