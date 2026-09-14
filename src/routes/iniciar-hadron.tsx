@@ -47,6 +47,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -2146,11 +2147,7 @@ function OptionEditDialog({
               </label>
               <label className="block space-y-2 text-[12.5px] font-medium text-foreground">
                 Descrição da opção
-                <textarea
-                  value={draft.observation}
-                  onChange={(event) => update("observation", event.target.value)}
-                  className="min-h-24 w-full resize-y rounded-md border bg-background px-3 py-2 text-sm font-normal text-foreground outline-none focus:ring-2 focus:ring-ring"
-                />
+                <RichTextEditor value={normalizeLegacyHtml(draft.observation)} onChange={value => update("observation", value)} />
               </label>
             </TabsContent>
             <TabsContent value="checklist" className="mt-4 pb-2">
@@ -5469,7 +5466,7 @@ function VersionsTable({ query, onOpen }: TableProps) {
   const [draft,setDraft] = useState<VersionRow | null>(null);
   const [removing,setRemoving] = useState<VersionRow | null>(null);
   const [versionQuery,setVersionQuery] = useState("");
-  const [dateField,setDateField] = useState<DateField>("data_versao");
+  const dateField: DateField = "data_versao";
   const [dateFrom,setDateFrom] = useState("");
   const [dateTo,setDateTo] = useState("");
   const [page,setPage] = useState(1);
@@ -5485,7 +5482,7 @@ function VersionsTable({ query, onOpen }: TableProps) {
       (!dateFrom || Boolean(date && date >= dateFrom)) && (!dateTo || Boolean(date && date <= dateTo));
   }).sort((a,b) => b.data_versao.localeCompare(a.data_versao) || b.id.localeCompare(a.id));
   useEffect(() => setPage(1),[query,versionQuery,dateField,dateFrom,dateTo]);
-  const clearFilters = () => {setVersionQuery("");setDateField("data_versao");setDateFrom("");setDateTo("");setPage(1);};
+  const clearFilters = () => {setVersionQuery("");setDateFrom("");setDateTo("");setPage(1);};
   const pageCount = Math.max(1,Math.ceil(rows.length/pageSize));
   const currentPage = Math.min(page,pageCount);
   const save = () => {
@@ -5500,7 +5497,7 @@ function VersionsTable({ query, onOpen }: TableProps) {
     <section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="border-b p-4">
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-medium">Versões do ERP</h2><Button className="h-10 cursor-pointer gap-2" onClick={() => {const today=new Date().toISOString().slice(0,10);setDraft({id:`novo-${Date.now()}`,versao:"",data_versao:today,data_runtime:today,data_arq:today,data_arq_bas:today,data_alterar:today});}}><Plus className="h-4 w-4" />Criar versão</Button></div>
-        <div className="mt-4 grid items-center gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.5fr_auto]"><Input placeholder="Versão" value={versionQuery} onChange={e => setVersionQuery(e.target.value)} /><OccurrenceSelect value={dateField} onValueChange={value => setDateField(value as DateField)} items={dateFields} /><DateRangeFilter from={dateFrom} to={dateTo} onChange={(from,to) => {setDateFrom(from);setDateTo(to);}} /><Button variant="ghost" className="h-10 cursor-pointer bg-transparent px-3 hover:bg-sky-100 dark:hover:bg-sky-500/15" onClick={clearFilters}>Limpar</Button></div>
+        <div className="mt-4 grid items-center gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1.5fr_auto]"><Input placeholder="Versão" value={versionQuery} onChange={e => setVersionQuery(e.target.value)} /><DateRangeFilter from={dateFrom} to={dateTo} onChange={(from,to) => {setDateFrom(from);setDateTo(to);}} /><Button variant="ghost" className="h-10 cursor-pointer bg-transparent px-3 hover:bg-sky-100 dark:hover:bg-sky-500/15" onClick={clearFilters}>Limpar</Button></div>
       </div>
       <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b bg-muted/25 text-xs font-medium text-muted-foreground"><tr><th className="px-4 py-3">Versão</th>{dateFields.map(([field,label]) => <th key={field} className="px-4 py-3">{label}</th>)}<th className="w-24 px-4 py-3 text-center">Ações</th></tr></thead><tbody className="divide-y">{rows.slice((currentPage-1)*pageSize,currentPage*pageSize).map(version => <tr key={version.id} className="hover:bg-muted/20"><td className="px-4 py-3 font-medium">{version.versao}</td>{dateFields.map(([field]) => <td key={field} className="px-4 py-3">{formatVersionDate(version[field])}</td>)}<td className="px-4 py-3"><div className="flex justify-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title="Editar versão" onClick={() => setDraft({...version})}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" title="Excluir versão" onClick={() => setRemoving(version)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}{!rows.length && <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">Nenhuma versão encontrada.</td></tr>}</tbody></table></div>
     </section>
@@ -5837,7 +5834,7 @@ function ArticleEditDialog({ article, onClose, onSave }: { article: ArticleDraft
           <label className="space-y-1 text-sm md:col-span-3"><span>Módulo</span><OccurrenceSelect value={draft.moduleId} onValueChange={(moduleId) => setDraft({ ...draft, moduleId, submoduleId: "none" })} items={releaseModuleSelectItems} /></label>
           <label className="space-y-1 text-sm md:col-span-3"><span>Submódulo</span><OccurrenceSelect value={draft.submoduleId} onValueChange={(value) => update("submoduleId", value)} items={submodules} /></label>
           <label className="space-y-1 text-sm md:col-span-6"><span>Título</span><Input value={draft.title} onChange={(event) => update("title", event.target.value)} /></label>
-          <label className="space-y-1 text-sm md:col-span-6"><span>Conteúdo do artigo</span><div key={draft.id} contentEditable suppressContentEditableWarning dangerouslySetInnerHTML={{ __html: normalizeLegacyHtml(draft.description) }} onBlur={(event) => update("description", event.currentTarget.innerHTML)} className="min-h-72 w-full overflow-auto rounded-md border bg-background p-3 text-sm leading-6 outline-none focus:ring-2 focus:ring-ring [&_img]:my-3 [&_img]:max-w-full" /></label>
+          <div className="space-y-1 text-sm md:col-span-6"><span>Conteúdo do artigo</span><RichTextEditor value={normalizeLegacyHtml(draft.description)} onChange={value => update("description", value)} minHeight={280} /></div>
           <label className="space-y-1 text-sm md:col-span-6"><span>E-mail com cópia</span><Input value={draft.emailCopy} onChange={(event) => update("emailCopy", event.target.value)} placeholder="Separe os endereços por ;" /></label>
           <label className="space-y-1 text-sm md:col-span-6"><span>Tags</span><Input value={draft.tags} onChange={(event) => update("tags", event.target.value)} /></label>
           <label className="space-y-1 text-sm md:col-span-3"><span>Artigos relacionados</span><Input value={draft.relatedArticleIds} onChange={(event) => update("relatedArticleIds", event.target.value)} placeholder="IDs separados por vírgula" /></label>

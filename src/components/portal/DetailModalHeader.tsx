@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { X, type LucideIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -49,22 +49,10 @@ export function DetailModalHeader({
       <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.05)]">
         <span aria-hidden className={cn("absolute left-0 top-0 h-full w-1", accentClassName)} />
 
-        {onClose && (
-          <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Fechar"
-              className="grid h-7 w-7 cursor-pointer place-items-center rounded-md text-muted-foreground transition hover:bg-accent hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
 
         <div
           className={cn(
-            "flex flex-wrap items-start gap-x-3 gap-y-2 pl-4 pr-14 py-2.5 md:gap-3 md:py-3",
+            "flex flex-wrap items-start gap-x-3 gap-y-2 px-4 py-2.5 md:gap-3 md:py-3",
             dense && "py-1.5 md:py-2",
           )}
         >

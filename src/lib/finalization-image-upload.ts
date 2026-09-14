@@ -1,12 +1,12 @@
 /**
  * Serviço de upload de imagens usadas na finalização de chamados.
  *
- * Hoje: usa uma URL temporária local (URL.createObjectURL) para preview e
- * mantém referências para revogação quando não forem mais utilizadas.
- *
- * Amanhã: substituir apenas o corpo de `uploadFinalizationImage` pela chamada
- * multipart/form-data ao endpoint definitivo — o restante do editor não muda.
+ * Imagens são persistidas em tabela protegida por RLS. A URL de dados mantém
+ * o conteúdo salvo legível sem depender de uma URL assinada que expire.
  */
+
+import { supabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const ALLOWED_IMAGE_MIME = new Set([
   "image/png",
@@ -45,24 +45,21 @@ export function validateImageFile(file: File): string | null {
 
 /**
  * Faz upload da imagem para o backend de finalização.
- * Enquanto o endpoint definitivo não existir, gera uma URL temporária local.
+ * Retorna uma URL de dados durável somente depois da gravação no banco.
  */
 export async function uploadFinalizationImage(file: File): Promise<UploadResult> {
   const error = validateImageFile(file);
   if (error) throw new Error(error);
 
-  // TODO: substituir por fetch multipart/form-data para o endpoint real.
-  // Exemplo futuro:
-  // const form = new FormData();
-  // form.append("file", file);
-  // const res = await fetch("/api/finalization/images", { method: "POST", body: form });
-  // if (!res.ok) throw new Error("Falha no upload");
-  // const { url } = await res.json();
-  // return { url, filename: file.name, isTemporary: false };
-
-  const url = URL.createObjectURL(file);
-  temporaryUrls.add(url);
-  return { url, filename: file.name, isTemporary: true };
+  const url = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Não foi possível ler a imagem."));
+    reader.onload = () => resolve(String(reader.result));
+    reader.readAsDataURL(file);
+  });
+  const { error: uploadError } = await (supabase as SupabaseClient).from("crm_editor_images").insert({filename:file.name,mime_type:file.type.toLowerCase(),data_url:url});
+  if (uploadError) throw new Error("Não foi possível salvar a imagem no banco.");
+  return { url, filename: file.name, isTemporary: false };
 }
 
 /** Revoga uma URL temporária criada por uploadFinalizationImage. */
