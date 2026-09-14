@@ -380,3 +380,6 @@ body.hadron-screen .lucide-earth,
 body.hadron-screen .lucide-external-link {
   color: #059669 !important;
 }
+body.hadron-screen .detail-modal-icon svg {
+  color: inherit !important;
+}

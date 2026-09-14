@@ -106,7 +106,6 @@ import {
   listHadronOccurrenceOperators,
   reviewHadronOccurrence,
   updateHadronOccurrenceSolution,
-  updateHadronOccurrencePriority,
   type HadronOccurrence,
 } from "@/lib/hadron-occurrences";
 
@@ -784,8 +783,8 @@ function HadronOccurrenceRows({rows,onOpen,empty,variant="review"}: {
 
 function OverviewOccurrencePreview({option,onClose}: {option:HadronOption | null;onClose:() => void}) {
   return <Dialog open={Boolean(option)} onOpenChange={(open) => { if (!open) onClose(); }}>
-    <DialogContent className="max-h-[88vh] max-w-4xl gap-0 overflow-hidden p-0 [&>button]:hidden">
-      {option && <><DialogTitle className="sr-only">Ocorrências</DialogTitle><DetailModalHeader icon={ScanEye} title="Ocorrências" subtitle={`Opção: ${option.option}`} onClose={onClose} /><div className="overflow-y-auto px-5"><OptionImportedOccurrences option={option} unresolved /></div></>}
+    <DialogContent className="flex max-h-[88vh] max-w-4xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+      {option && <><DialogTitle className="sr-only">Ocorrências</DialogTitle><DetailModalHeader icon={ScanEye} title="Ocorrências" meta={`Opção: ${option.option}`} onClose={onClose} /><div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4"><OptionImportedOccurrences option={option} unresolved /></div></>}
     </DialogContent>
   </Dialog>;
 }
@@ -2312,18 +2311,8 @@ function HadronPrioritySegmented({
 }
 
 function OccurrencePriorityField({occurrence}: {occurrence: Pick<HadronOccurrence,"id" | "priority">}) {
-  const {department} = usePortalAuth();
-  const [value,setValue] = useState(occurrence.priority);
-  const [saving,setSaving] = useState(false);
-  useEffect(() => setValue(occurrence.priority), [occurrence.id,occurrence.priority]);
-  const display = normalizeOccurrencePriority(value);
-  if (!["admin","development","support","specialist"].includes(department || "")) return <Badge className={display.className}>{display.label}</Badge>;
-  return <Select value={value} disabled={saving} onValueChange={async (priority) => {
-    setSaving(true);
-    try { await updateHadronOccurrencePriority(occurrence.id, priority); setValue(priority); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Prioridade salva."); }
-    catch { toast.error("Não foi possível salvar a prioridade."); }
-    finally { setSaving(false); }
-  }}><SelectTrigger aria-label={`Prioridade da ocorrência ${occurrence.id}`} className={cn("h-8 min-w-24 text-xs",display.className)}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="0">Baixa</SelectItem><SelectItem value="1">Média</SelectItem><SelectItem value="2">Alta</SelectItem></SelectContent></Select>;
+  const display = normalizeOccurrencePriority(occurrence.priority);
+  return <Badge variant="outline" title={`Prioridade: ${display.label}`} className={cn("h-5 w-fit shrink-0 whitespace-nowrap px-1.5 py-0 text-[10px] font-medium",display.className)}>{display.label}</Badge>;
 }
 
 function openImportedOccurrence(
@@ -2816,7 +2805,7 @@ function OptionOccurrencesPreviewDialog({
 }) {
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[88vh] max-w-3xl gap-0 overflow-hidden p-0 [&>button]:hidden">
+      <DialogContent className="flex max-h-[88vh] max-w-3xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
         {option && (
           <>
             <DialogTitle className="sr-only">Ocorrências</DialogTitle>
@@ -2838,7 +2827,7 @@ function OptionOccurrencesPreviewDialog({
               }
               onClose={onClose}
             />
-            <div className="max-h-[68vh] overflow-y-auto px-5 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
               <OptionImportedOccurrences option={option} unresolved />
             </div>
           </>

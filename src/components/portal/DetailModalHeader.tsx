@@ -73,7 +73,7 @@ export function DetailModalHeader({
           <span
             aria-hidden
             className={cn(
-              "grid h-8 w-8 shrink-0 place-items-center rounded-full shadow-sm ring-1 ring-inset ring-white/10",
+              "detail-modal-icon grid h-8 w-8 shrink-0 place-items-center rounded-full shadow-sm ring-1 ring-inset ring-white/10",
               iconWrapClassName,
             )}
           >
