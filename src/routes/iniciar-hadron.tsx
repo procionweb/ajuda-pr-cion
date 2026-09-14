@@ -480,9 +480,6 @@ function HadronPage() {
               </>
             )}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDetail(null)} className="cursor-pointer">
-                Fechar
-              </Button>
               {detail?.hadronOccurrence?.id &&
                 detail.hadronOccurrence.solvedAt &&
                 !detail.hadronOccurrence.reviewedAt &&
@@ -2025,7 +2022,7 @@ function HadronOptionPage({
             <label className="min-w-0 space-y-1 text-sm"><span>Versão</span><OccurrenceSelect value={occurrenceDraft.versionLegacyId} onValueChange={(versionLegacyId) => setOccurrenceDraft({...occurrenceDraft, versionLegacyId})} items={erpVersions.map((v) => [v.id, `${v.versao} - ${formatVersionDate(v.data_versao)}`])} /></label>
             <label className="space-y-1 text-sm md:col-span-2 lg:col-span-4"><span>Descreva a ocorrência</span><span className="block text-xs text-muted-foreground">Caso necessário, inclua os detalhes que permitam reproduzir o problema.</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={occurrenceDraft.occurrence} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, occurrence:e.target.value})} /></label>
           </div>
-          <DialogFooter className="border-t px-5 py-4"><Button variant="outline" onClick={() => setNewOccurrenceOpen(false)}>Fechar</Button><Button disabled={savingOccurrence} onClick={async () => { if (!occurrenceDraft.baseAddress.trim() || !occurrenceDraft.occurrence.trim()) { toast.error("Informe a base e descreva a ocorrência."); return; } setSavingOccurrence(true); try { await createHadronOccurrence({optionLegacyId:option.id,...occurrenceDraft}); setNewOccurrenceOpen(false); setOccurrenceDraft({...occurrenceDraft,baseAddress:"",occurrence:""}); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Ocorrência criada com sucesso."); } catch(error) { toast.error(error instanceof Error ? error.message : "Não foi possível criar a ocorrência."); } finally { setSavingOccurrence(false); } }}>{savingOccurrence ? "Salvando..." : "Salvar"}</Button></DialogFooter>
+          <DialogFooter className="border-t px-5 py-4"><Button disabled={savingOccurrence} onClick={async () => { if (!occurrenceDraft.baseAddress.trim() || !occurrenceDraft.occurrence.trim()) { toast.error("Informe a base e descreva a ocorrência."); return; } setSavingOccurrence(true); try { await createHadronOccurrence({optionLegacyId:option.id,...occurrenceDraft}); setNewOccurrenceOpen(false); setOccurrenceDraft({...occurrenceDraft,baseAddress:"",occurrence:""}); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Ocorrência criada com sucesso."); } catch(error) { toast.error(error instanceof Error ? error.message : "Não foi possível criar a ocorrência."); } finally { setSavingOccurrence(false); } }}>{savingOccurrence ? "Salvando..." : "Salvar"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
       <Dialog open={newReleaseOpen} onOpenChange={setNewReleaseOpen}>
@@ -2065,7 +2062,7 @@ function HadronOptionPage({
               </div>
             </section>
           </div>
-          <DialogFooter className="shrink-0 border-t bg-card px-5 py-4"><Button variant="outline" onClick={() => setNewReleaseOpen(false)}>Fechar</Button><Button disabled={savingRelease} onClick={() => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const releases = JSON.parse(localStorage.getItem("hadron-custom-releases") || "[]"); releases.push({id:`novo-${Date.now()}`,optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,version:"nao-informada",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}); localStorage.setItem("hadron-custom-releases",JSON.stringify(releases)); window.dispatchEvent(new CustomEvent("hadron-releases-updated")); setSavingRelease(false); setNewReleaseOpen(false); toast.success("Release criado com sucesso."); }}>Salvar</Button></DialogFooter>
+          <DialogFooter className="shrink-0 border-t bg-card px-5 py-4"><Button disabled={savingRelease} onClick={() => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const releases = JSON.parse(localStorage.getItem("hadron-custom-releases") || "[]"); releases.push({id:`novo-${Date.now()}`,optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,version:"nao-informada",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}); localStorage.setItem("hadron-custom-releases",JSON.stringify(releases)); window.dispatchEvent(new CustomEvent("hadron-releases-updated")); setSavingRelease(false); setNewReleaseOpen(false); toast.success("Release criado com sucesso."); }}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
@@ -2329,9 +2326,6 @@ function OptionEditDialog({
           </div>
         </Tabs>
         <DialogFooter className="shrink-0 gap-2 border-t bg-card px-5 py-2.5 sm:gap-2">
-          <Button variant="outline" onClick={onClose}>
-            Fechar
-          </Button>
           <Button
             onClick={() => {
               if (!draft.description.trim() || !draft.option.trim() || !draft.form.trim()) {
@@ -2976,11 +2970,6 @@ function OptionOccurrencesPreviewDialog({
             />
             <div className="max-h-[68vh] overflow-y-auto px-5 py-4">
               <OptionImportedOccurrences option={option} latestOnly />
-            </div>
-            <div className="flex justify-end border-t px-6 py-4">
-              <Button variant="outline" onClick={onClose}>
-                Fechar
-              </Button>
             </div>
           </>
         )}
@@ -4620,142 +4609,304 @@ function SerialsTable({ query }: TableProps) {
 }
 
 function ChecklistTable({ query, onOpen }: TableProps) {
+  void onOpen;
+  type CheckRow = [string, string, string, string, boolean, string, string];
+  const [items, setItems] = useState<CheckRow[]>(() => hadronChecklist.map((item) => [...item]));
+  const [editing, setEditing] = useState<CheckRow[] | null>(null);
+  const [characteristic, setCharacteristic] = useState("todos");
+  const label = (value: string) =>
+    HADRON_OPTION_CHARACTERISTICS.find(([key]) => key === value)?.[1] || value;
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [filter, setFilter] = useState("");
   const normalizedQuery = normalizeOccurrenceText(`${query} ${filter}`);
   const rows = useMemo(
     () =>
-      hadronChecklist.filter(
+      items.filter(
         (item) =>
-          !normalizedQuery || normalizeOccurrenceText(item.join(" ")).includes(normalizedQuery),
+          (characteristic === "todos" || item[1] === characteristic) &&
+          (!normalizedQuery ||
+            normalizeOccurrenceText(`${item.join(" ")} ${label(item[1])}`).includes(
+              normalizedQuery,
+            )),
       ),
-    [normalizedQuery],
+    [normalizedQuery, characteristic, items],
   );
+  useEffect(() => setPage(1), [normalizedQuery, characteristic]);
 
   return (
-    <section className="overflow-hidden rounded-md border bg-card shadow-sm">
-      <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="font-semibold">Checklist</h2>
-          <p className="text-sm text-muted-foreground">
-            Itens de validação utilizados nas opções e formulários do Hádron.
-          </p>
+    <>
+      <section className="overflow-hidden rounded-md border bg-card shadow-sm">
+        <div className="flex flex-col gap-3 border-b p-4">
+          <div>
+            <h2 className="text-lg font-medium">Checklist</h2>
+          </div>
+          <div className="grid w-full gap-2 md:grid-cols-[1fr_1fr_auto]">
+            <Input
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+              placeholder="Descrição"
+            />
+            <OccurrenceSelect
+              value={characteristic}
+              onValueChange={setCharacteristic}
+              items={HADRON_OPTION_CHARACTERISTICS}
+            />
+            <Button
+              variant="outline"
+              onClick={() => {
+                setFilter("");
+                setCharacteristic("todos");
+              }}
+              disabled={!filter && characteristic === "todos"}
+              className="cursor-pointer"
+            >
+              Limpar
+            </Button>
+          </div>
         </div>
-        <div className="flex w-full gap-2 sm:w-auto">
-          <Input
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-            placeholder="Buscar característica, título ou descrição"
-            className="sm:w-80"
-          />
-          <Button
-            variant="outline"
-            onClick={() => setFilter("")}
-            disabled={!filter}
-            className="cursor-pointer"
-          >
-            Limpar
-          </Button>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] text-sm">
-          <thead className="border-b bg-muted/30 text-left text-xs font-medium text-muted-foreground">
-            <tr>
-              <th className="w-36 px-4 py-3">Característica</th>
-              <th className="w-64 px-4 py-3">Título</th>
-              <th className="px-4 py-3">Descrição</th>
-              <th className="w-20 px-4 py-3 text-center">Salvo</th>
-              <th className="w-44 px-4 py-3">Datas</th>
-              <th className="w-24 px-4 py-3 text-center">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows
-              .slice((page - 1) * pageSize, page * pageSize)
-              .map(
-                ([id, characteristic, title, description, saved, createdAt, updatedAt], index) => (
-                  <tr
-                    key={id}
-                    className={cn(
-                      "border-b transition-colors hover:bg-muted/40",
-                      index % 2 === 0 && "bg-muted/20",
-                    )}
-                  >
-                    <td className="px-4 py-3">{characteristic}</td>
-                    <td className="px-4 py-3 font-medium">{title}</td>
-                    <td className="px-4 py-3">{description}</td>
-                    <td className="px-4 py-3 text-center">
-                      {saved ? (
-                        <Flag className="mx-auto h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-primary">
-                      <span>{createdAt}</span>
-                      <br />
-                      <span>{updatedAt}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Ver detalhes"
-                          className="cursor-pointer"
-                          onClick={() =>
-                            onOpen({
-                              title,
-                              subtitle: characteristic,
-                              body: description,
-                              meta: [
-                                `Criado em: ${createdAt}`,
-                                `Atualizado em: ${updatedAt}`,
-                                `Salvo: ${saved ? "Sim" : "Não"}`,
-                              ],
-                            })
-                          }
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Exclusão indisponível para registros legados"
-                          disabled
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ),
-              )}
-            {rows.length === 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] text-xs">
+            <thead className="border-b bg-muted/30 text-left text-xs font-medium text-muted-foreground">
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                  Nenhum item de checklist encontrado.
-                </td>
+                <th className="w-36 px-4 py-3">Característica</th>
+                <th className="w-64 px-4 py-3">Título</th>
+                <th className="px-4 py-3">Descrição</th>
+                <th className="w-20 px-4 py-3 text-center">Salvo</th>
+                <th className="w-44 px-4 py-3">Datas</th>
+                <th className="w-24 px-4 py-3 text-center">Ações</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      <TablePagination
-        noun="itens"
-        page={page}
-        pageCount={Math.max(1, Math.ceil(rows.length / pageSize))}
-        pageSize={pageSize}
-        total={rows.length}
-        onPageChange={setPage}
-        onPageSizeChange={(value) => {
-          setPageSize(value);
-          setPage(1);
-        }}
-      />
-    </section>
+            </thead>
+            <tbody>
+              {rows
+                .slice((page - 1) * pageSize, page * pageSize)
+                .map(
+                  (
+                    [id, characteristic, title, description, saved, createdAt, updatedAt],
+                    index,
+                  ) => (
+                    <tr
+                      key={id}
+                      className={cn(
+                        "border-b transition-colors hover:bg-muted/40",
+                        index % 2 === 0 && "bg-muted/20",
+                      )}
+                    >
+                      <td className="px-4 py-3">{label(characteristic)}</td>
+                      <td className="px-4 py-3 font-medium">{title}</td>
+                      <td className="px-4 py-3">{description}</td>
+                      <td className="px-4 py-3 text-center">
+                        {saved ? (
+                          <Flag className="mx-auto h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-primary">
+                        <span>{createdAt}</span>
+                        <br />
+                        <span>{updatedAt}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Editar checklist"
+                            className="h-8 w-8"
+                            onClick={() =>
+                              setEditing([
+                                [
+                                  id,
+                                  characteristic,
+                                  title,
+                                  description,
+                                  saved,
+                                  createdAt,
+                                  updatedAt,
+                                ],
+                              ])
+                            }
+                          >
+                            <FilePenLine className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Exclusão indisponível para registros legados"
+                            disabled
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ),
+                )}
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                    Nenhum item de checklist encontrado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <TablePagination
+          noun="itens"
+          page={page}
+          pageCount={Math.max(1, Math.ceil(rows.length / pageSize))}
+          pageSize={pageSize}
+          total={rows.length}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value);
+            setPage(1);
+          }}
+        />
+      </section>
+      <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-5xl">
+          <DialogTitle className="sr-only">Editar checklist</DialogTitle>
+          <DetailModalHeader
+            icon={ClipboardCheck}
+            title="Editar checklist"
+            onClose={() => setEditing(null)}
+          />
+          <div className="space-y-4 px-5 py-4">
+            <OccurrenceSelect
+              value={editing?.[0]?.[1] || "geral"}
+              onValueChange={(value) =>
+                setEditing(
+                  (rows) =>
+                    rows?.map((row) => {
+                      const next: CheckRow = [...row];
+                      next[1] = value;
+                      return next;
+                    }) || null,
+                )
+              }
+              items={HADRON_OPTION_CHARACTERISTICS.filter(([key]) => key !== "todos")}
+            />
+            {editing?.map((row, index) => (
+              <div
+                key={row[0]}
+                className="grid items-end gap-3 border-b pb-4 md:grid-cols-[1fr_1.4fr_auto_auto]"
+              >
+                <label className="space-y-1 text-sm">
+                  <span>Título</span>
+                  <Input
+                    value={row[2]}
+                    onChange={(event) =>
+                      setEditing(
+                        (rows) =>
+                          rows?.map((item, i) =>
+                            i === index
+                              ? ([
+                                  ...item.slice(0, 2),
+                                  event.target.value,
+                                  ...item.slice(3),
+                                ] as CheckRow)
+                              : item,
+                          ) || null,
+                      )
+                    }
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span>Descrição</span>
+                  <textarea
+                    className="min-h-20 w-full rounded-md border bg-background p-3 text-sm"
+                    value={row[3]}
+                    onChange={(event) =>
+                      setEditing(
+                        (rows) =>
+                          rows?.map((item, i) => {
+                            const next: CheckRow = [...item];
+                            if (i === index) next[3] = event.target.value;
+                            return next;
+                          }) || null,
+                      )
+                    }
+                  />
+                </label>
+                <label className="flex h-10 items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={row[4]}
+                    onChange={(event) =>
+                      setEditing(
+                        (rows) =>
+                          rows?.map((item, i) => {
+                            const next: CheckRow = [...item];
+                            if (i === index) next[4] = event.target.checked;
+                            return next;
+                          }) || null,
+                      )
+                    }
+                  />
+                  Manter salvo
+                </label>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Remover linha"
+                  onClick={() =>
+                    setEditing((rows) =>
+                      rows && rows.length > 1 ? rows.filter((_, i) => i !== index) : rows,
+                    )
+                  }
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="icon"
+              title="Adicionar checklist"
+              onClick={() =>
+                setEditing((rows) => [
+                  ...(rows || []),
+                  [
+                    `novo-${Date.now()}`,
+                    rows?.[0]?.[1] || "geral",
+                    "",
+                    "",
+                    false,
+                    new Date().toISOString(),
+                    new Date().toISOString(),
+                  ],
+                ])
+              }
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          <DialogFooter className="border-t px-5 py-4">
+            <Button
+              onClick={() => {
+                if (!editing || editing.some((row) => !row[2].trim())) {
+                  toast.error("Informe o título de todos os itens.");
+                  return;
+                }
+                setItems((current) => [
+                  ...current.filter((row) => !editing.some((item) => item[0] === row[0])),
+                  ...editing.map(
+                    (row): CheckRow => [...row.slice(0, 6), new Date().toISOString()] as CheckRow,
+                  ),
+                ]);
+                setEditing(null);
+                toast.success("Checklist atualizado nesta sessão.");
+              }}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -5233,9 +5384,6 @@ function ReleasesTable({ query, onOpen }: TableProps) {
             </div>
           )}
           <DialogFooter className="border-t px-5 py-4">
-            <Button variant="outline" onClick={() => setEditingRelease(null)}>
-              Fechar
-            </Button>
             <Button
               onClick={() => {
                 if (!editingRelease) return;
@@ -5695,7 +5843,7 @@ function ArticleEditDialog({ article, onClose, onSave }: { article: ArticleDraft
           <label className="space-y-1 text-sm md:col-span-3"><span>Artigos relacionados</span><Input value={draft.relatedArticleIds} onChange={(event) => update("relatedArticleIds", event.target.value)} placeholder="IDs separados por vírgula" /></label>
           <label className="space-y-1 text-sm md:col-span-3"><span>Releases relacionados</span><Input value={draft.relatedReleaseIds} onChange={(event) => update("relatedReleaseIds", event.target.value)} placeholder="IDs separados por vírgula" /></label>
         </div>
-        <DialogFooter className="shrink-0 border-t px-5 py-4"><Button variant="outline" onClick={onClose}>Fechar</Button><Button onClick={() => { if (!draft.title.trim()) { toast.error("Informe o título do artigo."); return; } onSave({ ...draft, updatedAt: new Date().toISOString() }); }}>Salvar</Button></DialogFooter>
+        <DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={() => { if (!draft.title.trim()) { toast.error("Informe o título do artigo."); return; } onSave({ ...draft, updatedAt: new Date().toISOString() }); }}>Salvar</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
