@@ -1016,7 +1016,7 @@ export function TicketDetailSheet({
               </div>
             </div>
             {/* fim body wrapper */}
-            <DialogFooter className="border-t border-border px-5 py-4">
+            <DialogFooter className="border-t border-border py-4 pl-5 pr-20 sm:pr-5">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
             </DialogFooter>
           </div>
