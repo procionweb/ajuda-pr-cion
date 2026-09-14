@@ -1,0 +1,32 @@
+[
+{"type":"header","version":"5.2.3","comment":"Export to JSON plugin for phpMyAdmin"},
+{"type":"database","name":"procionw_prcsac"},
+{"type":"table","name":"numeros_serie","database":"procionw_prcsac","data":
+[
+{"id":"1","numero_serie":"0107064254","operador":"Note PRCXXX","cliente":"PRC","created":null,"modified":"2025-08-21 11:29:04"},
+{"id":"3","numero_serie":"0573885052","operador":"Note PRCWAG","cliente":"PRC","created":"2022-08-25 14:58:32","modified":"2025-08-21 11:28:45"},
+{"id":"4","numero_serie":"0580597248","operador":"Micro PRCEDU","cliente":"PRC","created":"2022-08-25 14:59:32","modified":"2022-08-26 16:36:08"},
+{"id":"6","numero_serie":"0887292362","operador":"Note Jackson","cliente":"PRC","created":"2022-08-25 15:13:39","modified":"2024-01-03 18:20:16"},
+{"id":"7","numero_serie":"0888224985","operador":"Note PRCMEK","cliente":"PRC","created":"2022-08-25 15:14:23","modified":"2022-08-26 16:35:46"},
+{"id":"8","numero_serie":"0005815201","operador":"Note PRCCRIS","cliente":"PRC","created":"2022-08-25 15:14:56","modified":"2024-01-03 18:12:02"},
+{"id":"9","numero_serie":"1079184873","operador":"Note PRCJUL","cliente":"PRC","created":"2022-08-25 15:15:35","modified":"2022-08-26 16:35:00"},
+{"id":"10","numero_serie":"1115435039","operador":"Micro Testes TEF","cliente":"PRC","created":"2022-08-25 15:16:47","modified":"2022-08-26 16:34:46"},
+{"id":"11","numero_serie":"1384618692","operador":"Note PRCGIN","cliente":"PRC","created":"2022-08-25 15:17:40","modified":"2022-08-26 16:34:33"},
+{"id":"12","numero_serie":"1752003871","operador":"Note PRCAND","cliente":"PRC","created":"2022-08-25 15:18:09","modified":"2022-08-26 16:33:56"},
+{"id":"13","numero_serie":"2056994643","operador":"Note PRCWLS","cliente":"PRC","created":"2022-08-25 15:20:02","modified":"2025-08-21 11:24:03"},
+{"id":"14","numero_serie":"0105021964","operador":"Note PRCPED","cliente":"PRC","created":"2022-08-25 15:20:44","modified":"2023-05-09 14:42:22"},
+{"id":"15","numero_serie":"1521580389","operador":"Note PRCGGC","cliente":"PRC","created":"2022-08-25 15:53:21","modified":"2022-08-26 16:04:57"},
+{"id":"16","numero_serie":"2254191742","operador":"Note PRCREN","cliente":"PRC","created":"2022-08-25 16:04:20","modified":"2024-01-03 18:17:08"},
+{"id":"17","numero_serie":"3058872277","operador":"Note PRCFRS","cliente":"PRC","created":"2022-08-25 16:06:05","modified":"2022-08-26 16:04:38"},
+{"id":"18","numero_serie":"0380426936","operador":"Note PRCROG","cliente":"PRC","created":"2022-08-25 16:07:00","modified":"2024-01-03 18:15:40"},
+{"id":"19","numero_serie":"3393449270","operador":"Note PRCVIT","cliente":"PRC","created":"2022-08-25 16:08:57","modified":"2022-08-26 16:04:21"},
+{"id":"20","numero_serie":"3896242153","operador":"Note PRCGAB","cliente":"PRC","created":"2022-08-25 16:09:25","modified":"2022-08-26 16:02:05"},
+{"id":"21","numero_serie":"3974295960","operador":"Note PRCPET","cliente":"PRC","created":"2022-08-25 16:10:05","modified":"2022-08-26 16:01:54"},
+{"id":"22","numero_serie":"0045020993","operador":"PRCSUZ","cliente":"PRC","created":"2023-05-09 14:30:41","modified":"2023-05-09 14:30:41"},
+{"id":"23","numero_serie":"0105338347","operador":"Note Guilherme Antonio","cliente":"PRC","created":"2024-01-03 18:24:32","modified":"2024-01-03 18:24:32"},
+{"id":"24","numero_serie":"0987687673","operador":"Note 2 Cris","cliente":"PRC","created":"2024-01-03 18:27:03","modified":"2024-01-03 18:27:03"},
+{"id":"25","numero_serie":"1546452879","operador":"Note Rafael","cliente":"PRC","created":"2024-01-03 18:28:33","modified":"2024-01-03 18:28:33"},
+{"id":"26","numero_serie":"1789034843","operador":"Note Marcelo","cliente":"PRC","created":"2024-01-03 18:29:45","modified":"2024-01-03 18:29:45"}
+]
+}
+]

@@ -83,7 +83,8 @@ import {
 } from "@/lib/hadron-option-locks";
 import { moduleOptions, modulesMap } from "@/lib/modules-map";
 import { hadronModules, type HadronModule } from "@/lib/hadron-modules";
-import { loadHadronModules, saveHadronModule, saveHadronSubmodule } from "@/lib/hadron-modules-api";
+import { loadHadronModules, saveHadronModule, saveHadronSubmodule, removeHadronModule } from "@/lib/hadron-modules-api";
+import { hadronSerials } from "@/lib/hadron-serials";
 import { collaboratorLabel, findCollaborator, useCollaborators } from "@/lib/collaborators-store";
 import { cvsArticles } from "@/lib/cvs-catalogs-imported";
 import { getCategory, kbArticlesFull } from "@/lib/kb-data";
@@ -4363,6 +4364,7 @@ function ModulesTable({ query, onOpen }: TableProps) {
   const [catalog, setCatalog] = useState<HadronModule[]>(hadronModules);
   const [catalogReady, setCatalogReady] = useState(false);
   const [savingModule, setSavingModule] = useState(false);
+  const [confirmModuleRemoval, setConfirmModuleRemoval] = useState(false);
   useEffect(() => {
     let active = true;
     loadHadronModules().then((modules) => { if (active) { setCatalog(modules); setCatalogReady(true); } }).catch(() => { if (active) toast.error("Não foi possível carregar os módulos do banco. Edição indisponível."); });
@@ -4483,22 +4485,6 @@ function ModulesTable({ query, onOpen }: TableProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      title="Ver módulo"
-                      className="cursor-pointer"
-                      onClick={() =>
-                        onOpen({
-                          title: row.module,
-                          subtitle: `${row.submodules.length} submódulos`,
-                          body: row.submodules.map((item) => item.name).join(", "),
-                          meta: [`ID: ${row.id}`, `Submódulos: ${row.submodules.length}`],
-                        })
-                      }
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
                       title="Editar módulo"
                       onClick={() => setDraft({moduleId:row.id,id:row.id,name:row.module,kind:"module"})}
                     >
@@ -4554,20 +4540,45 @@ function ModulesTable({ query, onOpen }: TableProps) {
             {draft.kind === "submodule" && <><label className="space-y-1 text-sm">Módulo<Input value={`${draft.moduleId} - ${catalog.find((module) => module.id === draft.moduleId)?.nome}`} readOnly /></label><label className="space-y-1 text-sm">ID<Input value={draft.id} readOnly={Boolean(draft.originalId)} onChange={(event) => setDraft({...draft,id:event.target.value})} /></label></>}
             <label className="space-y-1 text-sm sm:col-span-2">Nome<Input autoFocus value={draft.name} onChange={(event) => setDraft({...draft,name:event.target.value})} /></label>
           </div>
-          <DialogFooter className="border-t px-5 py-4"><Button type="submit" disabled={!catalogReady || savingModule}>{savingModule ? "Salvando..." : "Salvar"}</Button></DialogFooter>
+          <DialogFooter className="border-t px-5 py-4">{draft.kind === "module" && <Button type="button" variant="outline" className="mr-auto text-destructive" disabled={!catalogReady || savingModule} onClick={() => setConfirmModuleRemoval(true)}><Trash2 className="mr-2 h-4 w-4" />Excluir</Button>}<Button type="submit" disabled={!catalogReady || savingModule}>{savingModule ? "Salvando..." : "Salvar"}</Button></DialogFooter>
         </form>}
       </DialogContent>
     </Dialog>
+    <AlertDialog open={confirmModuleRemoval} onOpenChange={setConfirmModuleRemoval}>
+      <AlertDialogContent>
+        <AlertDialogHeader><AlertDialogTitle>Excluir módulo?</AlertDialogTitle><AlertDialogDescription>O módulo {draft?.name} será retirado da listagem. Os submódulos e as opções vinculadas serão preservados no banco.</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogFooter><AlertDialogCancel disabled={savingModule}>Cancelar</AlertDialogCancel><Button variant="destructive" disabled={savingModule} onClick={async () => {
+          if (!draft) return;
+          setSavingModule(true);
+          try { await removeHadronModule(draft.moduleId); setCatalog(await loadHadronModules()); setConfirmModuleRemoval(false); setDraft(null); toast.success("Módulo excluído."); }
+          catch { toast.error("Não foi possível excluir o módulo."); }
+          finally { setSavingModule(false); }
+        }}>{savingModule ? "Excluindo..." : "Excluir"}</Button></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
 
 function SerialsTable({ query }: TableProps) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [serial, setSerial] = useState("");
   const [acronym, setAcronym] = useState("");
   const [operator, setOperator] = useState("todos");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const rows = hadronSerials.filter((item) => {
+    const text = normalizeOccurrenceText(`${item.id} ${item.numero_serie} ${item.operador} ${item.cliente}`);
+    const date = (item.created || item.modified || "").slice(0,10);
+    return (!query || text.includes(normalizeOccurrenceText(query))) &&
+      (!serial || item.numero_serie.includes(serial.trim())) &&
+      (!acronym || normalizeOccurrenceText(item.cliente).includes(normalizeOccurrenceText(acronym))) &&
+      (operator === "todos" || item.operador === operator) &&
+      (!dateFrom || date >= dateFrom) && (!dateTo || date <= dateTo);
+  });
+  useEffect(() => setPage(1), [query, serial, acronym, operator, dateFrom, dateTo]);
+  const formatSerialDate = (value: string | null) => value ? `${value.slice(8,10)}/${value.slice(5,7)}/${value.slice(0,4)} ${value.slice(11,16)}` : "—";
   const hasFilter = Boolean(
     query || serial || acronym || operator !== "todos" || dateFrom || dateTo,
   );
@@ -4580,6 +4591,7 @@ function SerialsTable({ query }: TableProps) {
   };
 
   return (
+    <>
     <section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="border-b p-4">
         <h2 className="text-lg font-medium">Seriais</h2>
@@ -4599,7 +4611,7 @@ function SerialsTable({ query }: TableProps) {
             onValueChange={setOperator}
             items={[
               ["todos", "Operador"],
-              ...operatorStats.map(([item]) => [item, item] as [string, string]),
+              ...Array.from(new Set(hadronSerials.map((item) => item.operador))).sort().map((item) => [item,item] as [string,string]),
             ]}
           />
           <DateRangeFilter
@@ -4634,31 +4646,30 @@ function SerialsTable({ query }: TableProps) {
               <th className="w-64 px-4 py-3">Operador</th>
               <th className="w-40 px-4 py-3">Cliente</th>
               <th className="w-44 px-4 py-3">Datas</th>
-              <th className="w-24 px-4 py-3 text-center">Ações</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td colSpan={6} className="px-4 py-16 text-center">
+          <tbody className="divide-y">
+            {rows.slice((page-1)*pageSize,page*pageSize).map((item) => <tr key={item.id} className="hover:bg-muted/20"><td className="px-4 py-3 text-muted-foreground">{item.id}</td><td className="px-4 py-3 font-mono">{item.numero_serie}</td><td className="px-4 py-3">{item.operador}</td><td className="px-4 py-3">{item.cliente}</td><td className="px-4 py-3 whitespace-nowrap"><div>{formatSerialDate(item.created)}</div><div className="text-xs text-muted-foreground">Atualizado {formatSerialDate(item.modified)}</div></td></tr>)}
+            {rows.length === 0 && <tr>
+              <td colSpan={5} className="px-4 py-16 text-center">
                 <KeyRound className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">Nenhum serial importado.</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  O projeto ainda não possui um JSON de seriais para preencher esta tabela.
-                </p>
+                <p className="text-sm text-muted-foreground">Nenhum serial encontrado.</p>
               </td>
-            </tr>
+            </tr>}
           </tbody>
         </table>
       </div>
+    </section>
       <TablePagination
         noun="seriais"
-        page={1}
-        pageCount={1}
-        pageSize={25}
-        total={0}
-        onPageChange={() => undefined}
+        page={page}
+        pageCount={Math.max(1,Math.ceil(rows.length/pageSize))}
+        pageSize={pageSize}
+        total={rows.length}
+        onPageChange={setPage}
+        onPageSizeChange={(value) => { setPageSize(value); setPage(1); }}
       />
-    </section>
+    </>
   );
 }
 

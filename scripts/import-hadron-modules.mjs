@@ -15,6 +15,7 @@ try {
     await client.query(
       fs.readFileSync("supabase/migrations/20260914160000_hadron_modules.sql", "utf8"),
     );
+  await client.query(fs.readFileSync("supabase/migrations/20260914170000_hadron_module_removal.sql", "utf8"));
   await client.query("begin");
   for (const module of rows("src/data/cvs_modules.json")) {
     await client.query(

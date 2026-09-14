@@ -15,6 +15,14 @@ try {
   assert.equal((await client.query("update public.hadron_submodules set nome='Teste editado' where id='999999' and id_modulo='1' returning nome")).rows[0].nome, "Teste editado");
   await client.query("rollback");
   await client.query("begin");
+  await client.query("select set_config('request.jwt.claim.sub', $1, true)", [staff.rows[0].id]);
+  await client.query("set local role authenticated");
+  const subsBefore = (await client.query("select * from public.hadron_submodules where id_modulo='1'")).rowCount;
+  assert.equal((await client.query("update public.hadron_modules set deleted_at=now() where id='1' returning id")).rowCount, 1);
+  assert.equal((await client.query("select * from public.hadron_modules where id='1' and deleted_at is null")).rowCount, 0);
+  assert.equal((await client.query("select * from public.hadron_submodules where id_modulo='1'")).rowCount, subsBefore);
+  await client.query("rollback");
+  await client.query("begin");
   await client.query("set local role authenticated");
   assert.equal((await client.query("select * from public.hadron_modules")).rowCount, 0);
   assert.equal((await client.query("update public.hadron_modules set nome=nome where id='1' returning id")).rowCount, 0);

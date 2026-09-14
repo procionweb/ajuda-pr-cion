@@ -5,7 +5,7 @@ import type { HadronModule, HadronSubmodule } from "@/lib/hadron-modules";
 const db = supabase as SupabaseClient;
 export async function loadHadronModules(): Promise<HadronModule[]> {
   const [modules, subs] = await Promise.all([
-    db.from("hadron_modules").select("id,nome"),
+    db.from("hadron_modules").select("id,nome").is("deleted_at", null),
     db.from("hadron_submodules").select("id,id_modulo,nome"),
   ]);
   if (modules.error) throw modules.error;
@@ -26,6 +26,11 @@ export async function saveHadronModule(id: string, nome: string) {
     .eq("id", id)
     .select("id")
     .single();
+  if (result.error) throw result.error;
+}
+
+export async function removeHadronModule(id: string) {
+  const result = await db.from("hadron_modules").update({deleted_at:new Date().toISOString()}).eq("id",id).select("id").single();
   if (result.error) throw result.error;
 }
 export async function saveHadronSubmodule(sub: HadronSubmodule, editing: boolean) {
