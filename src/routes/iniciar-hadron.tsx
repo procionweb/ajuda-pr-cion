@@ -41,6 +41,7 @@ import {
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
+import parametersSource from "@/data/cvs-parameters.json";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { DateRangeFilter } from "@/components/portal/DateRangeFilter";
 import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
@@ -261,26 +262,24 @@ const operatorStats = [
   ["PRCAND", 1],
 ] as const;
 
-const hadronParameters = [
-  {
-    id: "1",
-    option: "60",
-    form: "60",
-    title: "Tag ICMS-60 do XML da Nota Fiscal Eletrônica (NF-e, NFC-e, SAT)",
-    description: "Cálculo do valor do ICMS-ST recolhido anteriormente.",
-    createdAt: "16/08/2022 17:46",
-    updatedAt: "17/08/2022 17:05",
-  },
-  {
-    id: "2",
-    option: "3",
-    form: "3",
-    title: "Automatização B2C de procedimento de Cadastro de Clientes (e-commerce)",
-    description: "Web",
-    createdAt: "18/08/2022 11:03",
-    updatedAt: "29/11/2022 12:08",
-  },
-] as const;
+type ParameterDraft = {
+  id: string; option: string; form: string; title: string; description: string;
+  message: string; legends: { title: string; caption: string }[];
+  createdAt: string; updatedAt: string;
+};
+const decodeParameterText = (value: string) =>
+  value.replace(/\\u([0-9a-f]{4})/gi, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+const parameterDisplayDate = (value: string) => `${value.slice(0, 10).split("-").reverse().join("/")} ${value.slice(11, 16)}`;
+const hadronParameters: ParameterDraft[] = (
+  parametersSource.find((entry) => entry.type === "table")?.data || []
+).map((row) => ({
+  id: row.id, option: row.cvs_options_opcao || "", form: row.cvs_options_formulario || "",
+  title: row.par_title, description: row.par_description, message: row.par_text,
+  legends: Object.values(JSON.parse(row.par_options_data) as Record<string, { par_tlt: string; par_leg: string }>)
+    .map((item) => ({ title: decodeParameterText(item.par_tlt), caption: decodeParameterText(item.par_leg) }))
+    .sort((a, b) => a.title.localeCompare(b.title, "pt-BR", { numeric: true })),
+  createdAt: parameterDisplayDate(row.created), updatedAt: parameterDisplayDate(row.modified),
+}));
 
 function HadronPage() {
   const tickets = useTickets();
@@ -327,7 +326,7 @@ function HadronPage() {
 
   return (
     <AppShell>
-      <div className="space-y-5">
+      <div className="space-y-5 [&_td_button_svg]:!text-primary [&_td_a_svg]:!text-primary">
         <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <Breadcrumbs items={[{ label: "Hadron" }]} />
@@ -1275,7 +1274,7 @@ function OptionsTable({ query }: TableProps) {
             <h2 className="text-lg font-medium">Opções</h2>
             <Button
               type="button"
-              className="h-10 w-40 cursor-pointer"
+              className="h-10 w-40 min-w-40 shrink-0 cursor-pointer px-4"
               onClick={() =>
                 setEditingOption({
                   id: `novo-${Date.now()}`,
@@ -1392,7 +1391,7 @@ function OptionsTable({ query }: TableProps) {
                 setPage(1);
               }}
             />
-            <Button type="button" className="h-10 w-40 cursor-pointer px-4">
+            <Button type="button" className="h-10 w-40 min-w-40 shrink-0 cursor-pointer px-4">
               <Search className="mr-2 h-4 w-4" />
               Buscar
             </Button>
@@ -3723,7 +3722,7 @@ function TablePagination({
   onPageSizeChange?: (pageSize: number) => void;
 }) {
   return (
-    <div className="mt-4">
+    <div className="border-t [&>footer]:rounded-none [&>footer]:border-0 [&>footer]:shadow-none">
       <ListPaginationFooter
         page={page - 1}
         pageCount={pageCount}
@@ -4152,6 +4151,8 @@ function normalizeLegacyOccurrenceTimestamp(value: string | null | undefined) {
 }
 
 function ParametersTable({ query, onOpen }: TableProps) {
+  const [parameters, setParameters] = useState<ParameterDraft[]>(hadronParameters);
+  const [editing, setEditing] = useState<ParameterDraft | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState("");
@@ -4162,7 +4163,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
   const normalizedSearch = normalizeOccurrenceText(`${query} ${search}`);
   const rows = useMemo(
     () =>
-      hadronParameters.filter((parameter) => {
+      parameters.filter((parameter) => {
         if (
           normalizedSearch &&
           !normalizeOccurrenceText(
@@ -4185,7 +4186,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
         if (dateTo && updatedAt > new Date(`${dateTo}T23:59:59`).getTime()) return false;
         return true;
       }),
-    [dateFrom, dateTo, form, normalizedSearch, option],
+    [dateFrom, dateTo, form, normalizedSearch, option, parameters],
   );
 
   const clearFilters = () => {
@@ -4197,7 +4198,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
   };
 
   return (
-    <section className="overflow-hidden rounded-md border bg-card shadow-sm">
+    <><section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="border-b p-4">
         <h2 className="text-lg font-medium">Parâmetros</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[2fr_.6fr_.6fr_.9fr_.9fr_auto]">
@@ -4273,12 +4274,12 @@ function ParametersTable({ query, onOpen }: TableProps) {
                       variant="ghost"
                       size="icon"
                       title="Ver parâmetro"
-                      className="cursor-pointer"
+                      className="h-8 w-8"
                       onClick={() =>
                         onOpen({
                           title: parameter.title,
                           subtitle: `Parâmetro ${parameter.id}`,
-                          body: parameter.description,
+                          body: parameter.message.replace(/<[^>]*>/g, " "),
                           meta: [
                             `Opção: ${parameter.option}`,
                             `Formulário: ${parameter.form}`,
@@ -4288,15 +4289,16 @@ function ParametersTable({ query, onOpen }: TableProps) {
                         })
                       }
                     >
-                      <Eye className="h-4 w-4" />
+                      <ScanEye className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      title="Edição indisponível para registros legados"
-                      disabled
+                      title="Editar parâmetro"
+                      className="h-8 w-8"
+                      onClick={() => setEditing({ ...parameter, legends: parameter.legends.map((item) => ({ ...item })) })}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <FilePenLine className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -4333,6 +4335,27 @@ function ParametersTable({ query, onOpen }: TableProps) {
         }}
       />
     </section>
+      <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-5xl">
+          <DialogTitle className="sr-only">Editar parâmetro</DialogTitle>
+          <DetailModalHeader icon={SlidersHorizontal} title="Editar parâmetro" onClose={() => setEditing(null)} />
+          {editing && <div className="space-y-4 px-5 py-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="space-y-1 text-sm"><span>Título</span><Input value={editing.title} onChange={(event) => setEditing({ ...editing, title: event.target.value })} /></label>
+              <label className="space-y-1 text-sm"><span>Descrição</span><Input value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label>
+            </div>
+            <div className="space-y-1 text-sm"><span>Mensagem</span><div key={editing.id} contentEditable suppressContentEditableWarning role="textbox" aria-label="Mensagem" aria-multiline="true" className="min-h-64 w-full rounded-md border bg-background p-3 text-sm leading-6 outline-none focus:ring-2 focus:ring-ring" dangerouslySetInnerHTML={{ __html: normalizeLegacyHtml(editing.message) }} onBlur={(event) => setEditing({ ...editing, message: event.currentTarget.innerHTML })} /></div>
+            {editing.legends.map((legend, index) => <div key={index} className="grid items-end gap-3 border-b pb-3 md:grid-cols-[5rem_1fr_auto]">
+              <label className="space-y-1 text-sm"><span>Título</span><Input value={legend.title} onChange={(event) => setEditing({ ...editing, legends: editing.legends.map((item, i) => i === index ? { ...item, title: event.target.value } : item) })} /></label>
+              <label className="space-y-1 text-sm"><span>Legenda</span><textarea className="min-h-20 w-full rounded-md border bg-background p-3 text-sm" value={legend.caption} onChange={(event) => setEditing({ ...editing, legends: editing.legends.map((item, i) => i === index ? { ...item, caption: event.target.value } : item) })} /></label>
+              <Button variant="ghost" size="icon" title="Remover legenda" onClick={() => setEditing({ ...editing, legends: editing.legends.filter((_, i) => i !== index) })}><Trash2 className="h-4 w-4 text-primary" /></Button>
+            </div>)}
+            <Button variant="outline" size="icon" title="Adicionar legenda" onClick={() => setEditing({ ...editing, legends: [...editing.legends, { title: "", caption: "" }] })}><Plus className="h-4 w-4" /></Button>
+          </div>}
+          <DialogFooter className="border-t px-5 py-4"><Button onClick={() => { if (!editing?.title.trim()) { toast.error("Informe o título."); return; } setParameters((rows) => rows.map((row) => row.id === editing.id ? { ...editing, updatedAt: parameterDisplayDate(new Date().toISOString().replace("T", " ")) } : row)); setEditing(null); toast.success("Parâmetro atualizado nesta sessão."); }}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
