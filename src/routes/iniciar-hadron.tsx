@@ -5620,7 +5620,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
-                    <Badge className={article.status === "2" ? "bg-amber-500 text-white hover:bg-amber-500" : undefined} variant={published ? "default" : "secondary"}>
+                    <Badge className={article.status === "2" ? "bg-amber-500 text-white hover:bg-amber-500" : article.status === "0" ? "bg-rose-600 text-white hover:bg-rose-600" : undefined} variant={published ? "default" : "secondary"}>
                       {articleStatusLabel(article.status)}
                     </Badge>
                   </td>
