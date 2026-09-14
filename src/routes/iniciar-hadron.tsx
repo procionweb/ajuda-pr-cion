@@ -3910,7 +3910,7 @@ function createReleaseDetail(
     form: release.form || option?.form || option?.option || release.id,
     owner: release.owner || option?.owner || "Não informado",
     version: getReleaseVersionLabel(release.version),
-    date: release.updatedAt || release.createdAt,
+    date: release.createdAt,
     module: release.moduleId
       ? hadronModuleNames.get(release.moduleId) || `Módulo ${release.moduleId}`
       : option?.moduleId
@@ -3931,7 +3931,7 @@ function ReleaseDetailView({ release }: { release: ReleaseDetail }) {
     <div className="grid gap-5 lg:min-h-[56vh] lg:grid-cols-[220px_minmax(0,1fr)]">
       <aside className="h-full space-y-4 lg:border-r lg:pr-5">
         <ReleaseMeta label="Opção/Formulário" value={`${release.option}/${release.form}`} />
-        <ReleaseMeta label="Data do release" value={formatCatalogDate(release.date)} />
+        <ReleaseMeta label="Data do release" value={formatVersionDate(release.date.split(/[T ]/)[0])} />
         <ReleaseMeta label="Versão Hádron" value={release.version} />
         <ReleaseMeta
           label="Módulo e submódulo"
@@ -4920,14 +4920,15 @@ function ReleasesTable({ query, onOpen }: TableProps) {
               .filter(Boolean)
               .join(" "),
           );
-          const selectedDate = dateType === "versao" ? release.updatedAt : release.createdAt;
-          const dateValue = selectedDate ? new Date(selectedDate.replace(" ", "T")).getTime() : 0;
+          const selectedDate = dateType === "versao" ? release.version : release.createdAt;
+          const dateValue = selectedDate ? new Date(selectedDate.length === 10 ? `${selectedDate}T00:00:00` : selectedDate.replace(" ", "T")).getTime() : 0;
           if (normalizedQuery && !searchableText.includes(normalizedQuery)) return false;
           if (normalizedOptionQuery && !optionText.includes(normalizedOptionQuery)) return false;
           if (releaseType !== "todos" && type !== releaseType) return false;
           if (operator !== "todos" && release.owner !== operator) return false;
+          if ((dateFrom || dateTo) && (!dateValue || Number.isNaN(dateValue))) return false;
           if (dateFrom && dateValue < new Date(`${dateFrom}T00:00:00`).getTime()) return false;
-          if (dateTo && dateValue > new Date(`${dateTo}T23:59:59`).getTime()) return false;
+          if (dateTo && dateValue >= new Date(`${dateTo}T00:00:00`).setDate(new Date(`${dateTo}T00:00:00`).getDate() + 1)) return false;
           return true;
         })
         .sort(
@@ -4968,6 +4969,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
         <div className="border-b px-4 py-4">
           <div className="flex items-baseline gap-2">
             <h2 className="text-lg font-medium">Releases</h2>
+            <Button className="ml-auto h-10 cursor-pointer gap-2" onClick={() => setEditingRelease({id:`novo-${Date.now()}`,title:"",owner:operators[0] || "",moduleId:"1",submoduleId:"",description:"",tags:"",createdAt:new Date().toISOString().slice(0,10),version:erpVersions[0]?.data_versao || "nao-informada",releaseType:"novidade",permission:"clientes",option:""})}><Plus className="h-4 w-4" />Criar release</Button>
             <span className="text-xs text-muted-foreground">
               {rows.length.toLocaleString("pt-BR")} registros
             </span>
@@ -5191,11 +5193,11 @@ function ReleasesTable({ query, onOpen }: TableProps) {
         open={Boolean(editingRelease)}
         onOpenChange={(open) => !open && setEditingRelease(null)}
       >
-        <DialogContent className="max-h-[92vh] max-w-5xl gap-0 overflow-hidden p-0 [&>button]:hidden">
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden [&>div:last-child]:shrink-0 [&>div:last-child]:pb-6">
           <DialogTitle className="sr-only">Editar release</DialogTitle>
           <DetailModalHeader
             icon={Rocket}
-            title="Editar release"
+            title={editingRelease?.id.startsWith("novo-") ? "Criar release" : "Editar release"}
             protocol={editingRelease ? `Release ${editingRelease.id}` : undefined}
             meta={editingRelease?.title}
             onClose={() => setEditingRelease(null)}
@@ -5203,7 +5205,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
             iconWrapClassName="bg-amber-500 text-white"
           />
           {editingRelease && (
-            <div className="grid max-h-[70vh] gap-4 overflow-y-auto px-5 py-4 md:grid-cols-6">
+            <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 py-4 md:grid-cols-6">
               <label className="space-y-1 text-sm md:col-span-2">
                 <span>Data Release</span>
                 <Input
@@ -5335,7 +5337,15 @@ function ReleasesTable({ query, onOpen }: TableProps) {
             <Button
               onClick={() => {
                 if (!editingRelease) return;
+                if (!editingRelease.title.trim() || !editingRelease.description.trim() || !editingRelease.createdAt) {toast.error("Informe a data, descrição e detalhes do release.");return;}
                 const { id, ...changes } = editingRelease;
+                if (id.startsWith("novo-")) {
+                  const option = hadronOptions.find((item) => item.option === changes.option || item.id === changes.option);
+                  if (!option) {toast.error("Selecione uma opção válida.");return;}
+                  const created = {...changes,id,optionId:option.id,option:option.option,form:option.form,tester:option.tester,status:"",exclusive:false,clicks:0,updatedAt:new Date().toISOString()};
+                  const next = [...customReleases,created];
+                  localStorage.setItem("hadron-custom-releases",JSON.stringify(next));setCustomReleases(next);setEditingRelease(null);toast.success("Release criado com sucesso.");return;
+                }
                 setReleaseOverrides((current) => ({ ...current, [id]: changes }));
                 setEditingRelease(null);
                 toast.success("Release atualizado com sucesso.");
