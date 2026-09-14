@@ -30,6 +30,8 @@ import {
   type KbCategoryId,
 } from "@/lib/kb-data";
 import { hadronReleases } from "@/lib/hadron-releases";
+import { useCrmCatalog } from "@/lib/crm-catalog-api";
+type CatalogRelease = (typeof hadronReleases)[number];
 
 type KbSearch = {
   search?: string;
@@ -86,13 +88,14 @@ function tokenize(input: string): string[] {
 }
 
 function KbIndexPage() {
+  const { items: hadronReleases } = useCrmCatalog<CatalogRelease>("releases");
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [activeCategory, setActiveCategory] = useState<KbCategoryId | "all">("all");
   const selectedRelease = useMemo(
     () =>
       search.release ? hadronReleases.find((release) => release.id === search.release) : undefined,
-    [search.release],
+    [search.release, hadronReleases],
   );
   const [query, setQuery] = useState(search.search ?? selectedRelease?.title ?? "");
 

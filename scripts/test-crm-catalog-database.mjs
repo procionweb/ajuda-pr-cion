@@ -1,0 +1,51 @@
+import assert from "node:assert/strict";
+import pg from "pg";
+import { randomUUID } from "node:crypto";
+const client = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+await client.connect();
+try {
+  const { rows: staff } = await client.query("select id from public.profiles where role in ('admin','support','specialist') limit 2");
+  assert(staff.length >= 2, "Two staff profiles required for cross-user checks");
+  await client.query("begin");
+  await client.query("select set_config('request.jwt.claim.sub',$1,true)", [staff[0].id]);
+  await client.query("set local role authenticated");
+  const save = (entity, changes) => client.query("select public.save_crm_catalog_records($1,$2)", [entity, JSON.stringify(changes)]);
+  for (const entity of ["options", "releases", "articles", "checklist", "parameters", "serials", "versions", "kanban_templates"]) {
+    const id = randomUUID();
+    const payload = entity === "checklist" ? [id, "1", "Test", "", false, "", ""] : { id, title: "Test", numero_serie: id, versao: id, data_versao: "2099-01-01" };
+    await save(entity, [{ id, payload }]);
+    const read = async () => (await client.query("select payload,deleted from public.crm_catalog_records where entity=$1 and record_id=$2", [entity, id])).rows[0];
+    assert.deepEqual((await read()).payload, payload);
+    const changed = Array.isArray(payload) ? [...payload.slice(0, 2), "Edited", ...payload.slice(3)] : { ...payload, title: "Edited" };
+    await save(entity, [{ id, payload: changed }]);
+    await client.query("select set_config('request.jwt.claim.sub',$1,true)", [staff[1].id]);
+    assert.deepEqual((await read()).payload, changed, "Another staff user must see edits");
+    await save(entity, [{ id, payload: changed, deleted: true }]);
+    assert.equal((await read()).deleted, true);
+    await save(entity, [{ id, payload: changed, deleted: false }]);
+    assert.equal((await read()).deleted, false);
+  }
+  const { rows: audit } = await client.query("select count(*)::int as count from public.crm_catalog_audit where created_at >= transaction_timestamp()");
+  assert(audit[0].count >= 32);
+  await client.query("savepoint unauthorized");
+  await client.query("select set_config('request.jwt.claim.sub',$1,true)", [randomUUID()]);
+  assert.equal((await client.query("select count(*)::int as count from public.crm_catalog_records")).rows[0].count, 0);
+  await assert.rejects(save("serials", [{ id: "denied", payload: { id: "denied" } }]));
+  await client.query("rollback to savepoint unauthorized");
+  await client.query("savepoint atomicity");
+  const id = randomUUID();
+  await assert.rejects(save("serials", [{ id, payload: { id, numero_serie: id } }, { id: "invalid", payload: null }]));
+  await client.query("rollback to savepoint atomicity");
+  assert.equal((await client.query("select count(*)::int as count from public.crm_catalog_records where record_id=$1", [id])).rows[0].count, 0);
+  const importId = randomUUID();
+  await save("articles", [{ id: importId, payload: { id: importId, title: "Already saved" } }]);
+  await client.query("select public.import_crm_catalog_records($1,$2)", ["articles", JSON.stringify([{ id: importId, payload: { id: importId, title: "Old browser copy" } }])]);
+  assert.equal((await client.query("select payload->>'title' as title from public.crm_catalog_records where entity='articles' and record_id=$1", [importId])).rows[0].title, "Already saved");
+  const serialId = randomUUID();
+  await save("serials", [{ id: serialId, payload: { id: serialId, numero_serie: serialId } }]);
+  await client.query("savepoint uniqueness");
+  const duplicateId = randomUUID();
+  await assert.rejects(save("serials", [{ id: duplicateId, payload: { id: duplicateId, numero_serie: serialId } }]));
+  await client.query("rollback to savepoint uniqueness");
+  console.log("8 catalogs: create, edit, cross-user read, soft-delete, restore, audit, RLS, atomicity, uniqueness and protected browser import passed. All test writes rolled back.");
+} finally { await client.query("rollback"); await client.end(); }

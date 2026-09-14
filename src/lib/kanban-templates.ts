@@ -13,8 +13,6 @@ export type KanbanCardTemplate = {
   checklist: NonNullable<KanbanCard["checklist"]>;
 };
 
-const STORAGE_KEY = "procion-kanban-card-templates-v1";
-
 const defaultTemplates: KanbanCardTemplate[] = [
   {
     id: "template-bug-fiscal",
@@ -69,24 +67,6 @@ const normalizeTemplate = (template: KanbanCardTemplate): KanbanCardTemplate => 
   tags: template.tags ?? [],
   checklist: template.checklist ?? [],
 });
-
-export function loadKanbanTemplates(): KanbanCardTemplate[] {
-  if (typeof window === "undefined") return defaultTemplates;
-  try {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!saved) return defaultTemplates;
-    const parsed = JSON.parse(saved) as KanbanCardTemplate[];
-    return Array.isArray(parsed) ? parsed.map(normalizeTemplate) : defaultTemplates;
-  } catch {
-    return defaultTemplates;
-  }
-}
-
-export function saveKanbanTemplates(templates: KanbanCardTemplate[]) {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
-  }
-}
 
 export function templateToCard(template: KanbanCardTemplate, columnId: string): KanbanCard {
   const now = Date.now().toString(36);

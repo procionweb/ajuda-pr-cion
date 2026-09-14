@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CopyPlus, FileStack, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { kanbanModules, priorities, cardTypes, type KanbanCard } from "@/lib/kanban-data";
 import {
-  loadKanbanTemplates,
-  saveKanbanTemplates,
   type KanbanCardTemplate,
 } from "@/lib/kanban-templates";
+import { useCrmCatalog, trySaveCrmCatalog } from "@/lib/crm-catalog-api";
 
 type Props = {
   open: boolean;
@@ -35,26 +34,16 @@ const blankTemplate = (): KanbanCardTemplate => ({
 });
 
 export function KanbanTemplateDialog({ open, onOpenChange, onUse }: Props) {
-  const [templates, setTemplates] = useState<KanbanCardTemplate[]>([]);
+  const { items: templates } = useCrmCatalog<KanbanCardTemplate>("kanban_templates");
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<KanbanCardTemplate>(blankTemplate);
 
-  useEffect(() => {
-    if (open) setTemplates(loadKanbanTemplates());
-  }, [open]);
-
-  const persist = (next: KanbanCardTemplate[]) => {
-    setTemplates(next);
-    saveKanbanTemplates(next);
-  };
-
-  const createTemplate = () => {
+  const createTemplate = async () => {
     if (!draft.name.trim() || !draft.title.trim()) {
       toast.error("Informe o nome do modelo e o título do cartão.");
       return;
     }
     const next = [
-      ...templates,
       {
         ...draft,
         name: draft.name.trim(),
@@ -62,7 +51,7 @@ export function KanbanTemplateDialog({ open, onOpenChange, onUse }: Props) {
         tags: draft.tags.map((tag) => tag.trim()).filter(Boolean),
       },
     ];
-    persist(next);
+    if (!await trySaveCrmCatalog("kanban_templates", next)) return;
     setCreating(false);
     setDraft(blankTemplate());
     toast.success("Template criado.");
@@ -102,7 +91,7 @@ export function KanbanTemplateDialog({ open, onOpenChange, onUse }: Props) {
                 <div key={template.id} className="group rounded-lg border bg-white p-4 shadow-sm transition-colors hover:border-primary/40 dark:bg-slate-900">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0"><h3 className="truncate text-sm font-semibold">{template.name}</h3><p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{template.title}</p></div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" title="Excluir template" onClick={() => persist(templates.filter((item) => item.id !== template.id))}><Trash2 className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" title="Excluir template" onClick={() => void trySaveCrmCatalog("kanban_templates", [template], true)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground"><span className="rounded bg-muted px-2 py-1">{template.module}</span><span className="rounded bg-muted px-2 py-1">{template.priority}</span><span className="rounded bg-muted px-2 py-1">{template.type}</span></div>
                   <Button className="mt-4 w-full" variant="outline" onClick={() => onUse(template)}><CopyPlus className="mr-2 h-4 w-4" />Usar template</Button>

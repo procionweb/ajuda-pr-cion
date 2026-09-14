@@ -93,6 +93,7 @@ import { currentUser } from "@/lib/mock-data";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useCrmCatalog, trySaveCrmCatalog } from "@/lib/crm-catalog-api";
 import {
   formatLogDate,
   listHadronOptionLogs,
@@ -115,6 +116,9 @@ import {
             <Button type="button" className="h-10 w-40 min-w-40 shrink-0 cursor-pointer px-4" onClick={() => setPage(1)}><Search className="mr-2 h-4 w-4" />Buscar</Button>
             </div>
 const hadronOptionsById = new Map(hadronOptions.map((option) => [option.id, option]));
+type CatalogRelease = (typeof hadronReleases)[number];
+type CatalogVersion = (typeof erpVersions)[number];
+type CatalogArticle = (typeof cvsArticles)[number];
 const releaseOptionSelectItems = [
   ...new Map(
     hadronOptions.map((option) => [
@@ -428,12 +432,8 @@ function HadronPage() {
       <OptionEditDialog
         option={editingOption}
         onClose={() => setEditingOption(null)}
-        onSave={(option) => {
-          const overrides = JSON.parse(localStorage.getItem("hadron-option-overrides") || "{}");
-          localStorage.setItem(
-            "hadron-option-overrides",
-            JSON.stringify({ ...overrides, [option.id]: option }),
-          );
+        onSave={async (option) => {
+          if (!await trySaveCrmCatalog("options", [option])) return;
           setViewingOption(option);
           setEditingOption(null);
         }}
@@ -518,6 +518,11 @@ function Overview({
   onOpen: (d: Detail) => void;
   onViewOption: (option: HadronOption) => void;
 }) {
+  const { items: hadronOptions } = useCrmCatalog<HadronOption>("options");
+  const { items: hadronReleases } = useCrmCatalog<CatalogRelease>("releases");
+  const { items: versions } = useCrmCatalog<CatalogVersion>("versions");
+  const erpVersions = useMemo(() => [...versions].sort((a,b) => b.data_versao.localeCompare(a.data_versao)), [versions]);
+  const hadronOptionsById = useMemo(() => new Map(hadronOptions.map((item) => [item.id,item])), [hadronOptions]);
   const [dashboard,setDashboard] = useState<Awaited<ReturnType<typeof getHadronOverview>> | null>(null);
   const [previewOption,setPreviewOption] = useState<HadronOption | null>(null);
   useEffect(() => {
@@ -861,9 +866,10 @@ function getHadronOptionDate(
 function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: (open: boolean) => void }) {
   const tickets = useTickets();
   const { session } = usePortalAuth();
-  const [optionOverrides, setOptionOverrides] = useState<Record<string, Partial<HadronOption>>>({});
-  const [customOptions, setCustomOptions] = useState<HadronOption[]>([]);
-  const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
+  const optionCatalog = useCrmCatalog<HadronOption>("options", true);
+  const optionOverrides = useMemo(() => Object.fromEntries(optionCatalog.items.map((item) => [item.id, item])), [optionCatalog.items]);
+  const customOptions = useMemo(() => optionCatalog.items.filter((item) => !hadronOptionsById.has(item.id)), [optionCatalog.items]);
+  const disabledOptions = optionCatalog.deletedIds;
   const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
   const [previewingOption, setPreviewingOption] = useState<HadronOption | null>(null);
   useEffect(() => {
@@ -889,17 +895,6 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
     void getHadronOccurrenceKindCounts()
       .then(setOccurrenceSummary)
       .catch(() => setOccurrenceSummary({}));
-  }, []);
-  useEffect(() => {
-    try {
-      setOptionOverrides(JSON.parse(localStorage.getItem("hadron-option-overrides") || "{}"));
-      setCustomOptions(JSON.parse(localStorage.getItem("hadron-custom-options") || "[]"));
-      setDisabledOptions(JSON.parse(localStorage.getItem("hadron-disabled-options") || "[]"));
-    } catch {
-      setOptionOverrides({});
-      setCustomOptions([]);
-      setDisabledOptions([]);
-    }
   }, []);
   useEffect(() => {
     let active = true;
@@ -933,7 +928,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
       group.push(ticket);
       grouped.set(optionId, group);
     });
-    return [...hadronOptions, ...customOptions].map((sourceOption) => {
+    return optionCatalog.items.map((sourceOption) => {
       const option = { ...sourceOption, ...optionOverrides[sourceOption.id] };
       const related = grouped.get(option.id) || [];
       const active = related.filter(
@@ -1056,27 +1051,21 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
 
     return { ...counts, averageDelay };
   }, [optionsWithTickets]);
-  const persistOverride = (option: HadronOption) => {
+  const persistOverride = async (option: HadronOption) => {
     if (option.id.startsWith("novo-")) {
-      const created = { ...option, id: `local-${Date.now()}` };
-      const nextCustomOptions = [...customOptions, created];
-      setCustomOptions(nextCustomOptions);
-      localStorage.setItem("hadron-custom-options", JSON.stringify(nextCustomOptions));
+      const created = { ...option, id: crypto.randomUUID() };
+      if (!await trySaveCrmCatalog("options", [created])) return;
       setEditingOption(null);
       toast.success("Opção criada com sucesso.");
       return;
     }
-    const next = { ...optionOverrides, [option.id]: option };
-    setOptionOverrides(next);
-    localStorage.setItem("hadron-option-overrides", JSON.stringify(next));
+    if (!await trySaveCrmCatalog("options", [option])) return;
     setEditingOption(null);
     if (viewingOption?.id === option.id) setViewingOption(option);
   };
-  const deactivateOption = () => {
+  const deactivateOption = async () => {
     if (!deactivatingOption) return;
-    const next = [...new Set([...disabledOptions, deactivatingOption.id])];
-    setDisabledOptions(next);
-    localStorage.setItem("hadron-disabled-options", JSON.stringify(next));
+    if (!await trySaveCrmCatalog("options", [deactivatingOption], true)) return;
     setDeactivatingOption(null);
   };
   const openLockedOption = async (option: HadronOption, edit = false) => {
@@ -1576,6 +1565,9 @@ function HadronOptionPage({
   onExit: () => void;
   onEdit: () => void;
 }) {
+  const { items: hadronReleases } = useCrmCatalog<CatalogRelease>("releases");
+  const { items: versions } = useCrmCatalog<CatalogVersion>("versions");
+  const erpVersions = useMemo(() => [...versions].sort((a,b) => b.data_versao.localeCompare(a.data_versao)), [versions]);
   const moduleName = getOptionModuleName(option);
   const submoduleName = getOptionSubmoduleName(option);
   const [optionChecklist,setOptionChecklist] = useState(() => getHadronOptionChecklist(option.id));
@@ -1924,7 +1916,7 @@ function HadronOptionPage({
               </div>
             </section>
           </div>
-          <DialogFooter className="shrink-0 border-t bg-card px-5 py-4"><Button disabled={savingRelease} onClick={() => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const releases = JSON.parse(localStorage.getItem("hadron-custom-releases") || "[]"); releases.push({id:`novo-${Date.now()}`,optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,version:"nao-informada",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}); localStorage.setItem("hadron-custom-releases",JSON.stringify(releases)); window.dispatchEvent(new CustomEvent("hadron-releases-updated")); setSavingRelease(false); setNewReleaseOpen(false); toast.success("Release criado com sucesso."); }}>Salvar</Button></DialogFooter>
+          <DialogFooter className="shrink-0 border-t bg-card px-5 py-4"><Button disabled={savingRelease} onClick={async () => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const saved = await trySaveCrmCatalog("releases", [{id:crypto.randomUUID(),optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,version:"nao-informada",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}]); setSavingRelease(false); if (!saved) return; setNewReleaseOpen(false); toast.success("Release criado no banco."); }}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
@@ -1981,13 +1973,15 @@ function OptionEditDialog({
   onClose: () => void;
   onSave: (option: HadronOption) => void;
 }) {
+  const { items: hadronOptions } = useCrmCatalog<HadronOption>("options");
+  const { items: hadronChecklist } = useCrmCatalog<[string,string,string,string,boolean,string,string]>("checklist");
   const [draft, setDraft] = useState<HadronOption | null>(option);
   const [editedChecks, setEditedChecks] = useState<ReturnType<typeof getHadronOptionChecklist>>([]);
   useEffect(() => {
     if (!option) return;
     setEditedChecks(option.id.startsWith("novo-") ? hadronChecklist.map((item) => ({id:item[0],checkId:item[0],characteristic:item[1],title:item[2],description:item[3],check1:false,check2:false})) : option.checklist || getHadronOptionChecklist(option.id));
     if (!option.id.startsWith("novo-")) void loadOptionChecklist(option.id).then(setEditedChecks).catch(() => toast.error("Não foi possível carregar o checklist."));
-  }, [option]);
+  }, [option, hadronChecklist]);
   const { collaborators } = useCollaborators();
   useEffect(() => setDraft(option), [option]);
   const isCreating = Boolean(draft?.id.startsWith("novo-"));
@@ -2001,7 +1995,7 @@ function OptionEditDialog({
             .filter(Boolean),
         ),
       ].sort((a, b) => a.localeCompare(b, "pt-BR")),
-    [],
+    [hadronOptions],
   );
   if (!draft) return null;
   const update = (field: keyof HadronOption, value: string) =>
@@ -4033,7 +4027,7 @@ function normalizeLegacyOccurrenceTimestamp(value: string | null | undefined) {
 
 function ParametersTable({ query, onOpen }: TableProps) {
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [parameters, setParameters] = useState<ParameterDraft[]>(hadronParameters);
+  const { items: parameters } = useCrmCatalog<ParameterDraft>("parameters");
   const [editing, setEditing] = useState<ParameterDraft | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -4203,7 +4197,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
       <AlertDialog open={Boolean(removingId)} onOpenChange={(open) => !open && setRemovingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Excluir parâmetro?</AlertDialogTitle><AlertDialogDescription>Confirme a remoção deste registro da listagem.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => { setParameters((rows) => rows.filter((row) => row.id !== removingId)); setRemovingId(null); setPage(1); toast.success("Registro excluído nesta sessão."); }}>Excluir</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={async () => { const item = parameters.find((row) => row.id === removingId); if (!item || !await trySaveCrmCatalog("parameters", [item], true)) return; setRemovingId(null); setPage(1); toast.success("Registro excluído no banco."); }}>Excluir</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
@@ -4223,7 +4217,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
             </div>)}
             <Button variant="outline" size="icon" title="Adicionar legenda" onClick={() => setEditing({ ...editing, legends: [...editing.legends, { title: "", caption: "" }] })}><Plus className="h-4 w-4" /></Button>
           </div>}
-          <DialogFooter className="border-t px-5 py-4"><Button onClick={() => { if (!editing?.title.trim()) { toast.error("Informe o título."); return; } setParameters((rows) => rows.map((row) => row.id === editing.id ? { ...editing, updatedAt: parameterDisplayDate(new Date().toISOString().replace("T", " ")) } : row)); setEditing(null); toast.success("Parâmetro atualizado nesta sessão."); }}>Salvar</Button></DialogFooter>
+          <DialogFooter className="border-t px-5 py-4"><Button onClick={async () => { if (!editing?.title.trim()) { toast.error("Informe o título."); return; } if (!await trySaveCrmCatalog("parameters", [{ ...editing, updatedAt: parameterDisplayDate(new Date().toISOString().replace("T", " ")) }])) return; setEditing(null); toast.success("Parâmetro salvo no banco."); }}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </>
@@ -4439,25 +4433,22 @@ function ModulesTable({ query, onOpen }: TableProps) {
 
 function SerialsTable({ query }: TableProps) {
   type SerialRow = (typeof hadronSerials)[number];
-  const [items, setItems] = useState<SerialRow[]>(() => {
-    try { return JSON.parse(localStorage.getItem("hadron-serials") || "null") || [...hadronSerials]; } catch { return [...hadronSerials]; }
-  });
+  const { items } = useCrmCatalog<SerialRow>("serials");
   const [editingSerial, setEditingSerial] = useState<SerialRow | null>(null);
   const [removingSerial, setRemovingSerial] = useState<SerialRow | null>(null);
   const creatingSerial = editingSerial?.id.startsWith("novo-") || false;
-  const saveSerial = () => {
+  const saveSerial = async () => {
     if (!editingSerial) return;
     const draft = {...editingSerial,numero_serie:editingSerial.numero_serie.trim(),operador:editingSerial.operador.trim(),cliente:editingSerial.cliente.trim()};
     if (!draft.numero_serie || !draft.operador || !draft.cliente) {toast.error("Preencha o número de série, descrição e sigla.");return;}
     if (items.some(item => item.id !== draft.id && item.numero_serie === draft.numero_serie)) {toast.error("Este número de série já está cadastrado.");return;}
     const now = new Date().toISOString();
-    persistSerials(creatingSerial ? [...items,{...draft,id:`local-${Date.now()}`,created:now,modified:now}] : items.map(item => item.id === draft.id ? {...draft,modified:now} : item));
+    if (!await trySaveCrmCatalog("serials", [creatingSerial ? {...draft,id:crypto.randomUUID(),created:now,modified:now} : {...draft,modified:now}])) return;
     setEditingSerial(null);
     clearFilters();
     setPage(1);
-    toast.success(creatingSerial ? "Serial criado neste navegador." : "Serial atualizado neste navegador.");
+    toast.success(creatingSerial ? "Serial criado no banco." : "Serial atualizado no banco.");
   };
-  const persistSerials = (next: SerialRow[]) => {localStorage.setItem("hadron-serials",JSON.stringify(next));setItems(next);};
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [serial, setSerial] = useState("");
@@ -4572,7 +4563,7 @@ function SerialsTable({ query }: TableProps) {
           <DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={saveSerial}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-      <AlertDialog open={Boolean(removingSerial)} onOpenChange={(open) => !open && setRemovingSerial(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir serial?</AlertDialogTitle><AlertDialogDescription>Remover o número de série {removingSerial?.numero_serie} da lista deste navegador?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => {persistSerials(items.filter(item => item.id !== removingSerial?.id));setRemovingSerial(null);setPage(1);toast.success("Serial removido deste navegador.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={Boolean(removingSerial)} onOpenChange={(open) => !open && setRemovingSerial(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir serial?</AlertDialogTitle><AlertDialogDescription>Remover o número de série {removingSerial?.numero_serie}?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={async () => {if (!removingSerial || !await trySaveCrmCatalog("serials", [removingSerial], true)) return;setRemovingSerial(null);setPage(1);toast.success("Serial removido no banco.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </>
   );
 }
@@ -4581,7 +4572,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
   void onOpen;
   type CheckRow = [string, string, string, string, boolean, string, string];
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [items, setItems] = useState<CheckRow[]>(() => hadronChecklist.map((item) => [...item]));
+  const { items } = useCrmCatalog<CheckRow>("checklist");
   const [editing, setEditing] = useState<CheckRow[] | null>(null);
   const [characteristic, setCharacteristic] = useState("todos");
   const label = (value: string) =>
@@ -4741,7 +4732,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
       <AlertDialog open={Boolean(removingId)} onOpenChange={(open) => !open && setRemovingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Excluir checklist?</AlertDialogTitle><AlertDialogDescription>Confirme a remoção deste registro da listagem.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => { setItems((rows) => rows.filter((row) => row[0] !== removingId)); setRemovingId(null); setPage(1); toast.success("Registro excluído nesta sessão."); }}>Excluir</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={async () => { const item = items.find((row) => row[0] === removingId); if (!item || !await trySaveCrmCatalog("checklist", [item], true)) return; setRemovingId(null); setPage(1); toast.success("Registro excluído no banco."); }}>Excluir</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
@@ -4865,19 +4856,16 @@ function ChecklistTable({ query, onOpen }: TableProps) {
           </div>
           <DialogFooter className="border-t px-5 py-4">
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (!editing || editing.some((row) => !row[2].trim())) {
                   toast.error("Informe o título de todos os itens.");
                   return;
                 }
-                setItems((current) => [
-                  ...current.filter((row) => !editing.some((item) => item[0] === row[0])),
-                  ...editing.map(
+                if (!await trySaveCrmCatalog("checklist", editing.map(
                     (row): CheckRow => [...row.slice(0, 6), new Date().toISOString()] as CheckRow,
-                  ),
-                ]);
+                  ))) return;
                 setEditing(null);
-                toast.success("Checklist atualizado nesta sessão.");
+                toast.success("Checklist salvo no banco.");
               }}
             >
               Salvar
@@ -4890,6 +4878,11 @@ function ChecklistTable({ query, onOpen }: TableProps) {
 }
 
 function ReleasesTable({ query, onOpen }: TableProps) {
+  const { items: hadronOptions } = useCrmCatalog<HadronOption>("options");
+  const { items: versions } = useCrmCatalog<CatalogVersion>("versions");
+  const erpVersions = useMemo(() => [...versions].sort((a,b) => b.data_versao.localeCompare(a.data_versao)), [versions]);
+  const hadronOptionsById = useMemo(() => new Map(hadronOptions.map((item) => [item.id,item])), [hadronOptions]);
+  const releaseOptionSelectItems = useMemo(() => [...new Map(hadronOptions.map((option) => [option.option, [option.option, `${option.option}/${option.form || option.option} - ${option.description}`] as [string,string]])).values()], [hadronOptions]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [optionQuery, setOptionQuery] = useState("");
@@ -4898,9 +4891,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
   const [dateType, setDateType] = useState("release");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [releaseOverrides, setReleaseOverrides] = useState<Record<string, ReleaseOverride>>({});
-  const [removedReleaseIds, setRemovedReleaseIds] = useState<Set<string>>(() => new Set());
-  const [customReleases, setCustomReleases] = useState<typeof hadronReleases>([]);
+  const { items: customReleases } = useCrmCatalog<(typeof hadronReleases)[number]>("releases");
   const [editingRelease, setEditingRelease] = useState<(ReleaseOverride & { id: string }) | null>(
     null,
   );
@@ -4909,27 +4900,13 @@ function ReleasesTable({ query, onOpen }: TableProps) {
   );
   const normalizedQuery = normalizeOccurrenceText(query);
   const normalizedOptionQuery = normalizeOccurrenceText(optionQuery);
-  useEffect(() => {
-    const load = () => {
-      try {
-        setCustomReleases(JSON.parse(localStorage.getItem("hadron-custom-releases") || "[]"));
-      } catch {
-        setCustomReleases([]);
-      }
-    };
-    load();
-    window.addEventListener("hadron-releases-updated", load);
-    return () => window.removeEventListener("hadron-releases-updated", load);
-  }, []);
   const operators = useMemo(
-    () => [...new Set([...hadronReleases, ...customReleases].map((release) => release.owner).filter(Boolean))].sort(),
+    () => [...new Set(customReleases.map((release) => release.owner).filter(Boolean))].sort(),
     [customReleases],
   );
   const rows = useMemo(
     () =>
-      [...hadronReleases, ...customReleases]
-        .filter((release) => !removedReleaseIds.has(release.id))
-        .map((release) => ({ ...release, ...releaseOverrides[release.id] }))
+      customReleases
         .map((release) => ({
           release,
           option: hadronOptionsById.get(release.optionId) || findReleaseOption(release.title),
@@ -4971,13 +4948,12 @@ function ReleasesTable({ query, onOpen }: TableProps) {
       dateFrom,
       dateTo,
       customReleases,
+      hadronOptionsById,
       dateType,
       normalizedOptionQuery,
       normalizedQuery,
       operator,
-      releaseOverrides,
       releaseType,
-      removedReleaseIds,
     ],
   );
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -5362,18 +5338,19 @@ function ReleasesTable({ query, onOpen }: TableProps) {
           )}
           <DialogFooter className="border-t px-5 py-4">
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (!editingRelease) return;
                 if (!editingRelease.title.trim() || !editingRelease.description.trim() || !editingRelease.createdAt) {toast.error("Informe a data, descrição e detalhes do release.");return;}
                 const { id, ...changes } = editingRelease;
                 if (id.startsWith("novo-")) {
                   const option = hadronOptions.find((item) => item.option === changes.option || item.id === changes.option);
                   if (!option) {toast.error("Selecione uma opção válida.");return;}
-                  const created = {...changes,id,optionId:option.id,option:option.option,form:option.form,tester:option.tester,status:"",exclusive:false,clicks:0,updatedAt:new Date().toISOString()};
-                  const next = [...customReleases,created];
-                  localStorage.setItem("hadron-custom-releases",JSON.stringify(next));setCustomReleases(next);setEditingRelease(null);toast.success("Release criado com sucesso.");return;
+                  const created = {...changes,id:crypto.randomUUID(),optionId:option.id,option:option.option,form:option.form,tester:option.tester,status:"",exclusive:false,clicks:0,updatedAt:new Date().toISOString()};
+                  if (!await trySaveCrmCatalog("releases", [created])) return;
+                  setEditingRelease(null);toast.success("Release criado no banco.");return;
                 }
-                setReleaseOverrides((current) => ({ ...current, [id]: changes }));
+                const previous = customReleases.find((release) => release.id === id);
+                if (!previous || !await trySaveCrmCatalog("releases", [{ ...previous, ...changes, id, updatedAt: new Date().toISOString() }])) return;
                 setEditingRelease(null);
                 toast.success("Release atualizado com sucesso.");
               }}
@@ -5398,9 +5375,10 @@ function ReleasesTable({ query, onOpen }: TableProps) {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
+              onClick={async () => {
                 if (!removingRelease) return;
-                setRemovedReleaseIds((current) => new Set(current).add(removingRelease.id));
+                const previous = customReleases.find((release) => release.id === removingRelease.id);
+                if (!previous || !await trySaveCrmCatalog("releases", [previous], true)) return;
                 setRemovingRelease(null);
                 toast.success("Release removido com sucesso.");
               }}
@@ -5458,7 +5436,7 @@ function VersionsTable({ query, onOpen }: TableProps) {
   type VersionRow = (typeof erpVersions)[number];
   type DateField = Exclude<keyof VersionRow, "id" | "versao">;
   const dateFields: [DateField,string][] = [["data_versao","Data da versão"],["data_runtime","Runtime"],["data_arq","Arquivos"],["data_arq_bas","Arq. Base"],["data_alterar","Alterar"]];
-  const [items,setItems] = useState<VersionRow[]>(() => {try{return JSON.parse(localStorage.getItem("hadron-versions") || "null") || [...erpVersions];}catch{return [...erpVersions];}});
+  const { items } = useCrmCatalog<VersionRow>("versions");
   const [draft,setDraft] = useState<VersionRow | null>(null);
   const [removing,setRemoving] = useState<VersionRow | null>(null);
   const [versionQuery,setVersionQuery] = useState("");
@@ -5468,7 +5446,6 @@ function VersionsTable({ query, onOpen }: TableProps) {
   const [page,setPage] = useState(1);
   const [pageSize,setPageSize] = useState(25);
   const creating = Boolean(draft?.id.startsWith("novo-"));
-  const persist = (next:VersionRow[]) => {localStorage.setItem("hadron-versions",JSON.stringify(next));setItems(next);};
   const rows = items.filter(version => {
     const global = normalizeOccurrenceText(query);
     const term = normalizeOccurrenceText(versionQuery);
@@ -5481,13 +5458,13 @@ function VersionsTable({ query, onOpen }: TableProps) {
   const clearFilters = () => {setVersionQuery("");setDateFrom("");setDateTo("");setPage(1);};
   const pageCount = Math.max(1,Math.ceil(rows.length/pageSize));
   const currentPage = Math.min(page,pageCount);
-  const save = () => {
+  const save = async () => {
     if(!draft)return;
     if(!draft.versao.trim() || dateFields.some(([field]) => !/^\d{4}-\d{2}-\d{2}$/.test(draft[field]))) {toast.error("Preencha a versão e todas as datas.");return;}
     if(items.some(item => item.id !== draft.id && item.versao.trim() === draft.versao.trim() && item.data_versao === draft.data_versao)){toast.error("Esta versão já está cadastrada para a data informada.");return;}
-    const saved = {...draft,versao:draft.versao.trim(),id:creating ? `local-${Date.now()}` : draft.id};
-    persist(creating ? [...items,saved] : items.map(item => item.id === saved.id ? saved : item));
-    setDraft(null);clearFilters();toast.success(creating ? "Versão criada neste navegador." : "Versão atualizada neste navegador.");
+    const saved = {...draft,versao:draft.versao.trim(),id:creating ? crypto.randomUUID() : draft.id};
+    if (!await trySaveCrmCatalog("versions", [saved])) return;
+    setDraft(null);clearFilters();toast.success(creating ? "Versão criada no banco." : "Versão atualizada no banco.");
   };
   return <>
     <section className="overflow-hidden rounded-md border bg-card shadow-sm">
@@ -5499,7 +5476,7 @@ function VersionsTable({ query, onOpen }: TableProps) {
     </section>
     <TablePagination noun="versões" page={currentPage} pageCount={pageCount} pageSize={pageSize} total={rows.length} onPageChange={setPage} onPageSizeChange={value => {setPageSize(value);setPage(1);}} />
     <Dialog open={Boolean(draft)} onOpenChange={open => !open && setDraft(null)}><DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden"><DialogTitle className="sr-only">{creating ? "Criar versão" : "Editar versão"}</DialogTitle><DetailModalHeader icon={creating ? Plus : Pencil} title={creating ? "Criar versão" : "Editar versão"} onClose={() => setDraft(null)} />{draft && <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-2 lg:grid-cols-6"><label className="space-y-1 text-sm"><span>Versão</span><Input value={draft.versao} onChange={e => setDraft({...draft,versao:e.target.value})} /></label>{dateFields.map(([field,label]) => <label key={field} className="min-w-0 space-y-1 text-sm"><span>{label}</span><Input type="date" value={draft[field]} onChange={e => setDraft({...draft,[field]:e.target.value})} /></label>)}</div>}<DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={save}>Salvar</Button></DialogFooter></DialogContent></Dialog>
-    <AlertDialog open={Boolean(removing)} onOpenChange={open => !open && setRemoving(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir versão?</AlertDialogTitle><AlertDialogDescription>Remover a versão {removing?.versao} de {formatVersionDate(removing?.data_versao || "")} da lista deste navegador?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => {persist(items.filter(item => item.id !== removing?.id));setRemoving(null);setPage(1);toast.success("Versão removida deste navegador.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+    <AlertDialog open={Boolean(removing)} onOpenChange={open => !open && setRemoving(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir versão?</AlertDialogTitle><AlertDialogDescription>Remover a versão {removing?.versao} de {formatVersionDate(removing?.data_versao || "")}?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={async () => {if (!removing || !await trySaveCrmCatalog("versions", [removing], true)) return;setRemoving(null);setPage(1);toast.success("Versão removida no banco.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
   </>;
 }
 
@@ -5511,26 +5488,24 @@ function ArticlesTable({ query, onOpen }: TableProps) {
   const [status, setStatus] = useState("todos");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [overrides, setOverrides] = useState<Record<string, ArticleDraft>>({});
-  const [removedIds, setRemovedIds] = useState<Set<string>>(() => new Set());
+  const { items: articleRecords } = useCrmCatalog<CatalogArticle>("articles");
   const [viewingArticle, setViewingArticle] = useState<ArticleDraft | null>(null);
   const [editingArticle, setEditingArticle] = useState<ArticleDraft | null>(null);
   const [removingArticle, setRemovingArticle] = useState<ArticleDraft | null>(null);
   const normalizedQuery = normalizeOccurrenceText(query.trim());
   const normalizedTitle = normalizeOccurrenceText(title.trim());
   const categories = useMemo(
-    () => [...new Set(cvsArticles.map((article) => article.category).filter(Boolean))].sort(),
-    [],
+    () => [...new Set(articleRecords.map((article) => article.category).filter(Boolean))].sort(),
+    [articleRecords],
   );
   const operators = useMemo(
-    () => [...new Set(cvsArticles.map((article) => article.owner).filter(Boolean))].sort(),
-    [],
+    () => [...new Set(articleRecords.map((article) => article.owner).filter(Boolean))].sort(),
+    [articleRecords],
   );
   const rows = useMemo(
     () =>
-      cvsArticles
-        .filter((article) => !removedIds.has(article.id))
-        .map((article) => articleDraft(article, overrides[article.id]))
+      articleRecords
+        .map((article) => articleDraft(article))
         .filter((article) => {
           const haystack = normalizeOccurrenceText(
             `${article.id} ${article.title} ${article.owner} ${article.category} ${article.tags}`,
@@ -5547,7 +5522,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
           return true;
         })
         .sort((a, b) => releaseTimestamp(b.updatedAt) - releaseTimestamp(a.updatedAt)),
-    [category, dateFrom, dateTo, normalizedQuery, normalizedTitle, operator, overrides, removedIds, status],
+    [articleRecords, category, dateFrom, dateTo, normalizedQuery, normalizedTitle, operator, status],
   );
   const articleStatusCounts = useMemo(
     () => ({
@@ -5717,8 +5692,8 @@ function ArticlesTable({ query, onOpen }: TableProps) {
       <ArticleEditDialog
         article={editingArticle}
         onClose={() => setEditingArticle(null)}
-        onSave={(article) => {
-          setOverrides((current) => ({ ...current, [article.id]: article }));
+        onSave={async (article) => {
+          if (!await trySaveCrmCatalog("articles", [article])) return;
           setEditingArticle(null);
           toast.success("Artigo atualizado com sucesso.");
         }}
@@ -5726,7 +5701,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
       <AlertDialog open={Boolean(removingArticle)} onOpenChange={(open) => !open && setRemovingArticle(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Remover artigo?</AlertDialogTitle><AlertDialogDescription>O artigo “{removingArticle?.title}” será removido da listagem.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { if (!removingArticle) return; setRemovedIds((current) => new Set(current).add(removingArticle.id)); setRemovingArticle(null); toast.success("Artigo removido com sucesso."); }}>Remover</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => { if (!removingArticle || !await trySaveCrmCatalog("articles", [removingArticle], true)) return; setRemovingArticle(null); toast.success("Artigo removido no banco."); }}>Remover</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
