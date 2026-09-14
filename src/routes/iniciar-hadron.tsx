@@ -4118,8 +4118,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
           variant="outline"
           size="sm"
           onClick={clearFilters}
-          disabled={!search && !option && !form && !dateFrom && !dateTo}
-          className="h-10 cursor-pointer"
+          className="h-10 cursor-pointer border-0 bg-transparent px-3 shadow-none hover:bg-sky-100 dark:hover:bg-sky-500/15"
         >
           Limpar
         </Button>
@@ -4155,23 +4154,23 @@ function ParametersTable({ query, onOpen }: TableProps) {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-center gap-1">
-                    <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Ir para a Base">
-                      <a href={`https://ajuda.procion.com/cvsParameters/signature/${parameter.id}`} target="_blank" rel="noopener noreferrer"><Globe2 className="h-4 w-4" /></a>
+                    <Button asChild variant="ghost" size="icon" className="h-8 w-8 cursor-pointer hover:bg-sky-100 dark:hover:bg-sky-500/15" title="Ir para a Base">
+                      <Link to="/base-de-conhecimento" search={{search:parameter.title,from:"hadron-parameter"}}><Globe2 className="h-4 w-4 text-emerald-600" /></Link>
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       title="Editar parâmetro"
-                      className="h-8 w-8"
+                      className="h-8 w-8 cursor-pointer hover:bg-sky-100 dark:hover:bg-sky-500/15"
                       onClick={() => setEditing({ ...parameter, legends: parameter.legends.map((item) => ({ ...item })) })}
                     >
-                      <FilePenLine className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       title="Excluir parâmetro"
-                      className="h-8 w-8"
+                      className="h-8 w-8 cursor-pointer text-destructive hover:bg-rose-50 dark:hover:bg-rose-500/15"
                       onClick={() => setRemovingId(parameter.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -4606,8 +4605,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
                 setFilter("");
                 setCharacteristic("todos");
               }}
-              disabled={!filter && characteristic === "todos"}
-              className="cursor-pointer"
+              className="h-10 cursor-pointer border-0 bg-transparent px-3 shadow-none hover:bg-sky-100 dark:hover:bg-sky-500/15"
             >
               Limpar
             </Button>
