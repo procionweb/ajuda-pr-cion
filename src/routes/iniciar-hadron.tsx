@@ -298,6 +298,7 @@ function HadronPage() {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [reviewingOccurrence, setReviewingOccurrence] = useState(false);
   const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
+  const [optionDetailOpen, setOptionDetailOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<HadronOption | null>(null);
   const viewingOptionTickets = useMemo(
     () =>
@@ -362,7 +363,7 @@ function HadronPage() {
           />
         ) : (
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg border bg-card p-1">
+            <TabsList className={cn("h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg border bg-card p-1", optionDetailOpen && "hidden")}>
               {[
                 ["visao-geral", "Visao geral", Rocket],
                 ["opcoes", "Opcoes", ListChecks],
@@ -393,7 +394,7 @@ function HadronPage() {
               <Overview onOpen={setDetail} onViewOption={setViewingOption} />
             </TabsContent>
             <TabsContent value="opcoes">
-              <OptionsTable query={query} onOpen={setDetail} />
+              <OptionsTable query={query} onOpen={setDetail} onDetailChange={setOptionDetailOpen} />
             </TabsContent>
             <TabsContent value="ocorrencias">
               <ImportedOccurrencesTable query={query} onOpen={setDetail} />
@@ -856,7 +857,7 @@ function getHadronOptionDate(
   return option.approvedAt;
 }
 
-function OptionsTable({ query }: TableProps) {
+function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: (open: boolean) => void }) {
   const tickets = useTickets();
   const { session } = usePortalAuth();
   const [optionOverrides, setOptionOverrides] = useState<Record<string, Partial<HadronOption>>>({});
@@ -864,6 +865,10 @@ function OptionsTable({ query }: TableProps) {
   const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
   const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
   const [previewingOption, setPreviewingOption] = useState<HadronOption | null>(null);
+  useEffect(() => {
+    onDetailChange(Boolean(viewingOption));
+    return () => onDetailChange(false);
+  }, [viewingOption, onDetailChange]);
   const [editingOption, setEditingOption] = useState<HadronOption | null>(null);
   const [deactivatingOption, setDeactivatingOption] = useState<HadronOption | null>(null);
   const [optionLocks, setOptionLocks] = useState<Record<string, HadronOptionLock>>({});
@@ -1202,6 +1207,7 @@ function OptionsTable({ query }: TableProps) {
                 setPage(1);
               }}
               placeholder="Opção"
+              className="text-sm placeholder:text-sm placeholder:text-muted-foreground"
             />
             <Input
               value={formQuery}
@@ -1210,7 +1216,7 @@ function OptionsTable({ query }: TableProps) {
                 setPage(1);
               }}
               placeholder="Formulário"
-              className="text-xs placeholder:text-xs"
+              className="text-sm placeholder:text-sm placeholder:text-muted-foreground"
             />
             <OccurrenceSelect
               value={operator}
@@ -1282,7 +1288,7 @@ function OptionsTable({ query }: TableProps) {
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="h-10 cursor-pointer bg-sky-100 px-3 hover:bg-sky-200 dark:bg-sky-500/15 dark:hover:bg-sky-500/25"
+            className="h-10 cursor-pointer bg-transparent px-3 hover:bg-sky-100 dark:hover:bg-sky-500/15"
           >
             Limpar
           </Button>
@@ -1867,15 +1873,14 @@ function HadronOptionPage({
         </aside>
       </div>
       <Dialog open={newOccurrenceOpen} onOpenChange={setNewOccurrenceOpen}>
-        <DialogContent className="max-w-5xl gap-0 overflow-hidden p-0 [&>button]:hidden">
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden [&>div:last-child]:shrink-0 [&>div:last-child]:pb-6">
           <DialogTitle className="sr-only">Nova ocorrência</DialogTitle>
           <DetailModalHeader icon={Bug} title="Nova ocorrência" protocol={`Opção ${option.option}`} meta={option.description} onClose={() => setNewOccurrenceOpen(false)} accentClassName="bg-rose-500" iconWrapClassName="bg-rose-500 text-white" />
-          <div className="grid gap-4 px-5 py-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 py-5 md:grid-cols-2 lg:grid-cols-4">
             <label className="min-w-0 space-y-1 text-sm"><span>Tipo</span><OccurrenceSelect value={occurrenceDraft.kind} onValueChange={(kind) => setOccurrenceDraft({...occurrenceDraft, kind})} items={[["sugestao","Sugestão/Solicitação"],["aprovacao","Aprovação"],["ocorrencia","Ocorrência"],["solucao","Solução"],["aviso","Aviso"],["revisada","Revisada"]]} /></label>
             <label className="min-w-0 space-y-1 text-sm"><span>Operador</span><OccurrenceSelect value={occurrenceDraft.operator} onValueChange={(operator) => setOccurrenceDraft({...occurrenceDraft,operator})} items={allCollaborators.map((collaborator) => [collaborator.acronym || collaborator.id, collaborator.acronym || collaboratorLabel(collaborator)] as [string,string])} /></label>
             <label className="min-w-0 space-y-1 text-sm"><span>Cliente ou caminho da base</span><Input value={occurrenceDraft.baseAddress} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, baseAddress:e.target.value})} /></label>
             <label className="min-w-0 space-y-1 text-sm"><span>Versão</span><OccurrenceSelect value={occurrenceDraft.versionLegacyId} onValueChange={(versionLegacyId) => setOccurrenceDraft({...occurrenceDraft, versionLegacyId})} items={erpVersions.map((v) => [v.id, `${v.versao} - ${formatVersionDate(v.data_versao)}`])} /></label>
-            <div className="space-y-1 md:col-span-2"><p className="text-sm">Prioridade</p><HadronPrioritySegmented value={occurrenceDraft.priority} onChange={(priority) => setOccurrenceDraft({...occurrenceDraft,priority})} /></div>
             <label className="space-y-1 text-sm md:col-span-2 lg:col-span-4"><span>Descreva a ocorrência</span><span className="block text-xs text-muted-foreground">Caso necessário, inclua os detalhes que permitam reproduzir o problema.</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={occurrenceDraft.occurrence} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, occurrence:e.target.value})} /></label>
           </div>
           <DialogFooter className="border-t px-5 py-4"><Button disabled={savingOccurrence} onClick={async () => { if (!occurrenceDraft.baseAddress.trim() || !occurrenceDraft.occurrence.trim()) { toast.error("Informe a base e descreva a ocorrência."); return; } setSavingOccurrence(true); try { await createHadronOccurrence({optionLegacyId:option.id,...occurrenceDraft}); setNewOccurrenceOpen(false); setOccurrenceDraft({...occurrenceDraft,baseAddress:"",occurrence:""}); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Ocorrência criada com sucesso."); } catch(error) { toast.error(error instanceof Error ? error.message : "Não foi possível criar a ocorrência."); } finally { setSavingOccurrence(false); } }}>{savingOccurrence ? "Salvando..." : "Salvar"}</Button></DialogFooter>
@@ -2037,6 +2042,7 @@ function OptionEditDialog({
                 </label>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {isCreating && <div className="space-y-2 sm:col-span-2 lg:col-span-4"><p className="text-sm font-medium">Prioridade</p><HadronPrioritySegmented value={draft.priority || "1"} onChange={(priority) => update("priority", priority)} /></div>}
                 <OptionField
                   label="Opção"
                   value={draft.option}
@@ -2199,7 +2205,7 @@ function OptionEditDialog({
                   return;
                 }
               }
-              onSave({ ...draft, label: `${draft.description} (${draft.option} - ${draft.form})` });
+              onSave({ ...draft, ...(isCreating ? {priority: draft.priority || "1"} : {}), label: `${draft.description} (${draft.option} - ${draft.form})` });
             }}
           >
             {isCreating ? "Criar opção" : "Salvar"}
@@ -3617,7 +3623,7 @@ function OccurrenceSelect({
 }) {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="w-full cursor-pointer">
+      <SelectTrigger className="w-full cursor-pointer text-sm font-normal text-muted-foreground">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

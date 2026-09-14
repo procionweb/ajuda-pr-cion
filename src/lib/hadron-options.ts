@@ -7,6 +7,7 @@ export type HadronOption = {
   description: string;
   label: string;
   status: string;
+  priority?: string;
   owner: string;
   characteristic: string;
   observation: string;
