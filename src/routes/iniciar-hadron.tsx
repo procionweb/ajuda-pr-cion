@@ -4447,6 +4447,19 @@ function SerialsTable({ query }: TableProps) {
   });
   const [editingSerial, setEditingSerial] = useState<SerialRow | null>(null);
   const [removingSerial, setRemovingSerial] = useState<SerialRow | null>(null);
+  const creatingSerial = editingSerial?.id.startsWith("novo-") || false;
+  const saveSerial = () => {
+    if (!editingSerial) return;
+    const draft = {...editingSerial,numero_serie:editingSerial.numero_serie.trim(),operador:editingSerial.operador.trim(),cliente:editingSerial.cliente.trim()};
+    if (!draft.numero_serie || !draft.operador || !draft.cliente) {toast.error("Preencha o número de série, descrição e sigla.");return;}
+    if (items.some(item => item.id !== draft.id && item.numero_serie === draft.numero_serie)) {toast.error("Este número de série já está cadastrado.");return;}
+    const now = new Date().toISOString();
+    persistSerials(creatingSerial ? [...items,{...draft,id:`local-${Date.now()}`,created:now,modified:now}] : items.map(item => item.id === draft.id ? {...draft,modified:now} : item));
+    setEditingSerial(null);
+    clearFilters();
+    setPage(1);
+    toast.success(creatingSerial ? "Serial criado neste navegador." : "Serial atualizado neste navegador.");
+  };
   const persistSerials = (next: SerialRow[]) => {localStorage.setItem("hadron-serials",JSON.stringify(next));setItems(next);};
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -4478,7 +4491,7 @@ function SerialsTable({ query }: TableProps) {
     <>
     <section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="border-b p-4">
-        <h2 className="text-lg font-medium">Seriais</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-medium">Seriais</h2><Button className="h-10 cursor-pointer gap-2" onClick={() => setEditingSerial({id:`novo-${Date.now()}`,numero_serie:"",operador:"",cliente:"PRC",created:null,modified:null})}><Plus className="h-4 w-4" />Novo número de série</Button></div>
         <div className="mt-4 grid items-center gap-3 md:grid-cols-2 xl:grid-cols-[1.2fr_.6fr_.8fr_.8fr_auto]">
           <Input
             value={serial}
@@ -4550,7 +4563,18 @@ function SerialsTable({ query }: TableProps) {
         onPageChange={setPage}
         onPageSizeChange={(value) => { setPageSize(value); setPage(1); }}
       />
-      <Dialog open={Boolean(editingSerial)} onOpenChange={(open) => !open && setEditingSerial(null)}><DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden"><DialogTitle className="sr-only">Editar número de série</DialogTitle><DetailModalHeader icon={Pencil} title="Editar número de série" onClose={() => setEditingSerial(null)} />{editingSerial && <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"><label className="space-y-1 text-sm sm:col-span-2"><span>Número de série</span><Input value={editingSerial.numero_serie} onChange={(e) => setEditingSerial({...editingSerial,numero_serie:e.target.value})} /></label><label className="space-y-1 text-sm"><span>Descrição / operador</span><Input value={editingSerial.operador} onChange={(e) => setEditingSerial({...editingSerial,operador:e.target.value})} /></label><label className="space-y-1 text-sm"><span>Sigla</span><Input value={editingSerial.cliente} onChange={(e) => setEditingSerial({...editingSerial,cliente:e.target.value.toUpperCase()})} /></label></div>}<DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={() => {if(!editingSerial)return;if(!editingSerial.numero_serie.trim() || !editingSerial.operador.trim() || !editingSerial.cliente.trim()){toast.error("Preencha o número de série, descrição e sigla.");return;}persistSerials(items.map(item => item.id === editingSerial.id ? {...editingSerial,modified:new Date().toISOString()} : item));setEditingSerial(null);toast.success("Serial atualizado neste navegador.");}}>Salvar</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={Boolean(editingSerial)} onOpenChange={(open) => !open && setEditingSerial(null)}>
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+          <DialogTitle className="sr-only">{creatingSerial ? "Novo número de série" : "Editar número de série"}</DialogTitle>
+          <DetailModalHeader icon={creatingSerial ? Plus : Pencil} title={creatingSerial ? "Novo número de série" : "Editar número de série"} onClose={() => setEditingSerial(null)} />
+          {editingSerial && <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <label className="space-y-1 text-sm sm:col-span-2"><span>Número de série</span><Input value={editingSerial.numero_serie} onChange={(e) => setEditingSerial({...editingSerial,numero_serie:e.target.value})} /></label>
+            <label className="space-y-1 text-sm"><span>Descrição / operador</span><Input value={editingSerial.operador} onChange={(e) => setEditingSerial({...editingSerial,operador:e.target.value})} /></label>
+            <label className="space-y-1 text-sm"><span>Sigla</span><Input value={editingSerial.cliente} onChange={(e) => setEditingSerial({...editingSerial,cliente:e.target.value.toUpperCase()})} /></label>
+          </div>}
+          <DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={saveSerial}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
       <AlertDialog open={Boolean(removingSerial)} onOpenChange={(open) => !open && setRemovingSerial(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir serial?</AlertDialogTitle><AlertDialogDescription>Remover o número de série {removingSerial?.numero_serie} da lista deste navegador?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => {persistSerials(items.filter(item => item.id !== removingSerial?.id));setRemovingSerial(null);setPage(1);toast.success("Serial removido deste navegador.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </>
   );
