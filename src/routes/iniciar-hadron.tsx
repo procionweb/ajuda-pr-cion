@@ -4579,6 +4579,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
       ),
     [normalizedQuery, characteristic, items],
   );
+  rows.sort((a, b) => (Number(b[0]) || 0) - (Number(a[0]) || 0));
   useEffect(() => setPage(1), [normalizedQuery, characteristic]);
 
   return (
@@ -4586,7 +4587,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
       <section className="overflow-hidden rounded-md border bg-card shadow-sm">
         <div className="flex flex-col gap-3 border-b p-4">
           <div>
-            <h2 className="text-lg font-medium">Checklist</h2>
+            <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-medium">Checklist</h2><Button className="h-10 cursor-pointer gap-2" onClick={() => setEditing([[`novo-${Date.now()}`,characteristic === "todos" ? "geral" : characteristic,"","",false,new Date().toISOString(),new Date().toISOString()]])}><Plus className="h-4 w-4" />Criar checklist</Button></div>
           </div>
           <div className="grid w-full gap-2 md:grid-cols-[1fr_1fr_auto]">
             <Input
@@ -4650,9 +4651,9 @@ function ChecklistTable({ query, onOpen }: TableProps) {
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs text-primary">
-                        <span>{createdAt}</span>
+                        <span>{formatCatalogDate(createdAt)}</span>
                         <br />
-                        <span>{updatedAt}</span>
+                        <span>{formatCatalogDate(updatedAt)}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-center gap-1">
@@ -4722,14 +4723,14 @@ function ChecklistTable({ query, onOpen }: TableProps) {
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-5xl">
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden p-0 sm:max-w-5xl [&>div:last-child]:shrink-0">
           <DialogTitle className="sr-only">Editar checklist</DialogTitle>
           <DetailModalHeader
             icon={ClipboardCheck}
             title="Editar checklist"
             onClose={() => setEditing(null)}
           />
-          <div className="space-y-4 px-5 py-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
             <OccurrenceSelect
               value={editing?.[0]?.[1] || "geral"}
               onValueChange={(value) =>
@@ -4744,6 +4745,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
               }
               items={HADRON_OPTION_CHARACTERISTICS.filter(([key]) => key !== "todos")}
             />
+            <h3 className="text-sm font-medium text-muted-foreground">Múltiplos checklists</h3>
             {editing?.map((row, index) => (
               <div
                 key={row[0]}
