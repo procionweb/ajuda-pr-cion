@@ -82,6 +82,8 @@ import {
   type HadronOptionLock,
 } from "@/lib/hadron-option-locks";
 import { moduleOptions, modulesMap } from "@/lib/modules-map";
+import { hadronModules, type HadronModule } from "@/lib/hadron-modules";
+import { loadHadronModules, saveHadronModule, saveHadronSubmodule } from "@/lib/hadron-modules-api";
 import { collaboratorLabel, findCollaborator, useCollaborators } from "@/lib/collaborators-store";
 import { cvsArticles } from "@/lib/cvs-catalogs-imported";
 import { getCategory, kbArticlesFull } from "@/lib/kb-data";
@@ -4358,27 +4360,31 @@ function parameterDateValue(value: string) {
 }
 
 function ModulesTable({ query, onOpen }: TableProps) {
+  const [catalog, setCatalog] = useState<HadronModule[]>(hadronModules);
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [savingModule, setSavingModule] = useState(false);
+  useEffect(() => {
+    let active = true;
+    loadHadronModules().then((modules) => { if (active) { setCatalog(modules); setCatalogReady(true); } }).catch(() => { if (active) toast.error("Não foi possível carregar os módulos do banco. Edição indisponível."); });
+    return () => { active = false; };
+  }, []);
+  const [draft, setDraft] = useState<{ moduleId: string; id: string; name: string; kind: "module" | "submodule"; originalId?: string } | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState("");
   const normalizedQuery = normalizeOccurrenceText(`${query} ${search}`);
   const rows = useMemo(
     () =>
-      Object.entries(modulesMap)
-        .map(([module, submodules], moduleIndex) => ({
-          id: String(moduleIndex + 1),
-          module,
+      catalog
+        .map(({id, nome, submodules}) => ({
+          id,
+          module: nome,
+          options: hadronOptions.filter((option) => option.moduleId === id && (!option.submoduleId || option.submoduleId === "0" || !submodules.some((sub) => sub.id === option.submoduleId))),
           submodules: submodules.map((submodule) => ({
-            name: submodule,
+            id: submodule.id,
+            name: submodule.nome,
             options: hadronOptions
-              .filter((option) => {
-                const optionText = normalizeOccurrenceText(option.description);
-                const terms = normalizeOccurrenceText(submodule)
-                  .split(/\s+/)
-                  .filter((term) => term.length > 3);
-                return terms.some((term) => optionText.includes(term));
-              })
-              .slice(0, 12),
+              .filter((option) => option.moduleId === id && option.submoduleId === submodule.id),
           })),
         }))
         .filter(
@@ -4388,6 +4394,7 @@ function ModulesTable({ query, onOpen }: TableProps) {
               [
                 row.id,
                 row.module,
+                ...row.options.map((option) => option.label),
                 ...row.submodules.flatMap((submodule) => [
                   submodule.name,
                   ...submodule.options.map((option) => option.label),
@@ -4395,10 +4402,13 @@ function ModulesTable({ query, onOpen }: TableProps) {
               ].join(" "),
             ).includes(normalizedQuery),
         ),
-    [normalizedQuery],
+    [normalizedQuery, catalog],
   );
 
+  useEffect(() => { setPage(1); }, [normalizedQuery]);
+
   return (
+    <>
     <section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -4429,10 +4439,12 @@ function ModulesTable({ query, onOpen }: TableProps) {
                 <td className="px-4 py-4 text-muted-foreground">{row.id}</td>
                 <td className="px-4 py-4">
                   <p className="font-medium uppercase">{row.module}</p>
+                  {row.options.map((option) => <button key={option.id} className="mt-2 block text-left text-xs hover:text-primary" onClick={() => onOpen({title: option.description, subtitle: `${option.option} | ${option.form}`, body: option.observation, meta: [`Operador: ${option.owner}`]})}>{option.option} | {option.form} · {option.owner} - {option.description}</button>)}
                   <div className="mt-3 space-y-3 border-l pl-5">
                     {row.submodules.map((submodule) => (
                       <div key={submodule.name}>
                         <p className="text-xs font-medium uppercase text-muted-foreground">
+                          <button title="Editar submódulo" className="mr-2 text-primary hover:underline" onClick={() => setDraft({moduleId:row.id,id:submodule.id,name:submodule.name,kind:"submodule",originalId:submodule.id})}>{submodule.id}</button>
                           {submodule.name}
                         </p>
                         {submodule.options.length > 0 && (
@@ -4487,11 +4499,12 @@ function ModulesTable({ query, onOpen }: TableProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      title="Edição indisponível para o catálogo importado"
-                      disabled
+                      title="Editar módulo"
+                      onClick={() => setDraft({moduleId:row.id,id:row.id,name:row.module,kind:"module"})}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
+                    <Button variant="ghost" size="icon" title="Adicionar submódulo" onClick={() => setDraft({moduleId:row.id,id:"",name:"",kind:"submodule"})}><Plus className="h-4 w-4" /></Button>
                   </div>
                 </td>
               </tr>
@@ -4506,6 +4519,7 @@ function ModulesTable({ query, onOpen }: TableProps) {
           </tbody>
         </table>
       </div>
+    </section>
       <TablePagination
         noun="módulos"
         page={page}
@@ -4518,7 +4532,33 @@ function ModulesTable({ query, onOpen }: TableProps) {
           setPage(1);
         }}
       />
-    </section>
+    <Dialog open={Boolean(draft)} onOpenChange={(open) => { if (!open && !savingModule) setDraft(null); }}>
+      <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
+        <div className="border-b px-5 py-4"><DialogTitle>{draft?.kind === "module" ? "Editar módulo" : draft?.originalId ? "Editar submódulo" : "Novo submódulo"}</DialogTitle></div>
+        {draft && <form onSubmit={async (event) => {
+          event.preventDefault();
+          if (!catalogReady || savingModule) return;
+          if (!draft.name.trim() || !draft.id.trim()) { toast.error("Informe o ID e o nome."); return; }
+          const parent = catalog.find((module) => module.id === draft.moduleId)!;
+          if (draft.kind === "submodule" && (!/^\d+$/.test(draft.id) || parent.submodules.some((sub) => sub.id === draft.id && sub.id !== draft.originalId))) { toast.error("Informe um ID numérico único neste módulo."); return; }
+          setSavingModule(true);
+          try {
+            if (draft.kind === "module") await saveHadronModule(draft.moduleId, draft.name.trim());
+            else await saveHadronSubmodule({id:draft.id,id_modulo:draft.moduleId,nome:draft.name.trim()}, Boolean(draft.originalId));
+            setCatalog(await loadHadronModules());
+            setDraft(null); toast.success("Cadastro salvo no banco.");
+          } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível salvar o cadastro."); }
+          finally { setSavingModule(false); }
+        }}>
+          <div className="grid gap-4 p-5 sm:grid-cols-2">
+            {draft.kind === "submodule" && <><label className="space-y-1 text-sm">Módulo<Input value={`${draft.moduleId} - ${catalog.find((module) => module.id === draft.moduleId)?.nome}`} readOnly /></label><label className="space-y-1 text-sm">ID<Input value={draft.id} readOnly={Boolean(draft.originalId)} onChange={(event) => setDraft({...draft,id:event.target.value})} /></label></>}
+            <label className="space-y-1 text-sm sm:col-span-2">Nome<Input autoFocus value={draft.name} onChange={(event) => setDraft({...draft,name:event.target.value})} /></label>
+          </div>
+          <DialogFooter className="border-t px-5 py-4"><Button type="submit" disabled={!catalogReady || savingModule}>{savingModule ? "Salvando..." : "Salvar"}</Button></DialogFooter>
+        </form>}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

@@ -1,0 +1,22 @@
+[
+{"type":"header","version":"5.2.3","comment":"Export to JSON plugin for phpMyAdmin"},
+{"type":"database","name":"procionw_prccvs"},
+{"type":"table","name":"cvs_modules","database":"procionw_prccvs","data":
+[
+{"id":"1","nome":"BASICO"},
+{"id":"45","nome":"COMBUSTÍVEIS"},
+{"id":"9","nome":"COMPRAS"},
+{"id":"33","nome":"CONTÁBIL"},
+{"id":"17","nome":"CONTROLE DE ESTOQUES"},
+{"id":"13","nome":"FINANCEIRO"},
+{"id":"29","nome":"FISCAL"},
+{"id":"37","nome":"GESTÃO RURAL"},
+{"id":"80","nome":"OUTROS MÓDULOS"},
+{"id":"21","nome":"PRODUÇÃO"},
+{"id":"25","nome":"RECURSOS HUMANOS"},
+{"id":"0","nome":"RESUMO DA VERSÃO"},
+{"id":"41","nome":"TRANSPORTES"},
+{"id":"5","nome":"VENDAS"}
+]
+}
+]

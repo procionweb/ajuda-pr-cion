@@ -1,19 +1,8 @@
-export const modulesMap: Record<string, string[]> = {
-  "RESUMO DA VERSÃO": ["GERAL", "NOVIDADES DA VERSÃO"],
-  BASICO: ["CADASTROS BÁSICOS", "EMPRESAS", "USUÁRIOS", "PRODUTOS", "TERCEIROS", "PARÂMETROS"],
-  VENDAS: ["FATURAMENTO", "FRENTE DE LOJAS", "NFE", "PEDIDOS", "ORÇAMENTOS", "DEVOLUÇÕES"],
-  COMPRAS: ["PEDIDOS DE COMPRA", "ENTRADAS", "FORNECEDORES", "COTAÇÕES"],
-  FINANCEIRO: ["CONTAS A PAGAR", "CONTAS A RECEBER", "FLUXO DE CAIXA", "CONCILIAÇÃO"],
-  "CONTROLE DE ESTOQUES": ["MOVIMENTAÇÃO", "INVENTÁRIO", "TRANSFERÊNCIA", "PLANEJAMENTO"],
-  FISCAL: ["APURAÇÃO", "SPED", "ECF", "ICMS", "LIVROS FISCAIS"],
-  CONTÁBIL: ["CONTABILIDADE", "ATIVO IMOBILIZADO", "INTEGRAÇÕES"],
-  PRODUÇÃO: ["ORDENS DE PRODUÇÃO", "PLANEJAMENTO", "APONTAMENTOS"],
-  "RECURSOS HUMANOS": ["FOLHA DE PAGAMENTO", "FUNCIONÁRIOS", "PONTO"],
-  TRANSPORTES: ["FROTA", "CT-E", "MDF-E", "ENTREGAS"],
-  COMBUSTÍVEIS: ["ABASTECIMENTOS", "BOMBAS", "TANQUES"],
-  "GESTÃO RURAL": ["BOVINOS", "SAFRAS", "CUSTOS RURAIS"],
-  "OUTROS MÓDULOS": ["HÁDRON WEB", "MOBILE", "INTEGRAÇÕES", "IMPRESSORAS", "RELATÓRIOS"],
-};
+import { hadronModules } from "@/lib/hadron-modules";
+
+export const modulesMap: Record<string, string[]> = Object.fromEntries(
+  hadronModules.map((module) => [module.nome, module.submodules.map((sub) => sub.nome)]),
+);
 
 export const moduleOptions = Object.keys(modulesMap);
 
