@@ -4151,6 +4151,7 @@ function normalizeLegacyOccurrenceTimestamp(value: string | null | undefined) {
 }
 
 function ParametersTable({ query, onOpen }: TableProps) {
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [parameters, setParameters] = useState<ParameterDraft[]>(hadronParameters);
   const [editing, setEditing] = useState<ParameterDraft | null>(null);
   const [page, setPage] = useState(1);
@@ -4201,7 +4202,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
     <><section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="border-b p-4">
         <h2 className="text-lg font-medium">Parâmetros</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[2fr_.6fr_.6fr_.9fr_.9fr_auto]">
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[1.3fr_.6fr_.6fr_1fr_auto_auto]">
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -4228,17 +4229,17 @@ function ParametersTable({ query, onOpen }: TableProps) {
           <Button type="button" className="cursor-pointer px-8">
             Buscar
           </Button>
-        </div>
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={clearFilters}
           disabled={!search && !option && !form && !dateFrom && !dateTo}
-          className="mt-3 cursor-pointer"
+          className="h-10 cursor-pointer"
         >
           Limpar
         </Button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[960px] text-left text-sm">
@@ -4270,26 +4271,8 @@ function ParametersTable({ query, onOpen }: TableProps) {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Ver parâmetro"
-                      className="h-8 w-8"
-                      onClick={() =>
-                        onOpen({
-                          title: parameter.title,
-                          subtitle: `Parâmetro ${parameter.id}`,
-                          body: parameter.message.replace(/<[^>]*>/g, " "),
-                          meta: [
-                            `Opção: ${parameter.option}`,
-                            `Formulário: ${parameter.form}`,
-                            `Criado em: ${parameter.createdAt}`,
-                            `Atualizado em: ${parameter.updatedAt}`,
-                          ],
-                        })
-                      }
-                    >
-                      <ScanEye className="h-4 w-4" />
+                    <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Ir para a Base">
+                      <a href={`https://ajuda.procion.com/cvsParameters/signature/${parameter.id}`} target="_blank" rel="noopener noreferrer"><Globe2 className="h-4 w-4" /></a>
                     </Button>
                     <Button
                       variant="ghost"
@@ -4303,8 +4286,9 @@ function ParametersTable({ query, onOpen }: TableProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      title="Exclusão indisponível para registros legados"
-                      disabled
+                      title="Excluir parâmetro"
+                      className="h-8 w-8"
+                      onClick={() => setRemovingId(parameter.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -4322,7 +4306,8 @@ function ParametersTable({ query, onOpen }: TableProps) {
           </tbody>
         </table>
       </div>
-      <TablePagination
+      </section>
+<TablePagination
         noun="parâmetros"
         page={page}
         pageCount={Math.max(1, Math.ceil(rows.length / pageSize))}
@@ -4334,7 +4319,13 @@ function ParametersTable({ query, onOpen }: TableProps) {
           setPage(1);
         }}
       />
-    </section>
+
+      <AlertDialog open={Boolean(removingId)} onOpenChange={(open) => !open && setRemovingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Excluir parâmetro?</AlertDialogTitle><AlertDialogDescription>Confirme a remoção deste registro da listagem.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => { setParameters((rows) => rows.filter((row) => row.id !== removingId)); setRemovingId(null); setPage(1); toast.success("Registro excluído nesta sessão."); }}>Excluir</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-5xl">
           <DialogTitle className="sr-only">Editar parâmetro</DialogTitle>
@@ -4634,6 +4625,7 @@ function SerialsTable({ query }: TableProps) {
 function ChecklistTable({ query, onOpen }: TableProps) {
   void onOpen;
   type CheckRow = [string, string, string, string, boolean, string, string];
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [items, setItems] = useState<CheckRow[]>(() => hadronChecklist.map((item) => [...item]));
   const [editing, setEditing] = useState<CheckRow[] | null>(null);
   const [characteristic, setCharacteristic] = useState("todos");
@@ -4756,8 +4748,9 @@ function ChecklistTable({ query, onOpen }: TableProps) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            title="Exclusão indisponível para registros legados"
-                            disabled
+                            title="Excluir checklist"
+                            className="h-8 w-8"
+                            onClick={() => setRemovingId(id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -4776,7 +4769,8 @@ function ChecklistTable({ query, onOpen }: TableProps) {
             </tbody>
           </table>
         </div>
-        <TablePagination
+        </section>
+<TablePagination
           noun="itens"
           page={page}
           pageCount={Math.max(1, Math.ceil(rows.length / pageSize))}
@@ -4788,7 +4782,13 @@ function ChecklistTable({ query, onOpen }: TableProps) {
             setPage(1);
           }}
         />
-      </section>
+
+      <AlertDialog open={Boolean(removingId)} onOpenChange={(open) => !open && setRemovingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Excluir checklist?</AlertDialogTitle><AlertDialogDescription>Confirme a remoção deste registro da listagem.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => { setItems((rows) => rows.filter((row) => row[0] !== removingId)); setRemovingId(null); setPage(1); toast.success("Registro excluído nesta sessão."); }}>Excluir</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-5xl">
           <DialogTitle className="sr-only">Editar checklist</DialogTitle>
