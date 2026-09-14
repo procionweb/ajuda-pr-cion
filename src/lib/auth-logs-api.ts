@@ -126,7 +126,7 @@ export async function listConfigurationAuthLogs(
   };
 }
 
-export async function listHadronOptionLogs(optionId: string, limit = 50) {
+export async function listHadronOptionLogs(optionId: string, limit = 2147483647) {
   const { data, error } = await supabase.rpc("list_hadron_option_logs", {
     p_option_id: optionId,
     p_limit: limit,

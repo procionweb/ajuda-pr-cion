@@ -72,6 +72,7 @@ import { cn } from "@/lib/utils";
 import { erpVersions, formatVersionDate } from "@/lib/erp-versions";
 import { hadronOptions, type HadronOption } from "@/lib/hadron-options";
 import { getHadronOptionChecklist, hadronChecklist } from "@/lib/hadron-checklist";
+import {loadOptionChecklist,processOptionChecklist} from "@/lib/hadron-checklist-api";
 import { hadronModuleNames, hadronReleases, hadronSubmoduleNames } from "@/lib/hadron-releases";
 import {
   acquireHadronOptionLock,
@@ -108,7 +109,10 @@ import {
   updateHadronOccurrenceSolution,
   type HadronOccurrence,
 } from "@/lib/hadron-occurrences";
+            <div className="flex shrink-0 items-center gap-2">
 
+            <Button type="button" className="h-10 w-40 min-w-40 shrink-0 cursor-pointer px-4" onClick={() => setPage(1)}><Search className="mr-2 h-4 w-4" />Buscar</Button>
+            </div>
 const hadronOptionsById = new Map(hadronOptions.map((option) => [option.id, option]));
 const releaseOptionSelectItems = [
   ...new Map(
@@ -847,12 +851,9 @@ function getHadronOptionDate(
   related: TicketRow[],
   dateType: string,
 ) {
-  if (dateType === "criacao") return latest?.openedAt || option.updatedAt;
-  if (dateType === "liberacao") return latest?.closedAt || latest?.updatedAt || option.updatedAt;
-  const approved = related
-    .filter((ticket) => ticket.status === "Finalizado")
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
-  return approved?.closedAt || approved?.updatedAt || option.updatedAt;
+  if (dateType === "criacao") return option.openedAt;
+  if (dateType === "liberacao") return option.hadronAt;
+  return option.approvedAt;
 }
 
 function OptionsTable({ query }: TableProps) {
@@ -940,8 +941,8 @@ function OptionsTable({ query }: TableProps) {
     });
   }, [customOptions, disabledOptions, optionOverrides, tickets]);
   const operators = useMemo(
-    () => [...new Set(tickets.map((ticket) => ticket.owner).filter(Boolean))].sort(),
-    [tickets],
+    () => [...new Set(optionsWithTickets.map(({option}) => option.owner.trim()).filter(Boolean))].sort(),
+    [optionsWithTickets],
   );
   const rows = useMemo(() => {
     const global = normalizeOccurrenceText(query);
@@ -972,7 +973,7 @@ function OptionsTable({ query }: TableProps) {
             optionFilter,
           )) &&
         (!formFilter || normalizeOccurrenceText(option.form).includes(formFilter)) &&
-        (operator === "todos" || latest?.owner === operator) &&
+        (operator === "todos" || normalizeOccurrenceText(option.owner) === normalizeOccurrenceText(operator)) &&
         (hadronScope === "todos"
           ? status !== "desativada"
           : hadronScope === "exceto"
@@ -1193,7 +1194,7 @@ function OptionsTable({ query }: TableProps) {
               Criar opção
             </Button>
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_.8fr_.75fr_.8fr_.8fr_.8fr_.75fr_.72fr_.72fr_auto]">
+          <div className="mt-4 grid items-center gap-2 md:grid-cols-2 xl:grid-cols-[minmax(100px,1fr)_minmax(90px,.8fr)_minmax(90px,.75fr)_minmax(100px,.8fr)_minmax(110px,.8fr)_minmax(100px,.8fr)_minmax(90px,.75fr)_minmax(210px,1.5fr)_auto]">
             <Input
               value={optionQuery}
               onChange={(event) => {
@@ -1276,20 +1277,16 @@ function OptionsTable({ query }: TableProps) {
                 setPage(1);
               }}
             />
-            <Button type="button" className="h-10 w-40 min-w-40 shrink-0 cursor-pointer px-4">
-              <Search className="mr-2 h-4 w-4" />
-              Buscar
-            </Button>
-          </div>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="mt-3 cursor-pointer"
+            className="h-10 cursor-pointer bg-sky-100 px-3 hover:bg-sky-200 dark:bg-sky-500/15 dark:hover:bg-sky-500/25"
           >
             Limpar
           </Button>
+          </div>
         </div>
         <div className="overflow-hidden">
           <table className="w-full table-fixed text-left text-[11px] xl:text-xs">
@@ -1574,7 +1571,13 @@ function HadronOptionPage({
 }) {
   const moduleName = getOptionModuleName(option);
   const submoduleName = getOptionSubmoduleName(option);
-  const optionChecklist = getHadronOptionChecklist(option.id);
+  const [optionChecklist,setOptionChecklist] = useState(() => getHadronOptionChecklist(option.id));
+  const [processingChecks,setProcessingChecks] = useState(false);
+  useEffect(() => {
+    let active=true;
+    loadOptionChecklist(option.id).then((items) => {if(active) setOptionChecklist(items);}).catch(() => toast.error("Não foi possível carregar as validações do checklist."));
+    return () => {active=false;};
+  },[option.id]);
   const { allCollaborators } = useCollaborators({ onlyActive: true });
   const [newOccurrenceOpen, setNewOccurrenceOpen] = useState(false);
   const [newReleaseOpen, setNewReleaseOpen] = useState(false);
@@ -1679,7 +1682,7 @@ function HadronOptionPage({
             </Button>
           </div>
         </div>
-        <div className="mt-4 grid gap-x-5 gap-y-3 border-t pt-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mt-4 grid gap-x-3 gap-y-2 border-t pt-4 sm:grid-cols-4 xl:grid-cols-8">
           <OptionHeaderMeta label="Data" value={formatCatalogDate(option.openedAt)} />
           <OptionHeaderMeta label="Responsável" value={option.owner} />
           <OptionHeaderMeta label="Tester" value={option.tester} />
@@ -1776,11 +1779,11 @@ function HadronOptionPage({
               )}
             </TabsContent>
             <TabsContent value="logs" className="mt-5 space-y-2">
-              <div className="hidden grid-cols-[1fr_1.5fr_1fr_auto] gap-1 border-b bg-muted/20 px-2 py-2 text-xs font-medium text-primary md:grid">
+              <div className="hidden grid-cols-[1fr_1.5fr_1fr_120px] gap-2 border-b bg-muted/20 px-2 py-2 text-xs font-medium text-primary md:grid">
                 <span>Controlador/Ação</span><span>URL/Informação extra</span><span>Operador/IP</span><span>Data</span>
               </div>
               {optionLogs.map((log) => (
-                <div key={log.id} className="grid gap-1 border-b py-3 text-xs md:grid-cols-[1fr_1.5fr_1fr_auto]">
+                <div key={log.id} className="grid gap-2 border-b px-2 py-3 text-xs md:grid-cols-[1fr_1.5fr_1fr_120px]">
                   <span className="font-medium">{log.controller}/{log.action || "-"}</span>
                   <span className="truncate text-muted-foreground" title={log.info || log.url || ""}>{log.info || log.url || "Sem informação adicional"}</span>
                   <span>{log.operator || "Não informado"}{log.ipAddress ? ` / ${log.ipAddress}` : ""}</span>
@@ -1795,7 +1798,7 @@ function HadronOptionPage({
                     ["Aprovação", option.approvedAt, option.approvalOwner],
                     ["Liberação Hádron", option.hadronAt, option.hadronOwner],
                   ].filter(([, date]) => Boolean(date)).map(([action, date, operator]) => (
-                    <div key={action} className="grid gap-1 px-2 py-3 text-xs md:grid-cols-[1fr_1.5fr_1fr_auto]">
+                    <div key={action} className="grid gap-2 px-2 py-3 text-xs md:grid-cols-[1fr_1.5fr_1fr_120px]">
                       <span className="font-medium">CvsOptions/{action}</span>
                       <span className="text-muted-foreground">Opção {option.id} - {option.option}/{option.form}</span>
                       <span>{operator || option.owner || "Não informado"}</span>
@@ -1832,18 +1835,15 @@ function HadronOptionPage({
                   <span className={cn(item.title === "Processar" && "font-semibold")}>
                     {item.title}
                   </span>
-                  <span className="grid h-4 w-4 place-items-center" aria-label={`${item.title}, primeira validação`}>
-                    {item.check1 && <Check className="h-4 w-4 text-emerald-600" strokeWidth={3} />}
-                  </span>
-                  <span className="grid h-4 w-4 place-items-center" aria-label={`${item.title}, segunda validação`}>
-                    {item.check2 && <Check className="h-4 w-4 text-emerald-600" strokeWidth={3} />}
-                  </span>
+                  <input type="checkbox" checked={item.check1} disabled={processingChecks} aria-label={`${item.title}, primeira validação`} className="h-4 w-4 accent-primary" onChange={(event) => setOptionChecklist((items) => items.map((row) => row.id === item.id ? {...row,check1:event.target.checked} : row))} />
+                  <input type="checkbox" checked={item.check2} disabled={processingChecks} aria-label={`${item.title}, segunda validação`} className="h-4 w-4 accent-primary" onChange={(event) => setOptionChecklist((items) => items.map((row) => row.id === item.id ? {...row,check2:event.target.checked} : row))} />
                 </div>
               ))}
               {!optionChecklist.length && (
                 <p className="py-2 text-xs text-muted-foreground">Nenhum check vinculado.</p>
               )}
             </div>
+            <div className="mt-2 grid grid-cols-[minmax(0,1fr)_24px_24px] items-center gap-2 border-t pt-2 text-xs"><span className="font-semibold">Processar</span>{([1,2] as const).map((column) => <Button key={column} size="icon" className="h-6 w-6 bg-emerald-600 hover:bg-emerald-700" title={`Processar ${column === 1 ? "primeira" : "segunda"} validação`} disabled={processingChecks} onClick={async () => {setProcessingChecks(true);try{await processOptionChecklist(option.id,column,optionChecklist);toast.success("Checklist processado e salvo.");}catch{toast.error("Não foi possível processar o checklist.");}finally{setProcessingChecks(false);}}}><Check className="h-4 w-4" /></Button>)}</div>
           </div>
           <div className="border-t pt-4 text-xs text-muted-foreground">
             <p>
@@ -1976,6 +1976,12 @@ function OptionEditDialog({
   onSave: (option: HadronOption) => void;
 }) {
   const [draft, setDraft] = useState<HadronOption | null>(option);
+  const [editedChecks, setEditedChecks] = useState<ReturnType<typeof getHadronOptionChecklist>>([]);
+  useEffect(() => {
+    if (!option) return;
+    setEditedChecks(getHadronOptionChecklist(option.id));
+    if (!option.id.startsWith("novo-")) void loadOptionChecklist(option.id).then(setEditedChecks).catch(() => toast.error("Não foi possível carregar o checklist."));
+  }, [option]);
   const { collaborators } = useCollaborators();
   useEffect(() => setDraft(option), [option]);
   const isCreating = Boolean(draft?.id.startsWith("novo-"));
@@ -1997,8 +2003,8 @@ function OptionEditDialog({
   const selectedModule = getOptionModuleName(draft);
   const availableSubmodules = modulesMap[selectedModule] || [];
   const optionChecklist = isCreating
-    ? hadronChecklist.map((item) => ({ ...item, check1: false, check2: false }))
-    : getHadronOptionChecklist(draft.id);
+    ? hadronChecklist.map((item) => ({ id: item[0], checkId: item[0], characteristic: item[1], title: item[2], description: item[3], check1: false, check2: false }))
+    : editedChecks;
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex h-[calc(100vh-2rem)] max-h-[760px] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
@@ -2144,11 +2150,12 @@ function OptionEditDialog({
               </label>
             </TabsContent>
             <TabsContent value="checklist" className="mt-4 pb-2">
-              <div className="divide-y rounded-md border">
-                {optionChecklist.map((item) => (
+              <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                {[...new Set(optionChecklist.map((item) => item.characteristic))].map((characteristic) => <section key={characteristic}><h3 className="mb-2 border-b pb-2 text-sm font-medium capitalize">{characteristic}</h3>
+                {optionChecklist.filter((item) => item.characteristic === characteristic).map((item) => (
                   <div
                     key={item.id}
-                    className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 px-4 py-3 text-sm"
+                    className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 border-b py-2 text-sm"
                   >
                     <span>
                       <strong className="font-medium">{item.title}</strong>
@@ -2158,28 +2165,39 @@ function OptionEditDialog({
                     </span>
                     <input
                       type="checkbox"
-                      defaultChecked={item.check1}
+                      checked={item.check1}
+                      onChange={(event) => setEditedChecks((items) => items.map((check) => check.id === item.id ? {...check, check1: event.target.checked} : check))}
                       aria-label={`${item.title}, primeira validação`}
                       className="h-4 w-4 accent-primary"
                     />
                     <input
                       type="checkbox"
-                      defaultChecked={item.check2}
+                      checked={item.check2}
+                      onChange={(event) => setEditedChecks((items) => items.map((check) => check.id === item.id ? {...check, check2: event.target.checked} : check))}
                       aria-label={`${item.title}, segunda validação`}
                       className="h-4 w-4 accent-primary"
                     />
                   </div>
-                ))}
+                ))}</section>)}
               </div>
             </TabsContent>
           </div>
         </Tabs>
         <DialogFooter className="shrink-0 gap-2 border-t bg-card px-5 py-2.5 sm:gap-2">
           <Button
-            onClick={() => {
+            onClick={async () => {
               if (!draft.description.trim() || !draft.option.trim() || !draft.form.trim()) {
                 toast.error("Informe o nome, a opção e o formulário.");
                 return;
+              }
+              if (!isCreating) {
+                try {
+                  await processOptionChecklist(draft.id, 1, editedChecks);
+                  await processOptionChecklist(draft.id, 2, editedChecks);
+                } catch {
+                  toast.error("Não foi possível salvar o checklist.");
+                  return;
+                }
               }
               onSave({ ...draft, label: `${draft.description} (${draft.option} - ${draft.form})` });
             }}
