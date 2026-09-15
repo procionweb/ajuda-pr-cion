@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { RefreshCw, Search, ScrollText } from "lucide-react";
+import { ArrowLeft, RefreshCw, Search, ScrollText } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { DateRangeFilter } from "@/components/portal/DateRangeFilter";
@@ -100,6 +100,12 @@ function ConfigurationLogsPage() {
         title="Logs internos"
         description="Auditoria de acessos e ações registradas no CRM."
         icon={ScrollText}
+        actions={
+          <Button variant="outline" onClick={() => window.history.back()}>
+            <ArrowLeft className="mr-2 size-4" />
+            Voltar
+          </Button>
+        }
       />
       <section className="space-y-4">
         <div className="grid gap-3 xl:grid-cols-[190px_130px_minmax(220px,1fr)_220px_120px_120px_auto]">

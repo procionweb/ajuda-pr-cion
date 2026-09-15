@@ -37,8 +37,8 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, onPointerDownOutside, onInteractOutside, onEscapeKeyDown, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { autoFooter?: boolean }
+>(({ className, children, autoFooter = true, onPointerDownOutside, onInteractOutside, onEscapeKeyDown, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -62,7 +62,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      {!containsFooter(children) && <DialogFooter className="shrink-0 border-t px-4 py-3" />}
+      {autoFooter && !containsFooter(children) && <DialogFooter className="shrink-0 border-t px-4 py-3" />}
     </DialogPrimitive.Content>
   </DialogPortal>
 ));

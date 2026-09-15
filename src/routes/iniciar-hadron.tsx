@@ -1527,7 +1527,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
         open={!!deactivatingOption}
         onOpenChange={(open) => !open && setDeactivatingOption(null)}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" autoFooter={false}>
           <DialogTitle>Desativar opção?</DialogTitle>
           <p className="text-sm leading-6 text-muted-foreground">
             A opção{" "}
@@ -1717,9 +1717,6 @@ function HadronOptionPage({
               <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
               <TabsTrigger value="releases">Releases</TabsTrigger>
               <TabsTrigger value="logs">Últimos logs</TabsTrigger>
-              <Button asChild variant="ghost" size="sm" className="ml-1 h-8 text-primary">
-                <Link to="/configuracoes/logs">Ver todos</Link>
-              </Button>
             </TabsList>
             <TabsContent value="ocorrencias" className="mt-5">
               <OptionImportedOccurrences
@@ -1781,6 +1778,11 @@ function HadronOptionPage({
               )}
             </TabsContent>
             <TabsContent value="logs" className="mt-5 space-y-2">
+              <div className="flex justify-end border-b pb-2">
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/configuracoes/logs">Ver todos</Link>
+                </Button>
+              </div>
               <div className="hidden grid-cols-[1fr_1.5fr_1fr_120px] gap-2 border-b bg-muted/20 px-2 py-2 text-xs font-medium text-primary md:grid">
                 <span>Controlador/Ação</span><span>URL/Informação extra</span><span>Operador/IP</span><span>Data</span>
               </div>
