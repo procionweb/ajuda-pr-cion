@@ -1320,7 +1320,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
               <col className="w-[8%]" />
               <col className="w-[8%]" />
             </colgroup>
-            <thead className="border-b bg-muted/25 text-primary">
+            <thead className="border-b bg-muted/25 text-left font-medium text-primary">
               <tr>
                 {[
                   "Status",
@@ -3115,7 +3115,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
         </div>
         <div className="overflow-hidden">
           <table className="w-full table-fixed text-left text-[11px] xl:text-xs">
-            <thead className="border-b bg-muted/20 text-primary">
+            <thead className="border-b bg-muted/25 text-left font-medium text-primary">
               <tr>
                 <th className="w-[4%] px-2 py-3 text-center font-medium">Tipo</th>
                 <th className="w-28 px-2 py-3 font-medium">Prioridade</th>
@@ -3510,7 +3510,7 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1280px] text-left text-xs">
-          <thead className="border-b bg-muted/20 text-primary">
+          <thead className="border-b bg-muted/25 text-left font-medium text-primary">
             <tr>
               <th className="w-14 px-3 py-3 font-medium">Tipo</th>
               <th className="w-28 px-3 py-3 font-medium">Opção/Formulário</th>
@@ -4159,7 +4159,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[960px] text-left text-xs">
-          <thead className="border-b bg-muted/20 font-medium text-primary">
+          <thead className="border-b bg-muted/25 text-left font-medium text-primary">
             <tr>
               <th className="w-16 px-4 py-3">ID</th>
               <th className="px-4 py-3">Título</th>
@@ -4341,7 +4341,7 @@ function ModulesTable({ query, onOpen }: TableProps) {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[920px] text-left text-xs">
-          <thead className="border-b bg-muted/20 font-medium text-primary">
+          <thead className="border-b bg-muted/25 text-left font-medium text-primary">
             <tr>
               <th className="w-20 px-4 py-3">ID</th>
               <th className="px-4 py-3">Nome</th>
@@ -4562,7 +4562,7 @@ function SerialsTable({ query }: TableProps) {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[920px] text-left text-xs">
-          <thead className="border-b bg-muted/20 font-medium text-primary">
+          <thead className="border-b bg-muted/25 text-left font-medium text-primary">
             <tr>
               <th className="w-20 px-4 py-3">ID</th>
               <th className="px-4 py-3">Número de série</th>
@@ -4670,7 +4670,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-xs">
-            <thead className="border-b bg-muted/30 text-left text-xs font-medium text-muted-foreground">
+            <thead className="border-b bg-muted/25 text-left font-medium text-primary">
               <tr>
                 <th className="w-36 px-4 py-3">Característica</th>
                 <th className="w-64 px-4 py-3">Título</th>
@@ -5084,7 +5084,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1180px] text-left text-[11px] xl:text-xs">
-            <thead className="border-b bg-muted/20 text-primary">
+            <thead className="border-b bg-muted/25 text-left font-medium text-primary">
               <tr>
                 <th className="w-14 px-4 py-3">Tipo</th>
                 <th className="w-40 px-4 py-3">Opção/Formulário</th>
@@ -5514,7 +5514,7 @@ function VersionsTable({ query, onOpen }: TableProps) {
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-medium">Versões do ERP</h2><Button className="h-10 cursor-pointer gap-2" onClick={() => {const today=new Date().toISOString().slice(0,10);setDraft({id:`novo-${Date.now()}`,versao:"",data_versao:today,data_runtime:today,data_arq:today,data_arq_bas:today,data_alterar:today});}}><Plus className="h-4 w-4" />Criar versão</Button></div>
         <div className="mt-4 grid items-center gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1.5fr_auto]"><Input placeholder="Versão" value={versionQuery} onChange={e => setVersionQuery(e.target.value)} /><DateRangeFilter from={dateFrom} to={dateTo} onChange={(from,to) => {setDateFrom(from);setDateTo(to);}} /><Button variant="ghost" className="h-10 cursor-pointer bg-transparent px-3 hover:bg-sky-100 dark:hover:bg-sky-500/15" onClick={clearFilters}>Limpar</Button></div>
       </div>
-      <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-xs"><thead className="border-b bg-muted/20 font-medium text-primary"><tr><th className="px-4 py-3">Versão</th>{dateFields.map(([field,label]) => <th key={field} className="px-4 py-3">{label}</th>)}<th className="w-24 px-4 py-3 text-center">Ações</th></tr></thead><tbody className="divide-y">{rows.slice((currentPage-1)*pageSize,currentPage*pageSize).map(version => <tr key={version.id} className="hover:bg-muted/20"><td className="px-4 py-3 font-medium">{version.versao}</td>{dateFields.map(([field]) => <td key={field} className="px-4 py-3">{formatVersionDate(version[field])}</td>)}<td className="px-4 py-3"><div className="flex justify-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title="Editar versão" onClick={() => setDraft({...version})}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" title="Excluir versão" onClick={() => setRemoving(version)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}{!rows.length && <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">Nenhuma versão encontrada.</td></tr>}</tbody></table></div>
+      <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-xs"><thead className="border-b bg-muted/25 text-left font-medium text-primary"><tr><th className="px-4 py-3">Versão</th>{dateFields.map(([field,label]) => <th key={field} className="px-4 py-3">{label}</th>)}<th className="w-24 px-4 py-3 text-center">Ações</th></tr></thead><tbody className="divide-y">{rows.slice((currentPage-1)*pageSize,currentPage*pageSize).map(version => <tr key={version.id} className="hover:bg-muted/20"><td className="px-4 py-3 font-medium">{version.versao}</td>{dateFields.map(([field]) => <td key={field} className="px-4 py-3">{formatVersionDate(version[field])}</td>)}<td className="px-4 py-3"><div className="flex justify-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title="Editar versão" onClick={() => setDraft({...version})}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" title="Excluir versão" onClick={() => setRemoving(version)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}{!rows.length && <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">Nenhuma versão encontrada.</td></tr>}</tbody></table></div>
     </section>
     <TablePagination noun="versões" page={currentPage} pageCount={pageCount} pageSize={pageSize} total={rows.length} onPageChange={setPage} onPageSizeChange={value => {setPageSize(value);setPage(1);}} />
     <Dialog open={Boolean(draft)} onOpenChange={open => !open && setDraft(null)}><DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden"><DialogTitle className="sr-only">{creating ? "Criar versão" : "Editar versão"}</DialogTitle><DetailModalHeader icon={creating ? Plus : Pencil} title={creating ? "Criar versão" : "Editar versão"} onClose={() => setDraft(null)} />{draft && <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-2 lg:grid-cols-6"><label className="space-y-1 text-sm"><span>Versão</span><Input value={draft.versao} onChange={e => setDraft({...draft,versao:e.target.value})} /></label>{dateFields.map(([field,label]) => <label key={field} className="min-w-0 space-y-1 text-sm"><span>{label}</span><Input type="date" value={draft[field]} onChange={e => setDraft({...draft,[field]:e.target.value})} /></label>)}</div>}<DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={save}>Salvar</Button></DialogFooter></DialogContent></Dialog>
@@ -5604,7 +5604,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
         </div>
         <div className="overflow-x-auto">
         <table className="w-full min-w-[1180px] text-left text-xs">
-          <thead className="border-b bg-muted/35 text-[11px] text-muted-foreground">
+          <thead className="border-b bg-muted/25 text-left font-medium text-primary">
             <tr>
               {[
                 "Permissão",
