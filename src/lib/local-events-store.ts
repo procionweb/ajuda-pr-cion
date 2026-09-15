@@ -11,50 +11,19 @@ import {
 } from "@/lib/fleet-store";
 import { ticketsStore } from "@/lib/tickets-store";
 
-const STORAGE_KEY = "procion.local-calendar-events.v2";
-const CHANGE_EVENT = "procion:calendar-events-changed";
-const TEST_EVENTS_CLEANUP_KEY = "procion.test-events-cleanup.2026-08-11-v2";
-
 const EMPTY: CalendarEvent[] = [];
 
-let cache: CalendarEvent[] | null = null;
+let cache: CalendarEvent[] = EMPTY;
 let hydrationPromise: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 
 function read(): CalendarEvent[] {
   if (typeof window === "undefined") return EMPTY;
-  if (cache) return cache;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    const events = Array.isArray(parsed)
-      ? (parsed.filter((item) => item && typeof item === "object") as CalendarEvent[])
-      : EMPTY;
-
-    if (!window.localStorage.getItem(TEST_EVENTS_CLEANUP_KEY)) {
-      const testEventIds = events.map((event) => event.id);
-      cache = [];
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
-      removeFleetRecordsForAppointments(testEventIds);
-      window.localStorage.setItem(TEST_EVENTS_CLEANUP_KEY, new Date().toISOString());
-      return cache;
-    }
-
-    cache = events;
-  } catch {
-    cache = EMPTY;
-  }
   return cache;
 }
 
 function write(next: CalendarEvent[]) {
   cache = next;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    window.dispatchEvent(new Event(CHANGE_EVENT));
-  } catch {
-    /* armazenamento indisponível: mantém apenas em memória */
-  }
   listeners.forEach((listener) => listener());
 }
 
@@ -152,7 +121,7 @@ export function addLocalEvent(event: Omit<CalendarEvent, "id"> & { id?: string |
   return created;
 }
 
-/** Atualiza um evento local existente (não afeta eventos vindos do CRM). */
+/** Atualiza um evento editável persistido no CRM. */
 export function updateLocalEvent(
   id: string | number,
   patch: Partial<CalendarEvent>,
@@ -209,22 +178,8 @@ export function isLocalEvent(id: string | number): boolean {
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === STORAGE_KEY) {
-      cache = null;
-      listener();
-    }
-  };
-  window.addEventListener("storage", onStorage);
-  const onLocalChange = () => {
-    cache = null;
-    listener();
-  };
-  window.addEventListener(CHANGE_EVENT, onLocalChange);
   return () => {
     listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
-    window.removeEventListener(CHANGE_EVENT, onLocalChange);
   };
 }
 

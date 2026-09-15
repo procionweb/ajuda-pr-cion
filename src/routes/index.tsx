@@ -44,33 +44,20 @@
 import { useMemo, useState } from "react";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  BookOpen,
-  GitBranch,
-  KanbanSquare,
-  Sparkles,
-  Clock,
-  Tag,
-} from "lucide-react";
+import { ArrowRight, BookOpen, GitBranch, KanbanSquare, Sparkles, Clock, Tag } from "lucide-react";
 import { SefazStatusPanel } from "@/components/portal/SefazStatusPanel";
 import { BrazilNewsCard } from "@/components/portal/BrazilNewsCard";
 import { TicketsIndicatorCards } from "@/components/analytics/TicketsAnalytics";
-import {
-  availableMonthKeys,
-  currentMonthKey,
-  monthLabel,
-} from "@/lib/tickets-month";
+import { availableMonthKeys, currentMonthKey, monthLabel } from "@/lib/tickets-month";
 import { AppShell } from "@/components/portal/AppShell";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { currentUser } from "@/lib/mock-data";
-import { supportTickets } from "@/lib/support-tickets-data";
-import { getTicketsForCurrentUser } from "@/lib/tickets-scope";
 import { Badge } from "@/components/ui/badge";
 import { kbArticlesFull, kbCategoriesFull } from "@/lib/kb-data";
-import { versions } from "@/lib/mock-data";
+import { useTickets } from "@/lib/tickets-store";
+import { useCrmCatalog } from "@/lib/crm-catalog-api";
+import { formatVersionDate, type ErpVersion } from "@/lib/erp-versions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -84,8 +71,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Portal Prócion — Central de Ajuda" },
       {
         property: "og:description",
-        content:
-          "Encontre artigos, versões e novidades da Prócion Sistemas em um só lugar.",
+        content: "Encontre artigos, versões e novidades da Prócion Sistemas em um só lugar.",
       },
     ],
   }),
@@ -123,9 +109,6 @@ const shortcuts = [
   },
 ] as const;
 
-
-
-
 function formatRelative(iso: string) {
   const d = new Date(iso);
   const diff = Math.round((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
@@ -139,35 +122,19 @@ function formatRelative(iso: string) {
   return `${dia}/${mes}/${d.getUTCFullYear()}`;
 }
 
-
-
-
 function HomePage() {
+  const supportTickets = useTickets();
+  const { items: savedVersions } = useCrmCatalog<ErpVersion>("versions");
   const latestArticles = [...kbArticlesFull]
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 5);
-  const latestVersions = versions.slice(0, 4);
-  const categoriesMap = Object.fromEntries(
-    kbCategoriesFull.map((c) => [c.id, c]),
-  );
+  const latestVersions = [...savedVersions]
+    .sort((a, b) => b.data_versao.localeCompare(a.data_versao))
+    .slice(0, 4);
+  const categoriesMap = Object.fromEntries(kbCategoriesFull.map((c) => [c.id, c]));
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey());
   const monthOptions = useMemo(() => availableMonthKeys(supportTickets), [supportTickets]);
-
-  // Lista única e pessoal do usuário logado — todos os chips derivam dela.
-  const personalTickets = getTicketsForCurrentUser(supportTickets, currentUser);
-
-  // Debug temporário para validar owner/status enquanto o backend não conecta.
-  if (typeof window !== "undefined") {
-    // eslint-disable-next-line no-console
-    console.debug("[banner] currentUser.operator =", currentUser.operator);
-    // eslint-disable-next-line no-console
-    console.debug(
-      "[banner] personalTickets =",
-      personalTickets.map((t) => ({ protocol: t.protocol, owner: t.owner, status: t.status })),
-    );
-  }
-
 
   return (
     <AppShell>
@@ -197,9 +164,6 @@ function HomePage() {
         <BrazilNewsCard />
       </section>
 
-
-
-
       {/* Atalhos */}
       <section className="mb-10">
         <div className="mb-4 flex items-end justify-between">
@@ -207,11 +171,7 @@ function HomePage() {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {shortcuts.map((s) => (
-            <Link
-              key={s.to}
-              to={s.to}
-              className="group"
-            >
+            <Link key={s.to} to={s.to} className="group">
               <Card className="h-full rounded-[14px] border-0 bg-white dark:bg-[#20263d] p-5 shadow-[0_10px_26px_rgba(25,29,51,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(25,29,51,0.10)]">
                 <div className={`grid h-11 w-11 place-items-center rounded-xl ${s.tone}`}>
                   <s.icon className="h-5 w-5" />
@@ -257,9 +217,7 @@ function HomePage() {
                       <BookOpen className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">
-                        {a.title}
-                      </p>
+                      <p className="truncate text-sm font-semibold text-foreground">{a.title}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                         {cat && (
                           <span className="inline-flex items-center gap-1">
@@ -292,7 +250,12 @@ function HomePage() {
               <h3 className="truncate text-base font-medium text-foreground">Últimas versões</h3>
               <p className="mt-0.5 text-xs text-muted-foreground">Release notes recentes.</p>
             </div>
-            <Button asChild variant="ghost" size="sm" className="shrink-0 text-primary hover:text-primary">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="shrink-0 text-primary hover:text-primary"
+            >
               <Link to="/versoes">
                 Ver todas <ArrowRight className="ml-1 h-3 w-3" />
               </Link>
@@ -300,26 +263,21 @@ function HomePage() {
           </div>
           <ol className="relative space-y-5 border-l border-border pl-5">
             {latestVersions.map((v) => (
-              <li key={v.version} className="relative min-w-0">
+              <li key={v.id} className="relative min-w-0">
                 <span className="absolute -left-[26px] top-1 grid h-4 w-4 place-items-center rounded-full bg-white dark:bg-[#20263d] ring-2 ring-primary">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                 </span>
                 <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="shrink-0 text-sm font-bold text-foreground">{v.version}</span>
-                  <Badge
-                    variant="secondary"
-                    className={`rounded-full text-[10px] ${
-                      v.type === "Correção"
-                        ? "bg-[#fff4d8] text-[#c47a13]"
-                        : "bg-[#eafaf1] text-[#23a061]"
-                    }`}
-                  >
-                    {v.type}
-                  </Badge>
-                  <span className="ml-auto text-[11px] text-muted-foreground whitespace-nowrap">{v.date}</span>
+                  <span className="shrink-0 text-sm font-bold text-foreground">{v.versao}</span>
+                  <span className="ml-auto text-[11px] text-muted-foreground whitespace-nowrap">
+                    {formatVersionDate(v.data_versao)}
+                  </span>
                 </div>
                 <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  {v.highlights.slice(0, 3).map((h) => (
+                  {[
+                    `Runtime: ${formatVersionDate(v.data_runtime)}`,
+                    `Arquivos: ${formatVersionDate(v.data_arq)}`,
+                  ].map((h) => (
                     <li key={h} className="flex min-w-0 gap-1.5">
                       <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-[#c5cadb]" />
                       <span className="min-w-0 break-words">{h}</span>

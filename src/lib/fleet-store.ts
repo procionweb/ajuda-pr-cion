@@ -485,19 +485,6 @@ function hydrateRuntimeRecords() {
   startRemoteLoad();
 }
 
-function getCalendarEventStart(appointmentId?: string | number) {
-  if (appointmentId === undefined || typeof window === "undefined") return undefined;
-  try {
-    const raw = window.localStorage.getItem("procion.local-calendar-events.v2");
-    const events = raw ? (JSON.parse(raw) as Array<Record<string, unknown>>) : [];
-    const event = events.find((item) => String(item.id) === String(appointmentId));
-    if (!event?.date || !event?.time) return undefined;
-    return `${event.date}T${event.time}:00`;
-  } catch {
-    return undefined;
-  }
-}
-
 function persistRuntimeRecords() {
   void persistCoreState();
 }

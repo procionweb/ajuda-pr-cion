@@ -1,5 +1,4 @@
 import { useSyncExternalStore } from "react";
-import { CalendarClock, Car } from "lucide-react";
 import { notifications as seed, type Notification } from "@/lib/notifications-data";
 
 const STORAGE_KEY = "procion.notifications.v1";
@@ -13,15 +12,9 @@ function hydrate() {
   try {
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") as {
       readIds?: string[];
-      calendar?: Array<Omit<Notification, "icon">>;
     };
     const readIds = new Set(state.readIds || []);
-    const calendar = (state.calendar || []).map((item) => ({
-      ...item,
-      icon: item.tone === "warning" ? Car : CalendarClock,
-      href: item.href || "/calendario",
-    }));
-    items = [...calendar, ...seed].map((item) => ({
+    items = seed.map((item) => ({
       ...item,
       read: item.read || readIds.has(item.id),
     }));
@@ -36,9 +29,6 @@ function persist() {
     STORAGE_KEY,
     JSON.stringify({
       readIds: items.filter((item) => item.read).map((item) => item.id),
-      calendar: items
-        .filter((item) => item.id.startsWith("calendar:"))
-        .map(({ icon: _icon, ...item }) => item),
     }),
   );
 }
