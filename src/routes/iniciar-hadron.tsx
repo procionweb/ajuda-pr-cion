@@ -3614,7 +3614,7 @@ function OccurrenceSelect({
 }) {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="w-full cursor-pointer text-sm font-normal text-foreground">
+      <SelectTrigger className="w-full cursor-pointer text-sm font-normal text-muted-foreground">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
