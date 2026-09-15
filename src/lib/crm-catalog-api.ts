@@ -104,7 +104,7 @@ export function useCrmCatalog<T>(entity: CatalogEntity, includeDeleted = false) 
   const snapshot = useSyncExternalStore(subscribe, () => snapshots.get(entity) || empty, () => empty);
   useEffect(() => {
     const refresh = () => { void loadCrmCatalog(entity, true).catch(() => toast.error("Não foi possível carregar os dados do banco.")); };
-    refresh();
+    void loadCrmCatalog(entity).catch(() => toast.error("Não foi possível carregar os dados do banco."));
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_OUT") return;
       revisions.set(entity, (revisions.get(entity) || 0) + 1);

@@ -93,7 +93,7 @@ import { currentUser } from "@/lib/mock-data";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { useCrmCatalog, trySaveCrmCatalog } from "@/lib/crm-catalog-api";
+import { loadCrmCatalog, useCrmCatalog, trySaveCrmCatalog } from "@/lib/crm-catalog-api";
 import {
   formatLogDate,
   listHadronOptionLogs,
@@ -298,6 +298,13 @@ function HadronPage() {
   const { department } = usePortalAuth();
   const search = Route.useSearch();
   const hasAdvancedHadronAccess = ["admin", "development", "tester"].includes(department || "");
+  useEffect(() => {
+    void Promise.all([
+      loadCrmCatalog("releases"),
+      loadCrmCatalog("options"),
+      loadCrmCatalog("versions"),
+    ]).catch(() => undefined);
+  }, []);
   const [tab, setTab] = useState(search.tab || "visao-geral");
   const query = "";
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -306,13 +313,7 @@ function HadronPage() {
   useEffect(() => {
     const saved = sessionStorage.getItem("hadron:return-option");
     if (!saved) return;
-    sessionStorage.removeItem("hadron:return-option");
-    try {
-      setViewingOption(JSON.parse(saved) as HadronOption);
-      setTab("opcoes");
-    } catch {
-      // Ignore invalid navigation state and open the normal Hádron page.
-    }
+    setTab("opcoes");
   }, []);
   const [optionDetailOpen, setOptionDetailOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<HadronOption | null>(null);
@@ -883,6 +884,16 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
   const disabledOptions = optionCatalog.deletedIds;
   const [viewingOption, setViewingOption] = useState<HadronOption | null>(null);
   const [previewingOption, setPreviewingOption] = useState<HadronOption | null>(null);
+  useEffect(() => {
+    const saved = sessionStorage.getItem("hadron:return-option");
+    if (!saved) return;
+    sessionStorage.removeItem("hadron:return-option");
+    try {
+      setViewingOption(JSON.parse(saved) as HadronOption);
+    } catch {
+      // Ignore invalid navigation state and keep the options list open.
+    }
+  }, []);
   useEffect(() => {
     onDetailChange(Boolean(viewingOption));
     return () => onDetailChange(false);
@@ -5652,7 +5663,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                     </span>
                   </td>
                   <td className="px-3 py-2.5">
-                    <Badge className={article.status === "2" ? "bg-amber-500 text-white hover:bg-amber-500" : article.status === "0" ? "bg-rose-600 text-white hover:bg-rose-600" : undefined} variant={published ? "default" : "secondary"}>
+                    <Badge className={cn("whitespace-nowrap", article.status === "2" ? "bg-amber-500 text-white hover:bg-amber-500" : article.status === "0" ? "bg-rose-600 text-white hover:bg-rose-600" : undefined)} variant={published ? "default" : "secondary"}>
                       {articleStatusLabel(article.status)}
                     </Badge>
                   </td>

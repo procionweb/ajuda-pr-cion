@@ -2,15 +2,11 @@ import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
-  BookOpen,
-  Sparkles,
-  GitBranch,
   KanbanSquare,
   Users,
   UserCircle,
   BarChart3,
   Plus,
-  FileText,
 } from "lucide-react";
 import {
   CommandDialog,
@@ -22,7 +18,6 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command";
-import { kbArticlesFull } from "@/lib/kb-data";
 
 export function CommandPalette({
   open,
@@ -59,15 +54,6 @@ export function CommandPalette({
           <CommandItem onSelect={() => go("/")}>
             <LayoutDashboard className="mr-2 h-4 w-4" /> Início
           </CommandItem>
-          <CommandItem onSelect={() => go("/base-de-conhecimento")}>
-            <BookOpen className="mr-2 h-4 w-4" /> Base de Conhecimento
-          </CommandItem>
-          <CommandItem onSelect={() => go("/atualizacoes")}>
-            <Sparkles className="mr-2 h-4 w-4" /> Atualizações
-          </CommandItem>
-          <CommandItem onSelect={() => go("/versoes")}>
-            <GitBranch className="mr-2 h-4 w-4" /> Versões
-          </CommandItem>
           <CommandItem onSelect={() => go("/kanban")}>
             <KanbanSquare className="mr-2 h-4 w-4" /> Kanban Prócion
           </CommandItem>
@@ -89,23 +75,6 @@ export function CommandPalette({
             <Plus className="mr-2 h-4 w-4" /> Criar novo card
             <CommandShortcut>N</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => go("/base-de-conhecimento")}>
-            <FileText className="mr-2 h-4 w-4" /> Pesquisar artigos
-          </CommandItem>
-        </CommandGroup>
-
-        <CommandSeparator />
-
-        <CommandGroup heading="Artigos recentes">
-          {kbArticlesFull.slice(0, 6).map((a) => (
-            <CommandItem
-              key={a.id}
-              onSelect={() => go(`/base-de-conhecimento/${a.slug}`)}
-            >
-              <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span className="truncate">{a.title}</span>
-            </CommandItem>
-          ))}
         </CommandGroup>
       </CommandList>
     </CommandDialog>

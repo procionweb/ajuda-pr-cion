@@ -20,9 +20,6 @@ import {
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import dashboardIconUrl from "@/assets/menu-dashboard-solid.png";
 import ticketsIconUrl from "@/assets/menu-tickets-solid.png";
-import baseIconUrl from "@/assets/menu-base-solid.png";
-import updatesIconUrl from "@/assets/menu-updates-solid.png";
-
 import kanbanIconUrl from "@/assets/menu-kanban-solid.png";
 import analyticsIconUrl from "@/assets/menu-analytics-solid.png";
 import customersIconUrl from "@/assets/menu-customers-solid.png";
@@ -64,9 +61,6 @@ function createMaskedMenuIcon(maskUrl: string, toneClass?: string): NavIcon {
 
 const DashboardIcon = createMaskedMenuIcon(dashboardIconUrl);
 const TicketsIcon = createMaskedMenuIcon(ticketsIconUrl);
-const BaseIcon = createMaskedMenuIcon(baseIconUrl);
-const UpdatesIcon = createMaskedMenuIcon(updatesIconUrl);
-
 const KanbanIcon = createMaskedMenuIcon(kanbanIconUrl);
 const AnalyticsIcon = createMaskedMenuIcon(analyticsIconUrl);
 const CustomersIcon = createMaskedMenuIcon(customersIconUrl);
@@ -85,7 +79,6 @@ const nav: NavItem[] = [
     children: [
       { to: "/chamados", label: "Chamados", icon: TicketsIcon },
       { to: "/suporte/agendamentos", label: "Agendamentos", icon: CalendarIcon },
-      { to: "/calendario", label: "Calendário", icon: CalendarIcon },
       { to: "/frota", label: "Frota", icon: FleetIcon },
     ],
   },
@@ -101,8 +94,7 @@ const nav: NavItem[] = [
     ],
   },
   { to: "/iniciar-hadron", label: "Hadron", icon: HadronIcon },
-  { to: "/base-de-conhecimento", label: "Base", icon: BaseIcon },
-  { to: "/atualizacoes", label: "Atualizações", icon: UpdatesIcon },
+  { to: "/calendario", label: "Calendário", icon: CalendarIcon },
   { to: "/analytics", label: "Analytics", icon: AnalyticsIcon },
   { to: "/kanban", label: "Kanban", icon: KanbanIcon },
   { to: "/clientes", label: "Clientes", icon: CustomersIcon },
