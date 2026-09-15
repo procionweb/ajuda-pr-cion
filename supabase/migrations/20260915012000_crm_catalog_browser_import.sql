@@ -1,4 +1,4 @@
-alter table public.crm_catalog_records drop constraint crm_catalog_payload_identity;
+alter table public.crm_catalog_records drop constraint if exists crm_catalog_payload_identity;
 alter table public.crm_catalog_records add constraint crm_catalog_payload_identity check (
   (entity = 'checklist' and jsonb_typeof(payload) = 'array' and coalesce(payload->>0,'') = record_id)
   or (entity <> 'checklist' and jsonb_typeof(payload) = 'object' and coalesce(payload->>'id','') = record_id)

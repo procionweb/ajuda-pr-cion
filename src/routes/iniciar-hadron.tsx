@@ -5488,7 +5488,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
   const [status, setStatus] = useState("todos");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const { items: articleRecords } = useCrmCatalog<CatalogArticle>("articles");
+  const { items: articleRecords, loaded: articlesLoaded } = useCrmCatalog<CatalogArticle>("articles");
   const [viewingArticle, setViewingArticle] = useState<ArticleDraft | null>(null);
   const [editingArticle, setEditingArticle] = useState<ArticleDraft | null>(null);
   const [removingArticle, setRemovingArticle] = useState<ArticleDraft | null>(null);
@@ -5548,7 +5548,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
           <div className="flex items-baseline justify-between gap-3">
             <div className="flex items-baseline gap-2">
               <h2 className="text-lg font-medium">Artigos</h2>
-              <span className="text-xs text-muted-foreground">{rows.length} registros</span>
+              <span className="text-xs text-muted-foreground">{articlesLoaded ? `${rows.length} registros` : "Carregando..."}</span>
             </div>
           </div>
           <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.35fr_1fr_1fr_1fr_1.35fr_auto]">

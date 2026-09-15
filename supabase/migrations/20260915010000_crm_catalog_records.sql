@@ -9,6 +9,7 @@ create table if not exists public.crm_catalog_records (
   primary key (entity, record_id)
 );
 alter table public.crm_catalog_records enable row level security;
+drop policy if exists crm_catalog_staff_read on public.crm_catalog_records;
 create policy crm_catalog_staff_read on public.crm_catalog_records for select to authenticated
   using (public.is_staff());
 grant select on public.crm_catalog_records to authenticated;
@@ -24,6 +25,7 @@ create table if not exists public.crm_catalog_audit (
   created_at timestamptz not null default now()
 );
 alter table public.crm_catalog_audit enable row level security;
+drop policy if exists crm_catalog_audit_staff_read on public.crm_catalog_audit;
 create policy crm_catalog_audit_staff_read on public.crm_catalog_audit for select to authenticated using (public.is_staff());
 grant select on public.crm_catalog_audit to authenticated;
 

@@ -50,8 +50,8 @@ const client = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: 
 await client.connect();
 try {
   await client.query("begin");
-  const { rows: existing } = await client.query("select to_regclass('public.crm_catalog_records') as name");
-  if (!existing[0].name) await client.query(fs.readFileSync(path.join(root, "supabase/migrations/20260915010000_crm_catalog_records.sql"), "utf8"));
+  const { rows: existing } = await client.query("select to_regclass('public.crm_catalog_records') as name, to_regprocedure('public.import_crm_catalog_records(text,jsonb)') as importer");
+  if (!existing[0].name || !existing[0].importer) throw new Error("Apply the Supabase migrations before seeding the CRM catalogs.");
   for (const [entity, rows] of Object.entries(catalogs)) {
     for (let offset = 0; offset < rows.length; offset += 100) {
       const records = rows.slice(offset, offset + 100).map((payload) => ({ id: String(Array.isArray(payload) ? payload[0] : payload.id), payload }));
