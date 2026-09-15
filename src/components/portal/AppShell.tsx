@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { Breadcrumbs, type Crumb } from "./Breadcrumbs";
@@ -6,15 +6,19 @@ import { FleetActionModals } from "@/components/fleet/FleetActionModals";
 import { useSidebarCollapsed } from "@/lib/sidebar-store";
 import { cn } from "@/lib/utils";
 import { CalendarNotifications } from "./CalendarNotifications";
+import { useAutoTableSort } from "@/lib/use-auto-table-sort";
 
 export function AppShell({ children, fullWidth = false }: { children: ReactNode; fullWidth?: boolean }) {
   const collapsed = useSidebarCollapsed();
+  const mainRef = useRef<HTMLElement>(null);
+  useAutoTableSort(mainRef);
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar />
       <div className={cn("transition-[padding] duration-300 ease-out", collapsed ? "lg:pl-[86px]" : "lg:pl-[286px]")}>
         <AppHeader />
         <main
+          ref={mainRef}
           className={cn(
             "mx-auto min-w-0 overflow-x-hidden px-3 py-4 sm:px-6 sm:py-6 lg:px-7 lg:py-7 lg:pb-8",
             fullWidth ? "w-full max-w-none" : "max-w-[1680px]",

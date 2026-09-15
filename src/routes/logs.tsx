@@ -4,7 +4,7 @@ import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LogsTable } from "@/components/portal/LatestLogsCard";
-import { listAuthLogs, type AuthLogRow } from "@/lib/auth-logs-api";
+import { listHadronLogs, type AuthLogRow } from "@/lib/auth-logs-api";
 
 export const Route = createFileRoute("/logs")({
   head: () => ({
@@ -44,9 +44,9 @@ function LogsPage() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    listAuthLogs({
+    listHadronLogs({
       search: search || undefined,
-      controller: controller || undefined,
+      operation: controller || undefined,
       acronym: acronym || undefined,
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,

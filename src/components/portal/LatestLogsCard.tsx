@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ScrollText } from "lucide-react";
 import {
   formatLogDate,
-  listAuthLogs,
+  listHadronLogs,
   type AuthLogRow,
 } from "@/lib/auth-logs-api";
 
@@ -14,7 +14,7 @@ export function LatestLogsCard() {
 
   useEffect(() => {
     let active = true;
-    listAuthLogs({ limit: 6 })
+    listHadronLogs({ limit: 6 })
       .then((page) => {
         if (!active) return;
         setRows(page.rows);
@@ -40,7 +40,7 @@ export function LatestLogsCard() {
           <h2 className="truncate text-[17px] font-semibold leading-tight">Últimos Logs</h2>
         </div>
         <Link
-          to="/logs"
+          to="/configuracoes/logs"
           className="shrink-0 text-[13px] font-medium text-primary hover:underline"
         >
           Ver todos

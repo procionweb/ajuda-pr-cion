@@ -387,3 +387,28 @@ body.hadron-screen button:not(:disabled) .lucide-scan-eye,
 body.hadron-screen a .lucide-scan-eye {
   cursor: pointer;
 }
+
+main th[data-auto-sortable="true"] {
+  cursor: pointer;
+  user-select: none;
+}
+
+main th[data-auto-sortable="true"]::after {
+  content: "↕";
+  margin-left: 0.4rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75em;
+  opacity: 0.65;
+}
+
+main th[data-auto-sortable="true"][aria-sort="ascending"]::after {
+  content: "↑";
+  color: hsl(var(--primary));
+  opacity: 1;
+}
+
+main th[data-auto-sortable="true"][aria-sort="descending"]::after {
+  content: "↓";
+  color: hsl(var(--primary));
+  opacity: 1;
+}

@@ -73,12 +73,14 @@ const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 );
 DialogHeader.displayName = "DialogHeader";
 
-const DialogFooter = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+type DialogFooterProps = React.HTMLAttributes<HTMLDivElement> & { showClose?: boolean };
+
+const DialogFooter = ({ className, children, showClose = true, ...props }: DialogFooterProps) => (
   <div
     className={cn("sticky bottom-0 z-10 flex shrink-0 flex-wrap items-center justify-end gap-2 bg-card sm:space-x-2", className)}
     {...props}
   >
-    {!containsClose(children) && <DialogPrimitive.Close asChild><Button type="button" variant="outline">Fechar</Button></DialogPrimitive.Close>}
+    {showClose && !containsClose(children) && <DialogPrimitive.Close asChild><Button type="button" variant="outline">Fechar</Button></DialogPrimitive.Close>}
     {children}
   </div>
 );

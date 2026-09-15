@@ -573,7 +573,7 @@ function BoardListPage() {
             accentClassName="bg-destructive"
             iconWrapClassName="bg-destructive text-destructive-foreground"
           />
-          <DialogFooter className="border-t border-border bg-card px-5 py-3">
+          <DialogFooter showClose={false} className="border-t border-border bg-card px-5 py-3">
 
             <Button variant="outline" className="cursor-pointer" onClick={() => setDeleteFor(null)}>
               Cancelar

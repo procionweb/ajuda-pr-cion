@@ -1627,7 +1627,7 @@ function HadronOptionPage({
   useEffect(() => {
     const loadLogs = () => {
       setLogsLoading(true);
-      void listHadronOptionLogs(option.id)
+      void listHadronOptionLogs(option.option)
         .then(setOptionLogs)
         .catch(() => setOptionLogs([]))
         .finally(() => setLogsLoading(false));
@@ -1716,7 +1716,10 @@ function HadronOptionPage({
             <TabsList className="justify-start bg-transparent p-0">
               <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
               <TabsTrigger value="releases">Releases</TabsTrigger>
-              <TabsTrigger value="logs">Logs</TabsTrigger>
+              <TabsTrigger value="logs">Últimos logs</TabsTrigger>
+              <Button asChild variant="ghost" size="sm" className="ml-1 h-8 text-primary">
+                <Link to="/configuracoes/logs">Ver todos</Link>
+              </Button>
             </TabsList>
             <TabsContent value="ocorrencias" className="mt-5">
               <OptionImportedOccurrences
@@ -1874,6 +1877,15 @@ function HadronOptionPage({
             <label className="min-w-0 space-y-1 text-sm"><span>Operador</span><OccurrenceSelect value={occurrenceDraft.operator} onValueChange={(operator) => setOccurrenceDraft({...occurrenceDraft,operator})} items={allCollaborators.map((collaborator) => [collaborator.acronym || collaborator.id, collaborator.acronym || collaboratorLabel(collaborator)] as [string,string])} /></label>
             <label className="min-w-0 space-y-1 text-sm"><span>Cliente ou caminho da base</span><Input value={occurrenceDraft.baseAddress} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, baseAddress:e.target.value})} /></label>
             <label className="min-w-0 space-y-1 text-sm"><span>Versão</span><OccurrenceSelect value={occurrenceDraft.versionLegacyId} onValueChange={(versionLegacyId) => setOccurrenceDraft({...occurrenceDraft, versionLegacyId})} items={erpVersions.map((v) => [v.id, `${v.versao} - ${formatVersionDate(v.data_versao)}`])} /></label>
+            <div className="space-y-2 md:col-span-2 lg:col-span-4">
+              <p className="text-sm font-medium">Prioridade</p>
+              <div className="max-w-[580px]">
+                <HadronPrioritySegmented
+                  value={occurrenceDraft.priority}
+                  onChange={(priority) => setOccurrenceDraft({ ...occurrenceDraft, priority })}
+                />
+              </div>
+            </div>
             <label className="space-y-1 text-sm md:col-span-2 lg:col-span-4"><span>Descreva a ocorrência</span><span className="block text-xs text-muted-foreground">Caso necessário, inclua os detalhes que permitam reproduzir o problema.</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={occurrenceDraft.occurrence} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, occurrence:e.target.value})} /></label>
           </div>
           <DialogFooter className="border-t px-5 py-4"><Button disabled={savingOccurrence} onClick={async () => { if (!occurrenceDraft.baseAddress.trim() || !occurrenceDraft.occurrence.trim()) { toast.error("Informe a base e descreva a ocorrência."); return; } setSavingOccurrence(true); try { await createHadronOccurrence({optionLegacyId:option.id,...occurrenceDraft}); setNewOccurrenceOpen(false); setOccurrenceDraft({...occurrenceDraft,baseAddress:"",occurrence:""}); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Ocorrência criada com sucesso."); } catch(error) { toast.error(error instanceof Error ? error.message : "Não foi possível criar a ocorrência."); } finally { setSavingOccurrence(false); } }}>{savingOccurrence ? "Salvando..." : "Salvar"}</Button></DialogFooter>
@@ -2024,7 +2036,7 @@ function OptionEditDialog({
           </TabsList>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6">
             <TabsContent value="opcao" className="mt-3 space-y-4 pb-2">
-              <div className="grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_300px]">
+              <div>
                 <label className="space-y-2 text-[12.5px] font-medium text-foreground">
                   Nome da opção
                   <Input
@@ -2033,7 +2045,6 @@ function OptionEditDialog({
                     onChange={(event) => update("description", event.target.value)}
                   />
                 </label>
-                <div className="w-full max-w-[300px] space-y-2"><p className="text-sm font-medium">Prioridade</p><HadronPrioritySegmented value={draft.priority || "1"} onChange={(priority) => update("priority", priority)} /></div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <OptionField
@@ -2194,7 +2205,7 @@ function OptionEditDialog({
                   return;
                 }
               }
-              onSave({ ...draft, checklist: editedChecks, priority: draft.priority || "1", label: `${draft.description} (${draft.option} - ${draft.form})` });
+              onSave({ ...draft, checklist: editedChecks, label: `${draft.description} (${draft.option} - ${draft.form})` });
             }}
           >
             {isCreating ? "Criar opção" : "Salvar"}
