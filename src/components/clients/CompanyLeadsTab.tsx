@@ -595,29 +595,19 @@ export function CompanyLeadsTab() {
         return (
           <>
             <div className="flex items-center gap-2">
-              <div className="truncate font-medium">{lead.trade_name || lead.legal_name}</div>
+              <button
+                type="button"
+                className="min-w-0 cursor-pointer truncate text-left font-medium hover:text-primary hover:underline"
+                onClick={() => void openDetails(lead)}
+                title="Ver detalhes da empresa"
+              >
+                {lead.trade_name || lead.legal_name}
+              </button>
               {lead.is_client && (
                 <Badge className="shrink-0 bg-sky-500/12 text-sky-700 dark:text-sky-300">
                   Cliente atual
                 </Badge>
               )}
-              <Button
-                asChild
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0"
-              >
-                <a
-                  href={googleMapsAddressUrl(lead)}
-                  target="_blank"
-                  rel="noreferrer"
-                  title="Abrir endereço no Google Maps"
-                  aria-label={`Abrir endereço de ${lead.trade_name || lead.legal_name} no Google Maps`}
-                >
-                  <MapPinned className="h-4 w-4" />
-                </a>
-              </Button>
             </div>
             {lead.trade_name && (
               <div className="truncate text-xs text-muted-foreground">{lead.legal_name}</div>
@@ -1312,6 +1302,17 @@ export function CompanyLeadsTab() {
                   <div className="mb-3 flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-primary" />
                     <h3 className="text-sm font-semibold">Localização e contato</h3>
+                    <Button asChild type="button" variant="outline" size="sm" className="ml-auto">
+                      <a
+                        href={googleMapsAddressUrl(selectedLead)}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Abrir endereço no Google Maps"
+                      >
+                        <MapPinned className="mr-2 h-4 w-4" />
+                        Abrir no mapa
+                      </a>
+                    </Button>
                   </div>
                   <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
                     <div className="sm:col-span-2">
