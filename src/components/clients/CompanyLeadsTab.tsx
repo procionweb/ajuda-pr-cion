@@ -601,6 +601,23 @@ export function CompanyLeadsTab() {
                   Cliente atual
                 </Badge>
               )}
+              <Button
+                asChild
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+              >
+                <a
+                  href={googleMapsAddressUrl(lead)}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Abrir endereço no Google Maps"
+                  aria-label={`Abrir endereço de ${lead.trade_name || lead.legal_name} no Google Maps`}
+                >
+                  <MapPinned className="h-4 w-4" />
+                </a>
+              </Button>
             </div>
             {lead.trade_name && (
               <div className="truncate text-xs text-muted-foreground">{lead.legal_name}</div>
@@ -1174,23 +1191,6 @@ export function CompanyLeadsTab() {
                           className="h-8 w-8"
                         >
                           <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          asChild
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                        >
-                          <a
-                            href={googleMapsAddressUrl(lead)}
-                            target="_blank"
-                            rel="noreferrer"
-                            title="Abrir endereço no Google Maps"
-                            aria-label={`Abrir endereço de ${lead.trade_name || lead.legal_name} no Google Maps`}
-                          >
-                            <MapPinned className="h-4 w-4" />
-                          </a>
                         </Button>
                       </div>
                     </td>
