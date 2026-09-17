@@ -108,6 +108,22 @@ function parseMysqlDump(file, table) {
   return rows;
 }
 
+function parsePhpMyAdminJson(file, table) {
+  const payload = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (!Array.isArray(payload)) throw new Error(`${table}: exportacao JSON invalida.`);
+  const entry = payload.find((item) => item?.type === "table" && item?.name === table);
+  if (!entry || !Array.isArray(entry.data)) {
+    throw new Error(`${table}: tabela nao encontrada na exportacao JSON.`);
+  }
+  return entry.data;
+}
+
+function parseExport(file, table) {
+  return path.extname(file).toLowerCase() === ".json"
+    ? parsePhpMyAdminJson(file, table)
+    : parseMysqlDump(file, table);
+}
+
 const text = (value) => String(value ?? "").trim();
 const timestamp = (value) => {
   const clean = text(value);
@@ -150,8 +166,9 @@ const argument = (name, fallback) => {
 const downloads = path.join(process.env.USERPROFILE || "", "Downloads");
 const ticketsFile = argument("--tickets", path.join(downloads, "sac_tickets.sql"));
 const messagesFile = argument("--messages", path.join(downloads, "sac_ticket_messages.sql"));
-const ticketRows = parseMysqlDump(ticketsFile, "sac_tickets");
-const messageRows = parseMysqlDump(messagesFile, "sac_ticket_messages");
+const replaceExisting = args.includes("--replace");
+const ticketRows = parseExport(ticketsFile, "sac_tickets");
+const messageRows = parseExport(messagesFile, "sac_ticket_messages");
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
@@ -167,6 +184,12 @@ try {
     await pool.query(fs.readFileSync(path.resolve(migration), "utf8"));
   }
   await pool.query("begin");
+
+  if (replaceExisting) {
+    await pool.query("delete from public.ticket_events");
+    await pool.query("delete from public.ticket_messages");
+    await pool.query("delete from public.tickets");
+  }
 
   const [clients, modules, submodules, profiles] = await Promise.all([
     pool.query("select id, legacy_id, upper(acronym) acronym from public.clients"),
@@ -221,8 +244,27 @@ try {
       };
     })
     .filter(Boolean);
-  const ticketProtocolByLegacy = new Map(mappedTickets.map((row) => [row.legacy_id, row.protocol]));
-  const tickets = [...new Map(mappedTickets.map((row) => [row.protocol, row])).values()];
+  const ticketsByLegacy = new Map(mappedTickets.map((row) => [row.legacy_id, row]));
+  const tickets = [
+    ...new Map(
+      Array.from(ticketsByLegacy.values()).map((row) => [row.protocol, row]),
+    ).values(),
+  ];
+  const ticketProtocolByLegacy = new Map(tickets.map((row) => [row.legacy_id, row.protocol]));
+  const ticketConflictClause = replaceExisting
+    ? "on conflict do nothing"
+    : `on conflict (protocol) do update set
+         legacy_id=excluded.legacy_id, client_id=excluded.client_id, module_id=excluded.module_id,
+         submodule_id=excluded.submodule_id, subject=excluded.subject,
+         description=excluded.description, status=excluded.status, priority=excluded.priority,
+         attendant_id=excluded.attendant_id, owner_id=excluded.owner_id,
+         client_code=excluded.client_code, client_name=excluded.client_name,
+         contact_name=excluded.contact_name, module_label=excluded.module_label,
+         attendant_code=excluded.attendant_code, owner_code=excluded.owner_code,
+         finished_at=excluded.finished_at,
+         legacy_created_at=excluded.legacy_created_at,
+         legacy_updated_at=excluded.legacy_updated_at, created_at=excluded.created_at,
+         updated_at=excluded.updated_at, source_payload=excluded.source_payload`;
 
   for (const batch of chunks(tickets)) {
     await pool.query(
@@ -248,18 +290,7 @@ try {
          legacy_created_at text, legacy_updated_at text, created_at text,
          updated_at text, source_payload jsonb
        )
-       on conflict (protocol) do update set
-         legacy_id=excluded.legacy_id, client_id=excluded.client_id, module_id=excluded.module_id,
-         submodule_id=excluded.submodule_id, subject=excluded.subject,
-         description=excluded.description, status=excluded.status, priority=excluded.priority,
-         attendant_id=excluded.attendant_id, owner_id=excluded.owner_id,
-         client_code=excluded.client_code, client_name=excluded.client_name,
-         contact_name=excluded.contact_name, module_label=excluded.module_label,
-         attendant_code=excluded.attendant_code, owner_code=excluded.owner_code,
-         finished_at=excluded.finished_at,
-         legacy_created_at=excluded.legacy_created_at,
-         legacy_updated_at=excluded.legacy_updated_at, created_at=excluded.created_at,
-         updated_at=excluded.updated_at, source_payload=excluded.source_payload`,
+       ${ticketConflictClause}`,
       [JSON.stringify(batch)],
     );
   }
