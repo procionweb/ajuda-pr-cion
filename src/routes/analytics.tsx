@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { BarChart3 } from "lucide-react";
@@ -12,6 +13,62 @@ const searchSchema = z.object({
   from: z.string().catch("").optional(),
   to: z.string().catch("").optional(),
 });
+
+function formatDateInput(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function parseDateInput(value: string) {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  if (!match) return null;
+  const [, day, month, year] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  if (
+    date.getFullYear() !== Number(year) ||
+    date.getMonth() !== Number(month) - 1 ||
+    date.getDate() !== Number(day)
+  ) return null;
+  return `${year}-${month}-${day}`;
+}
+
+function TypedDateInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(() => formatDateInput(value));
+  useEffect(() => setDraft(formatDateInput(value)), [value]);
+
+  return (
+    <label className="min-w-[145px] flex-1 sm:flex-none">
+      <span className="mb-1 block text-[11px] font-medium text-muted-foreground">{label}</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={draft}
+        placeholder="dd/mm/aaaa"
+        maxLength={10}
+        onChange={(event) => {
+          const digits = event.target.value.replace(/\D/g, "").slice(0, 8);
+          const masked = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)]
+            .filter(Boolean)
+            .join("/");
+          setDraft(masked);
+          if (!digits) onChange("");
+          const parsed = parseDateInput(masked);
+          if (parsed) onChange(parsed);
+        }}
+        className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+      />
+    </label>
+  );
+}
 
 export const Route = createFileRoute("/analytics")({
   head: () => ({
@@ -61,33 +118,20 @@ function AnalyticsPage() {
           </TabsList>
           {activeTab === "chamados" && (
             <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto sm:flex-nowrap">
-              <label className="min-w-[145px] flex-1 sm:flex-none">
-                <span className="mb-1 block text-[11px] font-medium text-muted-foreground">
-                  Data inicial
-                </span>
-                <input
-                  type="date"
-                  value={from}
-                  onChange={(event) =>
-                    navigate({ search: { view: activeTab, from: event.target.value, to } })
-                  }
-                  className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
-                />
-              </label>
-              <label className="min-w-[145px] flex-1 sm:flex-none">
-                <span className="mb-1 block text-[11px] font-medium text-muted-foreground">
-                  Data final
-                </span>
-                <input
-                  type="date"
-                  value={to}
-                  min={from || undefined}
-                  onChange={(event) =>
-                    navigate({ search: { view: activeTab, from, to: event.target.value } })
-                  }
-                  className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
-                />
-              </label>
+              <TypedDateInput
+                label="Data inicial"
+                value={from}
+                onChange={(nextFrom) =>
+                  navigate({ search: { view: activeTab, from: nextFrom, to } })
+                }
+              />
+              <TypedDateInput
+                label="Data final"
+                value={to}
+                onChange={(nextTo) =>
+                  navigate({ search: { view: activeTab, from, to: nextTo } })
+                }
+              />
               {(from || to) && (
                 <Button
                   type="button"
