@@ -87,6 +87,13 @@ export const timelineEventPresentation: Record<
   },
 };
 
+const fallbackEventPresentation = {
+  label: "Atualização do chamado",
+  color: "#64748b",
+  softColor: "rgba(100, 116, 139, 0.24)",
+  icon: FileText,
+};
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -176,7 +183,8 @@ export function TicketTimelineList({
   return (
     <ol className={`mx-auto ${maxW}`}>
       {sorted.map((event, index) => {
-        const presentation = timelineEventPresentation[event.kind];
+        const presentation =
+          timelineEventPresentation[event.kind] ?? fallbackEventPresentation;
         const Icon = presentation.icon;
         const isLast = index === sorted.length - 1;
         const isSelectable = event.kind === "scheduled" && Boolean(onEventSelect);
