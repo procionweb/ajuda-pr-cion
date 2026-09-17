@@ -14,6 +14,7 @@ import {
 
 import {
   AlertTriangle,
+  Building2,
   CalendarClock,
   ChevronLeft,
   ChevronRight,
@@ -24,6 +25,8 @@ import {
   MessageSquarePlus,
   MoreVertical,
   PhoneCall,
+  Trophy,
+  UsersRound,
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -301,7 +304,7 @@ export function TicketsIndicatorCards({
 
 
 
-function TopAgentsCard({ tickets, filtered = false }: { tickets: SupportTicket[]; filtered?: boolean }) {
+function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
   const [showAll, setShowAll] = useState(false);
   const allAgents = useMemo(() => {
     const map = new Map<string, { operator: string; handled: number; finished: number; seconds: number }>();
@@ -324,24 +327,14 @@ function TopAgentsCard({ tickets, filtered = false }: { tickets: SupportTicket[]
         <h3 className="text-base font-bold tracking-tight text-foreground">
           Performance dos Operadores
         </h3>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-9 cursor-pointer px-3 text-xs font-semibold"
-            onClick={() => setShowAll(true)}
-          >
-            Ver todos
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 cursor-pointer gap-2 rounded-md border-border bg-white px-3 text-xs font-semibold text-foreground shadow-none hover:bg-muted dark:bg-card"
-          >
-            <CalendarClock className="h-4 w-4" />
-            {filtered ? "Período" : "Mensal"}
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-9 cursor-pointer px-3 text-xs font-semibold"
+          onClick={() => setShowAll(true)}
+        >
+          Ver todos
+        </Button>
       </div>
 
       <div className="space-y-3">
@@ -409,18 +402,31 @@ function TopAgentsCard({ tickets, filtered = false }: { tickets: SupportTicket[]
         })}
       </div>
       <Dialog open={showAll} onOpenChange={setShowAll}>
-        <DialogContent className="flex max-h-[82vh] max-w-3xl flex-col overflow-hidden p-0">
-          <DialogHeader className="border-b px-6 py-4">
-            <DialogTitle>Performance de todos os operadores</DialogTitle>
+        <DialogContent className="flex max-h-[86vh] max-w-4xl flex-col gap-0 overflow-hidden border-0 p-0 shadow-2xl">
+          <DialogHeader className="bg-[#079bc3] px-6 py-5 text-white sm:px-7">
+            <div className="flex items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-white/15">
+                <UsersRound className="h-5 w-5" />
+              </span>
+              <div>
+                <DialogTitle className="text-lg text-white">Performance dos operadores</DialogTitle>
+                <p className="mt-1 text-xs text-white/80">Comparativo de atendimentos e taxa de resolução</p>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <div className="divide-y rounded-md border">
+          <div className="grid grid-cols-2 gap-3 border-b bg-muted/25 px-6 py-4 sm:grid-cols-3 sm:px-7">
+            <div><p className="text-[11px] text-muted-foreground">Operadores</p><p className="text-lg font-bold">{allAgents.length}</p></div>
+            <div><p className="text-[11px] text-muted-foreground">Atendimentos</p><p className="text-lg font-bold">{allAgents.reduce((sum, item) => sum + item.handled, 0)}</p></div>
+            <div><p className="text-[11px] text-muted-foreground">Finalizados</p><p className="text-lg font-bold">{allAgents.reduce((sum, item) => sum + item.finished, 0)}</p></div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-6 py-5 sm:px-7">
+            <div className="space-y-2">
               {allAgents.map((agent) => {
                 const resolutionRate = agent.handled
                   ? Math.round((agent.finished / agent.handled) * 100)
                   : 0;
                 return (
-                  <div key={agent.operator} className="grid grid-cols-[minmax(0,1fr)_90px_90px] items-center gap-4 px-4 py-3 text-sm">
+                  <div key={agent.operator} className="grid grid-cols-[minmax(0,1fr)_90px_90px] items-center gap-4 rounded-md border bg-background px-4 py-3 text-sm shadow-sm">
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 font-semibold text-primary">
                         {agent.operator.charAt(0).toLocaleUpperCase("pt-BR") || "?"}
@@ -443,7 +449,7 @@ function TopAgentsCard({ tickets, filtered = false }: { tickets: SupportTicket[]
               })}
             </div>
           </div>
-          <DialogFooter className="border-t px-6 py-4">
+          <DialogFooter className="border-t px-6 py-4 sm:px-7">
             <Button type="button" variant="outline" onClick={() => setShowAll(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
@@ -462,7 +468,7 @@ function addDays(date: Date, amount: number) {
   return result;
 }
 
-function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; rangeEnd?: string }) {
+function StatisticsCard({ tickets, rangeEnd, onDateSelect }: { tickets: SupportTicket[]; rangeEnd?: string; onDateSelect: (date: string) => void }) {
   const daysScrollRef = useRef<HTMLDivElement>(null);
   const scrollTimerRef = useRef<number | null>(null);
   const parsedRangeEnd = rangeEnd ? new Date(`${rangeEnd}T12:00:00`) : new Date();
@@ -475,13 +481,16 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
   const statisticsDays = Array.from({ length: 30 }, (_, index) => {
     const date = addDays(today, index - 29);
     return {
+      iso: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
       day: String(date.getDate()).padStart(2, "0"),
       weekday: new Intl.DateTimeFormat("pt-BR", { weekday: "short" })
         .format(date)
         .replace(".", "")
         .toLocaleUpperCase("pt-BR"),
       warm: date.getDay() === 0 || date.getDay() === 6,
-      active: index === 29,
+      active: rangeEnd
+        ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}` === rangeEnd
+        : index === 29,
     };
   });
   const hourlyStats = Array.from({ length: 12 }, (_, index) => {
@@ -537,6 +546,9 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
           {statisticsDays.map((item) => (
           <button
             key={`${item.day}-${item.weekday}`}
+            type="button"
+            aria-label={`Filtrar por ${item.day} ${item.weekday}`}
+            onClick={() => onDateSelect(item.iso)}
             className={cn(
               "grid h-[60px] w-[44px] shrink-0 cursor-pointer place-items-center rounded-md bg-muted/45 text-center transition",
               item.active && "bg-[#a779c7] text-white",
@@ -692,18 +704,30 @@ function WeeklyBacklogCard({ tickets, filtered = false }: { tickets: SupportTick
         <LegendDot color="#ff5fc8" label="Demais módulos" />
       </div>
       <Dialog open={showCompanies} onOpenChange={setShowCompanies}>
-        <DialogContent className="flex max-h-[82vh] max-w-3xl flex-col overflow-hidden p-0">
-          <DialogHeader className="border-b px-6 py-4">
-            <DialogTitle>30 empresas que mais ligaram</DialogTitle>
+        <DialogContent className="flex max-h-[86vh] max-w-4xl flex-col gap-0 overflow-hidden border-0 p-0 shadow-2xl">
+          <DialogHeader className="bg-[#7e63c6] px-6 py-5 text-white sm:px-7">
+            <div className="flex items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-white/15">
+                <Building2 className="h-5 w-5" />
+              </span>
+              <div>
+                <DialogTitle className="text-lg text-white">Empresas que mais ligaram</DialogTitle>
+                <p className="mt-1 text-xs text-white/80">As 30 empresas com maior volume de chamados e seu módulo principal</p>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <div className="overflow-hidden rounded-md border">
-              <div className="grid grid-cols-[52px_minmax(0,1fr)_90px_minmax(150px,1fr)] gap-3 bg-muted/50 px-4 py-2 text-xs font-semibold text-muted-foreground">
+          <div className="grid grid-cols-2 gap-3 border-b bg-muted/25 px-6 py-4 sm:px-7">
+            <div><p className="text-[11px] text-muted-foreground">Empresas exibidas</p><p className="text-lg font-bold">{Math.min(30, weeklyCompanies.length)}</p></div>
+            <div><p className="text-[11px] text-muted-foreground">Total de chamados</p><p className="text-lg font-bold">{weeklyCompanies.slice(0, 30).reduce((sum, item) => sum + item.total, 0)}</p></div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-6 py-5 sm:px-7">
+            <div className="overflow-hidden rounded-md border bg-background shadow-sm">
+              <div className="grid grid-cols-[52px_minmax(0,1fr)_90px_minmax(150px,1fr)] gap-3 bg-muted/60 px-4 py-3 text-xs font-semibold text-muted-foreground">
                 <span>#</span><span>Empresa</span><span className="text-right">Chamados</span><span>Módulo mais acionado</span>
               </div>
               {weeklyCompanies.slice(0, 30).map((company, index) => (
                 <div key={company.company} className="grid grid-cols-[52px_minmax(0,1fr)_90px_minmax(150px,1fr)] items-center gap-3 border-t px-4 py-3 text-sm">
-                  <span className="text-muted-foreground">{index + 1}</span>
+                  <span className="inline-flex items-center gap-1 font-semibold text-muted-foreground">{index < 3 && <Trophy className="h-3.5 w-3.5 text-[#e4a11b]" />}{index + 1}</span>
                   <span className="truncate font-semibold">{company.company}</span>
                   <span className="text-right font-semibold">{company.total}</span>
                   <span className="truncate text-muted-foreground">{company.topModule}</span>
@@ -711,7 +735,7 @@ function WeeklyBacklogCard({ tickets, filtered = false }: { tickets: SupportTick
               ))}
             </div>
           </div>
-          <DialogFooter className="border-t px-6 py-4">
+          <DialogFooter className="border-t px-6 py-4 sm:px-7">
             <Button type="button" variant="outline" onClick={() => setShowCompanies(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
@@ -1188,7 +1212,7 @@ function BarRow({
   );
 }
 
-export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string; to?: string }) {
+export function TicketsAnalyticsSection({ from = "", to = "", onDateSelect }: { from?: string; to?: string; onDateSelect: (date: string) => void }) {
   const allTickets = useTickets();
   const supportTickets = useMemo(() => {
     if (!from && !to) return allTickets;
@@ -1233,8 +1257,8 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
       <TicketsIndicatorCards tickets={supportTickets} filtered={hasDateFilter} />
 
       <div id="analytics-detalhado" className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[0.92fr_1.35fr]">
-        <TopAgentsCard tickets={supportTickets} filtered={hasDateFilter} />
-        <StatisticsCard tickets={supportTickets} rangeEnd={to || from} />
+        <TopAgentsCard tickets={supportTickets} />
+        <StatisticsCard tickets={supportTickets} rangeEnd={to || from} onDateSelect={onDateSelect} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">

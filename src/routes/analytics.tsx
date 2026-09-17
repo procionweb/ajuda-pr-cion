@@ -147,7 +147,13 @@ function AnalyticsPage() {
         </div>
 
         <TabsContent value="chamados" className="mt-0">
-          <TicketsAnalyticsSection from={from} to={to} />
+          <TicketsAnalyticsSection
+            from={from}
+            to={to}
+            onDateSelect={(date) =>
+              navigate({ search: { view: activeTab, from: date, to: date } })
+            }
+          />
         </TabsContent>
 
         <TabsContent value="kanban" className="mt-0">
