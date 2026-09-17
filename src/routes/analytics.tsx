@@ -3,7 +3,6 @@ import { z } from "zod";
 import { BarChart3 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
 import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
-import { DateRangeFilter } from "@/components/portal/DateRangeFilter";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TicketsAnalyticsSection } from "@/components/analytics/TicketsAnalytics";
@@ -61,15 +60,34 @@ function AnalyticsPage() {
             </TabsTrigger>
           </TabsList>
           {activeTab === "chamados" && (
-            <div className="flex w-full items-center gap-2 sm:w-auto">
-              <DateRangeFilter
-                from={from}
-                to={to}
-                onChange={(nextFrom, nextTo) =>
-                  navigate({ search: { view: activeTab, from: nextFrom, to: nextTo } })
-                }
-                className="sm:w-[250px]"
-              />
+            <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto sm:flex-nowrap">
+              <label className="min-w-[145px] flex-1 sm:flex-none">
+                <span className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                  Data inicial
+                </span>
+                <input
+                  type="date"
+                  value={from}
+                  onChange={(event) =>
+                    navigate({ search: { view: activeTab, from: event.target.value, to } })
+                  }
+                  className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <label className="min-w-[145px] flex-1 sm:flex-none">
+                <span className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                  Data final
+                </span>
+                <input
+                  type="date"
+                  value={to}
+                  min={from || undefined}
+                  onChange={(event) =>
+                    navigate({ search: { view: activeTab, from, to: event.target.value } })
+                  }
+                  className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
               {(from || to) && (
                 <Button
                   type="button"

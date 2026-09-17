@@ -404,8 +404,11 @@ function addDays(date: Date, amount: number) {
   return result;
 }
 
-function StatisticsCard({ tickets }: { tickets: SupportTicket[] }) {
-  const today = startOfDay(new Date());
+function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; rangeEnd?: string }) {
+  const parsedRangeEnd = rangeEnd ? new Date(`${rangeEnd}T12:00:00`) : new Date();
+  const today = startOfDay(
+    Number.isFinite(parsedRangeEnd.getTime()) ? parsedRangeEnd : new Date(),
+  );
   const currentStart = addDays(today, -6).getTime();
   const previousStart = addDays(today, -13).getTime();
   const currentEnd = addDays(today, 1).getTime();
@@ -444,7 +447,7 @@ function StatisticsCard({ tickets }: { tickets: SupportTicket[] }) {
           className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md bg-muted/60 px-4 text-sm font-semibold text-foreground"
         >
           <CalendarClock className="h-4 w-4" />
-          Últimos 7 dias
+          {rangeEnd ? "Últimos 7 dias do período" : "Últimos 7 dias"}
         </button>
       </div>
 
@@ -1059,8 +1062,9 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
   const allTickets = useTickets();
   const supportTickets = useMemo(() => {
     if (!from && !to) return allTickets;
-    const start = from ? new Date(`${from}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
-    const end = to ? new Date(`${to}T23:59:59.999`).getTime() : Number.POSITIVE_INFINITY;
+    let start = from ? new Date(`${from}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
+    let end = to ? new Date(`${to}T23:59:59.999`).getTime() : Number.POSITIVE_INFINITY;
+    if (from && to && start > end) [start, end] = [end, start];
     return allTickets.filter((ticket) => {
       const opened = new Date(ticket.openedAt).getTime();
       return Number.isFinite(opened) && opened >= start && opened <= end;
@@ -1100,7 +1104,7 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
 
       <div id="analytics-detalhado" className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[0.92fr_1.35fr]">
         <TopAgentsCard tickets={supportTickets} />
-        <StatisticsCard tickets={supportTickets} />
+        <StatisticsCard tickets={supportTickets} rangeEnd={to || from} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
