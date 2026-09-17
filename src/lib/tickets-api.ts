@@ -10,6 +10,8 @@ export type SupportSnapshot = {
   messages: Array<TicketMessage & { ticketId: string }>;
 };
 
+export type TicketActivitySnapshot = Omit<SupportSnapshot, "tickets">;
+
 async function rpc<T>(name: string, args?: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.rpc(name, args);
   if (error) throw error;
@@ -18,7 +20,17 @@ async function rpc<T>(name: string, args?: Record<string, unknown>): Promise<T> 
 
 export const ticketsApi = {
   load() {
-    return rpc<SupportSnapshot>("support_load");
+    return rpc<SupportTicket[]>("support_load_tickets").then((tickets) => ({
+      tickets,
+      events: [],
+      notes: [],
+      messages: [],
+    }));
+  },
+  loadActivity(ticketKey: string) {
+    return rpc<TicketActivitySnapshot>("support_load_ticket_activity", {
+      ticket_key: ticketKey,
+    });
   },
   seed(tickets: SupportTicket[]) {
     return rpc<{ seeded: boolean }>("support_seed_tickets", { payload: tickets });

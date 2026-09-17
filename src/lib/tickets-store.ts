@@ -112,6 +112,8 @@ const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
 let hydrationPromise: Promise<void> | null = null;
+const activityLoaded = new Set<string>();
+const activityLoading = new Map<string, Promise<void>>();
 
 function groupSnapshot<T extends { ticketId: string }>(rows: T[]) {
   return rows.reduce<Record<string, Omit<T, "ticketId">[]>>((result, row) => {
@@ -144,6 +146,23 @@ async function hydrateFromSupabase() {
 function ensureHydrated() {
   hydrationPromise ??= hydrateFromSupabase();
   return hydrationPromise;
+}
+
+function ensureActivityLoaded(ticketId: string) {
+  if (activityLoaded.has(ticketId) || activityLoading.has(ticketId)) return;
+  const promise = ticketsApi
+    .loadActivity(ticketId)
+    .then((snapshot) => {
+      events[ticketId] = snapshot.events.map(({ ticketId: _ticketId, ...event }) => event);
+      internalNotes[ticketId] = snapshot.notes.map(({ ticketId: _ticketId, ...note }) => note);
+      activityLoaded.add(ticketId);
+      emit();
+    })
+    .catch((error) => {
+      console.error(`[tickets-store] Não foi possível carregar o histórico ${ticketId}.`, error);
+    })
+    .finally(() => activityLoading.delete(ticketId));
+  activityLoading.set(ticketId, promise);
 }
 
 let eventCounter = 0;
@@ -447,9 +466,15 @@ export const ticketsStore = {
     };
   },
   getTickets: () => tickets,
-  getEvents: (id: string) => events[id] ?? EMPTY_EVENTS,
+  getEvents: (id: string) => {
+    ensureActivityLoaded(id);
+    return events[id] ?? EMPTY_EVENTS;
+  },
   getHistory: (id: string) => history[id] ?? EMPTY_HISTORY,
-  getInternalNotes: (id: string) => internalNotes[id] ?? EMPTY_NOTES,
+  getInternalNotes: (id: string) => {
+    ensureActivityLoaded(id);
+    return internalNotes[id] ?? EMPTY_NOTES;
+  },
 
   createTicket(input: CreateTicketInput) {
     const when = nowIso();

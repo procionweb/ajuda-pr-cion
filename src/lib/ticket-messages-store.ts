@@ -18,6 +18,8 @@ const EMPTY: TicketMessage[] = [];
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 let hydrationPromise: Promise<void> | null = null;
+const loaded = new Set<string>();
+const loading = new Map<string, Promise<void>>();
 
 let counter = 0;
 const nextId = () => `msg-${Date.now().toString(36)}-${++counter}`;
@@ -73,36 +75,27 @@ function ensureSeed(ticketId: string) {
 }
 
 async function hydrateFromSupabase() {
-  try {
-    const snapshot = await ticketsApi.load();
-    const remoteMessages: Record<string, TicketMessage[]> = {};
-    snapshot.messages.forEach(({ ticketId, ...message }) => {
-      (remoteMessages[ticketId] ??= []).push(message);
-    });
-    for (const ticket of snapshot.tickets) {
-      if (remoteMessages[ticket.id]?.length) {
-        messages[ticket.id] = remoteMessages[ticket.id];
-      } else {
-        ensureSeed(ticket.id);
-        for (const message of messages[ticket.id] ?? []) {
-          await ticketsApi.addMessage(ticket.id, {
-            text: message.text,
-            internal: false,
-            senderCode: message.author === "suporte" ? message.name : undefined,
-            name: message.name,
-            author: message.author,
-          });
-        }
-      }
-    }
-    emit();
-  } catch (error) {
-    console.error("[ticket-messages-store] Não foi possível carregar o chat.", error);
-  }
+  await ticketsApi.load();
 }
 
 function ensureHydrated() {
   hydrationPromise ??= hydrateFromSupabase();
+}
+
+function ensureMessagesLoaded(ticketId: string) {
+  if (loaded.has(ticketId) || loading.has(ticketId)) return;
+  const promise = ticketsApi
+    .loadActivity(ticketId)
+    .then((snapshot) => {
+      messages[ticketId] = snapshot.messages.map(({ ticketId: _ticketId, ...message }) => message);
+      loaded.add(ticketId);
+      emit();
+    })
+    .catch((error) => {
+      console.error(`[ticket-messages-store] Não foi possível carregar o chat ${ticketId}.`, error);
+    })
+    .finally(() => loading.delete(ticketId));
+  loading.set(ticketId, promise);
 }
 
 // Public API (ready to swap for API/WebSocket).
@@ -115,7 +108,7 @@ export const ticketMessagesStore = {
     };
   },
   getMessages(ticketId: string) {
-    ensureSeed(ticketId);
+    ensureMessagesLoaded(ticketId);
     return messages[ticketId] ?? EMPTY;
   },
   // TODO: replace body with API/WebSocket call.
