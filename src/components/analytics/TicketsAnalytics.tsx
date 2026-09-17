@@ -270,7 +270,7 @@ export function TicketsIndicatorCards({
         ),
         build(
           "FIN",
-          "Finalizados no Mês",
+          filtered ? "Chamados Finalizados" : "Finalizados no Mês",
           current.finished,
           previous.finished,
           filtered ? "Concluídos no período" : "Concluídos pela equipe no mês",
@@ -294,7 +294,7 @@ export function TicketsIndicatorCards({
 
 
 
-function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
+function TopAgentsCard({ tickets, filtered = false }: { tickets: SupportTicket[]; filtered?: boolean }) {
   const agents = useMemo(() => {
     const map = new Map<string, { operator: string; handled: number; finished: number; seconds: number }>();
     tickets.forEach((ticket) => {
@@ -322,7 +322,7 @@ function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
           className="h-9 cursor-pointer gap-2 rounded-md border-border bg-white px-3 text-xs font-semibold text-foreground shadow-none hover:bg-muted dark:bg-card"
         >
           <CalendarClock className="h-4 w-4" />
-          Mensal
+          {filtered ? "Período" : "Mensal"}
         </Button>
       </div>
 
@@ -1103,7 +1103,7 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
       <TicketsIndicatorCards tickets={supportTickets} filtered={hasDateFilter} />
 
       <div id="analytics-detalhado" className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[0.92fr_1.35fr]">
-        <TopAgentsCard tickets={supportTickets} />
+        <TopAgentsCard tickets={supportTickets} filtered={hasDateFilter} />
         <StatisticsCard tickets={supportTickets} rangeEnd={to || from} />
       </div>
 
