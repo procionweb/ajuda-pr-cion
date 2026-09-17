@@ -3,11 +3,15 @@ import { z } from "zod";
 import { BarChart3 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
 import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
+import { DateRangeFilter } from "@/components/portal/DateRangeFilter";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TicketsAnalyticsSection } from "@/components/analytics/TicketsAnalytics";
 
 const searchSchema = z.object({
   view: z.string().catch("chamados").default("chamados"),
+  from: z.string().catch("").optional(),
+  to: z.string().catch("").optional(),
 });
 
 export const Route = createFileRoute("/analytics")({
@@ -26,7 +30,7 @@ export const Route = createFileRoute("/analytics")({
 });
 
 function AnalyticsPage() {
-  const { view } = Route.useSearch();
+  const { view, from = "", to = "" } = Route.useSearch();
   const navigate = useNavigate({ from: "/analytics" });
   const activeTab = view === "kanban" ? "kanban" : "chamados";
 
@@ -43,21 +47,45 @@ function AnalyticsPage() {
       <Tabs
         value={activeTab}
         onValueChange={(v) =>
-          navigate({ search: { view: v === "kanban" ? "kanban" : "chamados" } })
+          navigate({ search: { view: v === "kanban" ? "kanban" : "chamados", from, to } })
         }
         className="w-full"
       >
-        <TabsList className="mb-6">
-          <TabsTrigger value="chamados" className="cursor-pointer">
-            Chamados
-          </TabsTrigger>
-          <TabsTrigger value="kanban" className="cursor-pointer">
-            Kanban
-          </TabsTrigger>
-        </TabsList>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabsList>
+            <TabsTrigger value="chamados" className="cursor-pointer">
+              Chamados
+            </TabsTrigger>
+            <TabsTrigger value="kanban" className="cursor-pointer">
+              Kanban
+            </TabsTrigger>
+          </TabsList>
+          {activeTab === "chamados" && (
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <DateRangeFilter
+                from={from}
+                to={to}
+                onChange={(nextFrom, nextTo) =>
+                  navigate({ search: { view: activeTab, from: nextFrom, to: nextTo } })
+                }
+                className="sm:w-[250px]"
+              />
+              {(from || to) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-9 cursor-pointer px-3"
+                  onClick={() => navigate({ search: { view: activeTab, from: "", to: "" } })}
+                >
+                  Limpar
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
 
         <TabsContent value="chamados" className="mt-0">
-          <TicketsAnalyticsSection />
+          <TicketsAnalyticsSection from={from} to={to} />
         </TabsContent>
 
         <TabsContent value="kanban" className="mt-0">

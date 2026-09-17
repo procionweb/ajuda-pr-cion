@@ -176,13 +176,34 @@ function RevenueStyleCards({
   );
 }
 
-export function TicketsIndicatorCards({ month }: { month?: string } = {}) {
-  const supportTickets = useTickets();
+export function TicketsIndicatorCards({
+  month,
+  tickets,
+  filtered = false,
+}: {
+  month?: string;
+  tickets?: SupportTicket[];
+  filtered?: boolean;
+} = {}) {
+  const allTickets = useTickets();
+  const supportTickets = tickets ?? allTickets;
   const monthKey = isMonthKey(month) ? month : currentMonthKey();
 
   const { cards, links } = useMemo(() => {
     const previousKey = addMonths(monthKey, -1);
-    const current = computeMonthMetrics(supportTickets, monthKey);
+    const current = filtered
+      ? {
+          open: supportTickets.filter((ticket) =>
+            ["Atrasado", "Em Aberto", "Ocupado", "Em andamento", "Aguardando cliente", "Com especialista", "Agendamento"].includes(ticket.status),
+          ).length,
+          inProgress: supportTickets.filter((ticket) =>
+            ["Ocupado", "Em andamento", "Aguardando cliente", "Com especialista", "Agendamento"].includes(ticket.status),
+          ).length,
+          overdue: supportTickets.filter((ticket) => ticket.status === "Atrasado").length,
+          finished: supportTickets.filter((ticket) => ticket.status === "Finalizado").length,
+          total: supportTickets.length,
+        }
+      : computeMonthMetrics(supportTickets, monthKey);
     const previous = computeMonthMetrics(supportTickets, previousKey);
     const series = buildMonthSeries(supportTickets, lastMonthKeys(monthKey, 5));
     const monthName = monthLabel(monthKey);
@@ -203,7 +224,7 @@ export function TicketsIndicatorCards({ month }: { month?: string } = {}) {
         tag,
         title,
         value,
-        change: formatPercentChange(delta),
+        change: filtered ? null : formatPercentChange(delta),
         positive: delta === null ? true : higherIsBetter ? delta >= 0 : delta <= 0,
         helper,
         tone,
@@ -219,7 +240,7 @@ export function TicketsIndicatorCards({ month }: { month?: string } = {}) {
           "Chamados Abertos",
           current.open,
           previous.open,
-          `Abertos em ${monthName}`,
+          filtered ? "Abertos no período" : `Abertos em ${monthName}`,
           "from-[#ff9d00] to-[#ffb13b]",
           "bg-[#e28a00]",
           series.map((p: MonthSeriesPoint) => p.opened),
@@ -230,7 +251,7 @@ export function TicketsIndicatorCards({ month }: { month?: string } = {}) {
           "Em Atendimento",
           current.inProgress,
           previous.inProgress,
-          `Em atendimento no mês`,
+          filtered ? "Em atendimento no período" : `Em atendimento no mês`,
           "from-[#0b97c4] to-[#36b9df]",
           "bg-[#087fa6]",
           series.map((p: MonthSeriesPoint) => p.opened),
@@ -241,7 +262,7 @@ export function TicketsIndicatorCards({ month }: { month?: string } = {}) {
           "Chamados Atrasados",
           current.overdue,
           previous.overdue,
-          "Fora do SLA no mês",
+          filtered ? "Fora do SLA no período" : "Fora do SLA no mês",
           "from-[#ff1f25] to-[#ff4a50]",
           "bg-[#d80f15]",
           series.map((p: MonthSeriesPoint) => p.overdue),
@@ -252,7 +273,7 @@ export function TicketsIndicatorCards({ month }: { month?: string } = {}) {
           "Finalizados no Mês",
           current.finished,
           previous.finished,
-          "Concluídos pela equipe no mês",
+          filtered ? "Concluídos no período" : "Concluídos pela equipe no mês",
           "from-[#18b978] to-[#36d695]",
           "bg-[#10955f]",
           series.map((p: MonthSeriesPoint) => p.finished),
@@ -1034,8 +1055,18 @@ function BarRow({
   );
 }
 
-export function TicketsAnalyticsSection() {
-  const supportTickets = useTickets();
+export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string; to?: string }) {
+  const allTickets = useTickets();
+  const supportTickets = useMemo(() => {
+    if (!from && !to) return allTickets;
+    const start = from ? new Date(`${from}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
+    const end = to ? new Date(`${to}T23:59:59.999`).getTime() : Number.POSITIVE_INFINITY;
+    return allTickets.filter((ticket) => {
+      const opened = new Date(ticket.openedAt).getTime();
+      return Number.isFinite(opened) && opened >= start && opened <= end;
+    });
+  }, [allTickets, from, to]);
+  const hasDateFilter = Boolean(from || to);
 
   const statusDistribution = ticketStatuses
     .filter((status) => status !== "Atrasado" && status !== "Cancelado")
@@ -1065,7 +1096,7 @@ export function TicketsAnalyticsSection() {
 
   return (
     <section className="space-y-6">
-      <TicketsIndicatorCards />
+      <TicketsIndicatorCards tickets={supportTickets} filtered={hasDateFilter} />
 
       <div id="analytics-detalhado" className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[0.92fr_1.35fr]">
         <TopAgentsCard tickets={supportTickets} />
