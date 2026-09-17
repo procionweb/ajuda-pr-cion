@@ -16,15 +16,12 @@ import {
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   Headphones,
   Layers,
   MessageSquarePlus,
   MoreVertical,
   PhoneCall,
-  Star,
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +33,7 @@ import {
   type TicketStatus,
 } from "@/lib/support-tickets-data";
 import { useTickets } from "@/lib/tickets-store";
+import { computeAttendanceTime, computeSla, formatElapsedTime } from "@/lib/ticket-sla";
 import {
   addMonths,
   buildMonthSeries,
@@ -275,53 +273,15 @@ export function TicketsIndicatorCards({ month }: { month?: string } = {}) {
 
 
 
-const agentProfiles: Record<string, { name: string; role: string; avatar: string; rating: number }> = {
-  PRCGGC: {
-    name: "PRCGGC",
-    role: "Analista de Suporte",
-    avatar: "https://i.pravatar.cc/120?img=47",
-    rating: 4.8,
-  },
-  PRCMAR: {
-    name: "Marcos Ribeiro",
-    role: "Especialista Sênior",
-    avatar: "https://i.pravatar.cc/120?img=12",
-    rating: 4.6,
-  },
-  PRCROG: {
-    name: "Rogerio Lima",
-    role: "Líder de Atendimento",
-    avatar: "https://i.pravatar.cc/120?img=33",
-    rating: 4.7,
-  },
-  PRCLCZ: {
-    name: "Lucas Cruz",
-    role: "Analista de Suporte",
-    avatar: "https://i.pravatar.cc/120?img=59",
-    rating: 4.5,
-  },
-  PRCPED: {
-    name: "Pedro Almeida",
-    role: "Analista de Sistemas",
-    avatar: "https://i.pravatar.cc/120?img=52",
-    rating: 4.4,
-  },
-  PRCTRE: {
-    name: "Trevisan Silva",
-    role: "Consultor Técnico",
-    avatar: "https://i.pravatar.cc/120?img=65",
-    rating: 4.3,
-  },
-};
-
 function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
   const agents = useMemo(() => {
-    const map = new Map<string, { operator: string; handled: number; finished: number }>();
+    const map = new Map<string, { operator: string; handled: number; finished: number; seconds: number }>();
     tickets.forEach((ticket) => {
-      const key = ticket.owner;
-      const current = map.get(key) ?? { operator: key, handled: 0, finished: 0 };
+      const key = ticket.owner?.trim() || ticket.attendant?.trim() || "Não informado";
+      const current = map.get(key) ?? { operator: key, handled: 0, finished: 0, seconds: 0 };
       current.handled += 1;
       if (ticket.status === "Finalizado") current.finished += 1;
+      current.seconds += computeAttendanceTime(ticket).seconds;
       map.set(key, current);
     });
     return Array.from(map.values())
@@ -346,23 +306,15 @@ function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
       </div>
 
       <div className="space-y-3">
-        {agents.map((agent, index) => {
-          const profile = agentProfiles[agent.operator] ?? {
-            name: agent.operator,
-            role: "Analista de Suporte",
-            avatar: `https://i.pravatar.cc/120?u=${agent.operator}`,
-            rating: 4.4,
-          };
-          const fallbackRates = [70, 95, 60, 80];
-          const rawResolutionRate = agent.handled
+        {agents.map((agent) => {
+          const resolutionRate = agent.handled
             ? Math.round((agent.finished / agent.handled) * 100)
-            : fallbackRates[index] ?? 70;
-          const resolutionRate = Math.min(
-            98,
-            Math.max(fallbackRates[index] ?? 70, rawResolutionRate),
-          );
+            : 0;
           const activeDots = Math.round((resolutionRate / 100) * 18);
-          const avgResolutionTime = (1.1 + index * 0.18 + agent.handled * 0.08).toFixed(1);
+          const avgResolutionTime = formatElapsedTime(
+            agent.handled ? agent.seconds / agent.handled : 0,
+          );
+          const initial = agent.operator.charAt(0).toLocaleUpperCase("pt-BR") || "?";
 
           return (
             <div
@@ -370,26 +322,25 @@ function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
               className="flex flex-col gap-3 rounded-md border border-border/80 bg-white px-4 py-3 dark:bg-background/30 lg:flex-row lg:items-center lg:gap-5"
             >
               <div className="flex min-w-0 items-center gap-3 lg:w-[200px]">
-                <img
-                  src={profile.avatar}
-                  alt={profile.name}
-                  className="h-10 w-10 shrink-0 rounded-full object-cover"
-                  loading="lazy"
-                />
+                <span
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
+                  aria-hidden="true"
+                >
+                  {initial}
+                </span>
                 <div className="min-w-0">
                   <p className="truncate text-[13px] font-semibold text-foreground">
-                    {profile.name}
+                    {agent.operator}
                   </p>
-                  <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <Star className="h-3 w-3 fill-[#ffb31a] text-[#ffb31a]" />
-                    <span>{profile.rating.toFixed(1)}</span>
-                  </div>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {agent.finished} finalizado{agent.finished === 1 ? "" : "s"}
+                  </p>
                 </div>
               </div>
 
               <div className="min-w-0 lg:w-[130px]">
                 <p className="text-[11px] text-muted-foreground">Tempo médio</p>
-                <p className="mt-0.5 text-[14px] font-bold text-foreground">{avgResolutionTime}h</p>
+                <p className="mt-0.5 text-[14px] font-bold text-foreground">{avgResolutionTime}</p>
               </div>
 
               <div className="min-w-0 lg:w-[120px]">
@@ -422,47 +373,47 @@ function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
 
   );
 }
-const statisticsDays = [
-  { day: "11", weekday: "QUI" },
-  { day: "12", weekday: "SEX" },
-  { day: "13", weekday: "SAB", warm: true },
-  { day: "14", weekday: "DOM", warm: true },
-  { day: "15", weekday: "SEG" },
-  { day: "16", weekday: "TER" },
-  { day: "17", weekday: "QUA" },
-  { day: "18", weekday: "QUI" },
-  { day: "19", weekday: "SEX" },
-  { day: "20", weekday: "SAB", warm: true },
-  { day: "21", weekday: "DOM", warm: true },
-  { day: "22", weekday: "SEG" },
-  { day: "23", weekday: "TER" },
-  { day: "24", weekday: "QUA" },
-  { day: "25", weekday: "QUI" },
-  { day: "26", weekday: "SEX" },
-  { day: "27", weekday: "SAB", warm: true },
-  { day: "28", weekday: "DOM", warm: true },
-  { day: "29", weekday: "SEG" },
-  { day: "30", weekday: "TER", active: true },
-  { day: "31", weekday: "QUA" },
-  { day: "01", weekday: "QUI", outlined: true },
-];
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
 
-const hourlyStats = [
-  { time: "7am", thisWeek: 28, lastWeek: 23 },
-  { time: "8am", thisWeek: 45, lastWeek: 38 },
-  { time: "9am", thisWeek: 86, lastWeek: 72 },
-  { time: "10am", thisWeek: 120, lastWeek: 98 },
-  { time: "11am", thisWeek: 96, lastWeek: 82 },
-  { time: "12pm", thisWeek: 78, lastWeek: 66 },
-  { time: "1pm", thisWeek: 65, lastWeek: 56 },
-  { time: "2pm", thisWeek: 72, lastWeek: 61 },
-  { time: "3pm", thisWeek: 88, lastWeek: 76 },
-  { time: "4pm", thisWeek: 62, lastWeek: 53 },
-  { time: "5pm", thisWeek: 48, lastWeek: 41 },
-  { time: "6pm", thisWeek: 36, lastWeek: 29 },
-];
+function addDays(date: Date, amount: number) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + amount);
+  return result;
+}
 
-function StatisticsCard() {
+function StatisticsCard({ tickets }: { tickets: SupportTicket[] }) {
+  const today = startOfDay(new Date());
+  const currentStart = addDays(today, -6).getTime();
+  const previousStart = addDays(today, -13).getTime();
+  const currentEnd = addDays(today, 1).getTime();
+  const statisticsDays = Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(today, index - 6);
+    return {
+      day: String(date.getDate()).padStart(2, "0"),
+      weekday: new Intl.DateTimeFormat("pt-BR", { weekday: "short" })
+        .format(date)
+        .replace(".", "")
+        .toLocaleUpperCase("pt-BR"),
+      warm: date.getDay() === 0 || date.getDay() === 6,
+      active: index === 6,
+    };
+  });
+  const hourlyStats = Array.from({ length: 12 }, (_, index) => {
+    const hour = index + 7;
+    let thisWeek = 0;
+    let lastWeek = 0;
+    tickets.forEach((ticket) => {
+      const opened = new Date(ticket.openedAt).getTime();
+      if (!Number.isFinite(opened) || new Date(opened).getHours() !== hour) return;
+      if (opened >= currentStart && opened < currentEnd) thisWeek += 1;
+      else if (opened >= previousStart && opened < currentStart) lastWeek += 1;
+    });
+    return { time: `${hour}h`, thisWeek, lastWeek };
+  });
+  const chartMax = Math.max(1, ...hourlyStats.flatMap((item) => [item.thisWeek, item.lastWeek]));
+  const yMax = Math.max(4, Math.ceil(chartMax / 4) * 4);
   return (
     <Card className="w-full max-w-full min-w-0 overflow-hidden rounded-[14px] border border-border/60 bg-white p-4 shadow-[0_10px_26px_rgba(25,29,51,0.06)] dark:bg-[#20263d] sm:p-5">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -477,16 +428,12 @@ function StatisticsCard() {
       </div>
 
       <div className="mb-6 flex items-center gap-1.5 overflow-x-auto pb-1">
-        <button className="grid h-[60px] w-[40px] shrink-0 cursor-pointer place-items-center rounded-md bg-muted/60 text-foreground">
-          <ChevronLeft className="h-4 w-4" />
-        </button>
         {statisticsDays.map((item) => (
           <button
             key={`${item.day}-${item.weekday}`}
             className={cn(
               "grid h-[60px] w-[44px] shrink-0 cursor-pointer place-items-center rounded-md bg-muted/45 text-center transition",
               item.active && "bg-[#a779c7] text-white",
-              item.outlined && "border-2 border-[#7fb9ab] bg-white text-[#6aa899] dark:bg-[#20263d]",
             )}
           >
             <span>
@@ -503,9 +450,6 @@ function StatisticsCard() {
             </span>
           </button>
         ))}
-        <button className="grid h-[60px] w-[40px] shrink-0 cursor-pointer place-items-center rounded-md bg-muted/60 text-foreground">
-          <ChevronRight className="h-4 w-4" />
-        </button>
       </div>
 
       <div className="h-[300px] w-full min-w-0 overflow-hidden">
@@ -523,7 +467,8 @@ function StatisticsCard() {
             <YAxis
               axisLine={false}
               tickLine={false}
-              ticks={[0, 40, 80, 120, 160]}
+              domain={[0, yMax]}
+              allowDecimals={false}
               tick={{ fontSize: 12, fill: "#66708a" }}
               width={42}
             />
@@ -560,16 +505,26 @@ function StatisticsCard() {
   );
 }
 
-const weeklyTopCompanies = [
-  { company: "MIT", nfe: 8, basic: 4, financial: 3 },
-  { company: "MRG", nfe: 7, basic: 5, financial: 2 },
-  { company: "MSS", nfe: 6, basic: 3, financial: 4 },
-  { company: "IMP", nfe: 3, basic: 7, financial: 2 },
-  { company: "CTR", nfe: 2, basic: 6, financial: 3 },
-  { company: "EPB", nfe: 3, basic: 5, financial: 2 },
-];
+function WeeklyBacklogCard({ tickets }: { tickets: SupportTicket[] }) {
+  const weeklyTopCompanies = useMemo(() => {
+    const weekStart = addDays(startOfDay(new Date()), -6).getTime();
+    const companies = new Map<string, { company: string; nfe: number; basic: number; others: number }>();
+    tickets.forEach((ticket) => {
+      const opened = new Date(ticket.openedAt).getTime();
+      if (!Number.isFinite(opened) || opened < weekStart) return;
+      const company = ticket.clientCode?.trim() || ticket.clientName?.trim() || "Não informado";
+      const current = companies.get(company) ?? { company, nfe: 0, basic: 0, others: 0 };
+      const module = ticket.module.toLocaleLowerCase("pt-BR");
+      if (module.includes("nfe") || module.includes("nf-e")) current.nfe += 1;
+      else if (module.includes("basico") || module.includes("básico") || module.includes("terceiro")) current.basic += 1;
+      else current.others += 1;
+      companies.set(company, current);
+    });
+    return Array.from(companies.values())
+      .sort((a, b) => b.nfe + b.basic + b.others - (a.nfe + a.basic + a.others))
+      .slice(0, 6);
+  }, [tickets]);
 
-function WeeklyBacklogCard() {
   return (
     <Card className="rounded-[14px] border-0 bg-white dark:bg-[#20263d] p-6 shadow-[0_10px_26px_rgba(25,29,51,0.06)]">
       <div className="mb-4 flex items-center justify-between">
@@ -598,14 +553,14 @@ function WeeklyBacklogCard() {
             />
             <Bar dataKey="nfe" name="NF-e" fill="#8d6bd8" radius={[6, 6, 0, 0]} />
             <Bar dataKey="basic" name="Básico / Terceiros" fill="#ff9f68" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="financial" name="Financeiro" fill="#ff5fc8" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="others" name="Demais módulos" fill="#ff5fc8" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-5 text-xs font-semibold text-muted-foreground">
         <LegendDot color="#8d6bd8" label="NF-e" />
         <LegendDot color="#ff9f68" label="Básico / Terceiros" />
-        <LegendDot color="#ff5fc8" label="Financeiro" />
+        <LegendDot color="#ff5fc8" label="Demais módulos" />
       </div>
     </Card>
   );
@@ -621,23 +576,74 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 }
 
 function SlaProfileCard({
-  slaMedio,
-  avgHandlingLabel,
-  resolutionRate,
-  portalTickets,
+  tickets,
 }: {
-  slaMedio: number;
-  avgHandlingLabel: string;
-  resolutionRate: number;
-  portalTickets: number;
+  tickets: SupportTicket[];
 }) {
+  const now = Date.now();
+  const today = startOfDay(new Date());
+  const currentStart = addDays(today, -6).getTime();
+  const previousStart = addDays(today, -13).getTime();
+  const currentEnd = addDays(today, 1).getTime();
+  const currentWeek = tickets.filter((ticket) => {
+    const opened = new Date(ticket.openedAt).getTime();
+    return opened >= currentStart && opened < currentEnd;
+  });
+  const previousWeek = tickets.filter((ticket) => {
+    const opened = new Date(ticket.openedAt).getTime();
+    return opened >= previousStart && opened < currentStart;
+  });
+  const finishedTickets = tickets.filter((ticket) => ticket.status === "Finalizado");
+  const resolutionRate = tickets.length ? Math.round((finishedTickets.length / tickets.length) * 100) : 0;
+  const portalTickets = tickets.filter((ticket) => ticket.source === "Portal do cliente").length;
+  const attendanceTimes = tickets.map((ticket) => computeAttendanceTime(ticket, now).seconds).filter(Boolean);
+  const avgHandlingLabel = formatElapsedTime(
+    attendanceTimes.length
+      ? attendanceTimes.reduce((total, seconds) => total + seconds, 0) / attendanceTimes.length
+      : 0,
+  );
+  const slaResults = tickets.map((ticket) => computeSla(ticket, now));
+  const slaMedio = slaResults.length
+    ? Math.round((slaResults.filter((result) => result.pct < 100).length / slaResults.length) * 100)
+    : 0;
+  const averageFirstResponse = (rows: SupportTicket[]) => {
+    const values = rows.flatMap((ticket) => {
+      if (!ticket.attendanceStartedAt) return [];
+      const minutes = (new Date(ticket.attendanceStartedAt).getTime() - new Date(ticket.openedAt).getTime()) / 60000;
+      return Number.isFinite(minutes) && minutes >= 0 ? [minutes] : [];
+    });
+    return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
+  };
+  const weeklyValue = (rows: SupportTicket[], predicate: (ticket: SupportTicket) => boolean) => rows.filter(predicate).length;
+  const deltaLabel = (current: number, previous: number, suffix = "") => {
+    const delta = current - previous;
+    return `${delta > 0 ? "+" : ""}${delta}${suffix}`;
+  };
+  const currentFirstResponse = averageFirstResponse(currentWeek);
+  const previousFirstResponse = averageFirstResponse(previousWeek);
+  const currentInAttendance = weeklyValue(currentWeek, (ticket) => ["Ocupado", "Em andamento", "Com especialista"].includes(ticket.status));
+  const previousInAttendance = weeklyValue(previousWeek, (ticket) => ["Ocupado", "Em andamento", "Com especialista"].includes(ticket.status));
+  const currentWaiting = weeklyValue(currentWeek, (ticket) => ticket.status === "Aguardando cliente");
+  const previousWaiting = weeklyValue(previousWeek, (ticket) => ticket.status === "Aguardando cliente");
+  const currentLate = weeklyValue(currentWeek, (ticket) => computeSla(ticket, now).pct >= 100);
+  const previousLate = weeklyValue(previousWeek, (ticket) => computeSla(ticket, now).pct >= 100);
   const weekIndicators = [
-    { icon: Clock3, label: "Primeira resposta", value: "24 min", delta: "-3 min", tone: "text-[#20bf6b]" },
-    { icon: Headphones, label: "Em atendimento", value: "5", delta: "+1", tone: "text-[#20bf6b]" },
-    { icon: UserRound, label: "Aguardando cliente", value: "3", delta: "0", tone: "text-muted-foreground" },
-    { icon: AlertTriangle, label: "Fora do SLA", value: "1", delta: "-1", tone: "text-[#20bf6b]" },
+    { icon: Clock3, label: "Primeira resposta", value: `${currentFirstResponse} min`, delta: deltaLabel(currentFirstResponse, previousFirstResponse, " min"), tone: currentFirstResponse <= previousFirstResponse ? "text-[#20bf6b]" : "text-rose-500" },
+    { icon: Headphones, label: "Em atendimento", value: String(currentInAttendance), delta: deltaLabel(currentInAttendance, previousInAttendance), tone: "text-muted-foreground" },
+    { icon: UserRound, label: "Aguardando cliente", value: String(currentWaiting), delta: deltaLabel(currentWaiting, previousWaiting), tone: "text-muted-foreground" },
+    { icon: AlertTriangle, label: "Fora do SLA", value: String(currentLate), delta: deltaLabel(currentLate, previousLate), tone: currentLate <= previousLate ? "text-[#20bf6b]" : "text-rose-500" },
   ];
-  const slaSpark = [72, 75, 74, 78, 76, 80, 82];
+  const slaSpark = Array.from({ length: 7 }, (_, index) => {
+    const start = addDays(today, index - 6).getTime();
+    const end = addDays(today, index - 5).getTime();
+    const daily = tickets.filter((ticket) => {
+      const opened = new Date(ticket.openedAt).getTime();
+      return opened >= start && opened < end;
+    });
+    return daily.length
+      ? Math.round((daily.filter((ticket) => computeSla(ticket, now).pct < 100).length / daily.length) * 100)
+      : 0;
+  });
   const sparkMax = Math.max(...slaSpark);
   const sparkMin = Math.min(...slaSpark);
   const sparkPoints = slaSpark
@@ -691,7 +697,7 @@ function SlaProfileCard({
           <div className="flex-1 min-w-0">
             <p className="text-[11px] text-muted-foreground">Evolução do SLA</p>
             <p className="text-sm font-bold text-foreground">
-              82% <span className="ml-1 text-[10px] font-medium text-[#20bf6b]">+5% na semana</span>
+              {slaMedio}% <span className="ml-1 text-[10px] font-medium text-muted-foreground">dados dos chamados</span>
             </p>
           </div>
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-8 w-24 shrink-0">
@@ -926,12 +932,25 @@ function StatusCategoriesCard({
 function SourceModuleCard({
   sources,
   modules,
+  tickets,
 }: {
   sources: { source: string; label: string; total: number }[];
   modules: { label: string; total: number }[];
+  tickets: SupportTicket[];
 }) {
   const sourceMax = Math.max(1, ...sources.map((s) => s.total));
   const moduleMax = Math.max(1, ...modules.map((m) => m.total));
+  const topSource = [...sources].sort((a, b) => b.total - a.total)[0];
+  const topModule = modules[0];
+  const hourCounts = new Map<number, number>();
+  tickets.forEach((ticket) => {
+    const date = new Date(ticket.openedAt);
+    if (Number.isNaN(date.getTime())) return;
+    hourCounts.set(date.getHours(), (hourCounts.get(date.getHours()) ?? 0) + 1);
+  });
+  const peakHour = Array.from(hourCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const sourcePct = tickets.length && topSource ? Math.round((topSource.total / tickets.length) * 100) : 0;
+  const modulePct = tickets.length && topModule ? Math.round((topModule.total / tickets.length) * 100) : 0;
   return (
     <Card className="rounded-[14px] border-0 bg-white dark:bg-[#20263d] p-6 shadow-[0_10px_26px_rgba(25,29,51,0.06)]">
       <div className="flex items-start justify-between">
@@ -970,10 +989,10 @@ function SourceModuleCard({
         </p>
         <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 divide-border/60 sm:grid-cols-4 sm:divide-x">
           {[
-            { icon: PhoneCall, label: "Canal principal", value: "Telefone" },
-            { icon: Layers, label: "Módulo mais acionado", value: "NFE" },
-            { icon: MessageSquarePlus, label: "Interações", value: "10" },
-            { icon: CalendarClock, label: "Horário de pico", value: "10h–11h" },
+            { icon: PhoneCall, label: "Canal principal", value: topSource?.label ?? "—" },
+            { icon: Layers, label: "Módulo mais acionado", value: topModule?.label ?? "—" },
+            { icon: MessageSquarePlus, label: "Chamados", value: String(tickets.length) },
+            { icon: CalendarClock, label: "Horário de pico", value: peakHour === undefined ? "—" : `${peakHour}h–${peakHour + 1}h` },
           ].map(({ icon: Icon, label, value }, i) => (
             <div key={label} className={cn("flex flex-col gap-0.5", i > 0 && "sm:pl-3")}>
               <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -985,7 +1004,7 @@ function SourceModuleCard({
           ))}
         </div>
         <p className="mt-3 rounded-lg bg-muted/40 dark:bg-white/[0.03] px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-          Telefone concentra 40% dos contatos e NFE representa 40% das solicitações.
+          {topSource?.label ?? "Nenhum canal"} concentra {sourcePct}% dos chamados e {topModule?.label ?? "nenhum módulo"} representa {modulePct}% das solicitações.
         </p>
       </div>
     </Card>
@@ -1017,15 +1036,6 @@ function BarRow({
 
 export function TicketsAnalyticsSection() {
   const supportTickets = useTickets();
-
-  const portalTickets = supportTickets.filter((ticket) => ticket.source === "Portal do cliente").length;
-
-  const finishedTickets = supportTickets.filter((ticket) => ticket.status === "Finalizado").length;
-  const resolutionRate = supportTickets.length
-    ? Math.round((finishedTickets / supportTickets.length) * 100)
-    : 0;
-  const avgHandlingLabel = "01h 47min";
-  const slaMedio = 82;
 
   const statusDistribution = ticketStatuses
     .filter((status) => status !== "Atrasado" && status !== "Cancelado")
@@ -1059,22 +1069,21 @@ export function TicketsAnalyticsSection() {
 
       <div id="analytics-detalhado" className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[0.92fr_1.35fr]">
         <TopAgentsCard tickets={supportTickets} />
-        <StatisticsCard />
+        <StatisticsCard tickets={supportTickets} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <WeeklyBacklogCard />
-        <SlaProfileCard
-          slaMedio={slaMedio}
-          avgHandlingLabel={avgHandlingLabel}
-          resolutionRate={resolutionRate}
-          portalTickets={portalTickets}
-        />
+        <WeeklyBacklogCard tickets={supportTickets} />
+        <SlaProfileCard tickets={supportTickets} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <StatusCategoriesCard data={statusDistribution} />
-        <SourceModuleCard sources={sourceDistribution} modules={moduleDistribution} />
+        <SourceModuleCard
+          sources={sourceDistribution}
+          modules={moduleDistribution}
+          tickets={supportTickets}
+        />
       </div>
     </section>
   );
