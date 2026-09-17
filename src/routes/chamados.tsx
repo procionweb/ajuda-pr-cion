@@ -606,6 +606,11 @@ function TicketsPage() {
 
   const monthView = isTicketMonthView(search.visao) ? search.visao : null;
 
+  const clearAllTicketFilters = () => {
+    setFilters({ ...initialFilters, dateStart: undefined, dateEnd: undefined });
+    navigateHere({ search: {}, replace: true });
+  };
+
   const filteredTickets = useMemo(() => {
     const query = filters.query.trim().toLowerCase();
     const sigla = filters.sigla.trim().toLowerCase();
@@ -881,7 +886,7 @@ function TicketsPage() {
               type="button"
               variant="ghost"
               className="h-10 cursor-pointer rounded-lg text-sm"
-              onClick={() => setFilters({ ...initialFilters, dateStart: undefined, dateEnd: undefined })}
+              onClick={clearAllTicketFilters}
             >
               <SlidersHorizontal className="mr-1.5 h-4 w-4" />
               Limpar
@@ -990,6 +995,16 @@ function TicketsPage() {
               }
             />
           </div>
+
+          {(hasAnyActive(filters) || monthView) && (
+            <button
+              type="button"
+              onClick={clearAllTicketFilters}
+              className="h-9 shrink-0 cursor-pointer rounded-lg px-2 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Limpar
+            </button>
+          )}
 
 
         </div>
