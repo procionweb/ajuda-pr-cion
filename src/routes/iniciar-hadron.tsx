@@ -31,6 +31,7 @@ import {
   ScanEye,
   SlidersHorizontal,
   Sparkles,
+  ArrowUpDown,
   ArrowUp,
   Trash2,
   UserRound,
@@ -98,12 +99,14 @@ import {
   formatLogDate,
   listHadronOptionLogs,
   recordHadronOptionLog,
+  translateHadronLogTerm,
   type AuthLogRow,
 } from "@/lib/auth-logs-api";
 import {
   createHadronOccurrence,
   deleteHadronOccurrence,
   getHadronOccurrenceKindCounts,
+  getHadronOpenOccurrenceStats,
   getHadronOverview,
   listHadronOccurrences,
   listHadronOccurrenceOperators,
@@ -858,8 +861,8 @@ function getHadronOptionStatus(
 ): HadronOptionStatus {
   if (disabled || option.status === "90") return "desativada";
   if (option.status === "10") return "hadron";
-  if (option.status === "9") return "testes";
-  if (option.status === "8") return "aprovada";
+  if (option.status === "8") return "testes";
+  if (option.status === "9") return "aprovada";
   if (option.status === "4" || activeCount > 0) return "correcoes";
   return "desenvolvimento";
 }
@@ -913,10 +916,18 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [occurrenceSummary, setOccurrenceSummary] = useState<Record<string, number>>({});
+  const [openOccurrenceStats, setOpenOccurrenceStats] = useState<Record<string, { count: number; firstOccurrence: string | null }>>({});
+  const [optionSort, setOptionSort] = useState<"default" | "occupied" | "priority">("default");
   useEffect(() => {
     void getHadronOccurrenceKindCounts()
       .then(setOccurrenceSummary)
       .catch(() => setOccurrenceSummary({}));
+  }, []);
+  useEffect(() => {
+    const load = () => void getHadronOpenOccurrenceStats().then(setOpenOccurrenceStats).catch(() => setOpenOccurrenceStats({}));
+    load();
+    window.addEventListener("hadron-occurrence-reviewed", load);
+    return () => window.removeEventListener("hadron-occurrence-reviewed", load);
   }, []);
   useEffect(() => {
     let active = true;
@@ -960,9 +971,10 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
         (current, ticket) => (!current || ticket.updatedAt > current.updatedAt ? ticket : current),
         undefined,
       );
-      return { option, active, latest, related, disabled: disabledOptions.includes(option.id) };
+      const openStat = openOccurrenceStats[option.id] || { count: 0, firstOccurrence: null };
+      return { option, active, latest, related, openStat, disabled: disabledOptions.includes(option.id) };
     });
-  }, [customOptions, disabledOptions, optionOverrides, tickets]);
+  }, [customOptions, disabledOptions, openOccurrenceStats, optionOverrides, tickets]);
   const operators = useMemo(
     () => [...new Set(optionsWithTickets.map(({option}) => option.owner.trim()).filter(Boolean))].sort(),
     [optionsWithTickets],
@@ -973,7 +985,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
     const formFilter = normalizeOccurrenceText(formQuery);
     const from = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
     const to = dateTo ? new Date(`${dateTo}T23:59:59`).getTime() : null;
-    return optionsWithTickets.filter(({ option, active, latest, related, disabled }) => {
+    const filtered = optionsWithTickets.filter(({ option, latest, related, openStat, disabled }) => {
       const searchable = normalizeOccurrenceText(
         [
           option.option,
@@ -988,7 +1000,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
       );
       const rawDate = getHadronOptionDate(option, latest, related, dateType);
       const dateValue = rawDate ? new Date(rawDate).getTime() : null;
-      const status = getHadronOptionStatus(option, active.length, disabled);
+      const status = getHadronOptionStatus(option, openStat.count, disabled);
       return (
         (!global || searchable.includes(global)) &&
         (!optionFilter ||
@@ -1008,6 +1020,13 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
         (to === null || (dateValue !== null && dateValue <= to))
       );
     });
+    if (optionSort === "occupied") {
+      return [...filtered].sort((a, b) => Number(Boolean(optionLocks[b.option.id] || b.option.occupied)) - Number(Boolean(optionLocks[a.option.id] || a.option.occupied)) || a.option.option.localeCompare(b.option.option, "pt-BR", { numeric: true }));
+    }
+    if (optionSort === "priority") {
+      return [...filtered].sort((a, b) => Number(b.option.priority || 0) - Number(a.option.priority || 0) || a.option.option.localeCompare(b.option.option, "pt-BR", { numeric: true }));
+    }
+    return filtered;
   }, [
     characteristic,
     dateFrom,
@@ -1018,6 +1037,8 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
     module,
     operator,
     optionQuery,
+    optionLocks,
+    optionSort,
     optionsWithTickets,
     query,
   ]);
@@ -1047,13 +1068,11 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
     const activeDates: number[] = [];
     const now = Date.now();
 
-    optionsWithTickets.forEach(({ option, active, disabled }) => {
-      active.forEach((ticket) => {
-        const openedAt = new Date(ticket.openedAt).getTime();
-        if (Number.isFinite(openedAt)) activeDates.push(openedAt);
-      });
+    optionsWithTickets.forEach(({ option, openStat, disabled }) => {
+      const openedAt = openStat.firstOccurrence ? new Date(openStat.firstOccurrence).getTime() : Number.NaN;
+      if (Number.isFinite(openedAt)) activeDates.push(openedAt);
 
-      const status = getHadronOptionStatus(option, active.length, disabled);
+      const status = getHadronOptionStatus(option, openStat.count, disabled);
       if (status === "desativada") return;
       if (status === "hadron") counts.hadron += 1;
       else if (status === "testes") counts.tests += 1;
@@ -1150,6 +1169,25 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
       toast.error("Não foi possível liberar esta opção.");
     }
   };
+  const releaseOptionToTests = async (option: HadronOption) => {
+    const updated = {
+      ...option,
+      status: "8",
+      releaseOwner: currentUser.operator || currentUser.name,
+      updatedAt: new Date().toISOString(),
+    };
+    if (!await trySaveCrmCatalog("options", [updated])) return;
+    await releaseHadronOptionLock(option.id);
+    setOptionLocks((current) => {
+      const next = { ...current };
+      delete next[option.id];
+      return next;
+    });
+    setViewingOption(null);
+    void recordHadronOptionLog(option.id, "releaseTests", "Opção liberada para testes");
+    window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed"));
+    toast.success("Opção liberada para testes.");
+  };
   if (viewingOption) {
     const row = optionsWithTickets.find(({ option }) => option.id === viewingOption.id);
     return (
@@ -1157,10 +1195,12 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
         <HadronOptionPage
           option={row?.option || viewingOption}
           tickets={row?.related || []}
+          unresolvedCount={row?.openStat.count || 0}
           disabled={row?.disabled || false}
           onBack={returnToOptions}
           onExit={() => void leaveOption()}
           onEdit={() => setEditingOption(row?.option || viewingOption)}
+          onReleaseTests={() => void releaseOptionToTests(row?.option || viewingOption)}
         />
         <OptionEditDialog
           option={editingOption}
@@ -1281,7 +1321,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                 setPage(1);
               }}
               items={[
-                ["criacao", "Criação"],
+                ["criacao", "Tipo data"],
                 ["liberacao", "Liberação Cliente"],
                 ["aprovacao", "Aprovação"],
               ]}
@@ -1310,6 +1350,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
           <table className="w-full table-fixed text-left text-[11px] xl:text-xs">
             <colgroup>
               <col className="w-[9%]" />
+              <col className="w-[3%]" />
               <col className="w-[6%]" />
               <col className="w-[6%]" />
               <col className="w-[22%]" />
@@ -1322,9 +1363,15 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
             </colgroup>
             <thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal">
               <tr>
+                <th className="break-words px-2 py-3 font-medium">Status</th>
+                <th className="px-1 py-3 text-center font-medium">
+                  <button type="button" title="Ordenar por prioridade" onClick={() => setOptionSort(optionSort === "priority" ? "default" : "priority")} className="inline-flex cursor-pointer items-center gap-1">P<ArrowUpDown className="h-3 w-3" /></button>
+                </th>
+                <th className="break-words px-2 py-3 font-medium">
+                  <span className="block">Opção</span>
+                  <button type="button" onClick={() => setOptionSort(optionSort === "occupied" ? "default" : "occupied")} className="mt-0.5 inline-flex cursor-pointer items-center gap-1 text-[10px] text-muted-foreground">Ocupada<ArrowUpDown className="h-3 w-3" /></button>
+                </th>
                 {[
-                  "Status",
-                  "Opção",
                   "Formulário",
                   "Descrição",
                   "Chamada",
@@ -1341,19 +1388,22 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
               </tr>
             </thead>
             <tbody>
-              {pagedRows.map(({ option, active, latest, related, disabled }) => {
+              {pagedRows.map(({ option, openStat, disabled }) => {
                 const optionLock = optionLocks[option.id];
                 const lockedByAnother = Boolean(
                   optionLock && optionLock.userId !== session?.user.id,
                 );
-                const optionStatus = getHadronOptionStatus(option, active.length, disabled);
+                const optionStatus = getHadronOptionStatus(option, openStat.count, disabled);
+                const daysOverdue = openStat.firstOccurrence
+                  ? Math.max(0, Math.floor((Date.now() - new Date(openStat.firstOccurrence).getTime()) / 86_400_000))
+                  : 0;
                 const statusDisplay = {
                   desenvolvimento: {
                     label: "DESENVOLVIMENTO",
                     className: "bg-slate-600 text-white hover:bg-slate-600",
                   },
                   correcoes: {
-                    label: active.length ? `CORREÇÕES ${active.length}` : "CORREÇÕES",
+                    label: openStat.count ? `CORREÇÕES ${openStat.count}` : "CORREÇÕES",
                     className: "bg-rose-600 text-white hover:bg-rose-600",
                   },
                   testes: {
@@ -1385,14 +1435,20 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                       <Badge className={cn("whitespace-nowrap", statusDisplay.className)}>
                         {statusDisplay.label}
                       </Badge>
+                      {optionStatus === "correcoes" && openStat.count > 0 && (
+                        <span className="mt-1 block text-[10px] text-rose-700">{daysOverdue} dias de atraso</span>
+                      )}
+                    </td>
+                    <td className="px-1 py-3 text-center">
+                      <span className={cn("mx-auto block h-2.5 w-2.5 rounded-full", option.priority === "2" ? "bg-rose-500" : option.priority === "1" ? "bg-amber-500" : "bg-muted")} title={`Prioridade ${option.priority === "2" ? "alta" : option.priority === "1" ? "normal" : "baixa"}`} />
                     </td>
                     <td className="break-words px-2 py-3 font-medium">
                       <span className="inline-flex items-center gap-1.5">
                         {option.option}
-                        {optionLock && (
+                        {(optionLock || option.occupied) && (
                           <span
                             className="grid h-4 w-4 place-items-center rounded-full bg-rose-500 text-white"
-                            title={`Ocupada por ${optionLock.operator}`}
+                            title={`Ocupada por ${optionLock?.operator || option.occupiedBy || "operador não informado"}`}
                           >
                             <Minus className="h-3 w-3" strokeWidth={3} />
                           </span>
@@ -1409,8 +1465,9 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                       {option.executable || "Não informado"}
                     </td>
                     <td className="break-words px-2 py-3">
-                      {[option.moduleId, option.submoduleId].filter(Boolean).join(" - ") ||
-                        "Não informado"}
+                      <span title={`${getOptionModuleName(option)} - ${getOptionSubmoduleName(option)}`}>
+                        {[option.moduleId, option.submoduleId].filter(Boolean).join(" - ") || "Não informado"}
+                      </span>
                     </td>
                     <td className="break-words px-2 py-3">{option.owner || "Não informado"}</td>
                     <td className="px-2 py-3">
@@ -1575,18 +1632,23 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
 function HadronOptionPage({
   option,
   tickets,
+  unresolvedCount,
   disabled,
   onBack,
   onExit,
   onEdit,
+  onReleaseTests,
 }: {
   option: HadronOption;
   tickets: TicketRow[];
+  unresolvedCount: number;
   disabled: boolean;
   onBack: () => void;
   onExit: () => void;
   onEdit: () => void;
+  onReleaseTests: () => void;
 }) {
+  const { department } = usePortalAuth();
   const { items: hadronReleases } = useCrmCatalog<CatalogRelease>("releases");
   const { items: versions } = useCrmCatalog<CatalogVersion>("versions");
   const erpVersions = useMemo(() => [...versions].sort((a,b) => b.data_versao.localeCompare(a.data_versao)), [versions]);
@@ -1594,6 +1656,10 @@ function HadronOptionPage({
   const submoduleName = getOptionSubmoduleName(option);
   const [optionChecklist,setOptionChecklist] = useState(() => getHadronOptionChecklist(option.id));
   const [processingChecks,setProcessingChecks] = useState(false);
+  const [releaseTestsReady, setReleaseTestsReady] = useState(false);
+  const canManageChecklist = ["admin", "development", "tester"].includes(department || "");
+  const canEditFirstChecklist = canManageChecklist && ["0", "4"].includes(option.status) && unresolvedCount === 0;
+  const canEditSecondChecklist = canManageChecklist && option.status === "8";
   useEffect(() => {
     let active=true;
     loadOptionChecklist(option.id).then((items) => {if(active) setOptionChecklist(items);}).catch(() => toast.error("Não foi possível carregar as validações do checklist."));
@@ -1697,6 +1763,9 @@ function HadronOptionPage({
             <Button type="button" variant="outline" onClick={() => { void recordHadronOptionLog(option.id, "edit", "Alteração da opção"); onEdit(); }} className="cursor-pointer">
               <Pencil className="mr-2 h-4 w-4" />
               Alterar
+            </Button>
+            <Button type="button" className="cursor-pointer bg-amber-500 text-white hover:bg-amber-600" disabled={!releaseTestsReady} onClick={onReleaseTests}>
+              Liberar testes
             </Button>
             <Button type="button" variant="destructive" onClick={onExit} className="cursor-pointer">
               Sair
@@ -1817,7 +1886,7 @@ function HadronOptionPage({
               </div>
               {optionLogs.map((log) => (
                 <div key={log.id} className="grid gap-2 border-b px-2 py-3 text-xs md:grid-cols-[1fr_1.5fr_1fr_120px]">
-                  <span className="font-medium">{log.controller}/{log.action || "-"}</span>
+                  <span className="font-medium">{translateHadronLogTerm(log.controller)} / {translateHadronLogTerm(log.action)}</span>
                   <span className="truncate text-muted-foreground" title={log.info || log.url || ""}>{log.info || log.url || "Sem informação adicional"}</span>
                   <span>{log.operator || "Não informado"}{log.ipAddress ? ` / ${log.ipAddress}` : ""}</span>
                   <span className="text-muted-foreground">{formatLogDate(log.createdAt)}</span>
@@ -1868,15 +1937,16 @@ function HadronOptionPage({
                   <span className={cn(item.title === "Processar" && "font-semibold")}>
                     {item.title}
                   </span>
-                  <input type="checkbox" checked={item.check1} disabled={processingChecks} aria-label={`${item.title}, primeira validação`} className="h-4 w-4 accent-primary" onChange={(event) => setOptionChecklist((items) => items.map((row) => row.id === item.id ? {...row,check1:event.target.checked} : row))} />
-                  <input type="checkbox" checked={item.check2} disabled={processingChecks} aria-label={`${item.title}, segunda validação`} className="h-4 w-4 accent-primary" onChange={(event) => setOptionChecklist((items) => items.map((row) => row.id === item.id ? {...row,check2:event.target.checked} : row))} />
+                  <input type="checkbox" checked={item.check1} disabled={processingChecks || !canEditFirstChecklist} aria-label={`${item.title}, primeira validação`} className="h-4 w-4 accent-primary" onChange={(event) => {setReleaseTestsReady(false);setOptionChecklist((items) => items.map((row) => row.id === item.id ? {...row,check1:event.target.checked} : row));}} />
+                  <input type="checkbox" checked={item.check2} disabled={processingChecks || !canEditSecondChecklist} aria-label={`${item.title}, segunda validação`} className="h-4 w-4 accent-primary" onChange={(event) => setOptionChecklist((items) => items.map((row) => row.id === item.id ? {...row,check2:event.target.checked} : row))} />
                 </div>
               ))}
               {!optionChecklist.length && (
                 <p className="py-2 text-xs text-muted-foreground">Nenhum check vinculado.</p>
               )}
             </div>
-            <div className="mt-2 grid grid-cols-[minmax(0,1fr)_24px_24px] items-center gap-2 border-t pt-2 text-xs"><span className="font-semibold">Processar</span>{([1,2] as const).map((column) => <Button key={column} size="icon" className="h-6 w-6 bg-emerald-600 hover:bg-emerald-700" title={`Processar ${column === 1 ? "primeira" : "segunda"} validação`} disabled={processingChecks} onClick={async () => {setProcessingChecks(true);try{await processOptionChecklist(option.id,column,optionChecklist);toast.success("Checklist processado e salvo.");}catch{toast.error("Não foi possível processar o checklist.");}finally{setProcessingChecks(false);}}}><Check className="h-4 w-4" /></Button>)}</div>
+            <div className="mt-2 grid grid-cols-[minmax(0,1fr)_24px_24px] items-center gap-2 border-t pt-2 text-xs"><span className="font-semibold">Processar</span>{([1,2] as const).map((column) => {const enabled=column===1?canEditFirstChecklist:canEditSecondChecklist;return <Button key={column} size="icon" className="h-6 w-6 bg-emerald-600 hover:bg-emerald-700" title={`Processar ${column === 1 ? "primeira" : "segunda"} validação`} disabled={processingChecks || !enabled} onClick={async () => {const allChecked=optionChecklist.length>0 && optionChecklist.every((item)=>column===1?item.check1:item.check2);setProcessingChecks(true);try{await processOptionChecklist(option.id,column,optionChecklist);setReleaseTestsReady(column===1&&allChecked);toast.success(allChecked?"Checklist processado e salvo.":"Checklist salvo. Revise os itens pendentes.");}catch{toast.error("Não foi possível processar o checklist.");}finally{setProcessingChecks(false);}}}><Check className="h-4 w-4" /></Button>;})}</div>
+            {!canEditFirstChecklist && option.status !== "8" && <p className="mt-2 text-[11px] text-muted-foreground">A primeira validação é liberada somente sem ocorrências abertas.</p>}
           </div>
           <div className="border-t pt-4 text-xs text-muted-foreground">
             <p>
@@ -2126,6 +2196,16 @@ function OptionEditDialog({
                     value,
                     label,
                   }))}
+                />
+                <OptionSelect
+                  label="Prioridade"
+                  value={draft.priority || "1"}
+                  onChange={(value) => update("priority", value)}
+                  options={[
+                    { value: "0", label: "Baixa" },
+                    { value: "1", label: "Normal" },
+                    { value: "2", label: "Alta" },
+                  ]}
                 />
                 <label className="flex items-end gap-2 pb-2 text-xs text-muted-foreground">
                   <input
@@ -2873,7 +2953,7 @@ function OptionOccurrencesPreviewDialog({
               onClose={onClose}
             />
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              <OptionImportedOccurrences option={option} />
+              <OptionImportedOccurrences option={option} unresolved />
             </div>
           </>
         )}

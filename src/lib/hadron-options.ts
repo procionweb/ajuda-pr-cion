@@ -9,6 +9,8 @@ export type HadronOption = {
   label: string;
   status: string;
   priority?: string;
+  occupied?: boolean;
+  occupiedBy?: string;
   checklist?: ReturnType<typeof getHadronOptionChecklist>;
   owner: string;
   characteristic: string;
@@ -48,6 +50,9 @@ export const hadronOptions: HadronOption[] = (
   description: item.description,
   label: `${item.description} (${item.option} - ${item.form || item.option})`,
   status: item.status,
+  priority: item.priority,
+  occupied: item.occupied,
+  occupiedBy: item.occupiedBy,
   owner: item.owner,
   characteristic: item.characteristic,
   observation: item.observation,

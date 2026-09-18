@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowLeft, RefreshCw, Search, ScrollText } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, RefreshCw, Search, ScrollText } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { DateRangeFilter } from "@/components/portal/DateRangeFilter";
@@ -48,6 +48,7 @@ function ConfigurationLogsPage() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sort, setSort] = useState<{ key: "operator" | "acronym" | "controller" | "created_at"; direction: "asc" | "desc" }>({ key: "created_at", direction: "desc" });
 
   useEffect(() => {
     let active = true;
@@ -61,6 +62,8 @@ function ConfigurationLogsPage() {
       to: toIso(filters.toDate, filters.toTime, true),
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,
+      sortBy: sort.key,
+      sortDirection: sort.direction,
     })
       .then((result) => {
         if (!active) return;
@@ -78,7 +81,12 @@ function ConfigurationLogsPage() {
     return () => {
       active = false;
     };
-  }, [filters, page]);
+  }, [filters, page, sort]);
+
+  function toggleSort(key: typeof sort.key) {
+    setPage(0);
+    setSort((current) => ({ key, direction: current.key === key && current.direction === "asc" ? "desc" : "asc" }));
+  }
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   function update<K extends keyof Filters>(key: K, value: Filters[K]) {
@@ -170,13 +178,13 @@ function ConfigurationLogsPage() {
             <table className="w-full min-w-[1280px] text-sm">
               <thead className="border-b bg-muted/35 text-left text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3">Operador / IP</th>
-                  <th className="px-4 py-3">Sigla</th>
-                  <th className="px-4 py-3">Controlador / Ação</th>
+                  <th className="px-4 py-3"><button type="button" onClick={() => toggleSort("operator")} className="inline-flex cursor-pointer items-center gap-1">Operador / IP<ArrowUpDown className="size-3" /></button></th>
+                  <th className="px-4 py-3"><button type="button" onClick={() => toggleSort("acronym")} className="inline-flex cursor-pointer items-center gap-1">Sigla<ArrowUpDown className="size-3" /></button></th>
+                  <th className="px-4 py-3"><button type="button" onClick={() => toggleSort("controller")} className="inline-flex cursor-pointer items-center gap-1">Controlador / Ação<ArrowUpDown className="size-3" /></button></th>
                   <th className="px-4 py-3">URL</th>
                   <th className="px-4 py-3">Info. extra</th>
                   <th className="px-4 py-3">Dispositivo</th>
-                  <th className="px-4 py-3">Data</th>
+                  <th className="px-4 py-3"><button type="button" onClick={() => toggleSort("created_at")} className="inline-flex cursor-pointer items-center gap-1">Data<ArrowUpDown className="size-3" /></button></th>
                 </tr>
               </thead>
               <tbody className="divide-y">

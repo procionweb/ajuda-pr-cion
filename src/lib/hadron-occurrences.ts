@@ -183,6 +183,22 @@ export async function getHadronOccurrenceCounts() {
   ) as Record<string, number>;
 }
 
+export type HadronOpenOccurrenceStat = { count: number; firstOccurrence: string | null };
+
+export async function getHadronOpenOccurrenceStats() {
+  const { data, error } = await supabase.rpc("get_hadron_occurrence_open_stats");
+  if (error) throw error;
+  return Object.fromEntries(
+    (data || []).map((row: Record<string, unknown>) => [
+      String(row.option_legacy_id),
+      {
+        count: Number(row.occurrence_count || 0),
+        firstOccurrence: row.first_occurrence ? String(row.first_occurrence) : null,
+      },
+    ]),
+  ) as Record<string, HadronOpenOccurrenceStat>;
+}
+
 export async function getHadronOccurrenceKindCounts() {
   const kinds = ["aviso", "sugestao", "aprovacao", "solucao", "revisada", "ocorrencia"];
   const counts = await Promise.all(

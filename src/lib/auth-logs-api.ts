@@ -164,6 +164,25 @@ export type ConfigurationAuthLogsPage = {
   operators: string[];
 };
 
+const HADRON_LOG_TERMS: Record<string, string> = {
+  view: "Visualização",
+  edit: "Alteração",
+  logs: "Logs",
+  releases: "Releases",
+  ajaxOccurrences: "Ocorrências",
+  addOccurrence: "Nova ocorrência",
+  addRelease: "Novo release",
+  releaseTests: "Liberação para testes",
+  closedOp: "Saída da opção",
+  occupied: "Ocupada",
+  online: "Disponível",
+};
+
+export function translateHadronLogTerm(value: string | null) {
+  if (!value) return "—";
+  return HADRON_LOG_TERMS[value] || value;
+}
+
 export async function listConfigurationAuthLogs(
   options: {
     search?: string;
@@ -173,6 +192,8 @@ export async function listConfigurationAuthLogs(
     to?: string;
     limit?: number;
     offset?: number;
+    sortBy?: "operator" | "acronym" | "controller" | "created_at";
+    sortDirection?: "asc" | "desc";
   } = {},
 ): Promise<ConfigurationAuthLogsPage> {
   const { data, error } = await supabase.rpc("configuration_auth_logs_list", {
@@ -183,6 +204,8 @@ export async function listConfigurationAuthLogs(
     to_filter: options.to || null,
     page_limit: options.limit ?? 25,
     page_offset: options.offset ?? 0,
+    sort_by: options.sortBy ?? "created_at",
+    sort_direction: options.sortDirection ?? "desc",
   });
   if (error) throw error;
 
