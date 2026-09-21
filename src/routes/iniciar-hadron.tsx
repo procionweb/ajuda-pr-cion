@@ -2657,7 +2657,6 @@ function OptionImportedOccurrences({
     const collaborator = findCollaborator(allCollaborators, operator);
     return collaborator ? collaboratorLabel(collaborator) : operator || "Não informado";
   };
-  const hasOpenOccurrence = rows.some((row) => row.kind === "ocorrencia" && !row.solvedAt);
   return (
     <>
       <div>
@@ -2679,7 +2678,7 @@ function OptionImportedOccurrences({
                   reporter={collaboratorName(occurrence.reporter)}
                   solver={collaboratorName(occurrence.solver)}
                   isLast={index === rows.length - 1}
-                  defaultExpanded={hasOpenOccurrence}
+                  defaultExpanded={occurrence.kind === "ocorrencia" && !occurrence.solvedAt && !occurrence.reviewedAt}
                   onInformSolution={setSolutionOccurrence}
                   canManage={
                     ["admin", "development", "tester"].includes(department || "") ||
@@ -2809,6 +2808,7 @@ function HadronOccurrenceTimelineItem({
   onInformReview: (occurrence: HadronOccurrence) => void;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  useEffect(() => setExpanded(defaultExpanded), [defaultExpanded]);
   const reviewed = Boolean(occurrence.reviewedAt);
   const solved = Boolean(
     occurrence.solvedAt && (occurrence.solutionHtml || occurrence.solutionText),
