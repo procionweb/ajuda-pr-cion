@@ -234,7 +234,23 @@ export async function listConfigurationAuthLogs(
 }
 
 export async function listHadronOptionLogs(optionId: string, limit = 2147483647) {
-  return (await listHadronLogs({ option: optionId, limit })).rows;
+  const { data, error } = await supabase.rpc("list_hadron_option_logs", {
+    p_option_id: optionId,
+    p_limit: Math.min(limit, 100),
+  });
+  if (error) throw error;
+  return ((data ?? []) as RawRow[]).map((row) => ({
+    id: row.id,
+    controller: row.controller,
+    action: row.action,
+    clientAcronym: row.client_acronym,
+    url: row.url,
+    info: row.info,
+    operator: row.operator,
+    ipAddress: row.ip_address,
+    device: row.device ?? null,
+    createdAt: row.crm_created_at,
+  }));
 }
 
 export async function recordHadronOptionLog(optionId: string, action: string, info: string) {

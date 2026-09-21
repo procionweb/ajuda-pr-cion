@@ -111,6 +111,7 @@ import {
   listHadronOccurrences,
   listHadronOccurrenceOperators,
   reviewHadronOccurrence,
+  updateHadronOccurrence,
   updateHadronOccurrenceSolution,
   type HadronOccurrence,
 } from "@/lib/hadron-occurrences";
@@ -175,6 +176,7 @@ type ReleaseDetail = {
   module: string;
   submodule: string;
   clicks: number;
+  tags: string;
 };
 
 type HadronOccurrenceDetail = {
@@ -354,7 +356,7 @@ function HadronPage() {
 
   return (
     <AppShell>
-      <div className="hadron-page space-y-5">
+      <div className="hadron-page space-y-5 [&_table_th]:align-middle [&_table_td]:align-middle">
         <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <Breadcrumbs items={[{ label: "Hadron" }]} />
@@ -1346,20 +1348,20 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
           </Button>
           </div>
         </div>
-        <div className="overflow-hidden">
-          <table className="w-full table-fixed text-left text-[11px] xl:text-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1200px] table-fixed text-left text-[11px] xl:text-xs">
             <colgroup>
               <col className="w-[9%]" />
               <col className="w-[3%]" />
-              <col className="w-[6%]" />
-              <col className="w-[6%]" />
-              <col className="w-[22%]" />
-              <col className="w-[15%]" />
-              <col className="w-[9%]" />
               <col className="w-[7%]" />
+              <col className="w-[6%]" />
+              <col className="w-[18%]" />
+              <col className="w-[12%]" />
+              <col className="w-[9%]" />
+              <col className="w-[8%]" />
               <col className="w-[10%]" />
               <col className="w-[8%]" />
-              <col className="w-[8%]" />
+              <col className="w-[10%]" />
             </colgroup>
             <thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal">
               <tr>
@@ -1387,7 +1389,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="[&_tr:nth-child(even)]:bg-sky-50/45 dark:[&_tr:nth-child(even)]:bg-sky-950/15">
               {pagedRows.map(({ option, openStat, disabled }) => {
                 const optionLock = optionLocks[option.id];
                 const lockedByAnother = Boolean(
@@ -1440,7 +1442,9 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                       )}
                     </td>
                     <td className="px-1 py-3 text-center">
-                      <span className={cn("mx-auto block h-2.5 w-2.5 rounded-full", option.priority === "2" ? "bg-rose-500" : option.priority === "1" ? "bg-amber-500" : "bg-muted")} title={`Prioridade ${option.priority === "2" ? "alta" : option.priority === "1" ? "normal" : "baixa"}`} />
+                      <span className={cn("mx-auto grid h-6 w-6 place-items-center rounded-full text-[11px] font-semibold", option.priority === "2" ? "bg-rose-100 text-rose-700" : option.priority === "1" ? "bg-amber-100 text-amber-800" : "bg-muted text-muted-foreground")} title={`Prioridade ${option.priority === "2" ? "alta" : option.priority === "1" ? "normal" : "baixa"}`}>
+                        {option.priority ?? "-"}
+                      </span>
                     </td>
                     <td className="break-words px-2 py-3 font-medium">
                       <span className="inline-flex items-center gap-1.5">
@@ -1708,14 +1712,14 @@ function HadronOptionPage({
     .map(([key, name]) => [key.split(":")[1], name] as [string, string]);
   useEffect(() => {
     if (!newReleaseOpen) return;
-    void listHadronOccurrences({ page: 1, pageSize: 20, optionIds: [option.id] })
+    void listHadronOccurrences({ page: 1, pageSize: 20, optionIds: [option.id], unresolved: true })
       .then((result) => setReleaseOccurrences(result.rows))
       .catch(() => setReleaseOccurrences([]));
   }, [newReleaseOpen, option.id]);
   useEffect(() => {
     const loadLogs = () => {
       setLogsLoading(true);
-      void listHadronOptionLogs(option.option)
+      void listHadronOptionLogs(option.id)
         .then(setOptionLogs)
         .catch(() => setOptionLogs([]))
         .finally(() => setLogsLoading(false));
@@ -1730,7 +1734,7 @@ function HadronOptionPage({
   }, [option.id]);
   return (
     <section className="space-y-4">
-      <header className="rounded-md border bg-card p-4 shadow-sm">
+      <header className="rounded-md border border-sky-200 bg-sky-50/70 p-4 shadow-sm dark:border-sky-900 dark:bg-sky-950/25">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <Button
@@ -1987,7 +1991,7 @@ function HadronOptionPage({
                 />
               </div>
             </div>
-            <label className="space-y-1 text-sm md:col-span-2 lg:col-span-4"><span>Descreva a ocorrência</span><span className="block text-xs text-muted-foreground">Caso necessário, inclua os detalhes que permitam reproduzir o problema.</span><textarea className="min-h-52 w-full rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={occurrenceDraft.occurrence} onChange={(e) => setOccurrenceDraft({...occurrenceDraft, occurrence:e.target.value})} /></label>
+            <div className="space-y-1 text-sm md:col-span-2 lg:col-span-4"><span>Descreva a ocorrência</span><span className="block text-xs text-muted-foreground">Caso necessário, inclua os detalhes e imagens que permitam reproduzir o problema.</span><RichTextEditor value={occurrenceDraft.occurrence} onChange={(occurrence) => setOccurrenceDraft({...occurrenceDraft, occurrence})} minHeight={220} /></div>
           </div>
           <DialogFooter className="border-t px-5 py-4"><Button disabled={savingOccurrence} onClick={async () => { if (!occurrenceDraft.baseAddress.trim() || !occurrenceDraft.occurrence.trim()) { toast.error("Informe a base e descreva a ocorrência."); return; } setSavingOccurrence(true); try { await createHadronOccurrence({optionLegacyId:option.id,...occurrenceDraft}); setNewOccurrenceOpen(false); setOccurrenceDraft({...occurrenceDraft,baseAddress:"",occurrence:""}); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Ocorrência criada com sucesso."); } catch(error) { toast.error(error instanceof Error ? error.message : "Não foi possível criar a ocorrência."); } finally { setSavingOccurrence(false); } }}>{savingOccurrence ? "Salvando..." : "Salvar"}</Button></DialogFooter>
         </DialogContent>
@@ -2001,11 +2005,11 @@ function HadronOptionPage({
               <label className="min-w-0 space-y-1 text-sm md:col-span-2"><span>Tipo Release</span><OccurrenceSelect value={releaseDraft.releaseType} onValueChange={(releaseType) => setReleaseDraft({...releaseDraft,releaseType})} items={[["correcao","Correção"],["alteracao","Alteração"],["novidade","Novidade"]]} /></label>
               <label className="min-w-0 space-y-1 text-sm md:col-span-2"><span>Permissão</span><OccurrenceSelect value={releaseDraft.permission} onValueChange={(permission) => setReleaseDraft({...releaseDraft,permission})} items={[["clientes","Clientes"],["publico","Público"],["empresa","Empresa"]]} /></label>
               <label className="min-w-0 space-y-1 text-sm md:col-span-2"><span>Opção</span><Input className="truncate" title={`${option.id} - ${option.option}/${option.form} - ${option.description}`} readOnly value={`${option.id} - ${option.option}/${option.form} - ${option.description}`} /></label>
-              <label className="min-w-0 space-y-1 text-sm md:col-span-3"><span>Módulo</span><OccurrenceSelect value={releaseDraft.moduleId} onValueChange={(moduleId) => { const firstSubmodule = [...hadronSubmoduleNames.keys()].find((key) => key.startsWith(`${moduleId}:`))?.split(":")[1] || ""; setReleaseDraft({...releaseDraft,moduleId,submoduleId:firstSubmodule}); }} items={releaseModuleItems} /></label>
+              <label className="min-w-0 space-y-1 text-sm md:col-span-3"><span>Módulo</span><Input readOnly className="bg-muted/35" value={releaseModuleItems.find(([id]) => id === releaseDraft.moduleId)?.[1] || getOptionModuleName(option)} /></label>
               <label className="min-w-0 space-y-1 text-sm md:col-span-3"><span>Submódulo</span><OccurrenceSelect value={releaseDraft.submoduleId} onValueChange={(submoduleId) => setReleaseDraft({...releaseDraft,submoduleId})} items={releaseSubmoduleItems.length ? releaseSubmoduleItems : [[releaseDraft.submoduleId || "sem-submodulo", "Nenhum submódulo disponível"]]} /></label>
               <label className="space-y-1 text-sm md:col-span-6"><span>Descrição</span><Input value={releaseDraft.title} onChange={(e) => setReleaseDraft({...releaseDraft,title:e.target.value})} /></label>
               <label className="space-y-1 text-sm md:col-span-6"><span>Detalhes do release</span><textarea className="min-h-40 w-full resize-y rounded-md border bg-background p-3 outline-none focus:ring-2 focus:ring-ring" value={releaseDraft.description} onChange={(e) => setReleaseDraft({...releaseDraft,description:e.target.value})} /></label>
-              <label className="min-w-0 space-y-1 text-sm md:col-span-6"><span>Tags</span><Input className="w-full" value={releaseDraft.tags} onChange={(e) => setReleaseDraft({...releaseDraft,tags:e.target.value})} /></label>
+              <div className="min-w-0 space-y-1 text-sm md:col-span-6"><span>Tags</span><TagInput value={releaseDraft.tags} onChange={(tags) => setReleaseDraft({...releaseDraft,tags})} suggestions={hadronOptions.flatMap((item) => item.tags.split(/[,;]+/))} /></div>
             </div>
             <section className="min-w-0 space-y-2 border-t pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
               <h3 className="text-sm font-medium">Ocorrências</h3>
@@ -2248,18 +2252,7 @@ function OptionEditDialog({
               </div>
               <label className="block space-y-2 text-[12.5px] font-medium text-foreground">
                 Tags
-                <Input
-                  list="hadron-option-tags"
-                  className="font-normal text-foreground"
-                  value={draft.tags}
-                  onChange={(event) => update("tags", event.target.value)}
-                  placeholder="Digite ou selecione uma tag"
-                />
-                <datalist id="hadron-option-tags">
-                  {tagSuggestions.map((tag) => (
-                    <option key={tag} value={tag} />
-                  ))}
-                </datalist>
+                <TagInput value={draft.tags} onChange={(value) => update("tags", value)} suggestions={tagSuggestions} />
               </label>
               <label className="block space-y-2 text-[12.5px] font-medium text-foreground">
                 Descrição da opção
@@ -2325,6 +2318,77 @@ function OptionEditDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function TagInput({
+  value,
+  onChange,
+  suggestions = [],
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  suggestions?: string[];
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const tags = value.split(/[,;]+/).map((tag) => tag.trim()).filter(Boolean);
+  const normalizedTags = new Set(tags.map(normalizeOccurrenceText));
+  const choices = [...new Set(suggestions.map((tag) => tag.trim()).filter(Boolean))]
+    .filter((tag) => !normalizedTags.has(normalizeOccurrenceText(tag)))
+    .filter((tag) => !query || normalizeOccurrenceText(tag).includes(normalizeOccurrenceText(query)))
+    .slice(0, 8);
+  const addTag = (tag: string) => {
+    const clean = tag.trim().replace(/^[,;]+|[,;]+$/g, "");
+    if (!clean) return;
+    if (!normalizedTags.has(normalizeOccurrenceText(clean))) onChange([...tags, clean].join(", "));
+    setQuery("");
+    setOpen(false);
+  };
+  return (
+    <div className="relative mt-1">
+      <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-md border bg-background px-2 py-1 focus-within:ring-2 focus-within:ring-ring">
+        {tags.map((tag) => (
+          <span key={tag} className="inline-flex items-center gap-1 rounded bg-sky-100 px-2 py-1 text-xs text-sky-900 dark:bg-sky-500/20 dark:text-sky-100">
+            {tag}
+            <button type="button" aria-label={`Remover tag ${tag}`} onClick={() => onChange(tags.filter((item) => item !== tag).join(", "))}><X className="h-3 w-3" /></button>
+          </span>
+        ))}
+        <input
+          value={query}
+          onFocus={() => setOpen(true)}
+          onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+          onChange={(event) => { setQuery(event.target.value); setOpen(true); }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === ",") { event.preventDefault(); addTag(choices[0] || query); }
+            if (event.key === "Backspace" && !query && tags.length) onChange(tags.slice(0, -1).join(", "));
+          }}
+          placeholder={tags.length ? "Adicionar tag" : "Digite ou selecione uma tag"}
+          className="min-w-36 flex-1 bg-transparent px-1 py-1.5 text-sm outline-none"
+        />
+      </div>
+      {open && (choices.length > 0 || query.trim()) && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-lg">
+          {choices.map((tag) => <button key={tag} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => addTag(tag)} className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-muted">{tag}</button>)}
+          {query.trim() && !choices.some((tag) => normalizeOccurrenceText(tag) === normalizeOccurrenceText(query)) && <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => addTag(query)} className="block w-full rounded px-3 py-2 text-left text-sm font-medium text-primary hover:bg-muted">Criar “{query.trim()}”</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RelationPicker({ value, onChange, items, label }: { value: string; onChange: (value: string) => void; items: [string, string][]; label: string }) {
+  const [selected, setSelected] = useState("");
+  const ids = value.replace(/[\[\]"]/g, "").split(/[,;]+/).map((id) => id.trim()).filter(Boolean);
+  const add = () => {
+    if (!selected || ids.includes(selected)) return;
+    onChange([...ids, selected].join(", "));
+    setSelected("");
+  };
+  return <div className="space-y-2">
+    <span className="text-sm">{label}</span>
+    <div className="flex gap-2"><div className="min-w-0 flex-1"><OccurrenceSelect value={selected || "none"} onValueChange={setSelected} items={[["none", `Selecione ${label.toLowerCase()}`], ...items.filter(([id]) => !ids.includes(id))]} /></div><Button type="button" variant="outline" onClick={add} disabled={!selected || selected === "none"}><Plus className="mr-1 h-4 w-4" />Adicionar</Button></div>
+    {ids.length > 0 && <div className="flex flex-wrap gap-1.5 rounded-md border bg-muted/15 p-2">{ids.map((id) => <span key={id} className="inline-flex items-center gap-1 rounded bg-background px-2 py-1 text-xs shadow-sm">{items.find(([itemId]) => itemId === id)?.[1] || `${id} - não encontrado`}<button type="button" onClick={() => onChange(ids.filter((item) => item !== id).join(", "))} aria-label={`Remover ${id}`}><X className="h-3 w-3" /></button></span>)}</div>}
+  </div>;
 }
 
 function OptionSelect({
@@ -2459,7 +2523,7 @@ function openImportedOccurrence(
     ? `${option.option}/${option.form || option.option}`
     : occurrence.optionLegacyId;
   onOpen({
-    title: "Ocorrência",
+    title: occurrence.occurrenceText || "Ocorrência sem descrição",
     subtitle: `Opção: ${optionLabel}`,
     body: occurrence.occurrenceText || "Sem descrição.",
     meta: [],
@@ -2506,6 +2570,8 @@ function OptionImportedOccurrences({
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
   const [reviewOccurrence, setReviewOccurrence] = useState<HadronOccurrence | null>(null);
+  const [editingOccurrence, setEditingOccurrence] = useState<HadronOccurrence | null>(null);
+  const [removingOccurrence, setRemovingOccurrence] = useState<HadronOccurrence | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const { department } = usePortalAuth();
 
@@ -2554,6 +2620,7 @@ function OptionImportedOccurrences({
     const collaborator = findCollaborator(allCollaborators, operator);
     return collaborator ? collaboratorLabel(collaborator) : operator || "Não informado";
   };
+  const hasOpenOccurrence = rows.some((row) => row.kind === "ocorrencia" && !row.solvedAt);
   return (
     <>
       <div>
@@ -2575,7 +2642,14 @@ function OptionImportedOccurrences({
                   reporter={collaboratorName(occurrence.reporter)}
                   solver={collaboratorName(occurrence.solver)}
                   isLast={index === rows.length - 1}
+                  defaultExpanded={hasOpenOccurrence}
                   onInformSolution={setSolutionOccurrence}
+                  canManage={
+                    ["admin", "development", "tester"].includes(department || "") ||
+                    normalizeOccurrenceText(occurrence.reporter) === normalizeOccurrenceText(currentUser.operator)
+                  }
+                  onEdit={setEditingOccurrence}
+                  onDelete={setRemovingOccurrence}
                   canReview={
                     department === "admin" ||
                     normalizeOccurrenceText(occurrence.reporter) ===
@@ -2607,6 +2681,26 @@ function OptionImportedOccurrences({
           setReloadKey((current) => current + 1);
         }}
       />
+      <Dialog open={Boolean(editingOccurrence)} onOpenChange={(open) => !open && setEditingOccurrence(null)}>
+        <DialogContent className="flex max-h-[calc(100vh-2rem)] max-w-4xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+          <DialogTitle className="sr-only">Editar ocorrência</DialogTitle>
+          {editingOccurrence && <>
+            <DetailModalHeader icon={Pencil} title="Editar ocorrência" protocol={`Ocorrência ${editingOccurrence.id}`} meta={option.description} onClose={() => setEditingOccurrence(null)} />
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+              <div className="grid gap-3 md:grid-cols-3">
+                <label className="space-y-1 text-sm"><span>Cliente ou caminho da base</span><Input value={editingOccurrence.baseAddress} onChange={(event) => setEditingOccurrence({...editingOccurrence,baseAddress:event.target.value})} /></label>
+                <label className="space-y-1 text-sm"><span>Versão</span><OccurrenceSelect value={editingOccurrence.versionLegacyId} onValueChange={(versionLegacyId) => setEditingOccurrence({...editingOccurrence,versionLegacyId})} items={erpVersions.map((version) => [version.id, `${version.versao} - ${formatVersionDate(version.data_versao)}`])} /></label>
+                <div className="space-y-1 text-sm"><span>Prioridade</span><HadronPrioritySegmented value={editingOccurrence.priority} onChange={(priority) => setEditingOccurrence({...editingOccurrence,priority})} /></div>
+              </div>
+              <div className="space-y-1 text-sm"><span>Descreva a ocorrência</span><RichTextEditor value={editingOccurrence.occurrenceHtml || editingOccurrence.occurrenceText} onChange={(occurrenceHtml) => setEditingOccurrence({...editingOccurrence,occurrenceHtml})} minHeight={240} /></div>
+            </div>
+            <DialogFooter className="border-t px-5 py-4"><Button onClick={async () => { await updateHadronOccurrence({id:editingOccurrence.id,occurrence:editingOccurrence.occurrenceHtml || editingOccurrence.occurrenceText,operator:currentUser.operator,baseAddress:editingOccurrence.baseAddress,versionLegacyId:editingOccurrence.versionLegacyId,priority:editingOccurrence.priority}); setEditingOccurrence(null);setReloadKey((value) => value + 1);toast.success("Ocorrência atualizada no banco."); }}>Salvar</Button></DialogFooter>
+          </>}
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={Boolean(removingOccurrence)} onOpenChange={(open) => !open && setRemovingOccurrence(null)}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir ocorrência?</AlertDialogTitle><AlertDialogDescription>Esta ocorrência será removida permanentemente.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={async () => { if (!removingOccurrence) return; await deleteHadronOccurrence(removingOccurrence.id);setRemovingOccurrence(null);setReloadKey((value) => value + 1);window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed"));toast.success("Ocorrência excluída do banco."); }}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      </AlertDialog>
       <AlertDialog
         open={Boolean(reviewOccurrence)}
         onOpenChange={(open) => !open && !reviewing && setReviewOccurrence(null)}
@@ -2657,7 +2751,11 @@ function HadronOccurrenceTimelineItem({
   reporter,
   solver,
   isLast,
+  defaultExpanded,
   onInformSolution,
+  canManage,
+  onEdit,
+  onDelete,
   canReview,
   onInformReview,
 }: {
@@ -2665,10 +2763,15 @@ function HadronOccurrenceTimelineItem({
   reporter: string;
   solver: string;
   isLast: boolean;
+  defaultExpanded: boolean;
   onInformSolution: (occurrence: HadronOccurrence) => void;
+  canManage: boolean;
+  onEdit: (occurrence: HadronOccurrence) => void;
+  onDelete: (occurrence: HadronOccurrence) => void;
   canReview: boolean;
   onInformReview: (occurrence: HadronOccurrence) => void;
 }) {
+  const [expanded, setExpanded] = useState(defaultExpanded || !occurrence.solvedAt);
   const reviewed = Boolean(occurrence.reviewedAt);
   const solved = Boolean(
     occurrence.solvedAt && (occurrence.solutionHtml || occurrence.solutionText),
@@ -2716,6 +2819,8 @@ function HadronOccurrenceTimelineItem({
       </div>
       <article className="min-w-0 pb-7 pt-0.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+          <button type="button" title={expanded ? "Recolher ocorrência" : "Expandir ocorrência"} onClick={() => setExpanded((value) => !value)} className="grid h-7 w-7 place-items-center rounded hover:bg-muted"><ChevronDown className={cn("h-4 w-4 transition-transform", !expanded && "-rotate-90")} /></button>
+          {canManage && <><button type="button" title="Editar ocorrência" onClick={() => onEdit(occurrence)} className="grid h-7 w-7 place-items-center rounded hover:bg-muted"><Pencil className="h-4 w-4" /></button><button type="button" title="Excluir ocorrência" onClick={() => onDelete(occurrence)} className="grid h-7 w-7 place-items-center rounded text-destructive hover:bg-muted"><Trash2 className="h-4 w-4" /></button></>}
           <span
             className="inline-flex min-w-[96px] items-center justify-center rounded-full px-2.5 py-0.5 font-medium text-white shadow-sm"
             style={{ backgroundColor: color }}
@@ -2738,7 +2843,7 @@ function HadronOccurrenceTimelineItem({
         <h3 className="mt-2 text-[11px] font-semibold uppercase" style={{ color }}>
           {reviewed ? "Ocorrência revisada" : solved ? "Solução informada" : "Ocorrência aberta"}
         </h3>
-        <div className="mt-1 text-[13px] leading-5 text-foreground">
+        {expanded && <><div className="mt-1 text-[13px] leading-5 text-foreground">
           <LegacyRichContent value={occurrence.occurrenceHtml || occurrence.occurrenceText} />
         </div>
         {!solved && (
@@ -2803,7 +2908,7 @@ function HadronOccurrenceTimelineItem({
               <span>Alterada por {collaboratorNameFallback(occurrence.modifiedBy)}</span>
             )}
           </p>
-        )}
+        )}</>}
       </article>
     </li>
   );
@@ -2821,10 +2926,13 @@ function HadronSolutionDialog({
   onSaved: () => void;
 }) {
   const [solution, setSolution] = useState("");
+  const [solutionOperator, setSolutionOperator] = useState(currentUser.operator || currentUser.name);
+  const [solutionBase, setSolutionBase] = useState("");
+  const [solutionVersion, setSolutionVersion] = useState("");
   const [saving, setSaving] = useState(false);
-  useEffect(() => setSolution(""), [occurrence?.id]);
+  useEffect(() => { setSolution(occurrence?.solutionHtml || occurrence?.solutionText || ""); setSolutionOperator(occurrence?.solver || currentUser.operator || currentUser.name); setSolutionBase(occurrence?.baseAddress || occurrence?.testBase || ""); setSolutionVersion(occurrence?.versionLegacyId || ""); }, [occurrence?.id]);
   if (!occurrence) return null;
-  const operator = currentUser.operator || currentUser.name;
+  const operator = solutionOperator || currentUser.operator || currentUser.name;
   const save = async () => {
     if (!solution.trim()) {
       toast.error("Informe a solução da ocorrência.");
@@ -2832,7 +2940,7 @@ function HadronSolutionDialog({
     }
     setSaving(true);
     try {
-      await updateHadronOccurrenceSolution({ id: occurrence.id, solution, operator });
+      await updateHadronOccurrenceSolution({ id: occurrence.id, solution, operator, baseAddress: solutionBase, versionLegacyId: solutionVersion });
       toast.success("Solução registrada com sucesso.");
       onSaved();
     } catch {
@@ -2860,28 +2968,16 @@ function HadronSolutionDialog({
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <SolutionMeta label="Tipo" value="Ocorrência" />
-            <SolutionMeta label="Operador" value={operator} />
-            <SolutionMeta
-              label="Cliente ou caminho da base"
-              value={occurrence.baseAddress || occurrence.testBase || "Não informado"}
-            />
-            <SolutionMeta label="Versão" value={occurrence.versionLegacyId || "Não informada"} />
+            <label className="space-y-1 text-sm"><span>Operador</span><Input value={solutionOperator} onChange={(event) => setSolutionOperator(event.target.value)} /></label>
+            <label className="space-y-1 text-sm"><span>Cliente ou caminho da base</span><Input value={solutionBase} onChange={(event) => setSolutionBase(event.target.value)} /></label>
+            <label className="space-y-1 text-sm"><span>Versão</span><OccurrenceSelect value={solutionVersion} onValueChange={setSolutionVersion} items={erpVersions.map((version) => [version.id, `${version.versao} - ${formatVersionDate(version.data_versao)}`])} /></label>
           </div>
-          <label className="block space-y-2 text-[12.5px] font-medium text-foreground">
+          <div className="block space-y-2 text-[12.5px] font-medium text-foreground">
             Solução
-            <textarea
-              value={solution}
-              onChange={(event) => setSolution(event.target.value)}
-              rows={7}
-              placeholder="Descreva a correção realizada, testes e orientações necessárias..."
-              className="w-full resize-y rounded-md border bg-background p-3 text-[13px] font-normal text-foreground outline-none focus:ring-2 focus:ring-ring"
-            />
-          </label>
+            <RichTextEditor value={solution} onChange={setSolution} minHeight={240} />
+          </div>
         </div>
         <DialogFooter className="shrink-0 gap-2 border-t bg-card px-5 py-3 sm:gap-2">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancelar
-          </Button>
           <Button onClick={() => void save()} disabled={saving || !solution.trim()}>
             <Wrench className="mr-2 h-4 w-4" />
             {saving ? "Salvando..." : "Salvar solução"}
@@ -2911,8 +3007,8 @@ function hadronOptionStatusLabel(status: string) {
   return (
     {
       "4": "Correções",
-      "8": "Aprovada",
-      "9": "Testes",
+      "8": "Testes",
+      "9": "Aprovada",
       "10": "Hádron",
       "90": "Desativada",
     }[status] ||
@@ -4036,6 +4132,7 @@ function createReleaseDetail(
         ? `Submódulo ${option.submoduleId}`
         : "Não informado",
     clicks: release.clicks,
+    tags: release.tags || "",
   };
 }
 
@@ -4052,6 +4149,7 @@ function ReleaseDetailView({ release }: { release: ReleaseDetail }) {
         />
         <ReleaseMeta label="Responsável" value={release.owner} />
         <ReleaseMeta label="Cliques" value={String(release.clicks)} />
+        <ReleaseMeta label="Tags" value={release.tags || "Nenhuma tag"} />
       </aside>
       <section className="min-w-0">
         <h3 className="mb-4 text-base font-medium text-foreground">Detalhes</h3>
@@ -4760,7 +4858,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
                 <th className="w-24 px-4 py-3 text-center">Ações</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="[&_tr:nth-child(even)]:bg-sky-50/45 dark:[&_tr:nth-child(even)]:bg-sky-950/15">
               {rows
                 .slice((page - 1) * pageSize, page * pageSize)
                 .map(
@@ -4859,35 +4957,23 @@ function ChecklistTable({ query, onOpen }: TableProps) {
       </AlertDialog>
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden p-0 sm:max-w-5xl [&>div:last-child]:shrink-0">
-          <DialogTitle className="sr-only">Editar checklist</DialogTitle>
+          <DialogTitle className="sr-only">{editing?.[0]?.[0].startsWith("novo-") ? "Criar checklist" : "Alterar checklist"}</DialogTitle>
           <DetailModalHeader
             icon={ClipboardCheck}
-            title="Editar checklist"
+            title={editing?.[0]?.[0].startsWith("novo-") ? "Criar checklist" : "Alterar checklist"}
+            meta="Defina os nomes, descrições e a característica aplicada às opções"
             onClose={() => setEditing(null)}
           />
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-            <OccurrenceSelect
-              value={editing?.[0]?.[1] || "geral"}
-              onValueChange={(value) =>
-                setEditing(
-                  (rows) =>
-                    rows?.map((row) => {
-                      const next: CheckRow = [...row];
-                      next[1] = value;
-                      return next;
-                    }) || null,
-                )
-              }
-              items={HADRON_OPTION_CHARACTERISTICS.filter(([key]) => key !== "todos")}
-            />
-            <h3 className="text-sm font-medium text-muted-foreground">Múltiplos checklists</h3>
+            <label className="block max-w-sm space-y-1 text-sm"><span>Característica</span><OccurrenceSelect value={editing?.[0]?.[1] || "geral"} onValueChange={(value) => setEditing((rows) => rows?.map((row) => { const next: CheckRow = [...row]; next[1] = value; return next; }) || null)} items={HADRON_OPTION_CHARACTERISTICS.filter(([key]) => key !== "todos")} /></label>
+            <div className="flex items-center justify-between border-b pb-2"><h3 className="text-sm font-medium">Itens do checklist</h3><span className="text-xs text-muted-foreground">{editing?.length || 0} item(ns)</span></div>
             {editing?.map((row, index) => (
               <div
                 key={row[0]}
-                className="grid items-end gap-3 border-b pb-4 md:grid-cols-[1fr_1.4fr_auto_auto]"
+                className="grid items-end gap-3 rounded-md border bg-muted/15 p-4 md:grid-cols-[1fr_1.4fr_auto_auto]"
               >
                 <label className="space-y-1 text-sm">
-                  <span>Título</span>
+                  <span>Nome do checklist</span>
                   <Input
                     value={row[2]}
                     onChange={(event) =>
@@ -4956,8 +5042,8 @@ function ChecklistTable({ query, onOpen }: TableProps) {
             ))}
             <Button
               variant="outline"
-              size="icon"
-              title="Adicionar checklist"
+              className="gap-2"
+              title="Adicionar outro item"
               onClick={() =>
                 setEditing((rows) => [
                   ...(rows || []),
@@ -4973,7 +5059,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
                 ])
               }
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4" />Adicionar item
             </Button>
           </div>
           <DialogFooter className="border-t px-5 py-4">
@@ -5144,7 +5230,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                 setPage(1);
               }}
               items={[
-                ["release", "Data do release"],
+                ["release", "Tipo de data"],
                 ["versao", "Data da atualização"],
               ]}
             />
@@ -5354,7 +5440,6 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                   value={editingRelease.version}
                   onValueChange={(version) => setEditingRelease({ ...editingRelease, version })}
                   items={[
-                    ["nao-informada", "Não informada"],
                     ...erpVersions.map(
                       (version) =>
                         [
@@ -5447,15 +5532,10 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                   minHeight={256}
                 />
               </label>
-              <label className="space-y-1 text-sm md:col-span-6">
+              <div className="space-y-1 text-sm md:col-span-6">
                 <span>Tags</span>
-                <Input
-                  value={editingRelease.tags}
-                  onChange={(event) =>
-                    setEditingRelease({ ...editingRelease, tags: event.target.value })
-                  }
-                />
-              </label>
+                <TagInput value={editingRelease.tags} onChange={(tags) => setEditingRelease({ ...editingRelease, tags })} suggestions={customReleases.flatMap((item) => item.tags.split(/[,;]+/))} />
+              </div>
             </div>
           )}
           <DialogFooter className="border-t px-5 py-4">
@@ -5648,6 +5728,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
   );
   const articleStatusCounts = useMemo(
     () => ({
+      unpublished: rows.filter((article) => article.status === "0").length,
       published: rows.filter((article) => article.status === "1").length,
       analysis: rows.filter((article) => article.status === "2").length,
     }),
@@ -5672,6 +5753,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
               <h2 className="text-lg font-medium">Artigos</h2>
               <span className="text-xs text-muted-foreground">{articlesLoaded ? `${rows.length} registros` : "Carregando..."}</span>
             </div>
+            <Button className="h-10 cursor-pointer gap-2" onClick={() => { const now = new Date().toISOString(); setEditingArticle({id:`novo-${Date.now()}`,title:"",status:"0",description:"",category:"guia",owner:currentUser.operator || operators[0] || "",clicks:0,tags:"",permission:"1",emailCopy:"",relatedArticleIds:"",relatedReleaseIds:"",moduleId:"1",submoduleId:"none",createdAt:now,updatedAt:now}); }}><Plus className="h-4 w-4" />Criar artigo</Button>
           </div>
           <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.35fr_1fr_1fr_1fr_1.35fr_auto]">
             <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Título" />
@@ -5749,7 +5831,8 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                   </td>
                   <td className="px-3 py-2.5 text-center text-muted-foreground">{article.clicks}</td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-primary">
-                    {formatHadronArticleDate(article.updatedAt)}
+                    <span className="block">Criado {formatHadronArticleDate(article.createdAt)}</span>
+                    <span className="block text-[10px] text-muted-foreground">Alterado {formatHadronArticleDate(article.updatedAt)}</span>
                   </td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center justify-end gap-0.5">
@@ -5800,6 +5883,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
       )}
         <footer className="flex flex-wrap items-center gap-6 border-t bg-muted/15 px-4 py-3 text-sm">
           <span className="text-xs font-medium uppercase text-muted-foreground">Status dos artigos</span>
+          <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" />Não publicados <strong>{articleStatusCounts.unpublished}</strong></span>
           <span className="inline-flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
             Publicados <strong>{articleStatusCounts.published}</strong>
@@ -5815,9 +5899,10 @@ function ArticlesTable({ query, onOpen }: TableProps) {
         article={editingArticle}
         onClose={() => setEditingArticle(null)}
         onSave={async (article) => {
+          const creating = Boolean(editingArticle?.id.startsWith("novo-"));
           if (!await trySaveCrmCatalog("articles", [article])) return;
           setEditingArticle(null);
-          toast.success("Artigo atualizado com sucesso.");
+          toast.success(creating ? "Artigo criado com sucesso." : "Artigo atualizado com sucesso.");
         }}
       />
       <AlertDialog open={Boolean(removingArticle)} onOpenChange={(open) => !open && setRemovingArticle(null)}>
@@ -5918,9 +6003,9 @@ function ArticleEditDialog({ article, onClose, onSave }: { article: ArticleDraft
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
-        <DialogTitle className="sr-only">Editar artigo</DialogTitle>
-        <DetailModalHeader icon={FilePenLine} title="Editar artigo" protocol={`Artigo ${draft.id}`} meta={draft.title} onClose={onClose} accentClassName="bg-sky-600" iconWrapClassName="bg-sky-600 text-white" />
-        <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 py-4 md:grid-cols-6">
+        <DialogTitle className="sr-only">{draft.id.startsWith("novo-") ? "Criar artigo" : "Editar artigo"}</DialogTitle>
+        <DetailModalHeader icon={draft.id.startsWith("novo-") ? Plus : FilePenLine} title={draft.id.startsWith("novo-") ? "Criar artigo" : "Editar artigo"} protocol={draft.id.startsWith("novo-") ? undefined : `Artigo ${draft.id}`} meta={draft.title} onClose={onClose} accentClassName="bg-sky-600" iconWrapClassName="bg-sky-600 text-white" />
+        <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 py-4 text-foreground md:grid-cols-6 [&_label]:text-foreground [&_span]:text-foreground">
           <label className="space-y-1 text-sm md:col-span-2"><span>Categoria</span><OccurrenceSelect value={draft.category} onValueChange={(value) => update("category", value)} items={[["guia", "Guia"], ["manual", "Manual"], ["erros", "Erros e Correções"], ["legislacao", "Legislação"], ["comunicacao", "Comunicação"], ["novidades", "Novidades"], ["atualizacoes", "Atualizações"]]} /></label>
           <label className="space-y-1 text-sm md:col-span-2"><span>Permissão</span><OccurrenceSelect value={draft.permission} onValueChange={(value) => update("permission", value)} items={[["0", "Público"], ["1", "Clientes"], ["2", "Empresa"]]} /></label>
           <label className="space-y-1 text-sm md:col-span-2"><span>Status</span><OccurrenceSelect value={draft.status} onValueChange={(value) => update("status", value)} items={[["0", "Não publicado"], ["1", "Publicado"], ["2", "Em análise"]]} /></label>
@@ -5929,11 +6014,11 @@ function ArticleEditDialog({ article, onClose, onSave }: { article: ArticleDraft
           <label className="space-y-1 text-sm md:col-span-6"><span>Título</span><Input value={draft.title} onChange={(event) => update("title", event.target.value)} /></label>
           <div className="space-y-1 text-sm md:col-span-6"><span>Conteúdo do artigo</span><RichTextEditor value={normalizeLegacyHtml(draft.description)} onChange={value => update("description", value)} minHeight={280} /></div>
           <label className="space-y-1 text-sm md:col-span-6"><span>E-mail com cópia</span><Input value={draft.emailCopy} onChange={(event) => update("emailCopy", event.target.value)} placeholder="Separe os endereços por ;" /></label>
-          <label className="space-y-1 text-sm md:col-span-6"><span>Tags</span><Input value={draft.tags} onChange={(event) => update("tags", event.target.value)} /></label>
-          <label className="space-y-1 text-sm md:col-span-3"><span>Artigos relacionados</span><Input value={draft.relatedArticleIds} onChange={(event) => update("relatedArticleIds", event.target.value)} placeholder="IDs separados por vírgula" /></label>
-          <label className="space-y-1 text-sm md:col-span-3"><span>Releases relacionados</span><Input value={draft.relatedReleaseIds} onChange={(event) => update("relatedReleaseIds", event.target.value)} placeholder="IDs separados por vírgula" /></label>
+          <div className="space-y-1 text-sm md:col-span-6"><span>Tags</span><TagInput value={draft.tags} onChange={(value) => update("tags", value)} suggestions={cvsArticles.flatMap((item) => item.tags.split(/[,;]+/))} /></div>
+          <div className="md:col-span-3"><RelationPicker label="Artigos relacionados" value={draft.relatedArticleIds} onChange={(value) => update("relatedArticleIds", value)} items={cvsArticles.filter((item) => item.id !== draft.id).map((item) => [item.id, `${item.id} - ${item.title}`])} /></div>
+          <div className="md:col-span-3"><RelationPicker label="Releases relacionados" value={draft.relatedReleaseIds} onChange={(value) => update("relatedReleaseIds", value)} items={hadronReleases.map((item) => [item.id, `${item.id} - ${item.title}`])} /></div>
         </div>
-        <DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={() => { if (!draft.title.trim()) { toast.error("Informe o título do artigo."); return; } onSave({ ...draft, updatedAt: new Date().toISOString() }); }}>Salvar</Button></DialogFooter>
+        <DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={() => { if (!draft.title.trim()) { toast.error("Informe o título do artigo."); return; } onSave({ ...draft, id: draft.id.startsWith("novo-") ? crypto.randomUUID() : draft.id, updatedAt: new Date().toISOString() }); }}>Salvar</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

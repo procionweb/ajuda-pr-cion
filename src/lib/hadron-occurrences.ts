@@ -72,22 +72,28 @@ export async function updateHadronOccurrenceSolution({
   id,
   solution,
   operator,
+  baseAddress,
+  versionLegacyId,
 }: {
   id: number;
   solution: string;
   operator: string;
+  baseAddress?: string;
+  versionLegacyId?: string;
 }) {
   const solvedAt = new Date().toISOString();
   const { error } = await supabase
     .from("hadron_occurrences")
     .update({
-      solution_html: "",
-      solution_text: solution.trim(),
+      solution_html: solution.trim(),
+      solution_text: solution.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
       solver: operator,
       solved_at: solvedAt,
       status: "8",
       modified_by: operator,
       source_modified_at: solvedAt,
+      base_address: baseAddress?.trim() || null,
+      version_legacy_id: versionLegacyId || null,
     })
     .eq("id", id);
   if (error) throw error;
@@ -121,7 +127,40 @@ export async function createHadronOccurrence(input: {
     p_priority: Number(input.priority),
   });
   if (error) throw error;
-  return Number(data);
+  const occurrenceId = Number(data);
+  const { error: richTextError } = await supabase
+    .from("hadron_occurrences")
+    .update({
+      occurrence_html: input.occurrence.trim(),
+      occurrence_text: input.occurrence.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
+    })
+    .eq("id", occurrenceId);
+  if (richTextError) throw richTextError;
+  return occurrenceId;
+}
+
+export async function updateHadronOccurrence(input: {
+  id: number;
+  occurrence: string;
+  operator: string;
+  baseAddress: string;
+  versionLegacyId: string;
+  priority: string;
+}) {
+  const modifiedAt = new Date().toISOString();
+  const { error } = await supabase
+    .from("hadron_occurrences")
+    .update({
+      occurrence_html: input.occurrence.trim(),
+      occurrence_text: input.occurrence.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
+      base_address: input.baseAddress.trim(),
+      version_legacy_id: input.versionLegacyId || null,
+      priority: Number(input.priority),
+      modified_by: input.operator,
+      source_modified_at: modifiedAt,
+    })
+    .eq("id", input.id);
+  if (error) throw error;
 }
 
 export async function deleteHadronOccurrence(id: number) {
