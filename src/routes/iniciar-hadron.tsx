@@ -1383,7 +1383,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                   "Responsável",
                   "Ações",
                 ].map((header) => (
-                  <th key={header} className="break-words px-2 py-3 font-medium">
+                  <th key={header} className={cn("break-words px-2 py-3 font-medium", header === "Módulo / Submódulo" && "text-center")}>
                     {header}
                   </th>
                 ))}
@@ -1468,7 +1468,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                     <td className="break-words px-2 py-3">
                       {option.executable || "Não informado"}
                     </td>
-                    <td className="break-words px-2 py-3">
+                    <td className="break-words px-2 py-3 text-center">
                       <span title={`${getOptionModuleName(option)} - ${getOptionSubmoduleName(option)}`}>
                         {[option.moduleId, option.submoduleId].filter(Boolean).join(" - ") || "Não informado"}
                       </span>
