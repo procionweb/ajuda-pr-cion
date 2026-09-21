@@ -912,7 +912,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
   const [optionQuery, setOptionQuery] = useState("");
   const [formQuery, setFormQuery] = useState("");
   const [operator, setOperator] = useState("todos");
-  const [hadronScope, setHadronScope] = useState("todos");
+  const [hadronScope, setHadronScope] = useState("correcoes");
   const [characteristic, setCharacteristic] = useState("todos");
   const [module, setModule] = useState("todos");
   const [dateType, setDateType] = useState("criacao");

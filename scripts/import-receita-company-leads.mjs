@@ -18,6 +18,7 @@ const CACHE_DIR = path.resolve(process.env.CNPJ_CACHE_DIR || ".cache/cnpj");
 const BATCH_SIZE = Math.min(1000, Math.max(100, Number(process.env.CNPJ_IMPORT_BATCH || 1000)));
 const DRY_RUN = process.argv.includes("--dry-run");
 const SKIP_PARTNERS = process.argv.includes("--skip-partners");
+const STATEWIDE = process.argv.includes("--statewide");
 const EXPANSION_ONLY = process.argv.includes("--expansion-only");
 const EXPAND_RADIUS = EXPANSION_ONLY || process.argv.includes("--expand-radius");
 const INSERT_ONLY = process.argv.includes("--insert-only");
@@ -142,9 +143,8 @@ async function remoteFiles() {
     .filter(Boolean);
   if (!names.length) throw new Error(`Nenhum ZIP encontrado em ${directoryUrl}.`);
   const wanted = names.filter((name) =>
-    /(Estabelecimentos|Empresas|Municipios|Cnaes|Naturezas|Simples|Socios|Qualificacoes|Paises)/i.test(
-      name,
-    ),
+    /(Estabelecimentos|Empresas|Municipios|Cnaes|Naturezas|Simples|Qualificacoes|Paises)/i.test(name) ||
+    (!SKIP_PARTNERS && /Socios/i.test(name)),
   );
   const downloaded = [];
   for (const [index, name] of wanted.entries()) {
@@ -328,7 +328,7 @@ async function upsertBatch(client, rows) {
 
 const files = await sourceFiles();
 console.log(`Fonte: ${SOURCE_DIR || `${BASE_URL}/${competence}`}`);
-console.log(`Municípios-alvo: ${TARGET_CITIES.length}`);
+console.log(STATEWIDE ? "Municípios-alvo: todo o estado de São Paulo" : `Municípios-alvo: ${TARGET_CITIES.length}`);
 if (OPENED_FROM || OPENED_TO) {
   console.log(`Abertura filtrada: ${OPENED_FROM || "início"} até ${OPENED_TO || "hoje"}`);
 }
@@ -345,13 +345,18 @@ const qualificationLookup = files.qualifications.length
 const countryLookup = files.countries.length ? await loadLookup(files.countries) : new Map();
 const targetMunicipalities = new Map();
 for (const [rfbCode, name] of municipalityLookup) {
+  if (STATEWIDE) {
+    const known = TARGET_CITY_NAMES.get(normalizeCity(name))?.find((city) => city.state === "SP");
+    targetMunicipalities.set(rfbCode, [{ ibgeCode: known?.ibgeCode || null, name, state: "SP", distanceKm: 0 }]);
+    continue;
+  }
   const targets = TARGET_CITY_NAMES.get(normalizeCity(name));
   if (targets?.length) targetMunicipalities.set(rfbCode, targets);
 }
 const foundTargetCities = new Set(
   [...targetMunicipalities.values()].flatMap((targets) => targets.map(({ ibgeCode }) => ibgeCode)),
 );
-if (foundTargetCities.size !== TARGET_CITIES.length) {
+if (!STATEWIDE && foundTargetCities.size !== TARGET_CITIES.length) {
   const missing = TARGET_CITIES.filter(([ibgeCode]) => !foundTargetCities.has(ibgeCode)).map(
     ([, name]) => name,
   );
@@ -373,10 +378,10 @@ for (const file of files.establishments) {
     const openedAt = isoDate(row[10]);
     if (OPENED_FROM && (!openedAt || openedAt < OPENED_FROM)) return;
     if (OPENED_TO && (!openedAt || openedAt > OPENED_TO)) return;
-    if (!EXPAND_RADIUS && municipality.distanceKm > 80) return;
-    if (EXPANSION_ONLY && municipality.distanceKm <= 80) return;
+    if (!STATEWIDE && !EXPAND_RADIUS && municipality.distanceKm > 80) return;
+    if (!STATEWIDE && EXPANSION_ONLY && municipality.distanceKm <= 80) return;
     // Mantém o histórico do núcleo e limita a expansão a leads comerciais recentes.
-    if (municipality.distanceKm > 80 && (!openedAt || openedAt < EXPANSION_CUTOFF)) return;
+    if (!STATEWIDE && municipality.distanceKm > 80 && (!openedAt || openedAt < EXPANSION_CUTOFF)) return;
     const root = digits(row[0]).padStart(8, "0");
     const order = digits(row[1]).padStart(4, "0");
     const verifier = digits(row[2]).padStart(2, "0");
@@ -397,6 +402,7 @@ for (const file of files.establishments) {
       postalCode: digits(row[18]) || null,
       state: normalize(row[19]),
       municipality,
+      rfbCityCode: normalize(row[20]),
       phone: [digits(row[21]), digits(row[22])].filter(Boolean).join(""),
       phoneSecondary: [digits(row[23]), digits(row[24])].filter(Boolean).join(""),
       fax: [digits(row[25]), digits(row[26])].filter(Boolean).join(""),
@@ -452,9 +458,7 @@ const leads = establishments.flatMap((establishment) => {
   const taxOptions = simple.get(establishment.root) || { simple: false, mei: false };
   const rawPayload = {
     ibge_city_code: establishment.municipality.ibgeCode,
-    rfb_city_code: [...targetMunicipalities].find(([, cities]) =>
-      cities.some((city) => city.ibgeCode === establishment.municipality.ibgeCode),
-    )?.[0],
+    rfb_city_code: establishment.rfbCityCode,
     company_size_code: company.companySizeCode,
     simple: taxOptions.simple,
     mei: taxOptions.mei,

@@ -325,8 +325,8 @@ export function CompanyLeadsTab() {
     nextDirection: "asc" | "desc",
   ) => {
     const hasDirectSearch = Boolean(nextFilters.companyName?.trim() || nextFilters.cnpj?.trim());
-    if (!hasDirectSearch && (!nextFilters.city.trim() || nextFilters.state.trim().length !== 2)) {
-      toast.error("Informe a cidade e uma UF válida.");
+    if (!hasDirectSearch && nextFilters.state.trim().length !== 2) {
+      toast.error("Informe uma UF válida.");
       return;
     }
     setSearching(true);
@@ -721,7 +721,7 @@ export function CompanyLeadsTab() {
         }}
       >
         <label className="min-w-[220px] flex-[1.4] space-y-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Cidade</span>
+          <span className="text-xs font-medium text-muted-foreground">Cidade (opcional)</span>
           <Input
             value={filters.city}
             onChange={(event) => setFilters((value) => ({ ...value, city: event.target.value }))}
@@ -1203,7 +1203,7 @@ export function CompanyLeadsTab() {
                   >
                     {hasSearched
                       ? "Nenhum lead encontrado com os filtros aplicados."
-                      : "Informe cidade e UF para procurar novas empresas."}
+                      : "Informe uma UF para procurar novas empresas."}
                   </td>
                 </tr>
               )}

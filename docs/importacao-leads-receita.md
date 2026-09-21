@@ -1,8 +1,8 @@
 # Importação de leads da Receita Federal
 
-O importador lê os arquivos mensais de Dados Abertos do CNPJ e grava somente
+O importador lê os arquivos mensais de Dados Abertos do CNPJ. Por padrão, grava
 estabelecimentos ativos nos municípios em um raio de 80 km de São Carlos/SP.
-Clientes já cadastrados no CRM são ignorados pelo CNPJ.
+Com `--statewide`, considera todos os municípios do estado de São Paulo.
 
 ## Arquivos necessários
 
@@ -50,5 +50,17 @@ Para fixar uma competência específica, defina `CNPJ_COMPETENCE` no formato
 - somente os 48 municípios configurados em `scripts/company-leads-cities.mjs`;
 - junção pelo CNPJ básico entre Estabelecimentos, Empresas e Simples;
 - upsert idempotente pelo CNPJ completo;
-- clientes já existentes em `client_companies` não são importados como leads;
+- clientes já existentes em `client_companies` são vinculados pelo CNPJ;
 - a origem e a competência são preservadas no registro.
+
+Para importar somente CNPJs ainda ausentes, em qualquer município de São Paulo,
+a partir da última competência já importada:
+
+```powershell
+$env:CNPJ_COMPETENCE="2026-09-14"
+$env:CNPJ_OPENED_FROM="2026-08-10"
+npm run import:company-leads -- --statewide --insert-only --skip-partners
+```
+
+`CNPJ_OPENED_FROM` limita o volume por data de abertura; esta carga incremental
+não cobre empresas mais antigas dos municípios antes fora do raio de São Carlos.
