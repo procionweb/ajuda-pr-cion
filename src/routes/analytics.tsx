@@ -150,9 +150,6 @@ function AnalyticsPage() {
           <TicketsAnalyticsSection
             from={from}
             to={to}
-            onDateSelect={(date) =>
-              navigate({ search: { view: activeTab, from: date, to: date } })
-            }
           />
         </TabsContent>
 
