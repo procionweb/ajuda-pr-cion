@@ -1654,6 +1654,7 @@ function HadronOptionPage({
   const { items: hadronReleases } = useCrmCatalog<CatalogRelease>("releases");
   const { items: versions } = useCrmCatalog<CatalogVersion>("versions");
   const erpVersions = useMemo(() => [...versions].sort((a,b) => b.data_versao.localeCompare(a.data_versao)), [versions]);
+  const latestFilledVersion = erpVersions.find((version) => version.versao?.trim() && version.data_versao?.trim());
   const moduleName = getOptionModuleName(option);
   const submoduleName = getOptionSubmoduleName(option);
   const [optionChecklist,setOptionChecklist] = useState(() => getHadronOptionChecklist(option.id));
@@ -1680,18 +1681,24 @@ function HadronOptionPage({
     priority: "1",
     operator: currentUser.operator,
     baseAddress: "",
-    versionLegacyId: erpVersions[0]?.id || "",
+    versionLegacyId: latestFilledVersion?.id || "",
     occurrence: "",
   });
   const [releaseDraft, setReleaseDraft] = useState({
     releaseType: "novidade",
     permission: "clientes",
+    version: latestFilledVersion?.data_versao || "",
     moduleId: option.moduleId,
     submoduleId: option.submoduleId,
     title: "",
     description: "",
     tags: option.tags || "",
   });
+  useEffect(() => {
+    if (!latestFilledVersion) return;
+    setOccurrenceDraft((current) => current.versionLegacyId ? current : { ...current, versionLegacyId: latestFilledVersion.id });
+    setReleaseDraft((current) => current.version ? current : { ...current, version: latestFilledVersion.data_versao });
+  }, [latestFilledVersion?.id, latestFilledVersion?.data_versao]);
   const optionReleases = hadronReleases
     .filter(
       (release) =>
@@ -2002,6 +2009,7 @@ function HadronOptionPage({
             <div className="grid content-start gap-3 md:grid-cols-6">
               <label className="min-w-0 space-y-1 text-sm md:col-span-2"><span>Tipo Release</span><OccurrenceSelect value={releaseDraft.releaseType} onValueChange={(releaseType) => setReleaseDraft({...releaseDraft,releaseType})} items={[["correcao","Correção"],["alteracao","Alteração"],["novidade","Novidade"]]} /></label>
               <label className="min-w-0 space-y-1 text-sm md:col-span-2"><span>Permissão</span><OccurrenceSelect value={releaseDraft.permission} onValueChange={(permission) => setReleaseDraft({...releaseDraft,permission})} items={[["clientes","Clientes"],["publico","Público"],["empresa","Empresa"]]} /></label>
+              <label className="min-w-0 space-y-1 text-sm md:col-span-2"><span>Versão Hádron</span><OccurrenceSelect value={releaseDraft.version} onValueChange={(version) => setReleaseDraft({...releaseDraft,version})} items={erpVersions.filter((item) => item.versao?.trim() && item.data_versao?.trim()).map((item) => [item.data_versao, `${item.versao} - ${formatVersionDate(item.data_versao)}`])} /></label>
               <label className="min-w-0 space-y-1 text-sm md:col-span-2"><span>Opção</span><Input className="truncate" title={`${option.id} - ${option.option}/${option.form} - ${option.description}`} readOnly value={`${option.id} - ${option.option}/${option.form} - ${option.description}`} /></label>
               <label className="min-w-0 space-y-1 text-sm md:col-span-3"><span>Módulo</span><Input readOnly className="bg-muted/35" value={releaseModuleItems.find(([id]) => id === releaseDraft.moduleId)?.[1] || getOptionModuleName(option)} /></label>
               <label className="min-w-0 space-y-1 text-sm md:col-span-3"><span>Submódulo</span><OccurrenceSelect value={releaseDraft.submoduleId} onValueChange={(submoduleId) => setReleaseDraft({...releaseDraft,submoduleId})} items={releaseSubmoduleItems.length ? releaseSubmoduleItems : [[releaseDraft.submoduleId || "sem-submodulo", "Nenhum submódulo disponível"]]} /></label>
@@ -2031,7 +2039,7 @@ function HadronOptionPage({
               </div>
             </section>
           </div>
-          <DialogFooter className="shrink-0 border-t bg-card px-5 py-4"><Button disabled={savingRelease} onClick={async () => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const saved = await trySaveCrmCatalog("releases", [{id:crypto.randomUUID(),optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,version:"nao-informada",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}]); setSavingRelease(false); if (!saved) return; setNewReleaseOpen(false); toast.success("Release criado no banco."); }}>Salvar</Button></DialogFooter>
+          <DialogFooter className="shrink-0 border-t bg-card px-5 py-4"><Button disabled={savingRelease} onClick={async () => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const saved = await trySaveCrmCatalog("releases", [{id:crypto.randomUUID(),optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}]); setSavingRelease(false); if (!saved) return; setNewReleaseOpen(false); toast.success("Release criado no banco."); }}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
@@ -2596,6 +2604,13 @@ function OptionImportedOccurrences({
   const [removingOccurrence, setRemovingOccurrence] = useState<HadronOccurrence | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const { department } = usePortalAuth();
+  const { items: versions } = useCrmCatalog<CatalogVersion>("versions");
+  const erpVersions = useMemo(() => [...versions].sort((a, b) => b.data_versao.localeCompare(a.data_versao)), [versions]);
+  const latestFilledVersion = erpVersions.find((version) => version.versao?.trim() && version.data_versao?.trim());
+  useEffect(() => {
+    if (!latestFilledVersion) return;
+    setEditingOccurrence((current) => current && !current.versionLegacyId ? { ...current, versionLegacyId: latestFilledVersion.id } : current);
+  }, [latestFilledVersion?.id]);
 
   useEffect(() => {
     const reload = () => setReloadKey((current) => current + 1);
@@ -2670,7 +2685,7 @@ function OptionImportedOccurrences({
                     ["admin", "development", "tester"].includes(department || "") ||
                     normalizeOccurrenceText(occurrence.reporter) === normalizeOccurrenceText(currentUser.operator)
                   }
-                  onEdit={setEditingOccurrence}
+                  onEdit={(item) => setEditingOccurrence({ ...item, versionLegacyId: item.versionLegacyId || latestFilledVersion?.id || "" })}
                   onDelete={setRemovingOccurrence}
                   canReview={
                     department === "admin" ||
@@ -2841,8 +2856,8 @@ function HadronOccurrenceTimelineItem({
       </div>
       <article className="min-w-0 pb-7 pt-0.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
-          <button type="button" title={expanded ? "Recolher ocorrência" : "Expandir ocorrência"} onClick={() => setExpanded((value) => !value)} className="grid h-7 w-7 place-items-center rounded hover:bg-muted"><ChevronDown className={cn("h-4 w-4 transition-transform", !expanded && "-rotate-90")} /></button>
-          {canManage && <><button type="button" title="Editar ocorrência" onClick={() => onEdit(occurrence)} className="grid h-7 w-7 place-items-center rounded hover:bg-muted"><Pencil className="h-4 w-4" /></button><button type="button" title="Excluir ocorrência" onClick={() => onDelete(occurrence)} className="grid h-7 w-7 place-items-center rounded text-destructive hover:bg-muted"><Trash2 className="h-4 w-4" /></button></>}
+          <button type="button" title={expanded ? "Recolher ocorrência" : "Expandir ocorrência"} onClick={() => setExpanded((value) => !value)} className="grid h-7 w-7 cursor-pointer place-items-center rounded hover:bg-muted"><ChevronDown className={cn("h-4 w-4 transition-transform", !expanded && "-rotate-90")} /></button>
+          {canManage && <><button type="button" title="Editar ocorrência" onClick={() => onEdit(occurrence)} className="grid h-7 w-7 cursor-pointer place-items-center rounded hover:bg-muted"><Pencil className="h-4 w-4" /></button><button type="button" title="Excluir ocorrência" onClick={() => onDelete(occurrence)} className="grid h-7 w-7 cursor-pointer place-items-center rounded text-destructive hover:bg-muted"><Trash2 className="h-4 w-4" /></button></>}
           <span
             className="inline-flex min-w-[96px] items-center justify-center rounded-full px-2.5 py-0.5 font-medium text-white shadow-sm"
             style={{ backgroundColor: color }}
@@ -2951,8 +2966,12 @@ function HadronSolutionDialog({
   const [solutionOperator, setSolutionOperator] = useState(currentUser.operator || currentUser.name);
   const [solutionBase, setSolutionBase] = useState("");
   const [solutionVersion, setSolutionVersion] = useState("");
+  const { items: versions } = useCrmCatalog<CatalogVersion>("versions");
+  const erpVersions = useMemo(() => [...versions].sort((a, b) => b.data_versao.localeCompare(a.data_versao)), [versions]);
+  const latestFilledVersion = erpVersions.find((version) => version.versao?.trim() && version.data_versao?.trim());
   const [saving, setSaving] = useState(false);
-  useEffect(() => { setSolution(occurrence?.solutionHtml || occurrence?.solutionText || ""); setSolutionOperator(occurrence?.solver || currentUser.operator || currentUser.name); setSolutionBase(occurrence?.baseAddress || occurrence?.testBase || ""); setSolutionVersion(occurrence?.versionLegacyId || ""); }, [occurrence?.id]);
+  useEffect(() => { setSolution(occurrence?.solutionHtml || occurrence?.solutionText || ""); setSolutionOperator(occurrence?.solver || currentUser.operator || currentUser.name); setSolutionBase(occurrence?.baseAddress || occurrence?.testBase || ""); setSolutionVersion(occurrence?.versionLegacyId || latestFilledVersion?.id || ""); }, [occurrence?.id]);
+  useEffect(() => { if (latestFilledVersion) setSolutionVersion((current) => current || latestFilledVersion.id); }, [latestFilledVersion?.id]);
   if (!occurrence) return null;
   const operator = solutionOperator || currentUser.operator || currentUser.name;
   const save = async () => {
@@ -5111,6 +5130,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
   const { items: hadronOptions } = useCrmCatalog<HadronOption>("options");
   const { items: versions } = useCrmCatalog<CatalogVersion>("versions");
   const erpVersions = useMemo(() => [...versions].sort((a,b) => b.data_versao.localeCompare(a.data_versao)), [versions]);
+  const latestFilledVersion = erpVersions.find((version) => version.versao?.trim() && version.data_versao?.trim());
   const hadronOptionsById = useMemo(() => new Map(hadronOptions.map((item) => [item.id,item])), [hadronOptions]);
   const releaseOptionSelectItems = useMemo(() => [...new Map(hadronOptions.map((option) => [option.option, [option.option, `${option.option}/${option.form || option.option} - ${option.description}`] as [string,string]])).values()], [hadronOptions]);
   const [page, setPage] = useState(1);
@@ -5128,6 +5148,12 @@ function ReleasesTable({ query, onOpen }: TableProps) {
   const [removingRelease, setRemovingRelease] = useState<{ id: string; title: string } | null>(
     null,
   );
+  useEffect(() => {
+    if (!latestFilledVersion) return;
+    setEditingRelease((current) => current && (!current.version || current.version === "nao-informada")
+      ? { ...current, version: latestFilledVersion.data_versao }
+      : current);
+  }, [latestFilledVersion?.data_versao]);
   const normalizedQuery = normalizeOccurrenceText(query);
   const normalizedOptionQuery = normalizeOccurrenceText(optionQuery);
   const operators = useMemo(
@@ -5206,7 +5232,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
         <div className="border-b px-4 py-4">
           <div className="flex items-baseline gap-2">
             <h2 className="text-lg font-medium">Releases</h2>
-            <Button className="ml-auto h-10 cursor-pointer gap-2" onClick={() => setEditingRelease({id:`novo-${Date.now()}`,title:"",owner:operators[0] || "",moduleId:"1",submoduleId:"",description:"",tags:"",createdAt:new Date().toISOString().slice(0,10),version:erpVersions[0]?.data_versao || "nao-informada",releaseType:"novidade",permission:"clientes",option:""})}><Plus className="h-4 w-4" />Criar release</Button>
+            <Button className="ml-auto h-10 cursor-pointer gap-2" onClick={() => setEditingRelease({id:`novo-${Date.now()}`,title:"",owner:operators[0] || "",moduleId:"1",submoduleId:"",description:"",tags:"",createdAt:new Date().toISOString().slice(0,10),version:latestFilledVersion?.data_versao || "",releaseType:"novidade",permission:"clientes",option:""})}><Plus className="h-4 w-4" />Criar release</Button>
             <span className="text-xs text-muted-foreground">
               {rows.length.toLocaleString("pt-BR")} registros
             </span>
@@ -5363,7 +5389,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                             description: release.description,
                             tags: release.tags,
                             createdAt: release.createdAt,
-                            version: release.version || "nao-informada",
+                            version: release.version && release.version !== "nao-informada" ? release.version : latestFilledVersion?.data_versao || "",
                             releaseType: type,
                             permission: release.permission,
                             option: release.option || option?.option || release.id,
