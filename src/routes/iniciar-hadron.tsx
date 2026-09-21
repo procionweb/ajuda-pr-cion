@@ -4240,9 +4240,16 @@ function normalizeLegacyUrl(value: string) {
 }
 
 function normalizeLegacyHtml(value: string) {
-  return value.replace(/(<img\b[^>]*?\ssrc=["'])([^"']+)(["'])/gi, (_match, before, src, after) => {
-    const normalized = normalizeLegacyUrl(src);
-    return normalized ? `${before}${normalized}${after} referrerpolicy="no-referrer" decoding="async"` : `${before}${src}${after}`;
+  return value.replace(/<img\b[^>]*>/gi, (tag) => {
+    const normalizedTag = tag.replace(/(\bsrc=["'])([^"']+)(["'])/i, (_match, before, src, after) => {
+      const normalized = normalizeLegacyUrl(src);
+      return `${before}${normalized || src}${after}`;
+    });
+    const attributes = [
+      !/\breferrerpolicy\s*=/i.test(normalizedTag) && 'referrerpolicy="no-referrer"',
+      !/\bdecoding\s*=/i.test(normalizedTag) && 'decoding="async"',
+    ].filter(Boolean).join(" ");
+    return attributes ? normalizedTag.replace(/\s*\/?>(?=$)/, (ending) => ` ${attributes}${ending}`) : normalizedTag;
   });
 }
 

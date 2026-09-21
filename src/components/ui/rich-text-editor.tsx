@@ -68,6 +68,7 @@ export function RichTextEditor({
   const ref = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
+  const lastEmittedHtmlRef = useRef<string | null>(null);
   const [, force] = useState(0);
   const [currentStyle, setCurrentStyle] = useState<string>("p");
   const [currentSize, setCurrentSize] = useState<number>(14);
@@ -80,7 +81,9 @@ export function RichTextEditor({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (el.innerHTML !== value) {
+    const matchesOwnEdit = lastEmittedHtmlRef.current === el.innerHTML;
+    lastEmittedHtmlRef.current = null;
+    if (el.innerHTML !== value && !matchesOwnEdit) {
       el.innerHTML = value || "";
     }
     // Revoga URLs temporárias que não estão mais no conteúdo
@@ -90,6 +93,7 @@ export function RichTextEditor({
   const emit = useCallback(() => {
     const el = ref.current;
     if (!el) return;
+    lastEmittedHtmlRef.current = el.innerHTML;
     onChange(el.innerHTML);
     force((n) => n + 1);
   }, [onChange]);
