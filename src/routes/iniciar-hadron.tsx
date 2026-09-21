@@ -1442,9 +1442,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                       )}
                     </td>
                     <td className="px-1 py-3 text-center">
-                      <span className={cn("mx-auto grid h-6 w-6 place-items-center rounded-full text-[11px] font-semibold", option.priority === "2" ? "bg-rose-100 text-rose-700" : option.priority === "1" ? "bg-amber-100 text-amber-800" : "bg-muted text-muted-foreground")} title={`Prioridade ${option.priority === "2" ? "alta" : option.priority === "1" ? "normal" : "baixa"}`}>
-                        {option.priority ?? "-"}
-                      </span>
+                      <span className={cn("mx-auto block h-3.5 w-3.5 rounded-full", option.priority === "2" ? "bg-rose-500" : option.priority === "1" ? "bg-amber-500" : option.priority === "0" ? "bg-sky-500" : "bg-muted-foreground")} title={`Prioridade ${option.priority === "2" ? "alta" : option.priority === "1" ? "normal" : option.priority === "0" ? "baixa" : "não informada"}`} aria-label={`Prioridade ${option.priority === "2" ? "alta" : option.priority === "1" ? "normal" : option.priority === "0" ? "baixa" : "não informada"}`} />
                     </td>
                     <td className="break-words px-2 py-3 font-medium">
                       <span className="inline-flex items-center gap-1.5">
@@ -2094,11 +2092,25 @@ function OptionEditDialog({
   const { items: hadronChecklist } = useCrmCatalog<[string,string,string,string,boolean,string,string]>("checklist");
   const [draft, setDraft] = useState<HadronOption | null>(option);
   const [editedChecks, setEditedChecks] = useState<ReturnType<typeof getHadronOptionChecklist>>([]);
+  const [openOccurrenceCount, setOpenOccurrenceCount] = useState<number | null>(null);
+  const { department } = usePortalAuth();
   useEffect(() => {
     if (!option) return;
     setEditedChecks(option.id.startsWith("novo-") ? hadronChecklist.map((item) => ({id:item[0],checkId:item[0],characteristic:item[1],title:item[2],description:item[3],check1:false,check2:false})) : option.checklist || getHadronOptionChecklist(option.id));
     if (!option.id.startsWith("novo-")) void loadOptionChecklist(option.id).then(setEditedChecks).catch(() => toast.error("Não foi possível carregar o checklist."));
   }, [option, hadronChecklist]);
+  useEffect(() => {
+    if (!option || option.id.startsWith("novo-")) {
+      setOpenOccurrenceCount(0);
+      return;
+    }
+    let active = true;
+    setOpenOccurrenceCount(null);
+    void getHadronOpenOccurrenceStats()
+      .then((stats) => { if (active) setOpenOccurrenceCount(stats[option.id]?.count ?? 0); })
+      .catch(() => { if (active) setOpenOccurrenceCount(null); });
+    return () => { active = false; };
+  }, [option?.id]);
   const { collaborators } = useCollaborators();
   useEffect(() => setDraft(option), [option]);
   const isCreating = Boolean(draft?.id.startsWith("novo-"));
@@ -2119,7 +2131,12 @@ function OptionEditDialog({
     setDraft((current) => (current ? { ...current, [field]: value } : current));
   const selectedModule = getOptionModuleName(draft);
   const availableSubmodules = modulesMap[selectedModule] || [];
-  const optionChecklist = editedChecks;
+  const optionChecklist = isCreating
+    ? editedChecks.filter((item) => item.characteristic === "geral" || item.characteristic === draft.characteristic || (draft.listView === "1" && item.characteristic === "listview"))
+    : editedChecks;
+  const canManageChecklist = ["admin", "development", "tester"].includes(department || "");
+  const canEditFirstChecklist = canManageChecklist && ["0", "4"].includes(draft.status) && openOccurrenceCount === 0;
+  const canEditSecondChecklist = canManageChecklist && draft.status === "8";
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex h-[calc(100vh-2rem)] max-h-[760px] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
@@ -2276,6 +2293,7 @@ function OptionEditDialog({
                     <input
                       type="checkbox"
                       checked={item.check1}
+                      disabled={!canEditFirstChecklist}
                       onChange={(event) => setEditedChecks((items) => items.map((check) => check.id === item.id ? {...check, check1: event.target.checked} : check))}
                       aria-label={`${item.title}, primeira validação`}
                       className="h-4 w-4 accent-primary"
@@ -2283,6 +2301,7 @@ function OptionEditDialog({
                     <input
                       type="checkbox"
                       checked={item.check2}
+                      disabled={!canEditSecondChecklist}
                       onChange={(event) => setEditedChecks((items) => items.map((check) => check.id === item.id ? {...check, check2: event.target.checked} : check))}
                       aria-label={`${item.title}, segunda validação`}
                       className="h-4 w-4 accent-primary"
@@ -2302,14 +2321,14 @@ function OptionEditDialog({
               }
               if (!isCreating) {
                 try {
-                  await processOptionChecklist(draft.id, 1, editedChecks);
-                  await processOptionChecklist(draft.id, 2, editedChecks);
+                  if (canEditFirstChecklist) await processOptionChecklist(draft.id, 1, optionChecklist);
+                  if (canEditSecondChecklist) await processOptionChecklist(draft.id, 2, optionChecklist);
                 } catch {
                   toast.error("Não foi possível salvar o checklist.");
                   return;
                 }
               }
-              onSave({ ...draft, checklist: editedChecks, label: `${draft.description} (${draft.option} - ${draft.form})` });
+              onSave({ ...draft, checklist: optionChecklist, label: `${draft.description} (${draft.option} - ${draft.form})` });
             }}
           >
             {isCreating ? "Criar opção" : "Salvar"}
@@ -2359,7 +2378,10 @@ function TagInput({
           onBlur={() => window.setTimeout(() => setOpen(false), 120)}
           onChange={(event) => { setQuery(event.target.value); setOpen(true); }}
           onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === ",") { event.preventDefault(); addTag(choices[0] || query); }
+            if (event.key === "Enter" || event.key === ",") {
+              event.preventDefault();
+              addTag(choices.find((tag) => normalizeOccurrenceText(tag) === normalizeOccurrenceText(query)) || query);
+            }
             if (event.key === "Backspace" && !query && tags.length) onChange(tags.slice(0, -1).join(", "));
           }}
           placeholder={tags.length ? "Adicionar tag" : "Digite ou selecione uma tag"}
@@ -2771,7 +2793,7 @@ function HadronOccurrenceTimelineItem({
   canReview: boolean;
   onInformReview: (occurrence: HadronOccurrence) => void;
 }) {
-  const [expanded, setExpanded] = useState(defaultExpanded || !occurrence.solvedAt);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const reviewed = Boolean(occurrence.reviewedAt);
   const solved = Boolean(
     occurrence.solvedAt && (occurrence.solutionHtml || occurrence.solutionText),
