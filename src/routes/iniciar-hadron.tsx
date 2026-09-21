@@ -331,7 +331,7 @@ function HadronPage() {
   );
   const confirmOccurrenceReview = async () => {
     const occurrence = detail?.hadronOccurrence;
-    if (!occurrence?.id || occurrence.reviewedAt || !occurrence.solvedAt) return;
+    if (!occurrence?.id || occurrence.kind !== "problema" || occurrence.reviewedAt || !occurrence.solvedAt) return;
     setReviewingOccurrence(true);
     try {
       const reviewedAt = await reviewHadronOccurrence(occurrence.id);
@@ -467,7 +467,9 @@ function HadronPage() {
           <DialogTitle className="sr-only">{detail?.title}</DialogTitle>
           <DetailModalHeader
             icon={Info}
-            title={detail?.title ?? ""}
+            title={detail?.hadronOccurrence
+              ? <span title={detail.title} className="whitespace-pre-wrap break-words">{detail.title}</span>
+              : detail?.title ?? ""}
             meta={detail?.subtitle}
             chips={
               detail?.hadronOccurrence?.optionStatus === "9" ? (
@@ -506,6 +508,7 @@ function HadronPage() {
             )}
             <div className="flex justify-end gap-2">
               {detail?.hadronOccurrence?.id &&
+                detail.hadronOccurrence.kind === "problema" &&
                 detail.hadronOccurrence.solvedAt &&
                 !detail.hadronOccurrence.reviewedAt &&
                 (department === "admin" ||
@@ -1383,7 +1386,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                   "Responsável",
                   "Ações",
                 ].map((header) => (
-                  <th key={header} className={cn("break-words px-2 py-3 font-medium", header === "Módulo / Submódulo" && "text-center")}>
+                  <th key={header} className={cn("break-words px-2 py-3 font-medium", ["Módulo / Submódulo", "Ações"].includes(header) && "text-center")}>
                     {header}
                   </th>
                 ))}
@@ -2678,7 +2681,7 @@ function OptionImportedOccurrences({
                   reporter={collaboratorName(occurrence.reporter)}
                   solver={collaboratorName(occurrence.solver)}
                   isLast={index === rows.length - 1}
-                  defaultExpanded={occurrence.kind === "ocorrencia" && !occurrence.solvedAt && !occurrence.reviewedAt}
+                  defaultExpanded={!occurrence.reviewedAt && !(occurrence.solvedAt && (occurrence.solutionHtml || occurrence.solutionText))}
                   onInformSolution={setSolutionOccurrence}
                   canManage={
                     ["admin", "development", "tester"].includes(department || "") ||
@@ -3330,43 +3333,43 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
             </Button>
           </div>
         </div>
-        <div className="overflow-hidden">
-          <table className="w-full table-fixed text-left text-[11px] xl:text-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1400px] table-fixed text-left text-[11px] xl:text-xs [&_td]:align-middle [&_th]:align-middle">
             <thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal">
               <tr>
-                <th className="w-[4%] px-2 py-3 text-center font-medium">Tipo</th>
-                <th className="w-28 px-2 py-3 font-medium">Prioridade</th>
-                <th className="w-[8%] px-2 py-3 font-medium">Opção/Form.</th>
-                <th className="w-[14%] px-2 py-3 font-medium">Descrição</th>
+                <th className="w-[4%] px-3 py-3 text-center font-medium">Tipo</th>
+                <th className="w-28 px-3 py-3 font-medium">Prioridade</th>
+                <th className="w-[8%] px-3 py-3 font-medium">Opção/Form.</th>
+                <th className="w-[14%] px-3 py-3 font-medium">Descrição</th>
                 <th className="px-3 py-3 font-medium">Detalhes</th>
-                <th className="w-[7%] px-2 py-3 font-medium">Responsável</th>
-                <th className="w-[10%] px-2 py-3 font-medium">Ocorrência / Operador</th>
-                <th className="w-[10%] px-2 py-3 font-medium">Solução / Operador</th>
-                <th className="w-[8%] px-2 py-3 font-medium">Revisão</th>
-                <th className="w-[13%] px-2 py-3 text-center font-medium">Ações</th>
+                <th className="w-[7%] px-3 py-3 font-medium">Responsável</th>
+                <th className="w-[10%] px-3 py-3 font-medium">Ocorrência / Operador</th>
+                <th className="w-[10%] px-3 py-3 font-medium">Solução / Operador</th>
+                <th className="w-[8%] px-3 py-3 font-medium">Revisão</th>
+                <th className="w-[13%] px-3 py-3 text-center font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {rows.map((occurrence) => {
                 const option = hadronOptionsById.get(occurrence.optionLegacyId);
                 return (
-                  <tr key={occurrence.id} className="align-top hover:bg-muted/25">
+                  <tr key={occurrence.id} className="hover:bg-muted/25">
                     <td className="px-3 py-3 text-center">
                       <ImportedOccurrenceTypeIcon occurrence={occurrence} />
                     </td>
-                    <td className="px-2 py-3"><OccurrencePriorityField occurrence={occurrence} /></td>
-                    <td className="break-words px-2 py-3 font-medium">
+                    <td className="px-3 py-3"><OccurrencePriorityField occurrence={occurrence} /></td>
+                    <td className="break-words px-3 py-3 font-medium">
                       {option
                         ? `${option.option}/${option.form || option.option}`
                         : occurrence.optionLegacyId}
                     </td>
-                    <td className="px-2 py-3 font-medium text-primary">
+                    <td className="px-3 py-3 font-medium text-primary">
                       <p className="line-clamp-2 break-words">
                         {option?.description || "Descrição não informada"}
                       </p>
                     </td>
                     <td className="max-w-lg px-3 py-3">
-                      <p className="line-clamp-3 leading-5">
+                      <p title={occurrence.occurrenceText || "Sem descrição"} className="line-clamp-3 leading-5">
                         {occurrence.occurrenceText || "Sem descrição"}
                       </p>
                     </td>
@@ -3384,7 +3387,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
                     <td className="px-3 py-3 text-emerald-600">
                       {occurrence.reviewedAt ? formatOccurrenceDate(occurrence.reviewedAt) : "-"}
                     </td>
-                    <td className="px-2 py-3">
+                    <td className="px-3 py-3">
                       <div className="flex flex-nowrap items-center justify-center gap-0.5 whitespace-nowrap">
                         {occurrence.kind === "ocorrencia" &&
                           occurrence.solvedAt &&
@@ -3748,7 +3751,7 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
                 normalizeOccurrenceText(ticket.owner) ===
                 normalizeOccurrenceText(currentUser.operator);
               return (
-                <tr key={ticket.id} className="align-top hover:bg-muted/25">
+                <tr key={ticket.id} className="hover:bg-muted/25">
                   <td className="px-3 py-3">
                     <OccurrenceTypeIcon ticket={ticket} />
                   </td>
@@ -4126,7 +4129,7 @@ function HadronOccurrenceDetailView({ occurrence }: { occurrence: HadronOccurren
         )}
         <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
           <span>
-            Situação: <strong className="font-medium text-foreground">{occurrence.status}</strong>
+            Situação: <strong className="font-medium text-foreground">{reviewed ? "Revisada" : occurrence.solvedAt ? "Solução informada" : "Em aberto"}{occurrence.status ? ` · ${hadronOptionStatusLabel(occurrence.status)}` : ""}</strong>
           </span>
           <span>Registrada em {formatOccurrenceDay(occurrence.openedAt)}</span>
           {occurrence.solvedAt && (
@@ -4569,7 +4572,7 @@ function ModulesTable({ query, onOpen }: TableProps) {
           </thead>
           <tbody className="divide-y">
             {rows.slice((page - 1) * pageSize, page * pageSize).map((row) => (
-              <tr key={row.id} className="align-top hover:bg-muted/20">
+              <tr key={row.id} className="hover:bg-muted/20">
                 <td className="px-4 py-4 text-muted-foreground">{row.id}</td>
                 <td className="px-4 py-4">
                   <p className="font-medium uppercase">{row.module}</p>
@@ -5827,7 +5830,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                 "Datas",
                 "Ações",
               ].map((header) => (
-                <th key={header} className="whitespace-nowrap px-3 py-2 font-medium">
+                <th key={header} className={cn("whitespace-nowrap px-3 py-2 font-medium", ["Cliques", "Ações"].includes(header) && "text-center")}>
                   {header}
                 </th>
               ))}
@@ -5883,7 +5886,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                     <span className="block text-[10px] text-muted-foreground">Alterado {formatHadronArticleDate(article.updatedAt)}</span>
                   </td>
                   <td className="px-3 py-2.5">
-                    <div className="flex items-center justify-end gap-0.5">
+                    <div className="flex items-center justify-center gap-0.5">
                       {baseArticle && (
                         <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Abrir artigo na Base de Conhecimento">
                           <Link
