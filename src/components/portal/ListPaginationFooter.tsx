@@ -51,6 +51,7 @@ export function ListPaginationFooter({
   page,
   pageCount,
   pageSize,
+  pageSizeOptions = [10, 25, 50, 100],
   total,
   noun,
   onPageChange,
@@ -60,6 +61,7 @@ export function ListPaginationFooter({
   page: number;
   pageCount: number;
   pageSize: number;
+  pageSizeOptions?: readonly number[];
   total: number;
   noun: string;
   onPageChange: (page: number) => void;
@@ -91,7 +93,7 @@ export function ListPaginationFooter({
             onChange={(event) => onPageSizeChange?.(Number(event.target.value))}
             className="h-7 cursor-pointer rounded-md border border-border bg-background px-2 text-[12px] text-foreground outline-none focus:ring-2 focus:ring-ring disabled:cursor-default disabled:opacity-100"
           >
-            {[10, 25, 50, 100].map((value) => (
+            {pageSizeOptions.map((value) => (
               <option key={value} value={value}>
                 {value}
               </option>

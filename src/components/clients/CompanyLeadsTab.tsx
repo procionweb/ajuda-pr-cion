@@ -74,6 +74,7 @@ const initialFilters: CompanyLeadFilters = {
 };
 
 const PAGE_SIZE = 50;
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200, 300] as const;
 const COLUMNS_STORAGE_KEY = "procion:company-leads:columns:v2";
 const SEARCH_STORAGE_KEY = "procion:company-leads:search-state:v1";
 
@@ -280,7 +281,9 @@ function loadSearchState(): PersistedSearchState {
       ...parsed,
       filters: { ...initialFilters, ...parsed.filters },
       appliedFilters: { ...initialFilters, ...parsed.appliedFilters },
-      pageSize: [10, 25, 50, 100].includes(Number(parsed.pageSize)) ? Number(parsed.pageSize) : PAGE_SIZE,
+      pageSize: PAGE_SIZE_OPTIONS.includes(Number(parsed.pageSize) as typeof PAGE_SIZE_OPTIONS[number])
+        ? Number(parsed.pageSize)
+        : PAGE_SIZE,
     };
   } catch {
     return fallback;
@@ -303,6 +306,12 @@ export function CompanyLeadsTab() {
   const [sort, setSort] = useState<CompanyLeadSort>(restoredSearch.sort);
   const [direction, setDirection] = useState<"asc" | "desc">(restoredSearch.direction);
   const searchRequestId = useRef(0);
+  const displayedQuery = useRef({
+    filters: restoredSearch.appliedFilters,
+    sort: restoredSearch.sort,
+    direction: restoredSearch.direction,
+    pageSize: restoredSearch.pageSize,
+  });
   const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>(defaultColumns);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<CompanyLeadDetails | null>(null);
@@ -355,6 +364,12 @@ export function CompanyLeadsTab() {
       setAppliedFilters(nextFilters);
       setSort(nextSort);
       setDirection(nextDirection);
+      displayedQuery.current = {
+        filters: nextFilters,
+        sort: nextSort,
+        direction: nextDirection,
+        pageSize: nextPageSize,
+      };
       setHasSearched(true);
     } catch (error) {
       if (requestId === searchRequestId.current) {
@@ -419,6 +434,12 @@ export function CompanyLeadsTab() {
     setPage(0);
     setSort("opened_at");
     setDirection("desc");
+    displayedQuery.current = {
+      filters: clearedFilters,
+      sort: "opened_at",
+      direction: "desc",
+      pageSize,
+    };
     setHasSearched(false);
     try {
       window.localStorage.removeItem(SEARCH_STORAGE_KEY);
@@ -1244,11 +1265,18 @@ export function CompanyLeadsTab() {
           page={page}
           pageCount={Math.ceil(total / pageSize)}
           pageSize={pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
           total={total}
           noun="leads"
           loading={searching}
-          onPageChange={(nextPage) => void runSearch(nextPage, appliedFilters, sort, direction)}
-          onPageSizeChange={(nextPageSize) => void runSearch(0, appliedFilters, sort, direction, nextPageSize)}
+          onPageChange={(nextPage) => {
+            const query = displayedQuery.current;
+            void runSearch(nextPage, query.filters, query.sort, query.direction, query.pageSize);
+          }}
+          onPageSizeChange={(nextPageSize) => {
+            const query = displayedQuery.current;
+            void runSearch(0, query.filters, query.sort, query.direction, nextPageSize);
+          }}
         />
       )}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
