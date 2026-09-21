@@ -81,6 +81,7 @@ type PersistedSearchState = {
   filters: CompanyLeadFilters;
   appliedFilters: CompanyLeadFilters;
   page: number;
+  pageSize: number;
   sort: CompanyLeadSort;
   direction: "asc" | "desc";
   hasSearched: boolean;
@@ -264,6 +265,7 @@ function loadSearchState(): PersistedSearchState {
     filters: initialFilters,
     appliedFilters: initialFilters,
     page: 0,
+    pageSize: PAGE_SIZE,
     sort: "opened_at",
     direction: "desc",
     hasSearched: false,
@@ -278,6 +280,7 @@ function loadSearchState(): PersistedSearchState {
       ...parsed,
       filters: { ...initialFilters, ...parsed.filters },
       appliedFilters: { ...initialFilters, ...parsed.appliedFilters },
+      pageSize: [10, 25, 50, 100].includes(Number(parsed.pageSize)) ? Number(parsed.pageSize) : PAGE_SIZE,
     };
   } catch {
     return fallback;
@@ -296,8 +299,10 @@ export function CompanyLeadsTab() {
   const [total, setTotal] = useState(0);
   const [totalCapped, setTotalCapped] = useState(false);
   const [page, setPage] = useState(restoredSearch.page);
+  const [pageSize, setPageSize] = useState(restoredSearch.pageSize);
   const [sort, setSort] = useState<CompanyLeadSort>(restoredSearch.sort);
   const [direction, setDirection] = useState<"asc" | "desc">(restoredSearch.direction);
+  const searchRequestId = useRef(0);
   const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>(defaultColumns);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<CompanyLeadDetails | null>(null);
@@ -323,12 +328,14 @@ export function CompanyLeadsTab() {
     nextFilters: CompanyLeadFilters,
     nextSort: CompanyLeadSort,
     nextDirection: "asc" | "desc",
+    nextPageSize = pageSize,
   ) => {
     const hasDirectSearch = Boolean(nextFilters.companyName?.trim() || nextFilters.cnpj?.trim());
     if (!hasDirectSearch && nextFilters.state.trim().length !== 2) {
       toast.error("Informe uma UF válida.");
       return;
     }
+    const requestId = ++searchRequestId.current;
     setSearching(true);
     setLoading(true);
     try {
@@ -336,22 +343,28 @@ export function CompanyLeadsTab() {
         filters: nextFilters,
         sort: nextSort,
         direction: nextDirection,
-        limit: PAGE_SIZE,
-        offset: nextPage * PAGE_SIZE,
+        limit: nextPageSize,
+        offset: nextPage * nextPageSize,
       });
+      if (requestId !== searchRequestId.current) return;
       setLeads(result.leads);
       setTotal(result.total);
       setTotalCapped(result.totalCapped);
       setPage(nextPage);
+      setPageSize(nextPageSize);
       setAppliedFilters(nextFilters);
       setSort(nextSort);
       setDirection(nextDirection);
       setHasSearched(true);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Falha ao procurar empresas.");
+      if (requestId === searchRequestId.current) {
+        toast.error(error instanceof Error ? error.message : "Falha ao procurar empresas.");
+      }
     } finally {
-      setSearching(false);
-      setLoading(false);
+      if (requestId === searchRequestId.current) {
+        setSearching(false);
+        setLoading(false);
+      }
     }
   };
 
@@ -364,6 +377,7 @@ export function CompanyLeadsTab() {
         restoredSearch.appliedFilters,
         restoredSearch.sort,
         restoredSearch.direction,
+        restoredSearch.pageSize,
       );
     }
   }, []);
@@ -372,12 +386,12 @@ export function CompanyLeadsTab() {
     try {
       window.localStorage.setItem(
         SEARCH_STORAGE_KEY,
-        JSON.stringify({ filters, appliedFilters, page, sort, direction, hasSearched }),
+        JSON.stringify({ filters, appliedFilters, page, pageSize, sort, direction, hasSearched }),
       );
     } catch {
       /* armazenamento local indisponível */
     }
-  }, [filters, appliedFilters, page, sort, direction, hasSearched]);
+  }, [filters, appliedFilters, page, pageSize, sort, direction, hasSearched]);
 
   const searchLeads = (nextPage = 0) => {
     const nextFilters =
@@ -389,6 +403,9 @@ export function CompanyLeadsTab() {
   };
 
   const clearSearchFilters = () => {
+    searchRequestId.current += 1;
+    setSearching(false);
+    setLoading(false);
     const clearedFilters = {
       ...initialFilters,
       city: filters.city,
@@ -1225,12 +1242,13 @@ export function CompanyLeadsTab() {
       {total > 0 && (
         <ListPaginationFooter
           page={page}
-          pageCount={Math.ceil(total / PAGE_SIZE)}
-          pageSize={PAGE_SIZE}
+          pageCount={Math.ceil(total / pageSize)}
+          pageSize={pageSize}
           total={total}
           noun="leads"
           loading={searching}
           onPageChange={(nextPage) => void runSearch(nextPage, appliedFilters, sort, direction)}
+          onPageSizeChange={(nextPageSize) => void runSearch(0, appliedFilters, sort, direction, nextPageSize)}
         />
       )}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
