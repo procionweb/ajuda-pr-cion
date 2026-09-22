@@ -112,6 +112,7 @@ const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
 let hydrationPromise: Promise<void> | null = null;
+let hydrationState: "loading" | "ready" | "error" = "loading";
 const activityLoaded = new Set<string>();
 const activityLoading = new Map<string, Promise<void>>();
 
@@ -130,15 +131,23 @@ async function hydrateFromSupabase() {
       await ticketsApi.seed(supportTickets);
       snapshot = await ticketsApi.load();
     }
-    if (!snapshot.tickets.length) return;
+    if (!snapshot.tickets.length) {
+      tickets = [];
+      hydrationState = "ready";
+      emit();
+      return;
+    }
 
     Object.assign(events, groupSnapshot(snapshot.events));
     Object.assign(internalNotes, groupSnapshot(snapshot.notes));
     tickets = snapshot.tickets;
     tickets.forEach(ensureSeed);
     tickets = tickets.map((ticket) => restoreAttendanceTiming(ticket, events[ticket.id] ?? []));
+    hydrationState = "ready";
     emit();
   } catch (error) {
+    hydrationState = "error";
+    emit();
     console.error("[tickets-store] Não foi possível carregar os chamados do Supabase.", error);
   }
 }
@@ -466,6 +475,7 @@ export const ticketsStore = {
     };
   },
   getTickets: () => tickets,
+  getHydrationState: () => hydrationState,
   getEvents: (id: string) => {
     ensureActivityLoaded(id);
     return events[id] ?? EMPTY_EVENTS;
@@ -866,6 +876,14 @@ export function useTickets(): SupportTicket[] {
     ticketsStore.subscribe,
     ticketsStore.getTickets,
     ticketsStore.getTickets,
+  );
+}
+
+export function useTicketsHydrationState() {
+  return useSyncExternalStore(
+    ticketsStore.subscribe,
+    ticketsStore.getHydrationState,
+    ticketsStore.getHydrationState,
   );
 }
 

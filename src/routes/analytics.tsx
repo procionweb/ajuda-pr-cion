@@ -6,7 +6,7 @@ import { AppShell } from "@/components/portal/AppShell";
 import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { TicketsAnalyticsSection } from "@/components/analytics/TicketsAnalytics";
+import { SupportAnalyticsDashboard } from "@/components/analytics/SupportAnalyticsDashboard";
 
 const searchSchema = z.object({
   view: z.string().catch("chamados").default("chamados"),
@@ -89,6 +89,22 @@ function AnalyticsPage() {
   const { view, from = "", to = "" } = Route.useSearch();
   const navigate = useNavigate({ from: "/analytics" });
   const activeTab = view === "kanban" ? "kanban" : "chamados";
+  const today = new Date();
+  const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const setPreset = (preset: string) => {
+    const start = new Date(today);
+    const end = new Date(today);
+    if (preset === "7 dias") start.setDate(start.getDate() - 6);
+    if (preset === "30 dias") start.setDate(start.getDate() - 29);
+    if (preset === "90 dias") start.setDate(start.getDate() - 89);
+    if (preset === "12 meses") start.setMonth(start.getMonth() - 12);
+    if (preset === "Este mês") start.setDate(1);
+    if (preset === "Mês anterior") {
+      start.setMonth(start.getMonth() - 1, 1);
+      end.setDate(0);
+    }
+    navigate({ search: { view: activeTab, from: dateKey(start), to: dateKey(end) } });
+  };
 
   return (
     <AppShell>
@@ -107,7 +123,7 @@ function AnalyticsPage() {
         }
         className="w-full"
       >
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <TabsList>
             <TabsTrigger value="chamados" className="cursor-pointer">
               Chamados
@@ -118,6 +134,7 @@ function AnalyticsPage() {
           </TabsList>
           {activeTab === "chamados" && (
             <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto sm:flex-nowrap">
+              <label className="text-xs text-muted-foreground">Período<select aria-label="Período" value="" onChange={(event) => setPreset(event.target.value)} className="mt-1 h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"><option value="">Selecionar</option>{["Hoje", "7 dias", "30 dias", "90 dias", "12 meses", "Este mês", "Mês anterior"].map((item) => <option key={item}>{item}</option>)}</select></label>
               <TypedDateInput
                 label="Data inicial"
                 value={from}
@@ -147,7 +164,7 @@ function AnalyticsPage() {
         </div>
 
         <TabsContent value="chamados" className="mt-0">
-          <TicketsAnalyticsSection
+          <SupportAnalyticsDashboard
             from={from}
             to={to}
           />

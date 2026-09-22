@@ -20,6 +20,8 @@ export type SupportTicket = {
   updatedAt: string;
   /** Data/hora exata da finalização. Congela o cálculo de SLA. */
   closedAt?: string | null;
+  /** Prazo persistido no chamado, quando configurado. */
+  slaDueAt?: string | null;
   /** Primeiro instante em que o atendimento foi iniciado. Congela o SLA de espera. */
   attendanceStartedAt?: string | null;
   /** Início do trecho ativo atual do atendimento. Nulo enquanto pausado. */
