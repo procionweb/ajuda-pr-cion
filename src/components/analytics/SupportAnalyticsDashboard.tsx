@@ -13,19 +13,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  AlertTriangle,
-  ArrowDownRight,
-  ArrowUpRight,
-  Clock3,
-  Flame,
-  Hourglass,
-  BellOff,
-  X,
-} from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Clock3 } from "lucide-react";
 import { useTickets, useTicketsHydrationState } from "@/lib/tickets-store";
 import { SLA_TARGET_HOURS } from "@/lib/ticket-sla";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   type AnalyticsFilters,
   type AnalyticsTicket,
@@ -46,53 +36,31 @@ import {
 } from "./analytics-data";
 
 const COLORS = ["#078db8", "#22a572", "#ec8c24", "#d94c65", "#7762bd", "#63758a"];
-const STATUS_COLORS: Record<string, string> = {
-  Finalizado: "#1bb978",
-  "Em Aberto": "#f13b58",
-  Ocupado: "#f3a21d",
-  "Em andamento": "#168fbe",
-  "Com especialista": "#8d69c7",
-  Atrasado: "#dd2345",
-  "Aguardando cliente": "#f59e0b",
-};
 const DAY = 86_400_000;
 const closedStatus = (t: AnalyticsTicket) => t.closedNow && t.status !== "Cancelado";
 const yearMonth = (ms: number) => dayKey(ms).slice(0, 7);
 const empty = (
   <p className="py-12 text-center text-sm text-muted-foreground">Sem dados no período</p>
 );
-const metricStyle: Record<string, { tag: string; band: string }> = {
-  "Chamados abertos": { tag: "ABR", band: "bg-[#ffa320]" },
-  "SLA cumprido": { tag: "SLA", band: "bg-[#ff4052]" },
-  "Primeira resposta": { tag: "1ª", band: "bg-[#1996bb]" },
-  "Tempo médio de resolução": { tag: "TMR", band: "bg-[#9168c9]" },
-  Finalizados: { tag: "FIN", band: "bg-[#20b980]" },
-  "Clientes afetados": { tag: "CLI", band: "bg-[#587bad]" },
-};
 
 function Panel({
   title,
   detail,
   children,
   className = "",
-  action,
 }: {
   title: string;
   detail?: string;
   children: React.ReactNode;
   className?: string;
-  action?: React.ReactNode;
 }) {
   return (
     <section
-      className={`min-w-0 rounded-[14px] border border-border/60 bg-white p-6 shadow-[0_10px_26px_rgba(25,29,51,0.06)] dark:bg-[#20263d] ${className}`}
+      className={`min-w-0 rounded-lg border border-border bg-background p-5 shadow-sm ${className}`}
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-base font-bold text-foreground">{title}</h2>
-          {detail && <p className="mt-1 text-xs text-muted-foreground">{detail}</p>}
-        </div>
-        {action}
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        {detail && <p className="mt-1 text-xs text-muted-foreground">{detail}</p>}
       </div>
       {children}
     </section>
@@ -103,57 +71,14 @@ function Metric({
   value,
   sub,
   change,
-  featured = false,
 }: {
   label: string;
   value: string;
   sub?: string;
   change?: number | null;
-  featured?: boolean;
 }) {
-  const style = metricStyle[label];
-  if (featured && style)
-    return (
-      <div className="relative flex min-h-[148px] min-w-0 overflow-hidden rounded-[22px] bg-white shadow-[0_12px_30px_rgba(25,29,51,0.08)] dark:bg-[#20263d]">
-        <div
-          className={`relative flex w-[65px] shrink-0 items-center justify-center overflow-hidden ${style.band}`}
-        >
-          <span
-            className="absolute -right-5 top-1/2 h-12 w-12 -translate-y-1/2 rotate-45 bg-black/10"
-            aria-hidden="true"
-          />
-          <span className="relative text-sm font-extrabold text-white">{style.tag}</span>
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col justify-between px-5 py-4">
-          <div>
-            <p className="text-[13px] font-medium text-muted-foreground">{label}</p>
-            <p
-              className="mt-2 truncate text-[23px] font-bold tabular-nums text-foreground"
-              title={value}
-            >
-              {value}
-            </p>
-          </div>
-          <div className="flex min-h-7 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-            {change !== undefined && change !== null && (
-              <span
-                className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 font-semibold ${change > 0 ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}
-              >
-                {change > 0 ? (
-                  <ArrowUpRight className="h-3 w-3" />
-                ) : (
-                  <ArrowDownRight className="h-3 w-3" />
-                )}
-                {formatPercentage(Math.abs(change))}
-              </span>
-            )}
-            <span className="min-w-0 leading-tight">{sub}</span>
-          </div>
-        </div>
-      </div>
-    );
   return (
-    <div className="min-w-0 rounded-[12px] border border-border/60 bg-white p-4 shadow-[0_8px_20px_rgba(25,29,51,0.05)] dark:bg-[#20263d]">
+    <div className="min-w-0 rounded-lg border border-border bg-background p-4 shadow-sm">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
       <div className="mt-1 flex min-h-5 items-center gap-1 text-xs text-muted-foreground">
@@ -170,84 +95,6 @@ function Metric({
           </span>
         )}
         {sub}
-      </div>
-    </div>
-  );
-}
-function AlertTag({
-  icon: Icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: typeof AlertTriangle;
-  label: string;
-  value: number;
-  tone: string;
-}) {
-  return (
-    <div className="flex min-w-0 items-center gap-3 rounded-[12px] border border-border/60 bg-white px-4 py-3 shadow-[0_8px_20px_rgba(25,29,51,0.05)] dark:bg-[#20263d]">
-      <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-[10px] ${tone}`}>
-        <Icon className="h-5 w-5" />
-      </span>
-      <div className="min-w-0">
-        <p className="truncate text-xs text-muted-foreground" title={label}>
-          {label}
-        </p>
-        <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground">
-          {formatNumber(value)}
-        </p>
-      </div>
-    </div>
-  );
-}
-type OperatorSummary = {
-  name: string;
-  count: number;
-  done: number;
-  active: number;
-  rate: number | null;
-  resolution: number | null;
-};
-function OperatorRow({ operator, onSelect }: { operator: OperatorSummary; onSelect: () => void }) {
-  return (
-    <div className="grid grid-cols-[minmax(120px,1.5fr)_repeat(3,minmax(55px,0.65fr))] items-center gap-3 border-b border-border/60 py-3 last:border-0 sm:grid-cols-[minmax(140px,1.5fr)_repeat(4,minmax(60px,0.65fr))]">
-      <button
-        type="button"
-        onClick={onSelect}
-        className="flex min-w-0 items-center gap-2 text-left"
-      >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#e5f5fb] text-sm font-bold text-[#008eb8]">
-          {operator.name.charAt(0).toUpperCase()}
-        </span>
-        <span
-          className="truncate text-sm font-semibold text-foreground hover:text-primary"
-          title={operator.name}
-        >
-          {operator.name}
-        </span>
-      </button>
-      <div className="text-center">
-        <span className="block text-[10px] text-muted-foreground">Recebidos</span>
-        <strong className="text-sm tabular-nums">{formatNumber(operator.count)}</strong>
-      </div>
-      <div className="text-center">
-        <span className="block text-[10px] text-muted-foreground">Finalizados</span>
-        <strong className="text-sm tabular-nums text-emerald-600">
-          {formatNumber(operator.done)}
-        </strong>
-      </div>
-      <div className="text-center">
-        <span className="block text-[10px] text-muted-foreground">Abertos</span>
-        <strong className="text-sm tabular-nums text-amber-600">
-          {formatNumber(operator.active)}
-        </strong>
-      </div>
-      <div className="hidden text-center sm:block">
-        <span className="block text-[10px] text-muted-foreground">Resolução</span>
-        <span className="inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-emerald-700">
-          {formatPercentage(operator.rate)}
-        </span>
       </div>
     </div>
   );
@@ -269,7 +116,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 h-9 w-full cursor-pointer rounded-lg border border-border bg-white px-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:bg-[#20263d]"
+        className="mt-1 h-9 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground"
       >
         <option value="">Todos</option>
         {values.map((item) => (
@@ -364,7 +211,6 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
     source: "",
   });
   const [companySearch, setCompanySearch] = useState("");
-  const [operatorsOpen, setOperatorsOpen] = useState(false);
   const [companyLimit, setCompanyLimit] = useState(50);
   const [companySort, setCompanySort] = useState<"total" | "open" | "critical" | "late" | "name">(
     "total",
@@ -506,7 +352,6 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
     );
   const modules = groupCount(period, (t) => t.module).slice(0, 12);
   const sources = groupCount(period, (t) => t.source);
-  const statuses = groupCount(period, (t) => t.status);
   const weekdayCounts = Array(7).fill(0) as number[];
   const hourCounts = Array(24).fill(0) as number[];
   for (const ticket of period) {
@@ -544,7 +389,7 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
     );
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end gap-2 rounded-[14px] border border-border/60 bg-white p-4 shadow-[0_8px_20px_rgba(25,29,51,0.04)] dark:bg-[#20263d]">
+      <div className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-background p-3">
         <FilterSelect
           label="Empresa"
           value={filters.company}
@@ -604,9 +449,8 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
         empty
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
             <Metric
-              featured
               label="Chamados abertos"
               value={formatNumber(open.length)}
               sub="Abertos no período"
@@ -617,7 +461,6 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
               }
             />
             <Metric
-              featured
               label="SLA cumprido"
               value={formatPercentage(slaRate)}
               sub={
@@ -627,7 +470,6 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
               }
             />
             <Metric
-              featured
               label="Primeira resposta"
               value={formatDuration(mean(response))}
               sub={
@@ -637,7 +479,6 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
               }
             />
             <Metric
-              featured
               label="Tempo médio de resolução"
               value={formatDuration(mean(resolution))}
               sub={
@@ -647,43 +488,29 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
               }
             />
             <Metric
-              featured
               label="Finalizados"
               value={formatNumber(finished.length)}
               sub="Encerrados no período"
             />
             <Metric
-              featured
               label="Clientes afetados"
               value={formatNumber(distinctClients)}
               sub="Empresas diferentes"
               change={previous ? delta(distinctClients, prevClients) : undefined}
             />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <AlertTag
-              icon={Flame}
-              label="Alta prioridade em aberto"
-              value={critical.length}
-              tone="bg-rose-50 text-rose-600"
-            />
-            <AlertTag
-              icon={AlertTriangle}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Metric label="Alta prioridade em aberto" value={formatNumber(critical.length)} />
+            <Metric
               label="Atraso registrado"
-              value={overdue.length}
-              tone="bg-amber-50 text-amber-600"
+              value={formatNumber(overdue.length)}
+              sub="Status ou prazo explícito"
             />
-            <AlertTag
-              icon={Hourglass}
-              label="Abertos há mais de 3 dias"
-              value={stale.length}
-              tone="bg-violet-50 text-violet-600"
-            />
-            <AlertTag
-              icon={BellOff}
+            <Metric label="Abertos há mais de 3 dias" value={formatNumber(stale.length)} />
+            <Metric
               label="Sem movimentação há 24h"
-              value={idle.length}
-              tone="bg-sky-50 text-sky-600"
+              value={formatNumber(idle.length)}
+              sub="Pela última atualização"
             />
           </div>
           <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
@@ -725,18 +552,6 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
                 ) : (
                   empty
                 )}
-              </div>
-              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 border-t border-border/50 pt-3 text-xs text-muted-foreground">
-                {[
-                  ["Abertos", COLORS[0]],
-                  ["Finalizados", COLORS[1]],
-                  ["Backlog", COLORS[3]],
-                ].map(([name, color]) => (
-                  <span key={name} className="inline-flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
-                    {name}
-                  </span>
-                ))}
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
                 Backlog = chamados abertos até o período menos encerrados até cada data.
@@ -821,26 +636,41 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
             <Panel
               title="Performance dos operadores"
               detail="Volume e resolução por responsável no período"
-              action={
-                <button
-                  type="button"
-                  onClick={() => setOperatorsOpen(true)}
-                  className="shrink-0 rounded-lg bg-[#e5f5fb] px-3 py-1.5 text-xs font-semibold text-[#008eb8] hover:bg-[#d5edf7]"
-                >
-                  Ver todos
-                </button>
-              }
             >
-              <div>
-                {byOwner.slice(0, 4).map((x) => (
-                  <OperatorRow
-                    key={x.name}
-                    operator={x}
-                    onSelect={() => filterBy("owner", x.name)}
-                  />
-                ))}
+              <div className="max-h-80 overflow-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-background text-muted-foreground">
+                    <tr>
+                      <th className="py-2">Operador</th>
+                      <th>Recebidos</th>
+                      <th>Concluídos</th>
+                      <th>Abertos</th>
+                      <th>Resolução</th>
+                      <th>Tempo médio</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {byOwner.map((x) => (
+                      <tr key={x.name} className="border-t border-border">
+                        <td>
+                          <button
+                            type="button"
+                            className="py-2 font-medium text-primary hover:underline"
+                            onClick={() => filterBy("owner", x.name)}
+                          >
+                            {x.name}
+                          </button>
+                        </td>
+                        <td>{formatNumber(x.count)}</td>
+                        <td>{formatNumber(x.done)}</td>
+                        <td>{formatNumber(x.active)}</td>
+                        <td>{formatPercentage(x.rate)}</td>
+                        <td>{formatDuration(x.resolution)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              {!byOwner.length && empty}
             </Panel>
             <Panel
               title="Carga da equipe no período"
@@ -1070,57 +900,20 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
               title="Chamados por status"
               detail="Situação atual dos chamados abertos no período"
             >
-              <div className="flex flex-col items-center gap-4 sm:flex-row">
-                <div className="relative h-52 w-52 shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={statuses}
-                        dataKey="count"
-                        nameKey="name"
-                        innerRadius={61}
-                        outerRadius={91}
-                        paddingAngle={2}
-                        stroke="none"
-                      >
-                        {statuses.map((x) => (
-                          <Cell key={x.name} fill={STATUS_COLORS[x.name] ?? "#94a3b8"} />
-                        ))}
-                      </Pie>
-                      {tooltip}
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold tabular-nums text-foreground">
-                      {formatNumber(period.length)}
+              <div className="space-y-2">
+                {groupCount(period, (t) => t.status).map((x) => (
+                  <button
+                    type="button"
+                    key={x.name}
+                    onClick={() => filterBy("status", x.name)}
+                    className="flex w-full items-center justify-between border-b border-border py-1 text-xs hover:text-primary"
+                  >
+                    <span>{x.name}</span>
+                    <span>
+                      {formatNumber(x.count)} · {formatPercentage((x.count / period.length) * 100)}
                     </span>
-                    <span className="text-xs text-muted-foreground">chamados</span>
-                  </div>
-                </div>
-                <div className="w-full min-w-0 space-y-1.5">
-                  {statuses.map((x) => (
-                    <button
-                      type="button"
-                      key={x.name}
-                      onClick={() => filterBy("status", x.name)}
-                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-muted/60"
-                    >
-                      <span
-                        className="h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{ background: STATUS_COLORS[x.name] ?? "#94a3b8" }}
-                      />
-                      <span className="min-w-0 flex-1 truncate text-xs text-foreground">
-                        {x.name}
-                      </span>
-                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground">
-                        {formatNumber(x.count)}
-                      </span>
-                      <span className="w-12 shrink-0 text-right text-[11px] text-muted-foreground">
-                        {formatPercentage((x.count / period.length) * 100)}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                  </button>
+                ))}
               </div>
             </Panel>
           </div>
@@ -1163,29 +956,6 @@ export function SupportAnalyticsDashboard({ from, to }: { from: string; to: stri
           </p>
         </>
       )}
-      <Dialog open={operatorsOpen} onOpenChange={setOperatorsOpen}>
-        <DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-4xl">
-          <DialogHeader className="border-b border-border pb-4">
-            <DialogTitle>Performance dos operadores</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[65vh] overflow-y-auto px-1">
-            {byOwner.map((operator) => (
-              <div key={operator.name}>
-                <OperatorRow
-                  operator={operator}
-                  onSelect={() => {
-                    filterBy("owner", operator.name);
-                    setOperatorsOpen(false);
-                  }}
-                />
-                <p className="-mt-2 mb-2 pl-11 text-[11px] text-muted-foreground">
-                  Tempo médio de resolução: {formatDuration(operator.resolution)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
