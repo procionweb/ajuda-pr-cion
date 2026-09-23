@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  type LucideIcon,
   ArrowLeft,
   KeyRound,
   Undo2,
@@ -16,9 +17,11 @@ import {
   Settings,
   CheckCircle2,
   Wrench,
+  Download,
 } from "lucide-react";
 import {
   type Vehicle,
+  type VehicleUsage,
   useUsages,
   formatFleetDateTime,
   VEHICLE_STATUS_LABEL,
@@ -58,7 +61,7 @@ export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
   const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
   const [isOccurrenceOpen, setIsOccurrenceOpen] = useState(false);
   const fleetEntries = useFleetEntries();
-  const [selectedUsage, setSelectedUsage] = useState<any>(null);
+  const [selectedUsage, setSelectedUsage] = useState<VehicleUsage | null>(null);
   const [isUsageDetailsOpen, setIsUsageDetailsOpen] = useState(false);
 
   const vehicleUsages = useMemo(() => {
@@ -75,6 +78,27 @@ export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
     (item) => new Date(item.endAt).getTime() >= Date.now(),
   );
   const fuelState = getVehicleFuelState(vehicle);
+  const exportOccurrences = async () => {
+    const XLSX = await import("xlsx");
+    const rows = occurrences.map((entry) => ({
+      Data: new Date(entry.occurredAt).toLocaleString("pt-BR"),
+      Tipo: entry.title,
+      Gravidade: entry.occurrenceSeverity || "",
+      Condutor: entry.driver || "",
+      Local: entry.location || "",
+      "Odômetro (km)": entry.mileage ?? "",
+      Referência: entry.occurrenceReference || "",
+      Descrição: entry.notes || "",
+      Valor: entry.amount ?? "",
+    }));
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Ocorrências");
+    XLSX.writeFile(
+      workbook,
+      `ocorrencias-${vehicle.plate}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+    );
+  };
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -219,9 +243,21 @@ export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
                 <AlertTriangle className="h-5 w-5" />
                 <h3 className="text-base font-bold">Ocorrências</h3>
               </div>
-              <Button className="gap-2" onClick={() => setIsOccurrenceOpen(true)}>
-                <AlertTriangle className="h-4 w-4" /> Nova ocorrência
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => void exportOccurrences()}
+                  disabled={!occurrences.length}
+                >
+                  <Download className="h-4 w-4" />
+                  Exportar Excel
+                </Button>
+                <Button className="gap-2" onClick={() => setIsOccurrenceOpen(true)}>
+                  <AlertTriangle className="h-4 w-4" />
+                  Nova ocorrência
+                </Button>
+              </div>
             </div>
             {occurrences.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-muted-foreground">
@@ -336,7 +372,7 @@ function HeaderStat({
   value,
   className,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   value: string;
   className?: string;
@@ -358,7 +394,7 @@ function ActionButton({
   onClick,
   disabled,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   onClick?: () => void;
   disabled?: boolean;

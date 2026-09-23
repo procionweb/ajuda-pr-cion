@@ -293,6 +293,9 @@ export function FleetEntryDialog({
             )}
           </div>
           <div className="flex justify-end gap-2 border-t px-6 py-2">
+            <Button variant="outline" onClick={close}>
+              Fechar
+            </Button>
             {type && (
               <Button onClick={save} className="gap-2">
                 <Save className="h-4 w-4" />

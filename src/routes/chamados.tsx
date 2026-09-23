@@ -37,6 +37,8 @@ import {
   Headphones,
   History,
   Layers,
+  LayoutGrid,
+  List,
   LockKeyhole,
   MessageSquarePlus,
   MoreVertical,
@@ -1488,6 +1490,7 @@ function TicketsListView({
   onOpen: (ticket: SupportTicket) => void;
   onHistory: (ticket: SupportTicket) => void;
 }) {
+  const [displayMode, setDisplayMode] = useState<"list" | "grid">("list");
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({
     key: "registro",
     dir: "desc",
@@ -1526,8 +1529,40 @@ function TicketsListView({
 
   return (
     <div className="space-y-3">
+      <div className="hidden items-center justify-end gap-1 lg:flex">
+        <div
+          className="inline-flex rounded-lg border border-border bg-card p-1 shadow-sm"
+          aria-label="Visualização dos chamados"
+        >
+          <Button
+            type="button"
+            size="sm"
+            variant={displayMode === "list" ? "default" : "ghost"}
+            className="h-7 gap-1.5 px-2.5"
+            onClick={() => setDisplayMode("list")}
+          >
+            <List className="h-3.5 w-3.5" />
+            Lista
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={displayMode === "grid" ? "default" : "ghost"}
+            className="h-7 gap-1.5 px-2.5"
+            onClick={() => setDisplayMode("grid")}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            Grade
+          </Button>
+        </div>
+      </div>
       {/* Grade legada mantida no código para referência; a visualização ativa usa cartões responsivos. */}
-      <Card className="hidden rounded-2xl border border-border/60 bg-card p-3 shadow-[0_8px_22px_rgba(25,29,51,0.05)]">
+      <Card
+        className={cn(
+          "hidden rounded-2xl border border-border/60 bg-card p-3 shadow-[0_8px_22px_rgba(25,29,51,0.05)]",
+          displayMode === "list" && "lg:block",
+        )}
+      >
         <div className="min-w-0">
           <div className="grid grid-cols-[160px_100px_minmax(0,1.2fr)_110px_minmax(0,1.55fr)_170px_100px_100px_24px] items-center gap-x-3 rounded-xl bg-muted/50 px-4 py-3">
             <SortableGridHeader label="Status" sortKey="status" sort={sort} onSort={toggleSort} />
@@ -1667,7 +1702,12 @@ function TicketsListView({
         </div>
       </Card>
       {/* Grade responsiva de chamados */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-3",
+          displayMode === "list" ? "lg:hidden" : "lg:grid-cols-2 2xl:grid-cols-3",
+        )}
+      >
         {pageItems.map((ticket) => (
           <Card
             key={ticket.id}

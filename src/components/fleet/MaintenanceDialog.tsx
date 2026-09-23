@@ -160,8 +160,8 @@ export function MaintenanceDialog({ vehicle, open, onOpenChange }: MaintenanceDi
       maintenance.status === "agendado"
         ? "Manutenção agendada. O veículo ficará em manutenção na data informada."
         : createForm.vehicleStatus === "manutencao"
-        ? "Manutenção iniciada. Veículo agora está em manutenção."
-        : "Manutenção registrada e veículo mantido disponível.",
+          ? "Manutenção iniciada. Veículo agora está em manutenção."
+          : "Manutenção registrada e veículo mantido disponível.",
     );
     onOpenChange(false);
   };
@@ -287,290 +287,311 @@ export function MaintenanceDialog({ vehicle, open, onOpenChange }: MaintenanceDi
   };
 
   return (
-    <><Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90dvh] flex-col overflow-hidden p-0 sm:max-w-[600px] [&_button:not(:disabled)]:cursor-pointer [&_select:not(:disabled)]:cursor-pointer">
-        <DialogHeader className="border-b border-border bg-muted/20 px-6 py-4">
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Wrench className="h-5 w-5 text-primary" />
-            {mode === "create" ? "Iniciar Manutenção" : "Encerrar Manutenção"}
-          </DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            {vehicle.model} · <span className="font-mono">{vehicle.plate}</span>
-          </p>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="flex max-h-[90dvh] flex-col overflow-hidden p-0 sm:max-w-[600px] [&_button:not(:disabled)]:cursor-pointer [&_select:not(:disabled)]:cursor-pointer">
+          <DialogHeader className="border-b border-border bg-muted/20 px-6 py-4">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Wrench className="h-5 w-5 text-primary" />
+              {mode === "create" ? "Iniciar Manutenção" : "Encerrar Manutenção"}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {vehicle.model} · <span className="font-mono">{vehicle.plate}</span>
+            </p>
+          </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-6 hide-scrollbar">
-          {mode === "create" ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+          <div className="flex-1 overflow-y-auto p-6 hide-scrollbar">
+            {mode === "create" ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Data/Hora de Entrada</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="datetime-local"
+                        value={createForm.entryDate}
+                        onChange={(e) =>
+                          setCreateForm({ ...createForm, entryDate: e.target.value })
+                        }
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Quilometragem Inicial</Label>
+                    <div className="relative">
+                      <Gauge className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        value={createForm.entryMileage}
+                        onChange={(e) =>
+                          setCreateForm({ ...createForm, entryMileage: e.target.value })
+                        }
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label>Data/Hora de Entrada</Label>
+                  <Label>Motivo / Problema</Label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <AlertCircle className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      type="datetime-local"
-                      value={createForm.entryDate}
-                      onChange={(e) => setCreateForm({ ...createForm, entryDate: e.target.value })}
+                      placeholder="Ex: Barulho na suspensão, Troca de óleo..."
+                      value={createForm.reason}
+                      onChange={(e) => setCreateForm({ ...createForm, reason: e.target.value })}
                       className="pl-9"
                     />
                   </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label>Quilometragem Inicial</Label>
+                  <Label>Oficina</Label>
                   <div className="relative">
-                    <Gauge className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Store className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      type="number"
-                      value={createForm.entryMileage}
-                      onChange={(e) =>
-                        setCreateForm({ ...createForm, entryMileage: e.target.value })
-                      }
+                      placeholder="Nome da oficina ou concessionária"
+                      value={createForm.workshop}
+                      onChange={(e) => setCreateForm({ ...createForm, workshop: e.target.value })}
                       className="pl-9"
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>Motivo / Problema</Label>
-                <div className="relative">
-                  <AlertCircle className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Ex: Barulho na suspensão, Troca de óleo..."
-                    value={createForm.reason}
-                    onChange={(e) => setCreateForm({ ...createForm, reason: e.target.value })}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Oficina</Label>
-                <div className="relative">
-                  <Store className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Nome da oficina ou concessionária"
-                    value={createForm.workshop}
-                    onChange={(e) => setCreateForm({ ...createForm, workshop: e.target.value })}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Observações Iniciais</Label>
-                <div className="relative">
-                  <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Textarea
-                    placeholder="Detalhes adicionais..."
-                    value={createForm.notes}
-                    onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
-                    className="min-h-[100px] pl-9"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Status do veículo</Label>
-                <Select
-                  value={createForm.vehicleStatus}
-                  onValueChange={(value: "manutencao" | "disponivel") =>
-                    setCreateForm({ ...createForm, vehicleStatus: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manutencao">Em manutenção</SelectItem>
-                    <SelectItem value="disponivel">Disponível</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {/* Resumo da Entrada */}
-              <Card className="bg-muted/30 p-4">
-                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  <History className="h-3.5 w-3.5" />
-                  Dados de Entrada
-                </div>
-                <div className="grid grid-cols-2 gap-y-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Entrada:</span>
-                    <p className="font-medium">{formatFleetDateTime(selectedMaint?.entryDate)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">KM Entrada:</span>
-                    <p className="font-medium">
-                      {selectedMaint?.entryMileage.toLocaleString("pt-BR")} km
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Motivo:</span>
-                    <p className="font-medium">{selectedMaint?.reason}</p>
-                  </div>
-                </div>
-              </Card>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Data de Conclusão</Label>
+                  <Label>Observações Iniciais</Label>
                   <div className="relative">
-                    <CheckCircle2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="datetime-local"
-                      value={closeForm.exitDate}
-                      onChange={(e) => setCloseForm({ ...closeForm, exitDate: e.target.value })}
-                      className="pl-9"
+                    <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Textarea
+                      placeholder="Detalhes adicionais..."
+                      value={createForm.notes}
+                      onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
+                      className="min-h-[100px] pl-9"
                     />
                   </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label>KM na Conclusão</Label>
-                  <div className="relative">
-                    <Gauge className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      value={closeForm.exitMileage}
-                      onChange={(e) => setCloseForm({ ...closeForm, exitMileage: e.target.value })}
-                      className="pl-9"
-                    />
+                  <Label>Status do veículo</Label>
+                  <Select
+                    value={createForm.vehicleStatus}
+                    onValueChange={(value: "manutencao" | "disponivel") =>
+                      setCreateForm({ ...createForm, vehicleStatus: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manutencao">Em manutenção</SelectItem>
+                      <SelectItem value="disponivel">Disponível</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {/* Resumo da Entrada */}
+                <Card className="bg-muted/30 p-4">
+                  <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <History className="h-3.5 w-3.5" />
+                    Dados de Entrada
+                  </div>
+                  <div className="grid grid-cols-2 gap-y-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Entrada:</span>
+                      <p className="font-medium">{formatFleetDateTime(selectedMaint?.entryDate)}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">KM Entrada:</span>
+                      <p className="font-medium">
+                        {selectedMaint?.entryMileage.toLocaleString("pt-BR")} km
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Motivo:</span>
+                      <p className="font-medium">{selectedMaint?.reason}</p>
+                    </div>
+                  </div>
+                </Card>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Data de Conclusão</Label>
+                    <div className="relative">
+                      <CheckCircle2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="datetime-local"
+                        value={closeForm.exitDate}
+                        onChange={(e) => setCloseForm({ ...closeForm, exitDate: e.target.value })}
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>KM na Conclusão</Label>
+                    <div className="relative">
+                      <Gauge className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        value={closeForm.exitMileage}
+                        onChange={(e) =>
+                          setCloseForm({ ...closeForm, exitMileage: e.target.value })
+                        }
+                        className="pl-9"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label>Peças (R$)</Label>
-                  <CurrencyField
-                    value={closeForm.partsCost}
-                    onChange={(partsCost) => setCloseForm({ ...closeForm, partsCost })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Mão de obra (R$)</Label>
-                  <CurrencyField
-                    value={closeForm.laborCost}
-                    onChange={(laborCost) => setCloseForm({ ...closeForm, laborCost })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Total</Label>
-                  <Input
-                    readOnly
-                    value={`R$ ${(parseCurrency(closeForm.partsCost) + parseCurrency(closeForm.laborCost)).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    className="bg-muted/50"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Duração do serviço</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label>Peças (R$)</Label>
+                    <CurrencyField
+                      value={closeForm.partsCost}
+                      onChange={(partsCost) => setCloseForm({ ...closeForm, partsCost })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mão de obra (R$)</Label>
+                    <CurrencyField
+                      value={closeForm.laborCost}
+                      onChange={(laborCost) => setCloseForm({ ...closeForm, laborCost })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Total</Label>
                     <Input
                       readOnly
-                      value={calculateCurrentDuration()}
-                      className="bg-muted/50 pl-9"
+                      value={`R$ ${(parseCurrency(closeForm.partsCost) + parseCurrency(closeForm.laborCost)).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      className="bg-muted/50"
                     />
                   </div>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Serviços Realizados</Label>
-                <div className="relative">
-                  <ClipboardList className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Textarea
-                    placeholder="Descreva detalhadamente o que foi feito..."
-                    value={closeForm.servicesPerformed}
-                    onChange={(e) =>
-                      setCloseForm({ ...closeForm, servicesPerformed: e.target.value })
-                    }
-                    className="min-h-[80px] pl-9"
-                  />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Duração do serviço</Label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        readOnly
+                        value={calculateCurrentDuration()}
+                        className="bg-muted/50 pl-9"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label>Peças / Itens Trocados</Label>
-                <div className="relative">
-                  <Package className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Textarea
-                    placeholder="Listagem de peças..."
-                    value={closeForm.partsReplaced}
-                    onChange={(e) => setCloseForm({ ...closeForm, partsReplaced: e.target.value })}
-                    className="min-h-[80px] pl-9"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 border-t pt-4">
                 <div className="space-y-2">
-                  <Label>Próxima Revisão (Data)</Label>
-                  <Input
-                    type="date"
-                    value={closeForm.nextRevisionDate}
-                    onChange={(e) =>
-                      setCloseForm({ ...closeForm, nextRevisionDate: e.target.value })
-                    }
-                  />
+                  <Label>Serviços Realizados</Label>
+                  <div className="relative">
+                    <ClipboardList className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Textarea
+                      placeholder="Descreva detalhadamente o que foi feito..."
+                      value={closeForm.servicesPerformed}
+                      onChange={(e) =>
+                        setCloseForm({ ...closeForm, servicesPerformed: e.target.value })
+                      }
+                      className="min-h-[80px] pl-9"
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label>Próxima Revisão (KM)</Label>
-                  <Input
-                    type="number"
-                    placeholder="Ex: 60000"
-                    value={closeForm.nextRevisionMileage}
-                    onChange={(e) =>
-                      setCloseForm({ ...closeForm, nextRevisionMileage: e.target.value })
+                  <Label>Peças / Itens Trocados</Label>
+                  <div className="relative">
+                    <Package className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Textarea
+                      placeholder="Listagem de peças..."
+                      value={closeForm.partsReplaced}
+                      onChange={(e) =>
+                        setCloseForm({ ...closeForm, partsReplaced: e.target.value })
+                      }
+                      className="min-h-[80px] pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                  <div className="space-y-2">
+                    <Label>Próxima Revisão (Data)</Label>
+                    <Input
+                      type="date"
+                      value={closeForm.nextRevisionDate}
+                      onChange={(e) =>
+                        setCloseForm({ ...closeForm, nextRevisionDate: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Próxima Revisão (KM)</Label>
+                    <Input
+                      type="number"
+                      placeholder="Ex: 60000"
+                      value={closeForm.nextRevisionMileage}
+                      onChange={(e) =>
+                        setCloseForm({ ...closeForm, nextRevisionMileage: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Status do veículo após encerrar</Label>
+                  <Select
+                    value={closeForm.vehicleStatus}
+                    onValueChange={(value: "disponivel" | "manutencao") =>
+                      setCloseForm({ ...closeForm, vehicleStatus: value })
                     }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="disponivel">Disponível</SelectItem>
+                      <SelectItem value="manutencao">Em manutenção</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Observações Finais</Label>
+                  <Textarea
+                    placeholder="Informações adicionais sobre a conclusão..."
+                    value={closeForm.notes}
+                    onChange={(e) => setCloseForm({ ...closeForm, notes: e.target.value })}
+                    className="min-h-[80px]"
                   />
                 </div>
               </div>
+            )}
+          </div>
 
-              <div className="space-y-2">
-                <Label>Status do veículo após encerrar</Label>
-                <Select
-                  value={closeForm.vehicleStatus}
-                  onValueChange={(value: "disponivel" | "manutencao") =>
-                    setCloseForm({ ...closeForm, vehicleStatus: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="disponivel">Disponível</SelectItem>
-                    <SelectItem value="manutencao">Em manutenção</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Observações Finais</Label>
-                <Textarea
-                  placeholder="Informações adicionais sobre a conclusão..."
-                  value={closeForm.notes}
-                  onChange={(e) => setCloseForm({ ...closeForm, notes: e.target.value })}
-                  className="min-h-[80px]"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        <DialogFooter className="border-t border-border bg-muted/20 px-6 py-4">
-          {mode === "create" ? (
-            <Button onClick={handleCreate}>Iniciar Manutenção</Button>
-          ) : (
-            <Button onClick={handleClose}>Encerrar Manutenção</Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog><MaintenanceConflictDialog reservation={maintenanceConflict} onCancel={() => setMaintenanceConflict(null)} onVisit={(reservation) => { setMaintenanceConflict(null); onOpenChange(false); if (reservation.eventId !== undefined) void navigate({ to: "/calendario", search: { evento: String(reservation.eventId) } }); }} /></>
+          <DialogFooter className="border-t border-border bg-muted/20 px-6 py-4">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Fechar
+            </Button>
+            {mode === "create" ? (
+              <Button onClick={handleCreate}>Iniciar Manutenção</Button>
+            ) : (
+              <Button onClick={handleClose}>Encerrar Manutenção</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <MaintenanceConflictDialog
+        reservation={maintenanceConflict}
+        onCancel={() => setMaintenanceConflict(null)}
+        onVisit={(reservation) => {
+          setMaintenanceConflict(null);
+          onOpenChange(false);
+          if (reservation.eventId !== undefined)
+            void navigate({ to: "/calendario", search: { evento: String(reservation.eventId) } });
+        }}
+      />
+    </>
   );
 }
 
