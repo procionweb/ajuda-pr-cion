@@ -89,10 +89,8 @@ const googleMapsAddressUrl = (lead: CompanyLeadDetails) => {
 
 export function LeadDetailsPage() {
   const { leadId } = useParams({ strict: false });
-  const { session } = usePortalAuth();
-  const currentOperator = String(session?.user.user_metadata?.operator || "PRCREN")
-    .trim()
-    .toUpperCase();
+  const { operator } = usePortalAuth();
+  const currentOperator = operator || "PRCREN";
   const [lead, setLead] = useState<CompanyLeadDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);

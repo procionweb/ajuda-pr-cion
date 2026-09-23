@@ -4,22 +4,17 @@ import { currentUser } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
 
 export type PortalRole =
-  | "s_admin"
-  | "admin"
-  | "tester"
-  | "manager"
-  | "logistics"
-  | "supervisor"
-  | "marketing"
-  | "prc";
+  "s_admin" | "admin" | "tester" | "manager" | "logistics" | "supervisor" | "marketing" | "prc";
 
-export type PortalDepartment = "admin" | "tester" | "support" | "commercial" | "development" | string;
+export type PortalDepartment =
+  "admin" | "tester" | "support" | "commercial" | "development" | string;
 
 type PortalAuthState = {
   loading: boolean;
   session: Session | null;
   role: PortalRole | null;
   department: PortalDepartment | null;
+  operator: string | null;
 };
 
 const PortalAuthContext = createContext<PortalAuthState>({
@@ -27,14 +22,28 @@ const PortalAuthContext = createContext<PortalAuthState>({
   session: null,
   role: null,
   department: null,
+  operator: null,
 });
 
 const portalRoles: PortalRole[] = [
-  "s_admin", "admin", "tester", "manager", "logistics", "supervisor", "marketing", "prc",
+  "s_admin",
+  "admin",
+  "tester",
+  "manager",
+  "logistics",
+  "supervisor",
+  "marketing",
+  "prc",
 ];
 const commonRoutes = [
-  "/chamados", "/suporte/agendamentos", "/calendario", "/clientes",
-  "/base-de-conhecimento", "/iniciar-hadron", "/atualizacoes", "/minha-conta",
+  "/chamados",
+  "/suporte/agendamentos",
+  "/calendario",
+  "/clientes",
+  "/base-de-conhecimento",
+  "/iniciar-hadron",
+  "/atualizacoes",
+  "/minha-conta",
 ];
 
 export function canAccessPortalPath(
@@ -47,7 +56,8 @@ export function canAccessPortalPath(
   if (pathname === "/") return true;
   if (pathname.startsWith("/kanban")) return true;
   if (pathname.startsWith("/frota")) return role === "s_admin";
-  if (pathname.startsWith("/comercial")) return department === "admin" || department === "commercial";
+  if (pathname.startsWith("/comercial"))
+    return department === "admin" || department === "commercial";
   if (pathname.startsWith("/analytics")) return role === "s_admin" || role === "admin";
   if (pathname.startsWith("/configuracoes/contratos")) return role === "s_admin";
   if (pathname.startsWith("/configuracoes")) return role === "s_admin" || role === "admin";
@@ -86,7 +96,13 @@ function syncCurrentUser(session: Session | null) {
 }
 
 export function PortalAuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PortalAuthState>({ loading: true, session: null, role: null, department: null });
+  const [state, setState] = useState<PortalAuthState>({
+    loading: true,
+    session: null,
+    role: null,
+    department: null,
+    operator: null,
+  });
 
   useEffect(() => {
     let active = true;
@@ -100,7 +116,10 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
       const department = session?.user.user_metadata?.departamento
         ? String(session.user.user_metadata.departamento)
         : null;
-      setState({ loading: false, session, role, department });
+      const operator = session?.user.user_metadata?.operator
+        ? String(session.user.user_metadata.operator).trim().toUpperCase()
+        : null;
+      setState({ loading: false, session, role, department, operator });
     };
 
     const refreshAccess = async (session: Session) => {
@@ -109,7 +128,11 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
         const { data, error } = await supabase.rpc("get_current_portal_access");
         if (error) return;
         const access = data?.[0] as
-          | { portal_profile?: string; collaborator_department?: string }
+          | {
+              portal_profile?: string;
+              collaborator_department?: string;
+              operator_acronym?: string;
+            }
           | undefined;
         if (!active || request !== accessRequest) return;
         const rawRole = access?.portal_profile || session.user.app_metadata?.perfil;
@@ -119,7 +142,13 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
           (session.user.user_metadata?.departamento
             ? String(session.user.user_metadata.departamento)
             : null);
-        setState({ loading: false, session, role, department });
+        const operator = String(
+          access?.operator_acronym || session.user.user_metadata?.operator || "",
+        )
+          .trim()
+          .toUpperCase();
+        if (operator) currentUser.operator = operator;
+        setState({ loading: false, session, role, department, operator: operator || null });
       } catch {
         // A sessão continua utilizável com os metadados presentes no token.
       }
