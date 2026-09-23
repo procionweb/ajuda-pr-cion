@@ -41,6 +41,7 @@ export type CompanyLead = {
   relevance_score: number;
   stage: CompanyLeadStage;
   assigned_to?: string | null;
+  last_modified_by?: string | null;
   notes?: string | null;
   source: string;
   source_url: string | null;
@@ -204,6 +205,28 @@ export const companyLeadsApi = {
     return data as CompanyLeadDetails;
   },
 
+  async countInProgress(filters: CompanyLeadFilters) {
+    const activeStages: CompanyLeadStage[] = [
+      "prospeccao",
+      "relacionamento",
+      "proposta",
+      "negociacao",
+      "demonstracao",
+    ];
+    const results = await Promise.all(
+      activeStages.map((stage) =>
+        this.list({
+          filters: { ...filters, stage },
+          sort: "stage",
+          direction: "asc",
+          limit: 1,
+          offset: 0,
+        }),
+      ),
+    );
+    return results.reduce((sum, result) => sum + result.total, 0);
+  },
+
   async enrichContacts(id: string): Promise<{
     lead: CompanyLeadDetails;
     cached: boolean;
@@ -217,11 +240,19 @@ export const companyLeadsApi = {
     return data;
   },
 
-  async updateStage(id: string, stage: CompanyLeadStage) {
-    const { error } = await supabase.rpc("company_leads_update_stage", {
+  async updateStage(id: string, stage: CompanyLeadStage, actor: string) {
+    let { error } = await supabase.rpc("company_leads_update_stage", {
       p_id: id,
       p_stage: stage,
+      p_actor: actor,
     });
+    if (error?.code === "PGRST202") {
+      const legacyResult = await supabase.rpc("company_leads_update_stage", {
+        p_id: id,
+        p_stage: stage,
+      });
+      error = legacyResult.error;
+    }
     if (error) throw error;
     return { success: true };
   },
@@ -246,11 +277,12 @@ export const companyLeadsApi = {
     action: "edit" | "inactivate" | "close_deal",
     payload: Record<string, unknown>,
     finalize = false,
+    actor = "PRCREN",
   ) {
     const { data, error } = await supabase.rpc("company_leads_save_action", {
       p_id: id,
       p_action: action,
-      p_payload: payload,
+      p_payload: { ...payload, _actor: actor },
       p_finalize: finalize,
     });
     if (error) throw error;

@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { usePortalAuth } from "@/lib/portal-auth";
 import {
   companyLeadsApi,
   type CompanyLeadDetails,
@@ -88,6 +89,10 @@ const googleMapsAddressUrl = (lead: CompanyLeadDetails) => {
 
 export function LeadDetailsPage() {
   const { leadId } = useParams({ strict: false });
+  const { session } = usePortalAuth();
+  const currentOperator = String(session?.user.user_metadata?.operator || "PRCREN")
+    .trim()
+    .toUpperCase();
   const [lead, setLead] = useState<CompanyLeadDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -161,10 +166,13 @@ export function LeadDetailsPage() {
   const handleInactivate = async () => {
     setActionLoading(true);
     try {
-      await companyLeadsApi.saveAction(leadId, "inactivate", {
-        reason: inactivationReason,
-        notes: inactivationNotes,
-      });
+      await companyLeadsApi.saveAction(
+        leadId,
+        "inactivate",
+        { reason: inactivationReason, notes: inactivationNotes },
+        false,
+        currentOperator,
+      );
       toast.success("Lead inativado com sucesso.");
       await loadLead();
       setShowInactivateDialog(false);
@@ -178,7 +186,7 @@ export function LeadDetailsPage() {
   const handleCloseDeal = async () => {
     setActionLoading(true);
     try {
-      await companyLeadsApi.saveAction(leadId, "close_deal", conversionForm, true);
+      await companyLeadsApi.saveAction(leadId, "close_deal", conversionForm, true, currentOperator);
       toast.success("Negócio fechado com sucesso!");
       await loadLead();
       setShowCloseDealDialog(false);
@@ -192,7 +200,13 @@ export function LeadDetailsPage() {
   const handleSaveDealDraft = async () => {
     setActionLoading(true);
     try {
-      await companyLeadsApi.saveAction(leadId, "close_deal", conversionForm, false);
+      await companyLeadsApi.saveAction(
+        leadId,
+        "close_deal",
+        conversionForm,
+        false,
+        currentOperator,
+      );
       toast.success("Rascunho do negócio salvo.");
       await loadLead();
       setShowCloseDealDialog(false);
@@ -207,7 +221,7 @@ export function LeadDetailsPage() {
     e.preventDefault();
     setActionLoading(true);
     try {
-      await companyLeadsApi.saveAction(leadId, "edit", editForm);
+      await companyLeadsApi.saveAction(leadId, "edit", editForm, false, currentOperator);
       toast.success("Dados atualizados com sucesso.");
       await loadLead();
       setShowEditDialog(false);
@@ -606,7 +620,7 @@ export function LeadDetailsPage() {
                   </h3>
                 </div>
                 <div className="p-6">
-                  <Timeline lead={lead} />
+                  <Timeline lead={lead} fallbackActor={currentOperator} />
                 </div>
               </section>
 
@@ -697,7 +711,10 @@ export function LeadDetailsPage() {
                     />
                     <SideInfoItem label="Última Atualização" value="Hoje" />
                     <SideInfoItem label="Operador de Registro" value={lead.source} />
-                    <SideInfoItem label="Operador da Última Alteração" value="PRCGGC" />
+                    <SideInfoItem
+                      label="Operador da Última Alteração"
+                      value={lead.last_modified_by || currentOperator}
+                    />
 
                     <div className="h-px bg-border my-2" />
 
@@ -901,7 +918,7 @@ function SideInfoItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Timeline({ lead }: { lead: CompanyLeadDetails }) {
+function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackActor: string }) {
   const items = [
     {
       id: "1",
@@ -918,7 +935,7 @@ function Timeline({ lead }: { lead: CompanyLeadDetails }) {
       title: "Alteração de Etapa",
       description: `Etapa comercial definida como ${stageLabels[lead.stage]}.`,
       at: new Date().toISOString(),
-      actor: "PRCGGC",
+      actor: lead.last_modified_by || fallbackActor,
       status: "Concluído",
     },
   ];

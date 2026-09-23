@@ -50,6 +50,7 @@ import {
   type CompanyLeadSort,
   type CompanyLeadStage,
 } from "@/lib/company-leads-api";
+import { currentUser } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 const initialFilters: CompanyLeadFilters = {
@@ -281,7 +282,9 @@ function loadSearchState(): PersistedSearchState {
       ...parsed,
       filters: { ...initialFilters, ...parsed.filters },
       appliedFilters: { ...initialFilters, ...parsed.appliedFilters },
-      pageSize: PAGE_SIZE_OPTIONS.includes(Number(parsed.pageSize) as typeof PAGE_SIZE_OPTIONS[number])
+      pageSize: PAGE_SIZE_OPTIONS.includes(
+        Number(parsed.pageSize) as (typeof PAGE_SIZE_OPTIONS)[number],
+      )
         ? Number(parsed.pageSize)
         : PAGE_SIZE,
     };
@@ -301,6 +304,7 @@ export function CompanyLeadsTab() {
   const [hasSearched, setHasSearched] = useState(restoredSearch.hasSearched);
   const [total, setTotal] = useState(0);
   const [totalCapped, setTotalCapped] = useState(false);
+  const [inProgress, setInProgress] = useState(0);
   const [page, setPage] = useState(restoredSearch.page);
   const [pageSize, setPageSize] = useState(restoredSearch.pageSize);
   const [sort, setSort] = useState<CompanyLeadSort>(restoredSearch.sort);
@@ -355,10 +359,12 @@ export function CompanyLeadsTab() {
         limit: nextPageSize,
         offset: nextPage * nextPageSize,
       });
+      const inProgressTotal = await companyLeadsApi.countInProgress(nextFilters);
       if (requestId !== searchRequestId.current) return;
       setLeads(result.leads);
       setTotal(result.total);
       setTotalCapped(result.totalCapped);
+      setInProgress(inProgressTotal);
       setPage(nextPage);
       setPageSize(nextPageSize);
       setAppliedFilters(nextFilters);
@@ -431,6 +437,7 @@ export function CompanyLeadsTab() {
     setLeads([]);
     setTotal(0);
     setTotalCapped(false);
+    setInProgress(0);
     setPage(0);
     setSort("opened_at");
     setDirection("desc");
@@ -472,7 +479,8 @@ export function CompanyLeadsTab() {
     const previous = leads;
     setLeads((items) => items.map((item) => (item.id === lead.id ? { ...item, stage } : item)));
     try {
-      await companyLeadsApi.updateStage(lead.id, stage);
+      await companyLeadsApi.updateStage(lead.id, stage, currentUser.operator || "PRCREN");
+      setInProgress(await companyLeadsApi.countInProgress(appliedFilters));
     } catch (error) {
       setLeads(previous);
       toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o lead.");
@@ -515,11 +523,6 @@ export function CompanyLeadsTab() {
       setEnrichingContacts(false);
     }
   };
-
-  const inProgress = useMemo(
-    () => leads.filter((lead) => !["novo", "sem_interesse"].includes(lead.stage)).length,
-    [leads],
-  );
 
   const chips = useMemo(() => {
     const items: Array<{ key: string; label: string; clear: Partial<CompanyLeadFilters> }> = [];
