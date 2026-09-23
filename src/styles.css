@@ -178,6 +178,12 @@
     width: 0;
     height: 0;
     background: transparent;
+    -webkit-appearance: none;
+  }
+
+  *::-webkit-scrollbar-corner,
+  .modal-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   *::-webkit-scrollbar-track,

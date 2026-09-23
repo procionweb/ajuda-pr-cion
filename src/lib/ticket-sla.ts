@@ -1,7 +1,16 @@
 import type { SupportTicket, TicketStatus } from "./support-tickets-data";
 
-/** Tempo máximo de espera até o início do atendimento: 30 minutos. */
+/** Metas máximas de espera até o início do atendimento, por prioridade. */
 export const SLA_TARGET_HOURS = 0.5;
+export const SLA_TARGET_MINUTES_BY_PRIORITY: Record<SupportTicket["priority"], number> = {
+  Alta: 15,
+  Media: 30,
+  Baixa: 60,
+};
+
+export function getTicketSlaTargetMinutes(ticket: Pick<SupportTicket, "priority">) {
+  return SLA_TARGET_MINUTES_BY_PRIORITY[ticket.priority] ?? SLA_TARGET_HOURS * 60;
+}
 
 export type SlaTone = "ok" | "warn" | "late";
 
@@ -116,8 +125,9 @@ export function computeSla(ticket: SupportTicket, now = Date.now()): SlaResult {
   const boundaryTime = new Date(boundary.at).getTime();
   const safeBoundary = Number.isFinite(boundaryTime) ? boundaryTime : Date.now();
   const exactHours = Math.max(0, (safeBoundary - openedAt) / 36e5);
+  const targetHours = getTicketSlaTargetMinutes(ticket) / 60;
   const rawPct =
-    ticket.status === "Atrasado" ? 100 : Math.min(100, (exactHours / SLA_TARGET_HOURS) * 100);
+    ticket.status === "Atrasado" ? 100 : Math.min(100, (exactHours / targetHours) * 100);
   const pct = Math.round(rawPct);
   let tone: SlaTone = "ok";
   if (ticket.status === "Atrasado" || pct >= 90) tone = "late";

@@ -67,7 +67,10 @@ function hydrate() {
   if (remoteLoadStarted) return;
   remoteLoadStarted = true;
   void loadFleetState<FleetEntry[]>("fleet_entries").then((saved) => {
-    entries = Array.isArray(saved) ? saved.filter((entry) => entry?.type !== "receita") : [];
+    const remote = Array.isArray(saved) ? saved.filter((entry) => entry?.type !== "receita") : [];
+    const merged = new Map(remote.map((entry) => [entry.id, entry]));
+    entries.forEach((entry) => merged.set(entry.id, entry));
+    entries = [...merged.values()].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
     listeners.forEach((listener) => listener());
   });
 }

@@ -49,12 +49,7 @@ import {
   UserPlus,
   UserRound,
 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AppShell } from "@/components/portal/AppShell";
 import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +105,6 @@ const chamadosSearchSchema = z.object({
   busca: z.string().catch("").optional(),
 });
 
-
 export const Route = createFileRoute("/chamados")({
   head: () => ({
     meta: [
@@ -126,18 +120,26 @@ export const Route = createFileRoute("/chamados")({
   component: ChamadosRouteShell,
 });
 
-
 // Soft/translucent status badges. Green reserved for Finalizado only.
 const statusTone: Record<TicketStatus, string> = {
-  Atrasado: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30",
-  "Em Aberto": "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30",
-  Ocupado: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30",
-  "Em andamento": "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30",
-  "Aguardando cliente": "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
-  "Com especialista": "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30",
-  Agendamento: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30",
-  Finalizado: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
-  Cancelado: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-500/30",
+  Atrasado:
+    "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30",
+  "Em Aberto":
+    "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30",
+  Ocupado:
+    "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30",
+  "Em andamento":
+    "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30",
+  "Aguardando cliente":
+    "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
+  "Com especialista":
+    "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30",
+  Agendamento:
+    "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30",
+  Finalizado:
+    "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
+  Cancelado:
+    "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-500/30",
 };
 
 // Colored dot inside the status badge.
@@ -169,20 +171,31 @@ const statusBorderTone: Record<TicketStatus, string> = {
 // Soft/translucent priority badges. Baixa uses slate — NOT green.
 const priorityTone: Record<TicketPriority, string> = {
   Alta: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30",
-  Media: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30",
-  Baixa: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-500/30",
+  Media:
+    "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30",
+  Baixa:
+    "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-500/30",
 };
 
 const statusRowTint: Record<TicketStatus, string> = {
-  Atrasado: "bg-rose-50/85 hover:bg-rose-100/90 dark:bg-rose-500/[0.12] dark:hover:bg-rose-500/[0.18]",
-  "Em Aberto": "bg-rose-50/70 hover:bg-rose-100/80 dark:bg-rose-500/[0.10] dark:hover:bg-rose-500/[0.16]",
-  Ocupado: "bg-orange-50/80 hover:bg-orange-100/90 dark:bg-orange-500/[0.12] dark:hover:bg-orange-500/[0.18]",
-  "Em andamento": "bg-sky-50/85 hover:bg-sky-100/90 dark:bg-sky-500/[0.12] dark:hover:bg-sky-500/[0.18]",
-  "Aguardando cliente": "bg-emerald-50/85 hover:bg-emerald-100/90 dark:bg-emerald-500/[0.12] dark:hover:bg-emerald-500/[0.18]",
-  "Com especialista": "bg-rose-50/75 hover:bg-rose-100/85 dark:bg-rose-500/[0.11] dark:hover:bg-rose-500/[0.17]",
-  Agendamento: "bg-amber-50/85 hover:bg-amber-100/90 dark:bg-amber-500/[0.12] dark:hover:bg-amber-500/[0.18]",
-  Finalizado: "bg-emerald-50/85 hover:bg-emerald-100/90 dark:bg-emerald-500/[0.12] dark:hover:bg-emerald-500/[0.18]",
-  Cancelado: "bg-slate-50 hover:bg-slate-100 dark:bg-slate-500/[0.08] dark:hover:bg-slate-500/[0.13]",
+  Atrasado:
+    "bg-rose-50/85 hover:bg-rose-100/90 dark:bg-rose-500/[0.12] dark:hover:bg-rose-500/[0.18]",
+  "Em Aberto":
+    "bg-rose-50/70 hover:bg-rose-100/80 dark:bg-rose-500/[0.10] dark:hover:bg-rose-500/[0.16]",
+  Ocupado:
+    "bg-orange-50/80 hover:bg-orange-100/90 dark:bg-orange-500/[0.12] dark:hover:bg-orange-500/[0.18]",
+  "Em andamento":
+    "bg-sky-50/85 hover:bg-sky-100/90 dark:bg-sky-500/[0.12] dark:hover:bg-sky-500/[0.18]",
+  "Aguardando cliente":
+    "bg-emerald-50/85 hover:bg-emerald-100/90 dark:bg-emerald-500/[0.12] dark:hover:bg-emerald-500/[0.18]",
+  "Com especialista":
+    "bg-rose-50/75 hover:bg-rose-100/85 dark:bg-rose-500/[0.11] dark:hover:bg-rose-500/[0.17]",
+  Agendamento:
+    "bg-amber-50/85 hover:bg-amber-100/90 dark:bg-amber-500/[0.12] dark:hover:bg-amber-500/[0.18]",
+  Finalizado:
+    "bg-emerald-50/85 hover:bg-emerald-100/90 dark:bg-emerald-500/[0.12] dark:hover:bg-emerald-500/[0.18]",
+  Cancelado:
+    "bg-slate-50 hover:bg-slate-100 dark:bg-slate-500/[0.08] dark:hover:bg-slate-500/[0.13]",
 };
 
 const priorityTint: Record<TicketPriority, string> = {
@@ -333,12 +346,7 @@ function DateRangeFilter({
           >
             Limpar
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            className="h-8 cursor-pointer"
-            onClick={apply}
-          >
+          <Button type="button" size="sm" className="h-8 cursor-pointer" onClick={apply}>
             Aplicar
           </Button>
         </div>
@@ -346,8 +354,6 @@ function DateRangeFilter({
     </Popover>
   );
 }
-
-
 
 function countAdvancedActive(f: Filters): number {
   let n = 0;
@@ -431,9 +437,7 @@ function QuickFiltersBar({
         <input
           list="quick-siglas"
           value={filters.sigla}
-          onChange={(e) =>
-            setFilters((p) => ({ ...p, sigla: e.target.value.toUpperCase() }))
-          }
+          onChange={(e) => setFilters((p) => ({ ...p, sigla: e.target.value.toUpperCase() }))}
           type="text"
           placeholder="Sigla"
           className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm uppercase outline-none focus:ring-2 focus:ring-ring"
@@ -465,9 +469,6 @@ function QuickFiltersBar({
         </datalist>
       </div>
 
-
-
-
       {/* Período */}
       <div className="min-w-[180px] flex-[1.4]">
         <DateRangeFilter
@@ -478,7 +479,6 @@ function QuickFiltersBar({
           }
         />
       </div>
-
 
       {/* Limpar */}
       {anyActive && (
@@ -494,10 +494,7 @@ function QuickFiltersBar({
   );
 }
 
-
-
 function ChamadosRouteShell() {
-
   const location = useLocation();
   if (location.pathname !== "/chamados") {
     return <Outlet />;
@@ -519,19 +516,18 @@ function TicketsPage() {
         const rehydrated: Filters = {
           ...monthFilters(initialMonthKey),
           ...(raw as Partial<Filters>),
-          dateStart:
-            typeof raw.dateStart === "string" ? new Date(raw.dateStart) : undefined,
-          dateEnd:
-            typeof raw.dateEnd === "string" ? new Date(raw.dateEnd) : undefined,
+          dateStart: typeof raw.dateStart === "string" ? new Date(raw.dateStart) : undefined,
+          dateEnd: typeof raw.dateEnd === "string" ? new Date(raw.dateEnd) : undefined,
         };
         return rehydrated;
       } catch {
         // fallback below
       }
     }
-    const base = search.mes || search.status || search.prioridade || search.busca
-      ? monthFilters(initialMonthKey)
-      : { ...initialFilters };
+    const base =
+      search.mes || search.status || search.prioridade || search.busca
+        ? monthFilters(initialMonthKey)
+        : { ...initialFilters };
     if (search.status) base.status = search.status;
     if (search.prioridade) base.priority = search.prioridade;
     if (search.busca) base.query = search.busca;
@@ -579,7 +575,6 @@ function TicketsPage() {
     search.busca,
   ]);
 
-
   const openTicketDetail = (ticket: SupportTicket) => {
     setSelectedTicketId(ticket.id);
     setDetailOpen(true);
@@ -601,9 +596,6 @@ function TicketsPage() {
     setChamadosFiltersCache(serializable);
   }, [filters]);
 
-
-
-
   const monthView = isTicketMonthView(search.visao) ? search.visao : null;
 
   const clearAllTicketFilters = () => {
@@ -615,10 +607,7 @@ function TicketsPage() {
     const query = filters.query.trim().toLowerCase();
     const sigla = filters.sigla.trim().toLowerCase();
     return supportTickets.filter((ticket) => {
-      if (
-        monthView &&
-        !ticketMatchesMonthView(ticket, initialMonthKey, monthView)
-      ) {
+      if (monthView && !ticketMatchesMonthView(ticket, initialMonthKey, monthView)) {
         return false;
       }
       if (filters.status !== "Todos" && ticket.status !== filters.status) return false;
@@ -665,9 +654,6 @@ function TicketsPage() {
     });
   }, [filters, supportTickets, monthView, initialMonthKey]);
 
-
-
-
   const advancedActiveCount = countAdvancedActive(filters);
 
   return (
@@ -677,7 +663,8 @@ function TicketsPage() {
           <Breadcrumbs items={[{ label: "Chamados" }]} />
           <h1 className="text-lg font-medium tracking-tight text-foreground">Chamados</h1>
           <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
-            CRM de suporte para acompanhar abertura, atendimento, atrasos e produtividade dos chamados.
+            CRM de suporte para acompanhar abertura, atendimento, atrasos e produtividade dos
+            chamados.
           </p>
         </div>
 
@@ -706,16 +693,14 @@ function TicketsPage() {
             Novo chamado
           </Link>
 
-          <Badge variant="secondary" className="col-span-2 justify-self-center rounded-full sm:self-center">
+          <Badge
+            variant="secondary"
+            className="col-span-2 justify-self-center rounded-full sm:self-center"
+          >
             CRM lado suporte
           </Badge>
         </div>
       </div>
-
-
-
-
-
 
       <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
         <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[480px]">
@@ -746,7 +731,9 @@ function TicketsPage() {
                 </p>
                 <input
                   value={filters.sigla}
-                  onChange={(e) => setFilters((p) => ({ ...p, sigla: e.target.value.toUpperCase() }))}
+                  onChange={(e) =>
+                    setFilters((p) => ({ ...p, sigla: e.target.value.toUpperCase() }))
+                  }
                   type="text"
                   placeholder="Ex.: MIT"
                   className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm uppercase outline-none focus:ring-2 focus:ring-ring"
@@ -823,7 +810,10 @@ function TicketsPage() {
                   <select
                     value={filters.operatorType}
                     onChange={(e) =>
-                      setFilters((p) => ({ ...p, operatorType: e.target.value as Filters["operatorType"] }))
+                      setFilters((p) => ({
+                        ...p,
+                        operatorType: e.target.value as Filters["operatorType"],
+                      }))
                     }
                     className="h-10 w-full cursor-pointer rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                   >
@@ -902,9 +892,6 @@ function TicketsPage() {
         </SheetContent>
       </Sheet>
 
-
-
-
       <div className="mb-3 flex flex-col items-stretch gap-3 md:flex-row md:flex-wrap md:items-center xl:flex-nowrap">
         <div className="min-w-0 shrink-0">
           <p className="text-base font-bold text-foreground">Fila de suporte</p>
@@ -920,7 +907,9 @@ function TicketsPage() {
             <input
               type="search"
               value={filters.query}
-              onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))}
+              onChange={(event) =>
+                setFilters((current) => ({ ...current, query: event.target.value }))
+              }
               placeholder="Pesquisa avancada"
               className="h-9 w-full min-w-0 rounded-lg border border-border bg-background pl-9 pr-3 text-[13px] outline-none transition focus:ring-2 focus:ring-ring"
             />
@@ -964,7 +953,9 @@ function TicketsPage() {
             <span className="sr-only">Operador</span>
             <select
               value={filters.operator}
-              onChange={(event) => setFilters((current) => ({ ...current, operator: event.target.value }))}
+              onChange={(event) =>
+                setFilters((current) => ({ ...current, operator: event.target.value }))
+              }
               className={cn(
                 "h-9 w-full min-w-0 cursor-pointer rounded-lg border border-border bg-background px-3 text-[13px] outline-none transition focus:ring-2 focus:ring-ring",
                 filters.operator === "Todos" && "text-muted-foreground",
@@ -978,9 +969,6 @@ function TicketsPage() {
               ))}
             </select>
           </label>
-
-
-
 
           <div className="min-w-[200px] flex-[1.4]">
             <DateRangeFilter
@@ -1005,8 +993,6 @@ function TicketsPage() {
               Limpar
             </button>
           )}
-
-
         </div>
       </div>
 
@@ -1081,7 +1067,6 @@ const sourceIcons: Record<SupportTicket["source"], typeof PhoneCall> = {
   Email: MessageSquarePlus,
 };
 
-
 function TicketCard({
   ticket,
   onOpen,
@@ -1091,7 +1076,6 @@ function TicketCard({
   onOpen?: (ticket: SupportTicket) => void;
   onHistory?: (ticket: SupportTicket) => void;
 }) {
-  
   const SourceIcon = sourceIcons[ticket.source] ?? PhoneCall;
 
   const handleAssume = (e: React.MouseEvent) => {
@@ -1101,7 +1085,12 @@ function TicketCard({
   };
 
   return (
-    <Card className={cn("flex min-w-0 flex-col gap-4 rounded-[16px] border border-border/70 bg-card p-4 shadow-[0_10px_28px_rgba(25,29,51,0.05)] transition hover:shadow-[0_14px_32px_rgba(25,29,51,0.09)] sm:p-5", ticket.status === "Finalizado" ? finalizedRowTint : priorityTint[ticket.priority])}>
+    <Card
+      className={cn(
+        "flex min-w-0 flex-col gap-4 rounded-[16px] border border-border/70 bg-card p-4 shadow-[0_10px_28px_rgba(25,29,51,0.05)] transition hover:shadow-[0_14px_32px_rgba(25,29,51,0.09)] sm:p-5",
+        ticket.status === "Finalizado" ? finalizedRowTint : priorityTint[ticket.priority],
+      )}
+    >
       {/* Top: icon + title + client / protocol + status */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
@@ -1149,18 +1138,9 @@ function TicketCard({
         />
         <InfoRow icon={Headphones} label="Atendente" value={ticket.attendant} />
         <InfoRow icon={UserPlus} label="Responsável" value={ticket.owner} />
-        <InfoRow
-          icon={CalendarClock}
-          label="Registro"
-          value={formatDateTime(ticket.openedAt)}
-        />
-        <InfoRow
-          icon={Clock3}
-          label="Atualizado"
-          value={formatDateTime(ticket.updatedAt)}
-        />
+        <InfoRow icon={CalendarClock} label="Registro" value={formatDateTime(ticket.openedAt)} />
+        <InfoRow icon={Clock3} label="Atualizado" value={formatDateTime(ticket.updatedAt)} />
       </dl>
-
 
       {/* Chips */}
       <div className="flex flex-wrap items-center gap-1.5">
@@ -1239,9 +1219,10 @@ type SortKey =
 type SortDir = "asc" | "desc";
 
 const priorityOrder: Record<TicketPriority, number> = { Alta: 0, Media: 1, Baixa: 2 };
-const statusOrder = Object.fromEntries(
-  ticketStatuses.map((s, i) => [s, i]),
-) as Record<TicketStatus, number>;
+const statusOrder = Object.fromEntries(ticketStatuses.map((s, i) => [s, i])) as Record<
+  TicketStatus,
+  number
+>;
 
 function compareTickets(a: SupportTicket, b: SupportTicket, key: SortKey): number {
   switch (key) {
@@ -1250,10 +1231,7 @@ function compareTickets(a: SupportTicket, b: SupportTicket, key: SortKey): numbe
     case "priority":
       return priorityOrder[a.priority] - priorityOrder[b.priority];
     case "cliente":
-      return (
-        a.clientCode.localeCompare(b.clientCode) ||
-        a.clientName.localeCompare(b.clientName)
-      );
+      return a.clientCode.localeCompare(b.clientCode) || a.clientName.localeCompare(b.clientName);
     case "contato":
       return a.contact.localeCompare(b.contact);
     case "assunto":
@@ -1337,9 +1315,6 @@ function SortableHead({
     </button>
   );
 }
-
-
-
 
 function pagesRange(current: number, total: number): (number | "…")[] {
   const pages: (number | "…")[] = [];
@@ -1463,11 +1438,7 @@ function PaginationBar({
           </select>
         </label>
         <div className="flex items-center gap-1">
-          <PagBtn
-            onClick={() => onPageChange(1)}
-            disabled={page <= 1}
-            label="Primeira página"
-          >
+          <PagBtn onClick={() => onPageChange(1)} disabled={page <= 1} label="Primeira página">
             <ChevronsLeft className="h-3.5 w-3.5" />
           </PagBtn>
           <PagBtn
@@ -1555,23 +1526,40 @@ function TicketsListView({
 
   return (
     <div className="space-y-3">
-      {/* Desktop list */}
-      <Card className="hidden rounded-2xl border border-border/60 bg-card p-3 shadow-[0_8px_22px_rgba(25,29,51,0.05)] lg:block">
+      {/* Grade legada mantida no código para referência; a visualização ativa usa cartões responsivos. */}
+      <Card className="hidden rounded-2xl border border-border/60 bg-card p-3 shadow-[0_8px_22px_rgba(25,29,51,0.05)]">
         <div className="min-w-0">
           <div className="grid grid-cols-[160px_100px_minmax(0,1.2fr)_110px_minmax(0,1.55fr)_170px_100px_100px_24px] items-center gap-x-3 rounded-xl bg-muted/50 px-4 py-3">
-
             <SortableGridHeader label="Status" sortKey="status" sort={sort} onSort={toggleSort} />
-            <SortableGridHeader label="Prioridade" sortKey="priority" sort={sort} onSort={toggleSort} />
+            <SortableGridHeader
+              label="Prioridade"
+              sortKey="priority"
+              sort={sort}
+              onSort={toggleSort}
+            />
             <SortableGridHeader label="Cliente" sortKey="cliente" sort={sort} onSort={toggleSort} />
             <SortableGridHeader label="Contato" sortKey="contato" sort={sort} onSort={toggleSort} />
             <SortableGridHeader label="Assunto" sortKey="assunto" sort={sort} onSort={toggleSort} />
-            <SortableGridHeader label="Atendente/Responsável" sortKey="atendente" sort={sort} onSort={toggleSort} />
-            <SortableGridHeader label="Registro" sortKey="registro" sort={sort} onSort={toggleSort} />
-            <SortableGridHeader label="Atualizado" sortKey="atualizado" sort={sort} onSort={toggleSort} />
+            <SortableGridHeader
+              label="Atendente/Responsável"
+              sortKey="atendente"
+              sort={sort}
+              onSort={toggleSort}
+            />
+            <SortableGridHeader
+              label="Registro"
+              sortKey="registro"
+              sort={sort}
+              onSort={toggleSort}
+            />
+            <SortableGridHeader
+              label="Atualizado"
+              sortKey="atualizado"
+              sort={sort}
+              onSort={toggleSort}
+            />
             <span aria-label="Abrir" />
-
           </div>
-
 
           <div className="my-2 divide-y divide-border/60">
             {pageItems.map((ticket) => {
@@ -1584,7 +1572,10 @@ function TicketsListView({
                   className="group relative grid min-h-[52px] w-full cursor-pointer grid-cols-[160px_100px_minmax(0,1.2fr)_110px_minmax(0,1.55fr)_170px_100px_100px_24px] items-center gap-x-3 bg-transparent px-4 py-2 text-left transition hover:bg-muted/30"
                 >
                   <span
-                    className={cn("pointer-events-none absolute bottom-1.5 left-0 top-1.5 w-1", statusDotTone[ticket.status])}
+                    className={cn(
+                      "pointer-events-none absolute bottom-1.5 left-0 top-1.5 w-1",
+                      statusDotTone[ticket.status],
+                    )}
                     aria-hidden="true"
                   />
 
@@ -1608,7 +1599,6 @@ function TicketsListView({
                     </span>
                   </div>
 
-
                   <div className="min-w-0 self-start pt-1">
                     <span
                       className={cn(
@@ -1620,7 +1610,6 @@ function TicketsListView({
                       {ticket.priority}
                     </span>
                   </div>
-
 
                   <div className="min-w-0">
                     <div className="truncate text-[12.5px] text-foreground">
@@ -1641,10 +1630,7 @@ function TicketsListView({
                     </div>
                     <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11.5px] text-muted-foreground/80">
                       <ModuleIcon className="h-3 w-3 shrink-0 text-primary/70" />
-                      <ModuleKnowledgeLink
-                        module={ticket.module}
-                        className="truncate"
-                      />
+                      <ModuleKnowledgeLink module={ticket.module} className="truncate" />
                     </div>
                   </div>
 
@@ -1660,12 +1646,8 @@ function TicketsListView({
                       <span className="truncate text-[11px] text-muted-foreground/80">
                         <span className="font-medium">Responsável:</span> {ticket.owner}
                       </span>
-
-
                     </div>
                   </div>
-
-
 
                   <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted-foreground">
                     <CalendarClock className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -1684,8 +1666,8 @@ function TicketsListView({
           </div>
         </div>
       </Card>
-      {/* Mobile stacked list */}
-      <div className="space-y-2 lg:hidden">
+      {/* Grade responsiva de chamados */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
         {pageItems.map((ticket) => (
           <Card
             key={ticket.id}
@@ -1715,9 +1697,7 @@ function TicketsListView({
                 <AlertTriangle className="h-2.5 w-2.5" />
                 {ticket.priority}
               </span>
-              <span className="font-mono text-[10px] text-muted-foreground">
-                {ticket.protocol}
-              </span>
+              <span className="font-mono text-[10px] text-muted-foreground">{ticket.protocol}</span>
             </div>
             <p className="mt-1.5 truncate text-[13px] font-semibold text-foreground">
               {ticket.subject}
@@ -1731,8 +1711,7 @@ function TicketsListView({
                 <span className="font-semibold text-foreground">Contato:</span> {ticket.contact}
               </div>
               <div className="truncate">
-                <span className="font-semibold text-foreground">Atendente:</span>{" "}
-                {ticket.attendant}
+                <span className="font-semibold text-foreground">Atendente:</span> {ticket.attendant}
               </div>
               <div className="col-span-2 truncate">
                 <span className="font-semibold text-foreground">Módulo:</span>{" "}
@@ -1763,8 +1742,6 @@ function TicketsListView({
     </div>
   );
 }
-
-
 
 function HistoryModalHost({
   ticketId,
@@ -1831,5 +1808,3 @@ function formatDateTime(value: string) {
     month: "2-digit",
   })} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 }
-
-

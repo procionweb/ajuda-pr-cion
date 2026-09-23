@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, Fuel, KeyRound } from "lucide-react";
+import { AlertTriangle, KeyRound } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,6 @@ import { fleetActions } from "@/lib/fleet-action-store";
 import { SmartTextarea } from "@/components/ui/smart-text";
 
 const preventClose = (e: Event) => e.preventDefault();
-const FUEL_OPTIONS = ["Cheio", "3/4", "1/2", "1/4", "Reserva"] as const;
 
 export function RegisterDepartureModal({
   usageId,
@@ -31,7 +30,6 @@ export function RegisterDepartureModal({
   const usage = getUsageById(usageId);
   const vehicle = getVehicleById(vehicleId);
   const [mileage, setMileage] = useState(vehicle?.currentMileage?.toString() ?? "");
-  const [fuel, setFuel] = useState(vehicle?.fuelLevel ?? "1/2");
   const [notes, setNotes] = useState("");
 
   if (!usage || !vehicle) return null;
@@ -45,7 +43,7 @@ export function RegisterDepartureModal({
     registerDeparture(usageId, {
       vehicleId,
       departureMileage: km,
-      fuelAtDeparture: fuel,
+      fuelAtDeparture: vehicle.fuelLevel,
       departureNotes: notes.trim() || undefined,
     });
     toast.success(`Saída registrada — ${vehicle.model}`);
@@ -100,7 +98,7 @@ export function RegisterDepartureModal({
             )}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div>
             <div>
               <Label className="mb-1.5 block text-[12.5px] font-medium">KM de saída *</Label>
               <Input
@@ -112,21 +110,6 @@ export function RegisterDepartureModal({
               <p className="mt-1 text-[11px] text-muted-foreground">
                 KM atual do veículo: {vehicle.currentMileage.toLocaleString("pt-BR")} km
               </p>
-            </div>
-            <div>
-              <Label className="mb-1.5 block text-[12.5px] font-medium">Combustível *</Label>
-              <div className="relative">
-                <Fuel className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <select
-                  value={fuel}
-                  onChange={(e) => setFuel(e.target.value)}
-                  className="h-9 w-full cursor-pointer rounded-md border border-input bg-background pl-8 pr-3 text-[13px] outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {FUEL_OPTIONS.map((f) => (
-                    <option key={f}>{f}</option>
-                  ))}
-                </select>
-              </div>
             </div>
           </div>
 

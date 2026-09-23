@@ -511,8 +511,14 @@ function startRemoteLoad() {
         );
       });
     }
-    usages = Array.isArray(state?.usages) ? state.usages : [];
-    reservations = Array.isArray(state?.reservations) ? state.reservations : [];
+    const remoteUsages = Array.isArray(state?.usages) ? state.usages : [];
+    const mergedUsages = new Map(remoteUsages.map((usage) => [usage.id, usage]));
+    usages.forEach((usage) => mergedUsages.set(usage.id, usage));
+    usages = [...mergedUsages.values()];
+    const remoteReservations = Array.isArray(state?.reservations) ? state.reservations : [];
+    const mergedReservations = new Map(remoteReservations.map((item) => [item.id, item]));
+    reservations.forEach((item) => mergedReservations.set(item.id, item));
+    reservations = [...mergedReservations.values()];
     if (state?.vehicles?.length) void persistCoreState();
     emit();
   });

@@ -31,8 +31,18 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Store } from "lucide-react";
 import { type FleetEntry, useFleetEntries } from "@/lib/fleet-entry-store";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { exportFleetHistoryCsv, exportFleetHistoryPdf, exportFleetHistoryXlsx, type FleetHistoryExportRow } from "@/lib/fleet-history-export";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  exportFleetHistoryCsv,
+  exportFleetHistoryPdf,
+  exportFleetHistoryXlsx,
+  type FleetHistoryExportRow,
+} from "@/lib/fleet-history-export";
 import procionLogoWhiteUrl from "@/assets/procion-logo-white.png";
 
 // ---------------------------------------------------------------------------
@@ -156,11 +166,15 @@ export function VehicleHistoryModal({
     () => buildHistoryRows(filtered, vehicleEntries, vehicle?.maintenanceRecords ?? []),
     [filtered, vehicleEntries, vehicle?.maintenanceRecords],
   );
-  const exportRows = useMemo(() => historyRows.filter((row) => {
-    if (activeTab === "utilizacao") return row.category === "Utilização";
-    if (activeTab === "manutencao") return row.category === "Manutenção";
-    return row.category !== "Utilização" && row.category !== "Manutenção";
-  }), [activeTab, historyRows]);
+  const exportRows = useMemo(
+    () =>
+      historyRows.filter((row) => {
+        if (activeTab === "utilizacao") return row.category === "Utilização";
+        if (activeTab === "manutencao") return row.category === "Manutenção";
+        return row.category !== "Utilização" && row.category !== "Manutenção";
+      }),
+    [activeTab, historyRows],
+  );
 
   const clearFilters = () => {
     setDateFrom("");
@@ -231,7 +245,11 @@ export function VehicleHistoryModal({
           {selected ? (
             <DetailView usage={selected} vehicle={vehicle} onBack={() => setSelectedId(null)} />
           ) : (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="flex min-h-0 flex-1 flex-col"
+            >
               <div className="border-b px-6">
                 <TabsList className="h-10 w-auto">
                   <TabsTrigger value="lancamentos">Lançamentos</TabsTrigger>
@@ -279,14 +297,31 @@ export function VehicleHistoryModal({
             {vehicleUsages.length} utilização(ões) registrada(s)
           </div>
           <div className="flex items-center gap-2">
-            {!selected && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" className="h-9 cursor-pointer gap-2"><Download className="h-4 w-4" />Exportar histórico</Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-48"><DropdownMenuItem onClick={() => exportFleetHistoryCsv(vehicle, exportRows)}>Baixar CSV</DropdownMenuItem><DropdownMenuItem onClick={() => exportFleetHistoryXlsx(vehicle, exportRows)}>Baixar XLSX</DropdownMenuItem><DropdownMenuItem onClick={() => void exportFleetHistoryPdf(vehicle, exportRows, procionLogoWhiteUrl)}>Baixar PDF</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
-            <Button
-              variant="outline"
-              className="h-9 cursor-pointer"
-              onClick={() => handleOpenChange(false)}
-            >
-              Fechar
-            </Button>
+            {!selected && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="h-9 cursor-pointer gap-2">
+                    <Download className="h-4 w-4" />
+                    Exportar histórico
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => exportFleetHistoryCsv(vehicle, exportRows)}>
+                    Baixar CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportFleetHistoryXlsx(vehicle, exportRows)}>
+                    Baixar XLSX
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      void exportFleetHistoryPdf(vehicle, exportRows, procionLogoWhiteUrl)
+                    }
+                  >
+                    Baixar PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </footer>
       </DialogContent>
@@ -312,6 +347,7 @@ function FleetEntriesList({ entries }: { entries: FleetEntry[] }) {
     leitura: "Leitura",
     checklist: "Checklist",
     lembrete: "Lembrete",
+    ocorrencia: "Ocorrência",
   } as const;
 
   return (
@@ -801,12 +837,51 @@ function computeStats(usages: VehicleUsage[]) {
   };
 }
 
-function buildHistoryRows(usages: VehicleUsage[], entries: FleetEntry[], maintenance: VehicleMaintenance[]): FleetHistoryExportRow[] {
-  const entryLabels: Record<string, string> = { abastecimento: "Abastecimento", despesa: "Despesa", servico: "Serviço", percurso: "Percurso", leitura: "Leitura", checklist: "Checklist", lembrete: "Lembrete", ocorrencia: "Ocorrência" };
+function buildHistoryRows(
+  usages: VehicleUsage[],
+  entries: FleetEntry[],
+  maintenance: VehicleMaintenance[],
+): FleetHistoryExportRow[] {
+  const entryLabels: Record<string, string> = {
+    abastecimento: "Abastecimento",
+    despesa: "Despesa",
+    servico: "Serviço",
+    percurso: "Percurso",
+    leitura: "Leitura",
+    checklist: "Checklist",
+    lembrete: "Lembrete",
+    ocorrencia: "Ocorrência",
+  };
   const rows: FleetHistoryExportRow[] = [
-    ...entries.map((entry) => ({ date: formatDateTime(entry.occurredAt), category: entryLabels[entry.type] || entry.type, title: entry.title, operator: entry.driver || "", mileage: entry.mileage !== undefined ? formatKm(entry.mileage) : "", amount: entry.amount?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) || "", details: entry.notes || entry.destination || entry.location || "" })),
-    ...usages.map((usage) => ({ date: formatDateTime(usage.departureAt ?? usage.scheduledStartAt ?? usage.returnedAt), category: "Utilização", title: usage.client || usage.destination || "Utilização do veículo", operator: usage.operatorId, mileage: computeDistance(usage) !== undefined ? formatKm(computeDistance(usage)) : "", amount: "", details: `${usage.destination} | ${USAGE_STATUS_LABEL[usage.status]}` })),
-    ...maintenance.map((item) => ({ date: formatDateTime(item.entryDate), category: "Manutenção", title: item.reason, operator: "", mileage: formatKm(item.entryMileage), amount: item.cost?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) || "", details: [item.workshop, item.servicesPerformed, item.partsReplaced, item.notes].filter(Boolean).join(" | ") })),
+    ...entries.map((entry) => ({
+      date: formatDateTime(entry.occurredAt),
+      category: entryLabels[entry.type] || entry.type,
+      title: entry.title,
+      operator: entry.driver || "",
+      mileage: entry.mileage !== undefined ? formatKm(entry.mileage) : "",
+      amount: entry.amount?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) || "",
+      details: entry.notes || entry.destination || entry.location || "",
+    })),
+    ...usages.map((usage) => ({
+      date: formatDateTime(usage.departureAt ?? usage.scheduledStartAt ?? usage.returnedAt),
+      category: "Utilização",
+      title: usage.client || usage.destination || "Utilização do veículo",
+      operator: usage.operatorId,
+      mileage: computeDistance(usage) !== undefined ? formatKm(computeDistance(usage)) : "",
+      amount: "",
+      details: `${usage.destination} | ${USAGE_STATUS_LABEL[usage.status]}`,
+    })),
+    ...maintenance.map((item) => ({
+      date: formatDateTime(item.entryDate),
+      category: "Manutenção",
+      title: item.reason,
+      operator: "",
+      mileage: formatKm(item.entryMileage),
+      amount: item.cost?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) || "",
+      details: [item.workshop, item.servicesPerformed, item.partsReplaced, item.notes]
+        .filter(Boolean)
+        .join(" | "),
+    })),
   ];
   return rows.sort((a, b) => b.date.localeCompare(a.date));
 }
@@ -831,7 +906,11 @@ function MaintenanceListView({ maintenanceRecords }: { maintenanceRecords: Vehic
             key={m.id}
             className={cn(
               "overflow-hidden border-l-4",
-              scheduled ? "border-l-sky-500 bg-sky-500/5" : inProgress ? "border-l-amber-500 bg-amber-500/5" : "border-l-emerald-500",
+              scheduled
+                ? "border-l-sky-500 bg-sky-500/5"
+                : inProgress
+                  ? "border-l-amber-500 bg-amber-500/5"
+                  : "border-l-emerald-500",
             )}
           >
             <div className="p-4">
@@ -846,8 +925,8 @@ function MaintenanceListView({ maintenanceRecords }: { maintenanceRecords: Vehic
                         scheduled
                           ? "border-sky-500 text-sky-600"
                           : inProgress
-                          ? "border-amber-500 text-amber-600"
-                          : "bg-emerald-500/10 text-emerald-600",
+                            ? "border-amber-500 text-amber-600"
+                            : "bg-emerald-500/10 text-emerald-600",
                       )}
                     >
                       {scheduled ? "Agendada" : inProgress ? "Em andamento" : "Concluída"}

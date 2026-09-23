@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Save } from "lucide-react";
+import { AlertTriangle, Download, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -79,6 +79,27 @@ export function OccurrenceDialog({
     toast.success("Ocorrência registrada com sucesso.");
     reset();
     onOpenChange(false);
+  };
+  const exportOccurrence = () => {
+    const lines = [
+      "OCORRÊNCIA DE FROTA",
+      `Data: ${occurredAt}`,
+      `Tipo: ${KIND_LABELS[kind]}`,
+      `Gravidade: ${severity}`,
+      `Condutor: ${driver || "Não informado"}`,
+      `Local: ${location || "Não informado"}`,
+      `Odômetro: ${mileage || "Não informado"}`,
+      `Referência: ${reference || "Não informada"}`,
+      "",
+      description || "Descrição não informada",
+    ];
+    const blob = new Blob([lines.join("\r\n")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ocorrencia-${occurredAt.slice(0, 10)}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -175,8 +196,9 @@ export function OccurrenceDialog({
           </div>
         </div>
         <div className="flex justify-end gap-2 border-t px-6 py-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+          <Button variant="outline" onClick={exportOccurrence} className="gap-2">
+            <Download className="h-4 w-4" />
+            Exportar
           </Button>
           <Button onClick={save} className="gap-2">
             <Save className="h-4 w-4" />

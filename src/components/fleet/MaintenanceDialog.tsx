@@ -563,9 +563,6 @@ export function MaintenanceDialog({ vehicle, open, onOpenChange }: MaintenanceDi
         </div>
 
         <DialogFooter className="border-t border-border bg-muted/20 px-6 py-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
           {mode === "create" ? (
             <Button onClick={handleCreate}>Iniciar Manutenção</Button>
           ) : (

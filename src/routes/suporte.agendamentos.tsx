@@ -107,7 +107,7 @@ function SupportAppointmentsPage() {
           onChange={(event) => setOperator(event.target.value)}
           className={selectClass}
         >
-          <option value="">Todos os operadores</option>
+          <option value="">Todos operadores</option>
           {operators.map((item) => (
             <option key={item} value={item}>
               {item}
@@ -154,6 +154,7 @@ function SupportAppointmentsPage() {
             setFrom(start);
             setTo(end);
           }}
+          className="min-w-0 text-[12px]"
         />
         <Button className="h-9 rounded-lg" onClick={() => setPage(0)}>
           Buscar
@@ -354,7 +355,7 @@ function AppointmentFiltersSheet(props: {
             onChange={(e) => props.setOperator(e.target.value)}
             className={selectClass}
           >
-            <option value="">Todos os operadores</option>
+            <option value="">Todos operadores</option>
             {props.operators.map((item) => (
               <option key={item}>{item}</option>
             ))}
@@ -388,6 +389,7 @@ function AppointmentFiltersSheet(props: {
                 props.setFrom(start);
                 props.setTo(end);
               }}
+              className="min-w-0 text-[12px]"
             />
           </div>
         </div>

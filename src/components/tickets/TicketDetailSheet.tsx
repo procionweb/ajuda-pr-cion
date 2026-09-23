@@ -205,7 +205,7 @@ const TicketForwardIcon = createMaskedActionIcon(specialistIconUrl);
 const TicketTimelineIcon = History;
 
 import { getModuleIcon } from "@/lib/ticket-icons";
-import { computeAttendanceTime, computeSla, formatElapsedTime } from "@/lib/ticket-sla";
+import { computeAttendanceTime, computeSla, formatElapsedTime, getTicketSlaTargetMinutes } from "@/lib/ticket-sla";
 
 export function TicketDetailSheet({
   ticketId,
@@ -572,7 +572,7 @@ export function TicketDetailSheet({
                     <span className={cn("text-base font-bold leading-none", slaTextTone[sla.tone])}>
                       {sla.pct}%
                     </span>
-                    <span className="text-[9px] text-muted-foreground">{sla.minutes}min decorridos</span>
+                    <span className="text-[9px] text-muted-foreground">{sla.minutes}min de {getTicketSlaTargetMinutes(ticket)}min</span>
                   </HeaderSlaStat>
                   <HeaderSlaStat
                     label="Tempo de atendimento"
@@ -1869,7 +1869,7 @@ function TicketPastAttendancesSidePanel({
         ) : (
           <>
             {items.length > 0 && (
-              <TicketHistoryList items={items.slice(0, 5)} onSelect={onSelect} timeline />
+              <TicketHistoryList items={items.slice(0, 4)} onSelect={onSelect} timeline />
             )}
 
             <section>
@@ -1885,7 +1885,7 @@ function TicketPastAttendancesSidePanel({
                 </p>
               ) : (
                 <ul className="space-y-2">
-                  {appointments.slice(0, 5).map((event) => {
+                  {appointments.map((event) => {
                     const eventDate = new Date(`${event.date}T${event.time || "00:00"}:00`);
                     const cancelled = event.status === "Cancelado";
                     return (
