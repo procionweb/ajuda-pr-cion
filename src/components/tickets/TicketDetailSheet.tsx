@@ -205,7 +205,12 @@ const TicketForwardIcon = createMaskedActionIcon(specialistIconUrl);
 const TicketTimelineIcon = History;
 
 import { getModuleIcon } from "@/lib/ticket-icons";
-import { computeAttendanceTime, computeSla, formatElapsedTime, getTicketSlaTargetMinutes } from "@/lib/ticket-sla";
+import {
+  computeAttendanceTime,
+  computeSla,
+  formatElapsedTime,
+  getTicketSlaTargetMinutes,
+} from "@/lib/ticket-sla";
 
 export function TicketDetailSheet({
   ticketId,
@@ -338,7 +343,9 @@ export function TicketDetailSheet({
       .catch((error) => {
         if (!active) return;
         setClientLogs([]);
-        setClientLogsError(error instanceof Error ? error.message : "Não foi possível carregar os logs.");
+        setClientLogsError(
+          error instanceof Error ? error.message : "Não foi possível carregar os logs.",
+        );
       })
       .finally(() => {
         if (active) setClientLogsLoading(false);
@@ -572,7 +579,9 @@ export function TicketDetailSheet({
                     <span className={cn("text-base font-bold leading-none", slaTextTone[sla.tone])}>
                       {sla.pct}%
                     </span>
-                    <span className="text-[9px] text-muted-foreground">{sla.minutes}min de {getTicketSlaTargetMinutes(ticket)}min</span>
+                    <span className="text-[9px] text-muted-foreground">
+                      {sla.minutes}min de {getTicketSlaTargetMinutes(ticket)}min
+                    </span>
                   </HeaderSlaStat>
                   <HeaderSlaStat
                     label="Tempo de atendimento"
@@ -821,7 +830,7 @@ export function TicketDetailSheet({
               </div>
 
               {/* Main content */}
-              <div className="modal-scrollbar flex-1 min-w-0 overflow-y-auto rounded-2xl border border-border bg-card px-5 py-5 md:px-6">
+              <div className="flex-1 min-w-0 overflow-y-auto rounded-2xl border border-border bg-card px-5 py-5 [scrollbar-width:none] md:px-6 [&::-webkit-scrollbar]:hidden">
                 {/* Datas e responsáveis */}
                 <div className="mb-4 grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-3 shadow-[0_6px_18px_rgba(25,29,51,0.04)] sm:grid-cols-2 xl:grid-cols-4">
                   <CompactInfo
@@ -854,9 +863,7 @@ export function TicketDetailSheet({
                           <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground">
                             {ticketDescription}
                           </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            Preparando resumo...
-                          </p>
+                          <p className="text-[11px] text-muted-foreground">Preparando resumo...</p>
                         </>
                       ) : (
                         <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground">
@@ -1017,7 +1024,9 @@ export function TicketDetailSheet({
             </div>
             {/* fim body wrapper */}
             <DialogFooter className="border-t border-border py-4 pl-5 pr-20 sm:pr-5">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Fechar
+              </Button>
             </DialogFooter>
           </div>
           {/* fim painel esquerdo */}
@@ -1250,7 +1259,9 @@ function CloseTicketDialog({
           meta={
             <span className="inline-flex items-center gap-1">
               <span className="text-foreground">Finalizar chamado</span>
-              <span aria-hidden className="text-border">·</span>
+              <span aria-hidden className="text-border">
+                ·
+              </span>
               <span className="font-semibold text-primary">{ticket.clientCode || "—"}</span>
             </span>
           }
@@ -1581,7 +1592,10 @@ function ClientLogsTable({
                 <p className="truncate text-foreground" title={log.info || log.url}>
                   {log.info || "-"}
                 </p>
-                <p className="mt-0.5 truncate text-[10px] italic text-muted-foreground" title={log.url}>
+                <p
+                  className="mt-0.5 truncate text-[10px] italic text-muted-foreground"
+                  title={log.url}
+                >
                   {log.url || "-"}
                 </p>
               </td>
@@ -1589,7 +1603,9 @@ function ClientLogsTable({
                 <p className="font-medium text-foreground">{log.operator || "-"}</p>
                 <p className="mt-0.5 text-[10px] text-muted-foreground">{log.ipAddress || "-"}</p>
               </td>
-              <td className="whitespace-nowrap px-3 py-2 text-foreground">{log.occurredAt || "-"}</td>
+              <td className="whitespace-nowrap px-3 py-2 text-foreground">
+                {log.occurredAt || "-"}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -1612,7 +1628,9 @@ function HeaderSlaStat({
   return (
     <div className="flex min-w-[150px] items-center justify-between gap-2 rounded-lg border border-border bg-background/70 px-2.5 py-1.5">
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate text-[9px] font-medium uppercase text-muted-foreground">{label}</span>
+        <span className="truncate text-[9px] font-medium uppercase text-muted-foreground">
+          {label}
+        </span>
         {children}
       </div>
       <span
@@ -1859,7 +1877,7 @@ function TicketPastAttendancesSidePanel({
 
       <div
         className={cn(
-          "modal-scrollbar flex-1 min-h-0 space-y-4 overflow-y-auto bg-muted/20 px-3 py-3",
+          "flex-1 min-h-0 space-y-4 overflow-y-auto bg-muted/20 px-3 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         )}
       >
         {items.length === 0 && appointments.length === 0 ? (

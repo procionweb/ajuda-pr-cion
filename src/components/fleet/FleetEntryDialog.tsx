@@ -217,7 +217,10 @@ export function FleetEntryDialog({
         {triggerLabel}
       </Button>
       <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
-        <DialogContent className="flex max-h-[92vh] max-w-3xl flex-col overflow-hidden p-0 [&_button:not(:disabled)]:cursor-pointer [&_select:not(:disabled)]:cursor-pointer">
+        <DialogContent
+          autoFooter={false}
+          className="flex max-h-[92vh] max-w-3xl flex-col overflow-hidden p-0 [&_button:not(:disabled)]:cursor-pointer [&_select:not(:disabled)]:cursor-pointer"
+        >
           <DialogHeader className="border-b px-6 py-4">
             <DialogTitle>
               {type ? `Adicionar ${selectedLabel?.toLowerCase()}` : "Adicionar lançamento"}

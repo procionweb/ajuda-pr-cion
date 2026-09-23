@@ -83,7 +83,10 @@ export function OccurrenceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col overflow-hidden p-0">
+      <DialogContent
+        autoFooter={false}
+        className="flex max-h-[90vh] max-w-2xl flex-col overflow-hidden p-0"
+      >
         <DialogHeader className="border-b px-6 py-4">
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
