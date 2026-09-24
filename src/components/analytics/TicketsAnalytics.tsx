@@ -598,7 +598,6 @@ function StatisticsCard({
   const [daySelection, setDaySelection] = useState<string | null>(null);
   const parsedRangeEnd = rangeEnd ? new Date(`${rangeEnd}T12:00:00`) : new Date();
   const today = startOfDay(Number.isFinite(parsedRangeEnd.getTime()) ? parsedRangeEnd : new Date());
-  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const parsedRangeStart = rangeStart ? new Date(`${rangeStart}T12:00:00`) : null;
   const validRangeStart =
     parsedRangeStart && Number.isFinite(parsedRangeStart.getTime())
@@ -615,11 +614,16 @@ function StatisticsCard({
   const selectedDay =
     daySelection && currentBusinessDays.some((day) => dateIso(day) === daySelection)
       ? daySelection
-      : currentBusinessDays.at(-1)
-        ? dateIso(currentBusinessDays.at(-1)!)
-        : todayIso;
-  const currentDays = new Set(currentBusinessDays.map(dateIso));
-  const previousDays = new Set(previousBusinessDays.map(dateIso));
+      : null;
+  const previousBusinessDay = selectedDay
+    ? businessDaysEndingAt(addDays(new Date(`${selectedDay}T12:00:00`), -1), 1)[0]
+    : null;
+  const currentDays = new Set(selectedDay ? [selectedDay] : currentBusinessDays.map(dateIso));
+  const previousDays = new Set(
+    selectedDay && previousBusinessDay
+      ? [dateIso(previousBusinessDay)]
+      : previousBusinessDays.map(dateIso),
+  );
   const statisticsDays = currentBusinessDays.map((date) => {
     return {
       iso: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
@@ -663,7 +667,11 @@ function StatisticsCard({
         <h3 className="text-base font-bold tracking-tight text-foreground">Estatísticas</h3>
         <span className="inline-flex h-9 items-center gap-2 rounded-md bg-muted/60 px-4 text-sm font-semibold text-foreground">
           <CalendarClock className="h-4 w-4" />
-          {periodStart ? "Dias úteis do período" : "Últimos 30 dias úteis"}
+          {selectedDay
+            ? new Date(`${selectedDay}T12:00:00`).toLocaleDateString("pt-BR")
+            : periodStart
+              ? "Dias úteis do período"
+              : "Últimos 30 dias úteis"}
         </span>
       </div>
 
@@ -686,9 +694,9 @@ function StatisticsCard({
             <button
               key={item.iso}
               type="button"
-              aria-label={`Mostrar estatísticas até ${item.day} ${item.weekday}`}
+              aria-label={`Mostrar estatísticas de ${item.day} ${item.weekday}`}
               aria-pressed={item.active}
-              onClick={() => setDaySelection(item.iso)}
+              onClick={() => setDaySelection((current) => (current === item.iso ? null : item.iso))}
               className={cn(
                 "grid h-[60px] w-[44px] shrink-0 cursor-pointer place-items-center rounded-md bg-muted/45 text-center transition",
                 item.active && "bg-[#a779c7] text-white",
@@ -754,7 +762,13 @@ function StatisticsCard({
             />
             <Bar
               dataKey="thisWeek"
-              name={periodStart ? "Período selecionado" : "Últimos 30 dias úteis"}
+              name={
+                selectedDay
+                  ? "Dia selecionado"
+                  : periodStart
+                    ? "Período selecionado"
+                    : "Últimos 30 dias úteis"
+              }
               fill="url(#statsPurple)"
               radius={[5, 5, 0, 0]}
               maxBarSize={36}
@@ -762,7 +776,7 @@ function StatisticsCard({
             <Line
               type="monotone"
               dataKey="lastWeek"
-              name="Período anterior"
+              name={selectedDay ? "Dia útil anterior" : "Período anterior"}
               stroke="#89c2b7"
               strokeWidth={2.5}
               dot={{ r: 4, strokeWidth: 3, stroke: "#89c2b7", fill: "#ffffff" }}
@@ -774,10 +788,15 @@ function StatisticsCard({
       <div className="mt-2 flex flex-wrap justify-end gap-8 text-xs font-semibold text-muted-foreground">
         <span className="inline-flex items-center gap-2">
           <span className="h-3 w-3 rounded-sm bg-[#a779c7]" />{" "}
-          {periodStart ? "Período selecionado" : "Últimos 30 dias úteis"}
+          {selectedDay
+            ? "Dia selecionado"
+            : periodStart
+              ? "Período selecionado"
+              : "Últimos 30 dias úteis"}
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full border-2 border-[#89c2b7]" /> Período anterior
+          <span className="h-3 w-3 rounded-full border-2 border-[#89c2b7]" />{" "}
+          {selectedDay ? "Dia útil anterior" : "Período anterior"}
         </span>
       </div>
     </Card>
