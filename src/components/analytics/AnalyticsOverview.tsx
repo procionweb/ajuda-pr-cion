@@ -3,10 +3,7 @@ import {
   Area,
   ComposedChart,
   CartesianGrid,
-  Cell,
   Line,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -18,7 +15,6 @@ import type { SupportTicket } from "@/lib/support-tickets-data";
 import { ticketStatusTone } from "@/lib/ticket-status-tone";
 import { cn } from "@/lib/utils";
 
-const colors = ["#119fee", "#17cfb8", "#ffba55", "#e67ba9", "#889cf5"];
 const number = new Intl.NumberFormat("pt-BR");
 const dayKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 const dailyColors = { novos: "#4aa8ff", andamento: "#33d7dd", resolvidos: "#ffae55" };
@@ -83,8 +79,6 @@ export function AnalyticsOverview({
     const byDay = new Map(days.map((day) => [day.key, day]));
     const heatDays = new Set(days.slice(-20).map((day) => day.key));
     const heat = Array.from({ length: 5 }, () => Array<number>(12).fill(0));
-    const modules = new Map<string, number>();
-    const priorities = new Map<string, number>();
     let finished = 0;
     let active = 0;
     let waiting = 0;
@@ -115,20 +109,11 @@ export function AnalyticsOverview({
       else if (["Em Aberto", "Aguardando cliente", "Agendamento"].includes(ticket.status))
         waiting++;
       else active++;
-      const module = ticket.module.split(" - ").pop()?.trim() || "Não informado";
-      modules.set(module, (modules.get(module) || 0) + 1);
-      priorities.set(ticket.priority, (priorities.get(ticket.priority) || 0) + 1);
     }
-    const ranked = [...modules].sort((a, b) => b[1] - a[1]);
-    const segments = ranked.slice(0, 4).map(([name, value]) => ({ name, value }));
-    const others = ranked.slice(4).reduce((sum, [, total]) => sum + total, 0);
-    if (others) segments.push({ name: "Outros", value: others });
     return {
       days,
       heat,
       heatMax: Math.max(1, ...heat.flat()),
-      segments,
-      priorities,
       finished,
       active,
       waiting,
@@ -152,7 +137,6 @@ export function AnalyticsOverview({
     }, 350);
     return () => window.clearInterval(timer);
   }, [edgeDirection, maxOffset]);
-  const rate = tickets.length ? (data.finished / tickets.length) * 100 : 0;
   const stages = [
     { name: "Recebidos", value: tickets.length },
     { name: "Aguardando", value: data.waiting },
@@ -397,115 +381,6 @@ export function AnalyticsOverview({
         <Link to="/chamados" className="analytics-view-all">
           Ver chamados <ArrowUpRight size={14} />
         </Link>
-      </Panel>
-
-      <Panel
-        title="Taxa de resolução"
-        subtitle="Chamados finalizados no período"
-        className="analytics-resolution"
-      >
-        <div className="analytics-ring-layout">
-          <div className="analytics-ring">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={[
-                    { value: data.finished },
-                    {
-                      value:
-                        Math.max(0, tickets.length - data.finished) || (tickets.length ? 0 : 1),
-                    },
-                  ]}
-                  dataKey="value"
-                  innerRadius="72%"
-                  outerRadius="96%"
-                  startAngle={90}
-                  endAngle={-270}
-                  stroke="none"
-                >
-                  <Cell fill={colors[1]} />
-                  <Cell fill="var(--analytics-grid)" />
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div>
-              <strong>{rate.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</strong>
-              <span>resolvidos</span>
-            </div>
-          </div>
-          <div className="analytics-ring-legend">
-            {["Alta", "Media", "Baixa"].map((priority, index) => (
-              <div key={priority}>
-                <span>
-                  <i style={{ background: colors[index + 1] }} />
-                  {priority === "Media" ? "Média" : priority}
-                </span>
-                <strong>{number.format(data.priorities.get(priority) || 0)}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Panel>
-
-      <Panel
-        title="Distribuição por módulo"
-        subtitle="Áreas mais acionadas"
-        className="analytics-segments"
-      >
-        <div className="analytics-ring-layout">
-          <div className="analytics-ring">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data.segments.length ? data.segments : [{ name: "Sem dados", value: 1 }]}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius="66%"
-                  outerRadius="96%"
-                  stroke="none"
-                >
-                  {(data.segments.length ? data.segments : [{ name: "Sem dados" }]).map(
-                    (segment, index) => (
-                      <Cell
-                        key={segment.name}
-                        fill={data.segments.length ? colors[index] : "var(--analytics-grid)"}
-                      />
-                    ),
-                  )}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--popover)",
-                    borderColor: "var(--border)",
-                    borderRadius: 8,
-                    color: "var(--foreground)",
-                    fontSize: 12,
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div>
-              <strong>{number.format(tickets.length)}</strong>
-              <span>chamados</span>
-            </div>
-          </div>
-          <div className="analytics-ring-legend">
-            {data.segments.map((segment, index) => (
-              <div key={segment.name} title={segment.name}>
-                <span>
-                  <i style={{ background: colors[index] }} />
-                  {segment.name}
-                </span>
-                <strong>
-                  {((segment.value / tickets.length) * 100).toLocaleString("pt-BR", {
-                    maximumFractionDigits: 1,
-                  })}
-                  %
-                </strong>
-              </div>
-            ))}
-          </div>
-        </div>
       </Panel>
 
       <Panel

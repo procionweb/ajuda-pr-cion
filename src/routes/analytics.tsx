@@ -7,6 +7,7 @@ import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TicketsAnalyticsSection } from "@/components/analytics/TicketsAnalytics";
+import { usePortalAuth } from "@/lib/portal-auth";
 import "@/components/analytics/analytics-immersive.css";
 
 const searchSchema = z.object({
@@ -88,6 +89,10 @@ export const Route = createFileRoute("/analytics")({
 });
 
 function AnalyticsPage() {
+  const { session, operator } = usePortalAuth();
+  const metadata = session?.user.user_metadata;
+  const fullName = String(metadata?.full_name || metadata?.name || operator || "").trim();
+  const firstName = fullName.split(/\s+/)[0] || "time";
   const { view, from = "", to = "" } = Route.useSearch();
   const navigate = useNavigate({ from: "/analytics" });
   const activeTab = view === "kanban" ? "kanban" : "chamados";
@@ -150,7 +155,7 @@ function AnalyticsPage() {
                 </span>
                 <div>
                   <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                    Olá, time!
+                    Olá, {firstName}!
                   </h1>
                   <p className="mt-1 max-w-2xl text-xs text-muted-foreground sm:text-sm">
                     Indicadores consolidados de atendimento e produtividade do time.
