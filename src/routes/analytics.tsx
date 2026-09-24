@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { BarChart3 } from "lucide-react";
+import { Activity, BarChart3 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
 import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,8 @@ function parseDateInput(value: string) {
     date.getFullYear() !== Number(year) ||
     date.getMonth() !== Number(month) - 1 ||
     date.getDate() !== Number(day)
-  ) return null;
+  )
+    return null;
   return `${year}-${month}-${day}`;
 }
 
@@ -89,74 +90,134 @@ function AnalyticsPage() {
   const { view, from = "", to = "" } = Route.useSearch();
   const navigate = useNavigate({ from: "/analytics" });
   const activeTab = view === "kanban" ? "kanban" : "chamados";
+  const pageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const page = pageRef.current;
+    if (!page || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let frame = 0;
+    const updateScroll = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const offset = Math.max(-70, Math.min(70, page.getBoundingClientRect().top * -0.08));
+        page.style.setProperty("--analytics-scroll", `${offset}px`);
+      });
+    };
+
+    updateScroll();
+    window.addEventListener("scroll", updateScroll, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", updateScroll);
+    };
+  }, []);
+
+  const moveBackdrop = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch") return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
+    const y = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
+    event.currentTarget.style.setProperty("--analytics-pointer-x", `${x * 16}px`);
+    event.currentTarget.style.setProperty("--analytics-pointer-y", `${y * 10}px`);
+  };
 
   return (
     <AppShell>
-      <div className="mb-5">
-        <Breadcrumbs items={[{ label: "Analytics" }]} />
-        <h1 className="text-lg font-medium tracking-tight text-foreground">Analytics</h1>
-        <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
-          Indicadores consolidados de atendimento e produtividade do time.
-        </p>
-      </div>
-
-      <Tabs
-        value={activeTab}
-        onValueChange={(v) =>
-          navigate({ search: { view: v === "kanban" ? "kanban" : "chamados", from, to } })
-        }
-        className="w-full"
+      <div
+        ref={pageRef}
+        className="analytics-cockpit"
+        onPointerMove={moveBackdrop}
+        onPointerLeave={(event) => {
+          event.currentTarget.style.setProperty("--analytics-pointer-x", "0px");
+          event.currentTarget.style.setProperty("--analytics-pointer-y", "0px");
+        }}
       >
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList>
-            <TabsTrigger value="chamados" className="cursor-pointer">
-              Chamados
-            </TabsTrigger>
-            <TabsTrigger value="kanban" className="cursor-pointer">
-              Kanban
-            </TabsTrigger>
-          </TabsList>
-          {activeTab === "chamados" && (
-            <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto sm:flex-nowrap">
-              <TypedDateInput
-                label="Data inicial"
-                value={from}
-                onChange={(nextFrom) =>
-                  navigate({ search: { view: activeTab, from: nextFrom, to } })
-                }
-              />
-              <TypedDateInput
-                label="Data final"
-                value={to}
-                onChange={(nextTo) =>
-                  navigate({ search: { view: activeTab, from, to: nextTo } })
-                }
-              />
-              {(from || to) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-9 cursor-pointer px-3"
-                  onClick={() => navigate({ search: { view: activeTab, from: "", to: "" } })}
-                >
-                  Limpar
-                </Button>
-              )}
-            </div>
-          )}
+        <div className="analytics-scene" aria-hidden="true">
+          <span className="analytics-scene__plane analytics-scene__plane--one" />
+          <span className="analytics-scene__plane analytics-scene__plane--two" />
+          <span className="analytics-scene__grid" />
         </div>
 
-        <TabsContent value="chamados" className="mt-0">
-          <TicketsAnalyticsSection
-            from={from}
-            to={to}
-          />
-        </TabsContent>
+        <div className="analytics-cockpit__content">
+          <div className="analytics-heading">
+            <div>
+              <Breadcrumbs items={[{ label: "Analytics" }]} />
+              <div className="flex items-center gap-3">
+                <span className="analytics-heading__icon" aria-hidden="true">
+                  <Activity className="h-5 w-5" />
+                </span>
+                <div>
+                  <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                    Visão geral do suporte
+                  </h1>
+                  <p className="mt-1 max-w-2xl text-xs text-muted-foreground sm:text-sm">
+                    Indicadores consolidados de atendimento e produtividade do time.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <span className="analytics-live-indicator">
+              <span aria-hidden="true" /> Dados atualizados
+            </span>
+          </div>
 
-        <TabsContent value="kanban" className="mt-0">
-          <KanbanAnalyticsEmpty />
-        </TabsContent>
-      </Tabs>
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) =>
+              navigate({ search: { view: v === "kanban" ? "kanban" : "chamados", from, to } })
+            }
+            className="w-full"
+          >
+            <div className="analytics-toolbar">
+              <TabsList className="analytics-tabs">
+                <TabsTrigger value="chamados" className="cursor-pointer">
+                  Chamados
+                </TabsTrigger>
+                <TabsTrigger value="kanban" className="cursor-pointer">
+                  Kanban
+                </TabsTrigger>
+              </TabsList>
+              {activeTab === "chamados" && (
+                <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto sm:flex-nowrap">
+                  <TypedDateInput
+                    label="Data inicial"
+                    value={from}
+                    onChange={(nextFrom) =>
+                      navigate({ search: { view: activeTab, from: nextFrom, to } })
+                    }
+                  />
+                  <TypedDateInput
+                    label="Data final"
+                    value={to}
+                    onChange={(nextTo) =>
+                      navigate({ search: { view: activeTab, from, to: nextTo } })
+                    }
+                  />
+                  {(from || to) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-9 cursor-pointer px-3"
+                      onClick={() => navigate({ search: { view: activeTab, from: "", to: "" } })}
+                    >
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <TabsContent value="chamados" className="mt-0">
+              <TicketsAnalyticsSection from={from} to={to} />
+            </TabsContent>
+
+            <TabsContent value="kanban" className="mt-0">
+              <KanbanAnalyticsEmpty />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </AppShell>
   );
 }
