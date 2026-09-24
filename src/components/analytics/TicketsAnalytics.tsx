@@ -1665,16 +1665,26 @@ function BarRow({
 
 export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string; to?: string }) {
   const allTickets = useTickets();
+  const currentMonthStart = new Date();
+  currentMonthStart.setDate(1);
+  currentMonthStart.setHours(0, 0, 0, 0);
+  const defaultFrom = dateIso(currentMonthStart);
+  const defaultTo = dateIso(new Date());
   const supportTickets = useMemo(() => {
-    if (!from && !to) return allTickets;
-    let start = from ? new Date(`${from}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
-    let end = to ? new Date(`${to}T23:59:59.999`).getTime() : Number.POSITIVE_INFINITY;
+    const effectiveFrom = from || (!to ? defaultFrom : "");
+    const effectiveTo = to || (!from ? defaultTo : "");
+    let start = effectiveFrom
+      ? new Date(`${effectiveFrom}T00:00:00`).getTime()
+      : Number.NEGATIVE_INFINITY;
+    let end = effectiveTo
+      ? new Date(`${effectiveTo}T23:59:59.999`).getTime()
+      : Number.POSITIVE_INFINITY;
     if (from && to && start > end) [start, end] = [end, start];
     return allTickets.filter((ticket) => {
       const opened = new Date(ticket.openedAt).getTime();
       return Number.isFinite(opened) && opened >= start && opened <= end;
     });
-  }, [allTickets, from, to]);
+  }, [allTickets, from, to, defaultFrom, defaultTo]);
   const hasDateFilter = Boolean(from || to);
 
   const statusDistribution = ticketStatuses
@@ -1705,9 +1715,15 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
 
   return (
     <section className="space-y-6">
-      <TicketsIndicatorCards tickets={supportTickets} filtered={hasDateFilter} />
+      <TicketsIndicatorCards
+        tickets={hasDateFilter ? supportTickets : allTickets}
+        filtered={hasDateFilter}
+      />
 
-      <AnalyticsOverview tickets={supportTickets} rangeEnd={to || from} />
+      <AnalyticsOverview
+        tickets={supportTickets}
+        rangeEnd={to || (!from ? defaultTo : undefined)}
+      />
 
       <div className="analytics-detail-heading">
         <h2>Análise detalhada</h2>
@@ -1719,7 +1735,11 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
         className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[0.92fr_1.35fr]"
       >
         <TopAgentsCard tickets={supportTickets} />
-        <StatisticsCard tickets={allTickets} rangeStart={from} rangeEnd={to} />
+        <StatisticsCard
+          tickets={allTickets}
+          rangeStart={from || (!to ? defaultFrom : "")}
+          rangeEnd={to || (!from ? defaultTo : "")}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">

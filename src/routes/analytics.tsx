@@ -183,6 +183,9 @@ function AnalyticsPage() {
               </TabsList>
               {activeTab === "chamados" && (
                 <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto sm:flex-nowrap">
+                  {!from && !to && (
+                    <span className="self-end pb-2 text-xs text-muted-foreground">Mês atual</span>
+                  )}
                   <TypedDateInput
                     label="Data inicial"
                     value={from}
