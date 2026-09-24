@@ -1,4 +1,4 @@
-import { useId, useMemo, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
   Area,
   ComposedChart,
@@ -51,6 +51,8 @@ export function AnalyticsOverview({
   rangeEnd?: string;
 }) {
   const funnelId = useId();
+  const [dayOffset, setDayOffset] = useState(0);
+  const [edgeDirection, setEdgeDirection] = useState(0);
   const data = useMemo(() => {
     const latest = tickets.reduce(
       (max, ticket) => Math.max(max, Date.parse(ticket.openedAt) || 0),
@@ -60,7 +62,11 @@ export function AnalyticsOverview({
     const days = [];
     const cursor = new Date(end);
     cursor.setHours(0, 0, 0, 0);
-    while (days.length < 20) {
+    const earliest = tickets.reduce(
+      (min, ticket) => Math.min(min, Date.parse(ticket.openedAt) || min),
+      end.getTime(),
+    );
+    while (days.length < 20 || cursor.getTime() >= earliest) {
       if (cursor.getDay() !== 0 && cursor.getDay() !== 6)
         days.unshift({
           key: dayKey(cursor),
@@ -73,6 +79,7 @@ export function AnalyticsOverview({
       cursor.setDate(cursor.getDate() - 1);
     }
     const byDay = new Map(days.map((day) => [day.key, day]));
+    const heatDays = new Set(days.slice(-20).map((day) => day.key));
     const heat = Array.from({ length: 5 }, () => Array<number>(12).fill(0));
     const modules = new Map<string, number>();
     const priorities = new Map<string, number>();
@@ -88,7 +95,13 @@ export function AnalyticsOverview({
         if (["Em andamento", "Ocupado", "Com especialista"].includes(ticket.status))
           day.andamento++;
         const hour = opened.getHours() - 7;
-        if (hour >= 0 && hour < 12 && opened.getDay() >= 1 && opened.getDay() <= 5)
+        if (
+          heatDays.has(day.key) &&
+          hour >= 0 &&
+          hour < 12 &&
+          opened.getDay() >= 1 &&
+          opened.getDay() <= 5
+        )
           heat[opened.getDay() - 1][hour]++;
       }
       if (ticket.closedAt && ticket.status === "Finalizado") {
@@ -123,6 +136,20 @@ export function AnalyticsOverview({
         .slice(0, 5),
     };
   }, [tickets, rangeEnd]);
+  const maxOffset = Math.max(0, data.days.length - 20);
+  const offset = Math.min(dayOffset, maxOffset);
+  const visibleDays = data.days.slice(data.days.length - 20 - offset, data.days.length - offset);
+  useEffect(() => {
+    setDayOffset(0);
+    setEdgeDirection(0);
+  }, [tickets, rangeEnd]);
+  useEffect(() => {
+    if (!edgeDirection) return;
+    const timer = window.setInterval(() => {
+      setDayOffset((current) => Math.max(0, Math.min(maxOffset, current + edgeDirection)));
+    }, 350);
+    return () => window.clearInterval(timer);
+  }, [edgeDirection, maxOffset]);
   const rate = tickets.length ? (data.finished / tickets.length) * 100 : 0;
   const stages = [
     { name: "Recebidos", value: tickets.length },
@@ -214,7 +241,7 @@ export function AnalyticsOverview({
 
       <Panel
         title="Atendimentos por dia"
-        subtitle="Volume de atendimentos nos últimos 20 dias úteis"
+        subtitle="Volume e tendência de atendimentos no período"
         className="analytics-daily"
       >
         <div className="analytics-chart-legend">
@@ -222,20 +249,36 @@ export function AnalyticsOverview({
           <span style={{ color: dailyColors.andamento }}>● Em andamento</span>
           <span style={{ color: dailyColors.resolvidos }}>● Resolvidos</span>
         </div>
-        <div className="analytics-daily-chart">
+        <div
+          className="analytics-daily-chart"
+          tabIndex={0}
+          role="region"
+          aria-label="Atendimentos por dia. Use as setas para navegar pelos dias."
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            setDayOffset((current) =>
+              Math.max(0, Math.min(maxOffset, current + (event.key === "ArrowLeft" ? 1 : -1))),
+            );
+          }}
+          onPointerMove={(event) => {
+            if (event.pointerType === "touch") return;
+            const bounds = event.currentTarget.getBoundingClientRect();
+            const x = event.clientX - bounds.left;
+            setEdgeDirection(x < 36 ? 1 : x > bounds.width - 36 ? -1 : 0);
+          }}
+          onPointerLeave={() => setEdgeDirection(0)}
+          onBlur={() => setEdgeDirection(0)}
+        >
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data.days} margin={{ top: 16, right: 6, left: -22, bottom: 0 }}>
+            <ComposedChart data={visibleDays} margin={{ top: 12, right: 8, left: -22, bottom: 0 }}>
               <defs>
                 <linearGradient id="overview-new" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={dailyColors.novos} stopOpacity={0.46} />
-                  <stop offset="100%" stopColor={dailyColors.novos} stopOpacity={0.04} />
+                  <stop offset="0%" stopColor={dailyColors.novos} stopOpacity={0.65} />
+                  <stop offset="100%" stopColor={dailyColors.novos} stopOpacity={0.08} />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                stroke="var(--analytics-grid)"
-                vertical={false}
-                strokeDasharray="2 2"
-              />
+              <CartesianGrid stroke="var(--analytics-grid)" vertical={true} />
               <XAxis
                 dataKey="label"
                 tick={{ fill: "var(--muted-foreground)", fontSize: 9 }}
@@ -276,28 +319,31 @@ export function AnalyticsOverview({
               <Area
                 name="Novos"
                 dataKey="novos"
-                type="monotone"
+                type="linear"
                 stroke={dailyColors.novos}
                 fill="url(#overview-new)"
-                strokeWidth={2.2}
+                strokeWidth={1.5}
+                isAnimationActive={false}
                 dot={{ r: 2, fill: dailyColors.novos, strokeWidth: 0 }}
                 activeDot={{ r: 5, stroke: "var(--analytics-surface)", strokeWidth: 2 }}
               />
               <Line
                 name="Em andamento"
                 dataKey="andamento"
-                type="monotone"
+                type="linear"
                 stroke={dailyColors.andamento}
-                strokeWidth={2}
+                strokeWidth={1.5}
+                isAnimationActive={false}
                 dot={{ r: 2, fill: dailyColors.andamento, strokeWidth: 0 }}
                 activeDot={{ r: 5, stroke: "var(--analytics-surface)", strokeWidth: 2 }}
               />
               <Line
                 name="Resolvidos"
                 dataKey="resolvidos"
-                type="monotone"
+                type="linear"
                 stroke={dailyColors.resolvidos}
-                strokeWidth={2}
+                strokeWidth={1.5}
+                isAnimationActive={false}
                 dot={{ r: 2, fill: dailyColors.resolvidos, strokeWidth: 0 }}
                 activeDot={{ r: 5, stroke: "var(--analytics-surface)", strokeWidth: 2 }}
               />

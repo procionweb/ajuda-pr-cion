@@ -17,6 +17,7 @@
   background: #152b43;
 }
 .analytics-cockpit .analytics-scene {
+  display: none;
   position: absolute;
   inset: -80px;
   height: auto;
@@ -168,6 +169,19 @@
 .analytics-daily {
   grid-column: 2;
   grid-row: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  column-gap: 8px;
+}
+.analytics-daily > header {
+  min-width: 0;
+}
+.analytics-daily > header h3 {
+  font-size: 12px;
+}
+.analytics-daily > header p {
+  font-size: 9px;
 }
 .analytics-recent {
   grid-column: 3;
@@ -186,8 +200,11 @@
   grid-row: 2;
 }
 .analytics-daily-chart {
-  height: 210px;
+  grid-column: 1 / -1;
+  height: 220px;
   width: 100%;
+  margin-top: 8px;
+  outline-offset: 3px;
 }
 .analytics-daily .recharts-surface {
   overflow: visible;
@@ -198,10 +215,19 @@
 .analytics-chart-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
-  font-size: 10px;
+  gap: 5px 8px;
+  font-size: 8px;
   justify-content: flex-end;
   margin: 4px 0 0;
+  align-self: start;
+}
+@media (min-width: 1251px) and (max-width: 1550px), (max-width: 540px) {
+  .analytics-daily {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .analytics-chart-legend {
+    margin-top: 8px;
+  }
 }
 .analytics-daily-tooltip {
   display: grid;
