@@ -572,25 +572,55 @@ function businessDaysEndingAt(date: Date, count: number) {
   return days;
 }
 
+function businessDaysInRange(start: Date, end: Date) {
+  const days: Date[] = [];
+  for (let cursor = startOfDay(start); cursor <= end; cursor = addDays(cursor, 1)) {
+    if (isBusinessDay(cursor)) days.push(cursor);
+  }
+  return days;
+}
+
 function dateIso(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; rangeEnd?: string }) {
+function StatisticsCard({
+  tickets,
+  rangeStart,
+  rangeEnd,
+}: {
+  tickets: SupportTicket[];
+  rangeStart?: string;
+  rangeEnd?: string;
+}) {
   const daysScrollRef = useRef<HTMLDivElement>(null);
   const scrollTimerRef = useRef<number | null>(null);
-  const [daySelection, setDaySelection] = useState<{ rangeEnd?: string; iso: string } | null>(null);
+  const [daySelection, setDaySelection] = useState<string | null>(null);
   const parsedRangeEnd = rangeEnd ? new Date(`${rangeEnd}T12:00:00`) : new Date();
   const today = startOfDay(Number.isFinite(parsedRangeEnd.getTime()) ? parsedRangeEnd : new Date());
   const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const parsedRangeStart = rangeStart ? new Date(`${rangeStart}T12:00:00`) : null;
+  const validRangeStart =
+    parsedRangeStart && Number.isFinite(parsedRangeStart.getTime())
+      ? startOfDay(parsedRangeStart)
+      : null;
+  const periodStart = validRangeStart && validRangeStart > today ? today : validRangeStart;
+  const periodEnd = validRangeStart && validRangeStart > today ? validRangeStart : today;
+  const currentBusinessDays = periodStart
+    ? businessDaysInRange(periodStart, periodEnd)
+    : businessDaysEndingAt(today, 30);
+  const previousBusinessDays = currentBusinessDays.length
+    ? businessDaysEndingAt(addDays(currentBusinessDays[0], -1), currentBusinessDays.length)
+    : [];
   const selectedDay =
-    daySelection && daySelection.rangeEnd === rangeEnd ? daySelection.iso : todayIso;
-  const selectedDate = startOfDay(new Date(`${selectedDay}T12:00:00`));
-  const currentBusinessDays = businessDaysEndingAt(selectedDate, 30);
-  const previousBusinessDays = businessDaysEndingAt(addDays(currentBusinessDays[0], -1), 30);
+    daySelection && currentBusinessDays.some((day) => dateIso(day) === daySelection)
+      ? daySelection
+      : currentBusinessDays.at(-1)
+        ? dateIso(currentBusinessDays.at(-1)!)
+        : todayIso;
   const currentDays = new Set(currentBusinessDays.map(dateIso));
   const previousDays = new Set(previousBusinessDays.map(dateIso));
-  const statisticsDays = businessDaysEndingAt(today, 30).map((date) => {
+  const statisticsDays = currentBusinessDays.map((date) => {
     return {
       iso: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
       day: String(date.getDate()).padStart(2, "0"),
@@ -633,7 +663,7 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
         <h3 className="text-base font-bold tracking-tight text-foreground">Estatísticas</h3>
         <span className="inline-flex h-9 items-center gap-2 rounded-md bg-muted/60 px-4 text-sm font-semibold text-foreground">
           <CalendarClock className="h-4 w-4" />
-          {rangeEnd ? "Últimos 30 dias úteis do período" : "Últimos 30 dias úteis"}
+          {periodStart ? "Dias úteis do período" : "Últimos 30 dias úteis"}
         </span>
       </div>
 
@@ -658,7 +688,7 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
               type="button"
               aria-label={`Mostrar estatísticas até ${item.day} ${item.weekday}`}
               aria-pressed={item.active}
-              onClick={() => setDaySelection({ rangeEnd, iso: item.iso })}
+              onClick={() => setDaySelection(item.iso)}
               className={cn(
                 "grid h-[60px] w-[44px] shrink-0 cursor-pointer place-items-center rounded-md bg-muted/45 text-center transition",
                 item.active && "bg-[#a779c7] text-white",
@@ -714,13 +744,17 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
               contentStyle={{
                 border: "0",
                 borderRadius: 12,
-                boxShadow: "0 14px 30px rgba(25,29,51,0.12)",
+                backgroundColor: "#182f4d",
+                color: "#fff",
+                boxShadow: "0 14px 30px rgba(0,0,0,0.24)",
                 fontSize: 12,
               }}
+              labelStyle={{ color: "#fff" }}
+              itemStyle={{ color: "#fff" }}
             />
             <Bar
               dataKey="thisWeek"
-              name="Esta semana"
+              name={periodStart ? "Período selecionado" : "Últimos 30 dias úteis"}
               fill="url(#statsPurple)"
               radius={[5, 5, 0, 0]}
               maxBarSize={36}
@@ -728,7 +762,7 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
             <Line
               type="monotone"
               dataKey="lastWeek"
-              name="Semana passada"
+              name="Período anterior"
               stroke="#89c2b7"
               strokeWidth={2.5}
               dot={{ r: 4, strokeWidth: 3, stroke: "#89c2b7", fill: "#ffffff" }}
@@ -739,11 +773,11 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
 
       <div className="mt-2 flex flex-wrap justify-end gap-8 text-xs font-semibold text-muted-foreground">
         <span className="inline-flex items-center gap-2">
-          <span className="h-3 w-3 rounded-sm bg-[#a779c7]" /> Últimos 30 dias úteis
+          <span className="h-3 w-3 rounded-sm bg-[#a779c7]" />{" "}
+          {periodStart ? "Período selecionado" : "Últimos 30 dias úteis"}
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full border-2 border-[#89c2b7]" /> 30 dias úteis
-          anteriores
+          <span className="h-3 w-3 rounded-full border-2 border-[#89c2b7]" /> Período anterior
         </span>
       </div>
     </Card>
@@ -1666,7 +1700,7 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
         className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[0.92fr_1.35fr]"
       >
         <TopAgentsCard tickets={supportTickets} />
-        <StatisticsCard tickets={supportTickets} rangeEnd={to || from} />
+        <StatisticsCard tickets={allTickets} rangeStart={from} rangeEnd={to} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
