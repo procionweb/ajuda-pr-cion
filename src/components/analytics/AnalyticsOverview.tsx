@@ -12,12 +12,38 @@ import {
 import { ArrowUpRight, MessageCircle, Phone, Mail, Globe } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { SupportTicket } from "@/lib/support-tickets-data";
+import { useClients } from "@/lib/clients-store";
 import { ticketStatusTone } from "@/lib/ticket-status-tone";
 import { cn } from "@/lib/utils";
 
 const number = new Intl.NumberFormat("pt-BR");
 const dayKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 const dailyColors = { novos: "#4aa8ff", andamento: "#33d7dd", resolvidos: "#ffae55" };
+
+function companyLogoUrl(payload: Record<string, unknown> | undefined) {
+  const value = payload?.logo_url ?? payload?.logoUrl ?? payload?.logo;
+  return typeof value === "string" && /^https:\/\//i.test(value) ? value : null;
+}
+
+function CompanyAvatar({ name, logoUrl }: { name: string; logoUrl: string | null }) {
+  const [failed, setFailed] = useState(false);
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toLocaleUpperCase("pt-BR");
+  return (
+    <span className="analytics-avatar" aria-hidden="true">
+      {logoUrl && !failed ? (
+        <img src={logoUrl} alt="" loading="lazy" onError={() => setFailed(true)} />
+      ) : (
+        initials || "?"
+      )}
+    </span>
+  );
+}
 
 function Panel({
   title,
@@ -49,6 +75,17 @@ export function AnalyticsOverview({
   rangeEnd?: string;
 }) {
   const funnelId = useId();
+  const { clients } = useClients({ onlyActive: false });
+  const companyLogos = useMemo(
+    () =>
+      new Map(
+        clients.map((client) => [
+          client.acronym.toLocaleUpperCase("pt-BR"),
+          companyLogoUrl(client.sourcePayload),
+        ]),
+      ),
+    [clients],
+  );
   const [dayOffset, setDayOffset] = useState(0);
   const [edgeDirection, setEdgeDirection] = useState(0);
   const data = useMemo(() => {
@@ -363,12 +400,15 @@ export function AnalyticsOverview({
               className="analytics-recent-row"
               title={`${ticket.clientName || ticket.clientCode}: ${ticket.subject}`}
             >
-              <span className="analytics-avatar">
-                {(ticket.owner || ticket.attendant || "?").slice(0, 2)}
-              </span>
+              <CompanyAvatar
+                name={ticket.clientName || ticket.clientCode || "Empresa"}
+                logoUrl={companyLogos.get(ticket.clientCode.toLocaleUpperCase("pt-BR")) ?? null}
+              />
               <Icon size={14} />
               <div>
-                <strong>{ticket.clientName || ticket.clientCode || "Empresa não informada"}</strong>
+                <span className="analytics-company-name">
+                  {ticket.clientName || ticket.clientCode || "Empresa não informada"}
+                </span>
                 <p>{ticket.subject}</p>
                 <time>{new Date(ticket.updatedAt).toLocaleDateString("pt-BR")}</time>
               </div>

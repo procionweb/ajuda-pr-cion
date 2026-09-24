@@ -361,12 +361,13 @@
   min-width: 0;
   flex: 1;
 }
-.analytics-recent-row strong {
+.analytics-company-name {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
+  font-weight: 400;
 }
 .analytics-recent-row p {
   overflow: hidden;
@@ -391,6 +392,13 @@
   color: #176381;
   font-size: 11px;
   font-weight: 700;
+}
+.analytics-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: contain;
+  background: #fff;
 }
 .analytics-status {
   max-width: 104px;
