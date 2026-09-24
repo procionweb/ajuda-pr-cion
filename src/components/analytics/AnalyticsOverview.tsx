@@ -1,0 +1,432 @@
+import { useMemo, type ReactNode } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { ArrowUpRight, MessageCircle, Phone, Mail, Globe } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import type { SupportTicket } from "@/lib/support-tickets-data";
+
+const colors = ["#119fee", "#17cfb8", "#ffba55", "#e67ba9", "#889cf5"];
+const number = new Intl.NumberFormat("pt-BR");
+const dayKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+function Panel({
+  title,
+  subtitle,
+  className = "",
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <article className={`analytics-glass ${className}`}>
+      <header>
+        <h3>{title}</h3>
+        <p>{subtitle}</p>
+      </header>
+      {children}
+    </article>
+  );
+}
+
+export function AnalyticsOverview({
+  tickets,
+  rangeEnd,
+}: {
+  tickets: SupportTicket[];
+  rangeEnd?: string;
+}) {
+  const data = useMemo(() => {
+    const latest = tickets.reduce(
+      (max, ticket) => Math.max(max, Date.parse(ticket.openedAt) || 0),
+      0,
+    );
+    const end = rangeEnd ? new Date(`${rangeEnd}T12:00:00`) : new Date(latest || Date.now());
+    const days = [];
+    const cursor = new Date(end);
+    cursor.setHours(0, 0, 0, 0);
+    while (days.length < 20) {
+      if (cursor.getDay() !== 0 && cursor.getDay() !== 6)
+        days.unshift({
+          key: dayKey(cursor),
+          label: cursor.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+          novos: 0,
+          resolvidos: 0,
+        });
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    const byDay = new Map(days.map((day) => [day.key, day]));
+    const heat = Array.from({ length: 5 }, () => Array<number>(12).fill(0));
+    const modules = new Map<string, number>();
+    const priorities = new Map<string, number>();
+    let finished = 0;
+    let active = 0;
+    let waiting = 0;
+    let canceled = 0;
+    for (const ticket of tickets) {
+      const opened = new Date(ticket.openedAt);
+      const day = byDay.get(dayKey(opened));
+      if (day) {
+        day.novos++;
+        const hour = opened.getHours() - 7;
+        if (hour >= 0 && hour < 12 && opened.getDay() >= 1 && opened.getDay() <= 5)
+          heat[opened.getDay() - 1][hour]++;
+      }
+      if (ticket.closedAt && ticket.status === "Finalizado") {
+        const closedDay = byDay.get(dayKey(new Date(ticket.closedAt)));
+        if (closedDay) closedDay.resolvidos++;
+      }
+      if (ticket.status === "Finalizado") finished++;
+      else if (ticket.status === "Cancelado") canceled++;
+      else if (["Em Aberto", "Aguardando cliente", "Agendamento"].includes(ticket.status))
+        waiting++;
+      else active++;
+      const module = ticket.module.split(" - ").pop()?.trim() || "Não informado";
+      modules.set(module, (modules.get(module) || 0) + 1);
+      priorities.set(ticket.priority, (priorities.get(ticket.priority) || 0) + 1);
+    }
+    const ranked = [...modules].sort((a, b) => b[1] - a[1]);
+    const segments = ranked.slice(0, 4).map(([name, value]) => ({ name, value }));
+    const others = ranked.slice(4).reduce((sum, [, total]) => sum + total, 0);
+    if (others) segments.push({ name: "Outros", value: others });
+    return {
+      days,
+      heat,
+      heatMax: Math.max(1, ...heat.flat()),
+      segments,
+      priorities,
+      finished,
+      active,
+      waiting,
+      canceled,
+      recent: [...tickets]
+        .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+        .slice(0, 5),
+    };
+  }, [tickets, rangeEnd]);
+  const rate = tickets.length ? (data.finished / tickets.length) * 100 : 0;
+  const stages = [
+    { name: "Recebidos", value: tickets.length },
+    { name: "Aguardando", value: data.waiting },
+    { name: "Em atendimento", value: data.active },
+    { name: "Finalizados", value: data.finished },
+  ];
+
+  return (
+    <div className="analytics-overview">
+      <Panel
+        title="Panorama dos chamados"
+        subtitle="Da abertura à conclusão"
+        className="analytics-flow"
+      >
+        <div className="analytics-funnel">
+          {stages.map((stage, index) => (
+            <div className="analytics-funnel-row" key={stage.name}>
+              <div
+                className="analytics-funnel-shape"
+                style={{ width: `${100 - index * 18}%`, color: colors[index < 2 ? index : 2] }}
+              >
+                <i />
+              </div>
+              <div>
+                <span>{stage.name}</span>
+                <strong>{number.format(stage.value)}</strong>
+              </div>
+              <small>
+                {tickets.length
+                  ? ((stage.value / tickets.length) * 100).toLocaleString("pt-BR", {
+                      maximumFractionDigits: 1,
+                    })
+                  : 0}
+                %
+              </small>
+            </div>
+          ))}
+        </div>
+        <p className="analytics-footnote">{number.format(data.canceled)} cancelados</p>
+      </Panel>
+
+      <Panel
+        title="Atendimentos por dia"
+        subtitle="Últimos 20 dias úteis do período"
+        className="analytics-daily"
+      >
+        <div className="analytics-chart-legend">
+          <span style={{ color: colors[0] }}>● Novos</span>
+          <span style={{ color: colors[1] }}>● Resolvidos</span>
+        </div>
+        <div className="analytics-daily-chart">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data.days} margin={{ top: 10, right: 8, left: -26, bottom: 0 }}>
+              <defs>
+                <linearGradient id="overview-new" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={colors[0]} stopOpacity={0.5} />
+                  <stop offset="100%" stopColor={colors[0]} stopOpacity={0.01} />
+                </linearGradient>
+                <linearGradient id="overview-done" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={colors[1]} stopOpacity={0.3} />
+                  <stop offset="100%" stopColor={colors[1]} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="var(--analytics-grid)" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                minTickGap={20}
+              />
+              <YAxis
+                tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--popover)",
+                  color: "var(--foreground)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+              />
+              <Area
+                name="Novos"
+                dataKey="novos"
+                type="monotone"
+                stroke={colors[0]}
+                fill="url(#overview-new)"
+                strokeWidth={2}
+                activeDot={{ r: 5 }}
+              />
+              <Area
+                name="Resolvidos"
+                dataKey="resolvidos"
+                type="monotone"
+                stroke={colors[1]}
+                fill="url(#overview-done)"
+                strokeWidth={2}
+                activeDot={{ r: 5 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Panel>
+
+      <Panel
+        title="Interações recentes"
+        subtitle="Últimas atualizações dos chamados"
+        className="analytics-recent"
+      >
+        {data.recent.length === 0 && (
+          <p className="analytics-empty">Nenhum chamado neste período.</p>
+        )}
+        {data.recent.map((ticket) => {
+          const Icon =
+            ticket.source === "Telefone"
+              ? Phone
+              : ticket.source === "Email"
+                ? Mail
+                : ticket.source === "WhatsApp"
+                  ? MessageCircle
+                  : Globe;
+          return (
+            <Link
+              key={ticket.id}
+              to="/chamados"
+              search={{ ticket: ticket.id }}
+              className="analytics-recent-row"
+              title={`${ticket.clientName || ticket.clientCode}: ${ticket.subject}`}
+            >
+              <span className="analytics-avatar">
+                {(ticket.owner || ticket.attendant || "?").slice(0, 2)}
+              </span>
+              <Icon size={14} />
+              <div>
+                <strong>{ticket.clientName || ticket.clientCode || "Empresa não informada"}</strong>
+                <p>{ticket.subject}</p>
+                <time>{new Date(ticket.updatedAt).toLocaleDateString("pt-BR")}</time>
+              </div>
+              <span
+                className={`analytics-status ${ticket.status === "Finalizado" ? "is-finished" : ""}`}
+              >
+                {ticket.status}
+              </span>
+            </Link>
+          );
+        })}
+        <Link to="/chamados" className="analytics-view-all">
+          Ver chamados <ArrowUpRight size={14} />
+        </Link>
+      </Panel>
+
+      <Panel
+        title="Taxa de resolução"
+        subtitle="Chamados finalizados no período"
+        className="analytics-resolution"
+      >
+        <div className="analytics-ring-layout">
+          <div className="analytics-ring">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={[
+                    { value: data.finished },
+                    {
+                      value:
+                        Math.max(0, tickets.length - data.finished) || (tickets.length ? 0 : 1),
+                    },
+                  ]}
+                  dataKey="value"
+                  innerRadius="72%"
+                  outerRadius="96%"
+                  startAngle={90}
+                  endAngle={-270}
+                  stroke="none"
+                >
+                  <Cell fill={colors[1]} />
+                  <Cell fill="var(--analytics-grid)" />
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div>
+              <strong>{rate.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%</strong>
+              <span>resolvidos</span>
+            </div>
+          </div>
+          <div className="analytics-ring-legend">
+            {["Alta", "Media", "Baixa"].map((priority, index) => (
+              <div key={priority}>
+                <span>
+                  <i style={{ background: colors[index + 1] }} />
+                  {priority === "Media" ? "Média" : priority}
+                </span>
+                <strong>{number.format(data.priorities.get(priority) || 0)}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Panel>
+
+      <Panel
+        title="Distribuição por módulo"
+        subtitle="Áreas mais acionadas"
+        className="analytics-segments"
+      >
+        <div className="analytics-ring-layout">
+          <div className="analytics-ring">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data.segments.length ? data.segments : [{ name: "Sem dados", value: 1 }]}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius="66%"
+                  outerRadius="96%"
+                  stroke="none"
+                >
+                  {(data.segments.length ? data.segments : [{ name: "Sem dados" }]).map(
+                    (segment, index) => (
+                      <Cell
+                        key={segment.name}
+                        fill={data.segments.length ? colors[index] : "var(--analytics-grid)"}
+                      />
+                    ),
+                  )}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--popover)",
+                    borderColor: "var(--border)",
+                    borderRadius: 8,
+                    color: "var(--foreground)",
+                    fontSize: 12,
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div>
+              <strong>{number.format(tickets.length)}</strong>
+              <span>chamados</span>
+            </div>
+          </div>
+          <div className="analytics-ring-legend">
+            {data.segments.map((segment, index) => (
+              <div key={segment.name} title={segment.name}>
+                <span>
+                  <i style={{ background: colors[index] }} />
+                  {segment.name}
+                </span>
+                <strong>
+                  {((segment.value / tickets.length) * 100).toLocaleString("pt-BR", {
+                    maximumFractionDigits: 1,
+                  })}
+                  %
+                </strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Panel>
+
+      <Panel
+        title="Mapa de atividade"
+        subtitle="Aberturas por dia e horário · 20 dias úteis"
+        className="analytics-heatmap"
+      >
+        <div className="analytics-heat-grid">
+          {data.heat.map((row, index) => (
+            <div key={index}>
+              <span>{["Seg", "Ter", "Qua", "Qui", "Sex"][index]}</span>
+              {row.map((value, hour) => (
+                <span
+                  key={hour}
+                  tabIndex={0}
+                  className="analytics-heat-cell"
+                  style={{
+                    background: value
+                      ? `color-mix(in srgb, #11c5ed ${20 + (value / data.heatMax) * 80}%, var(--analytics-heat-base))`
+                      : "var(--analytics-grid)",
+                  }}
+                  title={`${["Segunda", "Terça", "Quarta", "Quinta", "Sexta"][index]}, ${hour + 7}h: ${value} chamados`}
+                  aria-label={`${["Segunda", "Terça", "Quarta", "Quinta", "Sexta"][index]}, ${hour + 7}h: ${value} chamados`}
+                />
+              ))}
+            </div>
+          ))}
+          <div className="analytics-heat-hours">
+            <span />
+            {Array.from({ length: 12 }, (_, hour) => (
+              <span key={hour}>{hour % 2 === 0 ? `${hour + 7}h` : ""}</span>
+            ))}
+          </div>
+        </div>
+        <div className="analytics-heat-key">
+          <span>Menos</span>
+          {[20, 40, 60, 80, 100].map((value) => (
+            <i
+              key={value}
+              style={{
+                background: `color-mix(in srgb, #11c5ed ${value}%, var(--analytics-heat-base))`,
+              }}
+            />
+          ))}
+          <span>Mais</span>
+        </div>
+      </Panel>
+    </div>
+  );
+}

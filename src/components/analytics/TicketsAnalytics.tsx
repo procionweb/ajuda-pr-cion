@@ -41,6 +41,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ticketStatuses, type SupportTicket, type TicketStatus } from "@/lib/support-tickets-data";
 import { useTickets } from "@/lib/tickets-store";
+import { AnalyticsOverview } from "./AnalyticsOverview";
 import { computeAttendanceTime, computeSla, formatElapsedTime } from "@/lib/ticket-sla";
 import {
   addMonths,
@@ -91,14 +92,14 @@ function RevenueStyleCards({
   links?: (IndicatorCardLink | undefined)[];
 }) {
   return (
-    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-4">
+    <div className="analytics-kpis grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-4">
       {cards.map((card, idx) => {
         const link = links?.[idx];
         const maxBar = Math.max(...card.bars, 1);
         const cardEl = (
           <Card
             className={cn(
-              "relative flex h-full min-h-[152px] overflow-hidden rounded-[28px] border-0 bg-[#f6f7f9] pl-[74px] shadow-[0_14px_34px_rgba(15,23,42,0.08)] dark:bg-[#20263d]",
+              "analytics-kpi relative flex h-full min-h-[152px] overflow-hidden rounded-[28px] border-0 bg-[#f6f7f9] pl-[74px] shadow-[0_14px_34px_rgba(15,23,42,0.08)] dark:bg-[#20263d]",
               link &&
                 "cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             )}
@@ -1631,6 +1632,13 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
   return (
     <section className="space-y-6">
       <TicketsIndicatorCards tickets={supportTickets} filtered={hasDateFilter} />
+
+      <AnalyticsOverview tickets={supportTickets} rangeEnd={to || from} />
+
+      <div className="analytics-detail-heading">
+        <h2>Análise detalhada</h2>
+        <span>Operadores, empresas e módulos</span>
+      </div>
 
       <div
         id="analytics-detalhado"

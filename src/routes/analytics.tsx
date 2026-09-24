@@ -7,6 +7,8 @@ import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TicketsAnalyticsSection } from "@/components/analytics/TicketsAnalytics";
+import { ThemeToggle } from "@/components/portal/ThemeToggle";
+import "@/components/analytics/analytics-immersive.css";
 
 const searchSchema = z.object({
   view: z.string().catch("chamados").default("chamados"),
@@ -114,7 +116,11 @@ function AnalyticsPage() {
   }, []);
 
   const moveBackdrop = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "touch") return;
+    if (
+      event.pointerType === "touch" ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
     const y = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
@@ -123,7 +129,7 @@ function AnalyticsPage() {
   };
 
   return (
-    <AppShell>
+    <AppShell fullWidth>
       <div
         ref={pageRef}
         className="analytics-cockpit"
@@ -133,11 +139,7 @@ function AnalyticsPage() {
           event.currentTarget.style.setProperty("--analytics-pointer-y", "0px");
         }}
       >
-        <div className="analytics-scene" aria-hidden="true">
-          <span className="analytics-scene__plane analytics-scene__plane--one" />
-          <span className="analytics-scene__plane analytics-scene__plane--two" />
-          <span className="analytics-scene__grid" />
-        </div>
+        <div className="analytics-scene" aria-hidden="true" />
 
         <div className="analytics-cockpit__content">
           <div className="analytics-heading">
@@ -149,7 +151,7 @@ function AnalyticsPage() {
                 </span>
                 <div>
                   <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                    Visão geral do suporte
+                    Olá, time!
                   </h1>
                   <p className="mt-1 max-w-2xl text-xs text-muted-foreground sm:text-sm">
                     Indicadores consolidados de atendimento e produtividade do time.
@@ -157,9 +159,7 @@ function AnalyticsPage() {
                 </div>
               </div>
             </div>
-            <span className="analytics-live-indicator">
-              <span aria-hidden="true" /> Dados atualizados
-            </span>
+            <ThemeToggle />
           </div>
 
           <Tabs
