@@ -267,13 +267,13 @@ export function AnalyticsOverview({
               <CartesianGrid stroke="var(--analytics-grid)" vertical={true} />
               <XAxis
                 dataKey="label"
-                tick={{ fill: "var(--muted-foreground)", fontSize: 9 }}
+                tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
                 minTickGap={20}
               />
               <YAxis
-                tick={{ fill: "var(--muted-foreground)", fontSize: 9 }}
+                tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}

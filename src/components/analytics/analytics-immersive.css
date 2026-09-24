@@ -114,7 +114,7 @@
   border-radius: 0;
 }
 .analytics-cockpit .analytics-kpi > div:last-child > div:first-child > p:first-child {
-  font-size: 11px;
+  font-size: 13px;
 }
 .analytics-cockpit .analytics-kpi > div:last-child > div:first-child > p:last-child {
   font-size: 19px;
@@ -126,7 +126,7 @@
   grid-template-columns: minmax(0, 1fr) 56px !important;
 }
 .analytics-cockpit .analytics-kpi > div:last-child > div:last-child span {
-  font-size: 10px;
+  font-size: 12px;
 }
 .analytics-cockpit .analytics-kpi [aria-hidden="true"] > span {
   background: #18bdea;
@@ -154,11 +154,11 @@
   position: relative;
 }
 .analytics-glass header h3 {
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 650;
 }
 .analytics-glass header p {
-  font-size: 10px;
+  font-size: 13px;
   color: var(--muted-foreground);
   margin-top: 3px;
 }
@@ -178,10 +178,10 @@
   min-width: 0;
 }
 .analytics-daily > header h3 {
-  font-size: 12px;
+  font-size: 18px;
 }
 .analytics-daily > header p {
-  font-size: 9px;
+  font-size: 13px;
 }
 .analytics-recent {
   grid-column: 2 / 4;
@@ -208,7 +208,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 5px 8px;
-  font-size: 8px;
+  font-size: 12px;
   justify-content: flex-end;
   margin: 4px 0 0;
   align-self: start;
@@ -231,11 +231,11 @@
   color: #f2f8ff;
   background: rgb(16 35 64 / 95%);
   box-shadow: 0 12px 24px rgb(4 19 39 / 35%);
-  font-size: 10px;
+  font-size: 12px;
 }
 .analytics-daily-tooltip > strong {
   margin-bottom: 2px;
-  font-size: 10px;
+  font-size: 12px;
   text-transform: capitalize;
 }
 .analytics-daily-tooltip > span {
@@ -267,7 +267,7 @@
   grid-template-columns: 40% minmax(0, 1fr) 42px;
   gap: 9px;
   align-items: center;
-  height: 48px;
+  min-height: 58px;
 }
 .analytics-funnel-tag {
   position: relative;
@@ -313,19 +313,19 @@
 }
 .analytics-funnel-row span {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted-foreground);
 }
 .analytics-funnel-row strong {
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1.1;
 }
 .analytics-funnel-row small {
-  font-size: 9px;
+  font-size: 12px;
   text-align: right;
 }
 .analytics-funnel-shape {
-  height: 47px;
+  height: 54px;
   margin: 0 auto;
   position: relative;
   z-index: 1;
@@ -347,14 +347,14 @@
 }
 .analytics-footnote {
   margin-top: 8px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted-foreground);
 }
 .analytics-recent-row {
   display: flex;
   align-items: center;
   gap: 7px;
-  height: 46px;
+  min-height: 62px;
   padding: 4px 0;
   border-bottom: 1px solid var(--analytics-grid);
 }
@@ -371,30 +371,30 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 13px;
 }
 .analytics-recent-row p {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted-foreground);
 }
 .analytics-recent-row time {
   display: block;
-  font-size: 8px;
+  font-size: 11px;
   line-height: 1.1;
   color: var(--muted-foreground);
 }
 .analytics-avatar {
-  flex: 0 0 25px;
-  height: 25px;
+  flex: 0 0 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: #daf0f7;
   color: #176381;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
 }
 .analytics-status {
@@ -402,7 +402,7 @@
   flex: 0 0 auto;
   border-radius: 5px;
   padding: 4px 6px;
-  font-size: 8px;
+  font-size: 11px;
   border: 1px solid;
   white-space: nowrap;
 }
@@ -412,7 +412,7 @@
   align-items: center;
   gap: 4px;
   padding-top: 10px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--primary);
 }
 .analytics-heat-grid {
@@ -426,7 +426,7 @@
   align-items: center;
 }
 .analytics-heat-grid > div > span:first-child {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted-foreground);
 }
 .analytics-heat-cell {
@@ -440,7 +440,7 @@
   outline-offset: 2px;
 }
 .analytics-heat-hours {
-  font-size: 8px;
+  font-size: 11px;
   color: var(--muted-foreground);
 }
 .analytics-heat-key {
@@ -449,7 +449,7 @@
   gap: 3px;
   align-items: center;
   margin-top: 8px;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted-foreground);
 }
 .analytics-heat-key i {
