@@ -741,7 +741,8 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
           <span className="h-3 w-3 rounded-sm bg-[#a779c7]" /> Últimos 30 dias úteis
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full border-2 border-[#89c2b7]" /> 30 dias úteis anteriores
+          <span className="h-3 w-3 rounded-full border-2 border-[#89c2b7]" /> 30 dias úteis
+          anteriores
         </span>
       </div>
     </Card>
