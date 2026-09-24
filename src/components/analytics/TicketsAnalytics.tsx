@@ -31,13 +31,16 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 import {
-  ticketStatuses,
-  type SupportTicket,
-  type TicketStatus,
-} from "@/lib/support-tickets-data";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { ticketStatuses, type SupportTicket, type TicketStatus } from "@/lib/support-tickets-data";
 import { useTickets } from "@/lib/tickets-store";
 import { computeAttendanceTime, computeSla, formatElapsedTime } from "@/lib/ticket-sla";
 import {
@@ -101,7 +104,12 @@ function RevenueStyleCards({
                 "cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             )}
           >
-            <div className={cn("absolute inset-y-0 left-0 w-[104px] overflow-hidden rounded-l-[28px] bg-gradient-to-b", card.tone)}>
+            <div
+              className={cn(
+                "absolute inset-y-0 left-0 w-[104px] overflow-hidden rounded-l-[28px] bg-gradient-to-b",
+                card.tone,
+              )}
+            >
               <span
                 className={cn(
                   "absolute right-[-26px] top-1/2 h-[74px] w-[74px] -translate-y-1/2 rotate-45 shadow-[10px_10px_18px_rgba(0,0,0,0.12)]",
@@ -180,7 +188,11 @@ function RevenueStyleCards({
           );
         }
 
-        return <div key={card.tag} className="h-full">{cardEl}</div>;
+        return (
+          <div key={card.tag} className="h-full">
+            {cardEl}
+          </div>
+        );
       })}
     </div>
   );
@@ -204,10 +216,24 @@ export function TicketsIndicatorCards({
     const current = filtered
       ? {
           open: supportTickets.filter((ticket) =>
-            ["Atrasado", "Em Aberto", "Ocupado", "Em andamento", "Aguardando cliente", "Com especialista", "Agendamento"].includes(ticket.status),
+            [
+              "Atrasado",
+              "Em Aberto",
+              "Ocupado",
+              "Em andamento",
+              "Aguardando cliente",
+              "Com especialista",
+              "Agendamento",
+            ].includes(ticket.status),
           ).length,
           inProgress: supportTickets.filter((ticket) =>
-            ["Ocupado", "Em andamento", "Aguardando cliente", "Com especialista", "Agendamento"].includes(ticket.status),
+            [
+              "Ocupado",
+              "Em andamento",
+              "Aguardando cliente",
+              "Com especialista",
+              "Agendamento",
+            ].includes(ticket.status),
           ).length,
           overdue: supportTickets.filter((ticket) => ticket.status === "Atrasado").length,
           finished: supportTickets.filter((ticket) => ticket.status === "Finalizado").length,
@@ -297,27 +323,49 @@ export function TicketsIndicatorCards({
         { to: "/chamados", search: { visao: "finished", mes: monthKey } },
       ] as IndicatorCardLink[],
     };
-  }, [supportTickets, monthKey]);
+  }, [supportTickets, monthKey, filtered]);
 
   return <RevenueStyleCards cards={cards} links={links} />;
 }
 
+type AgentPerformance = {
+  operator: string;
+  handled: number;
+  finished: number;
+  seconds: number;
+  companies: Map<string, number>;
+};
 
+function ticketCompany(ticket: SupportTicket) {
+  return (
+    ticket.clientCode?.trim() ||
+    ticket.clientName?.trim() ||
+    ticket.companyName?.trim() ||
+    "Não informado"
+  );
+}
 
 function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
   const [showAll, setShowAll] = useState(false);
   const allAgents = useMemo(() => {
-    const map = new Map<string, { operator: string; handled: number; finished: number; seconds: number }>();
+    const map = new Map<string, AgentPerformance>();
     tickets.forEach((ticket) => {
       const key = ticket.owner?.trim() || ticket.attendant?.trim() || "Não informado";
-      const current = map.get(key) ?? { operator: key, handled: 0, finished: 0, seconds: 0 };
+      const current = map.get(key) ?? {
+        operator: key,
+        handled: 0,
+        finished: 0,
+        seconds: 0,
+        companies: new Map<string, number>(),
+      };
       current.handled += 1;
       if (ticket.status === "Finalizado") current.finished += 1;
       current.seconds += computeAttendanceTime(ticket).seconds;
+      const company = ticketCompany(ticket);
+      current.companies.set(company, (current.companies.get(company) ?? 0) + 1);
       map.set(key, current);
     });
-    return Array.from(map.values())
-      .sort((a, b) => b.handled - a.handled);
+    return Array.from(map.values()).sort((a, b) => b.handled - a.handled);
   }, [tickets]);
   const agents = allAgents.slice(0, 4);
 
@@ -409,53 +457,94 @@ function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
                 <UsersRound className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <DialogTitle className="text-lg text-foreground">Performance dos operadores</DialogTitle>
-                <DialogDescription className="mt-1 text-xs">Comparativo de atendimentos e taxa de resolução</DialogDescription>
+                <DialogTitle className="text-lg text-foreground">
+                  Performance dos operadores
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-xs">
+                  Comparativo de atendimentos e taxa de resolução
+                </DialogDescription>
               </div>
             </div>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 border-b bg-muted/25 px-6 py-4 sm:grid-cols-3 sm:px-7">
-            <div><p className="text-[11px] text-muted-foreground">Operadores</p><p className="text-lg font-bold">{allAgents.length}</p></div>
-            <div><p className="text-[11px] text-muted-foreground">Atendimentos</p><p className="text-lg font-bold">{allAgents.reduce((sum, item) => sum + item.handled, 0)}</p></div>
-            <div><p className="text-[11px] text-muted-foreground">Finalizados</p><p className="text-lg font-bold">{allAgents.reduce((sum, item) => sum + item.finished, 0)}</p></div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Operadores</p>
+              <p className="text-lg font-bold">{allAgents.length}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Atendimentos</p>
+              <p className="text-lg font-bold">
+                {allAgents.reduce((sum, item) => sum + item.handled, 0)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Finalizados</p>
+              <p className="text-lg font-bold">
+                {allAgents.reduce((sum, item) => sum + item.finished, 0)}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto px-6 py-5 sm:px-7">
-            <div className="space-y-2">
+          <div className="flex-1 overflow-y-auto bg-muted/10 px-6 py-5 sm:px-7">
+            <div className="grid gap-3 lg:grid-cols-2">
               {allAgents.map((agent) => {
                 const resolutionRate = agent.handled
                   ? Math.round((agent.finished / agent.handled) * 100)
                   : 0;
+                const topCompanies = Array.from(agent.companies.entries())
+                  .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))
+                  .slice(0, 3);
                 return (
-                  <div key={agent.operator} className="grid grid-cols-[minmax(0,1fr)_90px_90px] items-center gap-4 rounded-md border bg-background px-4 py-3 text-sm shadow-sm">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 font-semibold text-primary">
-                        {agent.operator.charAt(0).toLocaleUpperCase("pt-BR") || "?"}
+                  <article
+                    key={agent.operator}
+                    className="overflow-hidden rounded-md border bg-background shadow-sm"
+                  >
+                    <div className="flex items-center justify-between gap-4 border-b bg-muted/25 px-4 py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground shadow-sm">
+                          {agent.operator.charAt(0).toLocaleUpperCase("pt-BR") || "?"}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold">{agent.operator}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {agent.finished} finalizados de {agent.handled} atendimentos
+                          </p>
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                        {resolutionRate}%
                       </span>
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold">{agent.operator}</p>
-                        <p className="text-xs text-muted-foreground">{agent.finished} finalizados</p>
+                    </div>
+                    <div className="px-4 py-3">
+                      <p className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">
+                        Empresas mais atendidas
+                      </p>
+                      <div className="space-y-2">
+                        {topCompanies.map(([company, total], index) => (
+                          <div key={company} className="flex items-center gap-2 text-xs">
+                            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                              {index + 1}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate font-medium" title={company}>
+                              {company}
+                            </span>
+                            <span className="shrink-0 font-bold tabular-nums">{total}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{agent.handled}</p>
-                      <p className="text-[11px] text-muted-foreground">atendimentos</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{resolutionRate}%</p>
-                      <p className="text-[11px] text-muted-foreground">resolução</p>
-                    </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
           </div>
           <DialogFooter className="border-t px-6 py-4 sm:px-7">
-            <Button type="button" variant="outline" onClick={() => setShowAll(false)}>Fechar</Button>
+            <Button type="button" variant="outline" onClick={() => setShowAll(false)}>
+              Fechar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>
-
   );
 }
 function startOfDay(date: Date) {
@@ -468,22 +557,39 @@ function addDays(date: Date, amount: number) {
   return result;
 }
 
+function isBusinessDay(date: Date) {
+  return date.getDay() !== 0 && date.getDay() !== 6;
+}
+
+function businessDaysEndingAt(date: Date, count: number) {
+  const days: Date[] = [];
+  let cursor = startOfDay(date);
+  while (days.length < count) {
+    if (isBusinessDay(cursor)) days.unshift(new Date(cursor));
+    cursor = addDays(cursor, -1);
+  }
+  return days;
+}
+
+function dateIso(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; rangeEnd?: string }) {
   const daysScrollRef = useRef<HTMLDivElement>(null);
   const scrollTimerRef = useRef<number | null>(null);
   const [daySelection, setDaySelection] = useState<{ rangeEnd?: string; iso: string } | null>(null);
   const parsedRangeEnd = rangeEnd ? new Date(`${rangeEnd}T12:00:00`) : new Date();
-  const today = startOfDay(
-    Number.isFinite(parsedRangeEnd.getTime()) ? parsedRangeEnd : new Date(),
-  );
+  const today = startOfDay(Number.isFinite(parsedRangeEnd.getTime()) ? parsedRangeEnd : new Date());
   const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const selectedDay = daySelection && daySelection.rangeEnd === rangeEnd ? daySelection.iso : todayIso;
+  const selectedDay =
+    daySelection && daySelection.rangeEnd === rangeEnd ? daySelection.iso : todayIso;
   const selectedDate = startOfDay(new Date(`${selectedDay}T12:00:00`));
-  const currentStart = addDays(selectedDate, -29).getTime();
-  const previousStart = addDays(selectedDate, -59).getTime();
-  const currentEnd = addDays(selectedDate, 1).getTime();
-  const statisticsDays = Array.from({ length: 30 }, (_, index) => {
-    const date = addDays(today, index - 29);
+  const currentBusinessDays = businessDaysEndingAt(selectedDate, 30);
+  const previousBusinessDays = businessDaysEndingAt(addDays(currentBusinessDays[0], -1), 30);
+  const currentDays = new Set(currentBusinessDays.map(dateIso));
+  const previousDays = new Set(previousBusinessDays.map(dateIso));
+  const statisticsDays = businessDaysEndingAt(today, 30).map((date) => {
     return {
       iso: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
       day: String(date.getDate()).padStart(2, "0"),
@@ -491,8 +597,7 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
         .format(date)
         .replace(".", "")
         .toLocaleUpperCase("pt-BR"),
-      warm: date.getDay() === 0 || date.getDay() === 6,
-      active: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}` === selectedDay,
+      active: dateIso(date) === selectedDay,
     };
   });
   const hourlyStats = Array.from({ length: 12 }, (_, index) => {
@@ -500,10 +605,11 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
     let thisWeek = 0;
     let lastWeek = 0;
     tickets.forEach((ticket) => {
-      const opened = new Date(ticket.openedAt).getTime();
-      if (!Number.isFinite(opened) || new Date(opened).getHours() !== hour) return;
-      if (opened >= currentStart && opened < currentEnd) thisWeek += 1;
-      else if (opened >= previousStart && opened < currentStart) lastWeek += 1;
+      const opened = new Date(ticket.openedAt);
+      if (!Number.isFinite(opened.getTime()) || opened.getHours() !== hour) return;
+      const openedIso = dateIso(opened);
+      if (currentDays.has(openedIso)) thisWeek += 1;
+      else if (previousDays.has(openedIso)) lastWeek += 1;
     });
     return { time: `${hour}h`, thisWeek, lastWeek };
   });
@@ -524,11 +630,9 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
     <Card className="w-full max-w-full min-w-0 overflow-hidden rounded-[14px] border border-border/60 bg-white p-4 shadow-[0_10px_26px_rgba(25,29,51,0.06)] dark:bg-[#20263d] sm:p-5">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <h3 className="text-base font-bold tracking-tight text-foreground">Estatísticas</h3>
-        <span
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-muted/60 px-4 text-sm font-semibold text-foreground"
-        >
+        <span className="inline-flex h-9 items-center gap-2 rounded-md bg-muted/60 px-4 text-sm font-semibold text-foreground">
           <CalendarClock className="h-4 w-4" />
-          {rangeEnd ? "Últimos 30 dias do período" : "Últimos 30 dias"}
+          {rangeEnd ? "Últimos 30 dias úteis do período" : "Últimos 30 dias úteis"}
         </span>
       </div>
 
@@ -543,32 +647,30 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <div ref={daysScrollRef} className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          ref={daysScrollRef}
+          className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           {statisticsDays.map((item) => (
-          <button
-            key={item.iso}
-            type="button"
-            aria-label={`Mostrar estatísticas até ${item.day} ${item.weekday}`}
-            aria-pressed={item.active}
-            onClick={() => setDaySelection({ rangeEnd, iso: item.iso })}
-            className={cn(
-              "grid h-[60px] w-[44px] shrink-0 cursor-pointer place-items-center rounded-md bg-muted/45 text-center transition",
-              item.active && "bg-[#a779c7] text-white",
-            )}
-          >
-            <span>
-              <span className="block text-[14px] font-black leading-none">{item.day}</span>
-              <span
-                className={cn(
-                  "mt-1 block text-[9px] font-bold",
-                  item.warm && !item.active ? "text-[#ff7a2f]" : "text-current",
-                )}
-              >
-                {item.weekday}
+            <button
+              key={item.iso}
+              type="button"
+              aria-label={`Mostrar estatísticas até ${item.day} ${item.weekday}`}
+              aria-pressed={item.active}
+              onClick={() => setDaySelection({ rangeEnd, iso: item.iso })}
+              className={cn(
+                "grid h-[60px] w-[44px] shrink-0 cursor-pointer place-items-center rounded-md bg-muted/45 text-center transition",
+                item.active && "bg-[#a779c7] text-white",
+              )}
+            >
+              <span>
+                <span className="block text-[14px] font-black leading-none">{item.day}</span>
+                <span className={cn("mt-1 block text-[9px] font-bold", "text-current")}>
+                  {item.weekday}
+                </span>
+                <span className="mx-auto mt-1.5 block h-1 w-1 rounded-full bg-[#b9d899]" />
               </span>
-              <span className="mx-auto mt-1.5 block h-1 w-1 rounded-full bg-[#b9d899]" />
-            </span>
-          </button>
+            </button>
           ))}
         </div>
         <button
@@ -584,7 +686,6 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
       </div>
 
       <div className="h-[300px] w-full min-w-0 overflow-hidden">
-
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={hourlyStats} margin={{ top: 12, right: 24, left: 0, bottom: 8 }}>
             <defs>
@@ -594,7 +695,12 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} stroke="rgba(139,145,173,0.28)" />
-            <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#66708a" }} />
+            <XAxis
+              dataKey="time"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "#66708a" }}
+            />
             <YAxis
               axisLine={false}
               tickLine={false}
@@ -611,7 +717,13 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
                 fontSize: 12,
               }}
             />
-            <Bar dataKey="thisWeek" name="Esta semana" fill="url(#statsPurple)" radius={[5, 5, 0, 0]} maxBarSize={36} />
+            <Bar
+              dataKey="thisWeek"
+              name="Esta semana"
+              fill="url(#statsPurple)"
+              radius={[5, 5, 0, 0]}
+              maxBarSize={36}
+            />
             <Line
               type="monotone"
               dataKey="lastWeek"
@@ -626,31 +738,51 @@ function StatisticsCard({ tickets, rangeEnd }: { tickets: SupportTicket[]; range
 
       <div className="mt-2 flex flex-wrap justify-end gap-8 text-xs font-semibold text-muted-foreground">
         <span className="inline-flex items-center gap-2">
-          <span className="h-3 w-3 rounded-sm bg-[#a779c7]" /> Últimos 30 dias
+          <span className="h-3 w-3 rounded-sm bg-[#a779c7]" /> Últimos 30 dias úteis
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full border-2 border-[#89c2b7]" /> 30 dias anteriores
+          <span className="h-3 w-3 rounded-full border-2 border-[#89c2b7]" /> 30 dias úteis anteriores
         </span>
       </div>
     </Card>
   );
 }
 
-function WeeklyBacklogCard({ tickets, filtered = false }: { tickets: SupportTicket[]; filtered?: boolean }) {
+function WeeklyBacklogCard({
+  tickets,
+  filtered = false,
+}: {
+  tickets: SupportTicket[];
+  filtered?: boolean;
+}) {
   const [showCompanies, setShowCompanies] = useState(false);
   const weeklyCompanies = useMemo(() => {
     const weekStart = addDays(startOfDay(new Date()), -6).getTime();
-    const companies = new Map<string, { company: string; nfe: number; basic: number; others: number; modules: Map<string, number> }>();
+    const companies = new Map<
+      string,
+      { company: string; nfe: number; basic: number; others: number; modules: Map<string, number> }
+    >();
     tickets.forEach((ticket) => {
       const opened = new Date(ticket.openedAt).getTime();
       if (!Number.isFinite(opened) || (!filtered && opened < weekStart)) return;
-      const company = ticket.clientCode?.trim() || ticket.clientName?.trim() || "Não informado";
-      const current = companies.get(company) ?? { company, nfe: 0, basic: 0, others: 0, modules: new Map<string, number>() };
+      const company = ticketCompany(ticket);
+      const current = companies.get(company) ?? {
+        company,
+        nfe: 0,
+        basic: 0,
+        others: 0,
+        modules: new Map<string, number>(),
+      };
       const module = ticket.module.toLocaleLowerCase("pt-BR");
       const moduleLabel = analyticsModuleLabel(ticket.module);
       current.modules.set(moduleLabel, (current.modules.get(moduleLabel) ?? 0) + 1);
       if (module.includes("nfe") || module.includes("nf-e")) current.nfe += 1;
-      else if (module.includes("basico") || module.includes("básico") || module.includes("terceiro")) current.basic += 1;
+      else if (
+        module.includes("basico") ||
+        module.includes("básico") ||
+        module.includes("terceiro")
+      )
+        current.basic += 1;
       else current.others += 1;
       companies.set(company, current);
     });
@@ -658,7 +790,9 @@ function WeeklyBacklogCard({ tickets, filtered = false }: { tickets: SupportTick
       .map((company) => ({
         ...company,
         total: company.nfe + company.basic + company.others,
-        topModule: Array.from(company.modules.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Não informado",
+        topModule:
+          Array.from(company.modules.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ??
+          "Não informado",
       }))
       .sort((a, b) => b.total - a.total);
   }, [tickets, filtered]);
@@ -675,7 +809,12 @@ function WeeklyBacklogCard({ tickets, filtered = false }: { tickets: SupportTick
             Volume de chamados por empresa e tipo de problema.
           </p>
         </div>
-        <Button type="button" variant="ghost" className="h-9 cursor-pointer px-3 text-xs font-semibold" onClick={() => setShowCompanies(true)}>
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-9 cursor-pointer px-3 text-xs font-semibold"
+          onClick={() => setShowCompanies(true)}
+        >
           Ver 30 empresas
         </Button>
       </div>
@@ -683,10 +822,24 @@ function WeeklyBacklogCard({ tickets, filtered = false }: { tickets: SupportTick
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={weeklyTopCompanies} margin={{ top: 16, right: 16, left: 8, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(139,145,173,0.18)" />
-            <XAxis dataKey="company" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: "#8b91ad" }} />
-            <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#8b91ad" }} width={40} />
+            <XAxis
+              dataKey="company"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 11, fontWeight: 600, fill: "#8b91ad" }}
+            />
+            <YAxis
+              allowDecimals={false}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 11, fill: "#8b91ad" }}
+              width={40}
+            />
             <Tooltip
-              formatter={(value, name) => [`${value} chamado${Number(value) === 1 ? "" : "s"}`, name]}
+              formatter={(value, name) => [
+                `${value} chamado${Number(value) === 1 ? "" : "s"}`,
+                name,
+              ]}
               contentStyle={{
                 border: "0",
                 borderRadius: 12,
@@ -713,23 +866,44 @@ function WeeklyBacklogCard({ tickets, filtered = false }: { tickets: SupportTick
                 <Building2 className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <DialogTitle className="text-lg text-foreground">Empresas que mais ligaram</DialogTitle>
-                <DialogDescription className="mt-1 text-xs">As 30 empresas com maior volume de chamados e seu módulo principal</DialogDescription>
+                <DialogTitle className="text-lg text-foreground">
+                  Empresas que mais ligaram
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-xs">
+                  As 30 empresas com maior volume de chamados e seu módulo principal
+                </DialogDescription>
               </div>
             </div>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 border-b bg-muted/25 px-6 py-4 sm:px-7">
-            <div><p className="text-[11px] text-muted-foreground">Empresas exibidas</p><p className="text-lg font-bold">{Math.min(30, weeklyCompanies.length)}</p></div>
-            <div><p className="text-[11px] text-muted-foreground">Total de chamados</p><p className="text-lg font-bold">{weeklyCompanies.slice(0, 30).reduce((sum, item) => sum + item.total, 0)}</p></div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Empresas exibidas</p>
+              <p className="text-lg font-bold">{Math.min(30, weeklyCompanies.length)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-muted-foreground">Total de chamados</p>
+              <p className="text-lg font-bold">
+                {weeklyCompanies.slice(0, 30).reduce((sum, item) => sum + item.total, 0)}
+              </p>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto px-6 py-5 sm:px-7">
             <div className="overflow-hidden rounded-md border bg-background shadow-sm">
               <div className="grid grid-cols-[52px_minmax(0,1fr)_90px_minmax(150px,1fr)] gap-3 bg-muted/60 px-4 py-3 text-xs font-semibold text-muted-foreground">
-                <span>#</span><span>Empresa</span><span className="text-right">Chamados</span><span>Módulo mais acionado</span>
+                <span>#</span>
+                <span>Empresa</span>
+                <span className="text-right">Chamados</span>
+                <span>Módulo mais acionado</span>
               </div>
               {weeklyCompanies.slice(0, 30).map((company, index) => (
-                <div key={company.company} className="grid grid-cols-[52px_minmax(0,1fr)_90px_minmax(150px,1fr)] items-center gap-3 border-t px-4 py-3 text-sm">
-                  <span className="inline-flex items-center gap-1 font-semibold text-muted-foreground">{index < 3 && <Trophy className="h-3.5 w-3.5 text-[#e4a11b]" />}{index + 1}</span>
+                <div
+                  key={company.company}
+                  className="grid grid-cols-[52px_minmax(0,1fr)_90px_minmax(150px,1fr)] items-center gap-3 border-t px-4 py-3 text-sm"
+                >
+                  <span className="inline-flex items-center gap-1 font-semibold text-muted-foreground">
+                    {index < 3 && <Trophy className="h-3.5 w-3.5 text-[#e4a11b]" />}
+                    {index + 1}
+                  </span>
                   <span className="truncate font-semibold">{company.company}</span>
                   <span className="text-right font-semibold">{company.total}</span>
                   <span className="truncate text-muted-foreground">{company.topModule}</span>
@@ -738,7 +912,9 @@ function WeeklyBacklogCard({ tickets, filtered = false }: { tickets: SupportTick
             </div>
           </div>
           <DialogFooter className="border-t px-6 py-4 sm:px-7">
-            <Button type="button" variant="outline" onClick={() => setShowCompanies(false)}>Fechar</Button>
+            <Button type="button" variant="outline" onClick={() => setShowCompanies(false)}>
+              Fechar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -755,11 +931,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   );
 }
 
-function SlaProfileCard({
-  tickets,
-}: {
-  tickets: SupportTicket[];
-}) {
+function SlaProfileCard({ tickets }: { tickets: SupportTicket[] }) {
   const now = Date.now();
   const today = startOfDay(new Date());
   const currentStart = addDays(today, -6).getTime();
@@ -774,9 +946,13 @@ function SlaProfileCard({
     return opened >= previousStart && opened < currentStart;
   });
   const finishedTickets = tickets.filter((ticket) => ticket.status === "Finalizado");
-  const resolutionRate = tickets.length ? Math.round((finishedTickets.length / tickets.length) * 100) : 0;
+  const resolutionRate = tickets.length
+    ? Math.round((finishedTickets.length / tickets.length) * 100)
+    : 0;
   const portalTickets = tickets.filter((ticket) => ticket.source === "Portal do cliente").length;
-  const attendanceTimes = tickets.map((ticket) => computeAttendanceTime(ticket, now).seconds).filter(Boolean);
+  const attendanceTimes = tickets
+    .map((ticket) => computeAttendanceTime(ticket, now).seconds)
+    .filter(Boolean);
   const avgHandlingLabel = formatElapsedTime(
     attendanceTimes.length
       ? attendanceTimes.reduce((total, seconds) => total + seconds, 0) / attendanceTimes.length
@@ -789,29 +965,68 @@ function SlaProfileCard({
   const averageFirstResponse = (rows: SupportTicket[]) => {
     const values = rows.flatMap((ticket) => {
       if (!ticket.attendanceStartedAt) return [];
-      const minutes = (new Date(ticket.attendanceStartedAt).getTime() - new Date(ticket.openedAt).getTime()) / 60000;
+      const minutes =
+        (new Date(ticket.attendanceStartedAt).getTime() - new Date(ticket.openedAt).getTime()) /
+        60000;
       return Number.isFinite(minutes) && minutes >= 0 ? [minutes] : [];
     });
-    return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
+    return values.length
+      ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
+      : 0;
   };
-  const weeklyValue = (rows: SupportTicket[], predicate: (ticket: SupportTicket) => boolean) => rows.filter(predicate).length;
+  const weeklyValue = (rows: SupportTicket[], predicate: (ticket: SupportTicket) => boolean) =>
+    rows.filter(predicate).length;
   const deltaLabel = (current: number, previous: number, suffix = "") => {
     const delta = current - previous;
     return `${delta > 0 ? "+" : ""}${delta}${suffix}`;
   };
   const currentFirstResponse = averageFirstResponse(currentWeek);
   const previousFirstResponse = averageFirstResponse(previousWeek);
-  const currentInAttendance = weeklyValue(currentWeek, (ticket) => ["Ocupado", "Em andamento", "Com especialista"].includes(ticket.status));
-  const previousInAttendance = weeklyValue(previousWeek, (ticket) => ["Ocupado", "Em andamento", "Com especialista"].includes(ticket.status));
-  const currentWaiting = weeklyValue(currentWeek, (ticket) => ticket.status === "Aguardando cliente");
-  const previousWaiting = weeklyValue(previousWeek, (ticket) => ticket.status === "Aguardando cliente");
+  const currentInAttendance = weeklyValue(currentWeek, (ticket) =>
+    ["Ocupado", "Em andamento", "Com especialista"].includes(ticket.status),
+  );
+  const previousInAttendance = weeklyValue(previousWeek, (ticket) =>
+    ["Ocupado", "Em andamento", "Com especialista"].includes(ticket.status),
+  );
+  const currentWaiting = weeklyValue(
+    currentWeek,
+    (ticket) => ticket.status === "Aguardando cliente",
+  );
+  const previousWaiting = weeklyValue(
+    previousWeek,
+    (ticket) => ticket.status === "Aguardando cliente",
+  );
   const currentLate = weeklyValue(currentWeek, (ticket) => computeSla(ticket, now).pct >= 100);
   const previousLate = weeklyValue(previousWeek, (ticket) => computeSla(ticket, now).pct >= 100);
   const weekIndicators = [
-    { icon: Clock3, label: "Primeira resposta", value: `${currentFirstResponse} min`, delta: deltaLabel(currentFirstResponse, previousFirstResponse, " min"), tone: currentFirstResponse <= previousFirstResponse ? "text-[#20bf6b]" : "text-rose-500" },
-    { icon: Headphones, label: "Em atendimento", value: String(currentInAttendance), delta: deltaLabel(currentInAttendance, previousInAttendance), tone: "text-muted-foreground" },
-    { icon: UserRound, label: "Aguardando cliente", value: String(currentWaiting), delta: deltaLabel(currentWaiting, previousWaiting), tone: "text-muted-foreground" },
-    { icon: AlertTriangle, label: "Fora do SLA", value: String(currentLate), delta: deltaLabel(currentLate, previousLate), tone: currentLate <= previousLate ? "text-[#20bf6b]" : "text-rose-500" },
+    {
+      icon: Clock3,
+      label: "Primeira resposta",
+      value: `${currentFirstResponse} min`,
+      delta: deltaLabel(currentFirstResponse, previousFirstResponse, " min"),
+      tone: currentFirstResponse <= previousFirstResponse ? "text-[#20bf6b]" : "text-rose-500",
+    },
+    {
+      icon: Headphones,
+      label: "Em atendimento",
+      value: String(currentInAttendance),
+      delta: deltaLabel(currentInAttendance, previousInAttendance),
+      tone: "text-muted-foreground",
+    },
+    {
+      icon: UserRound,
+      label: "Aguardando cliente",
+      value: String(currentWaiting),
+      delta: deltaLabel(currentWaiting, previousWaiting),
+      tone: "text-muted-foreground",
+    },
+    {
+      icon: AlertTriangle,
+      label: "Fora do SLA",
+      value: String(currentLate),
+      delta: deltaLabel(currentLate, previousLate),
+      tone: currentLate <= previousLate ? "text-[#20bf6b]" : "text-rose-500",
+    },
   ];
   const slaSpark = Array.from({ length: 7 }, (_, index) => {
     const start = addDays(today, index - 6).getTime();
@@ -821,7 +1036,9 @@ function SlaProfileCard({
       return opened >= start && opened < end;
     });
     return daily.length
-      ? Math.round((daily.filter((ticket) => computeSla(ticket, now).pct < 100).length / daily.length) * 100)
+      ? Math.round(
+          (daily.filter((ticket) => computeSla(ticket, now).pct < 100).length / daily.length) * 100,
+        )
       : 0;
   });
   const sparkMax = Math.max(...slaSpark);
@@ -877,7 +1094,10 @@ function SlaProfileCard({
           <div className="flex-1 min-w-0">
             <p className="text-[11px] text-muted-foreground">Evolução do SLA</p>
             <p className="text-sm font-bold text-foreground">
-              {slaMedio}% <span className="ml-1 text-[10px] font-medium text-muted-foreground">dados dos chamados</span>
+              {slaMedio}%{" "}
+              <span className="ml-1 text-[10px] font-medium text-muted-foreground">
+                dados dos chamados
+              </span>
             </p>
           </div>
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-8 w-24 shrink-0">
@@ -932,7 +1152,11 @@ function Gauge({ value }: { value: number }) {
   return (
     <div className="mx-auto flex w-full max-w-[220px] flex-col items-center">
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: "2 / 1" }}>
-        <svg viewBox={`0 0 ${size} ${size / 2 + 4}`} className="block h-auto w-full" aria-hidden="true">
+        <svg
+          viewBox={`0 0 ${size} ${size / 2 + 4}`}
+          className="block h-auto w-full"
+          aria-hidden="true"
+        >
           <path
             d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
             fill="none"
@@ -950,7 +1174,15 @@ function Gauge({ value }: { value: number }) {
           />
           <circle cx={cx} cy={cy} r={28} fill="rgba(11,151,196,0.14)" />
           <circle cx={cx} cy={cy} r={16} fill="#0b97c4" />
-          <line x1={cx} y1={cy} x2={tipX} y2={tipY} stroke="#313866" strokeWidth={7} strokeLinecap="round" />
+          <line
+            x1={cx}
+            y1={cy}
+            x2={tipX}
+            y2={tipY}
+            stroke="#313866"
+            strokeWidth={7}
+            strokeLinecap="round"
+          />
           <circle cx={cx} cy={cy} r={4} fill="#ffffff" />
         </svg>
       </div>
@@ -972,7 +1204,6 @@ const statusChartColorMap: Record<string, string> = {
   Atrasado: "#ef4444",
   Cancelado: "#94a3b8",
 };
-
 
 function polarPoint(cx: number, cy: number, radius: number, angle: number) {
   const radians = ((angle - 90) * Math.PI) / 180;
@@ -1002,11 +1233,7 @@ function polarAreaPath(
   ].join(" ");
 }
 
-function StatusCategoriesCard({
-  data,
-}: {
-  data: { status: TicketStatus; total: number }[];
-}) {
+function StatusCategoriesCard({ data }: { data: { status: TicketStatus; total: number }[] }) {
   const [activeStatus, setActiveStatus] = useState<TicketStatus | null>(null);
   const max = Math.max(1, ...data.map((item) => item.total));
   const totalAll = data.reduce((acc, item) => acc + item.total, 0) || 1;
@@ -1026,7 +1253,12 @@ function StatusCategoriesCard({
       <h3 className="text-base font-bold text-foreground">Chamados por status</h3>
       <p className="mt-1 text-xs text-muted-foreground">Distribuição atual do funil.</p>
       <div className="mt-4 flex h-[220px] items-center justify-center overflow-hidden">
-        <svg viewBox="0 0 280 230" className="h-full w-full max-w-[280px]" role="img" aria-label="Chamados por status">
+        <svg
+          viewBox="0 0 280 230"
+          className="h-full w-full max-w-[280px]"
+          role="img"
+          aria-label="Chamados por status"
+        >
           {data.map((item, index) => {
             const startAngle = rotation + index * angleStep + gap / 2;
             const endAngle = rotation + (index + 1) * angleStep - gap / 2;
@@ -1043,7 +1275,13 @@ function StatusCategoriesCard({
             return (
               <path
                 key={item.status}
-                d={polarAreaPath(cx + exploded.x, cy + exploded.y, outerRadius, startAngle, endAngle)}
+                d={polarAreaPath(
+                  cx + exploded.x,
+                  cy + exploded.y,
+                  outerRadius,
+                  startAngle,
+                  endAngle,
+                )}
                 fill={color}
                 stroke="hsl(var(--card))"
                 strokeWidth="2"
@@ -1065,9 +1303,10 @@ function StatusCategoriesCard({
         {data.map((item) => {
           const color = statusChartColorMap[item.status] ?? "#94a3b8";
           const pct = (item.total / totalAll) * 100;
-          const percentLabel = pct > 0 && pct < 0.01
-            ? "<0,01%"
-            : `${pct.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
+          const percentLabel =
+            pct > 0 && pct < 0.01
+              ? "<0,01%"
+              : `${pct.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
           const isActive = activeStatus === item.status;
           return (
             <button
@@ -1082,10 +1321,7 @@ function StatusCategoriesCard({
               style={{ cursor: "pointer" }}
             >
               <div className="flex items-center gap-2">
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ background: color }}
-                />
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
                 <span className="min-w-0 flex-1 whitespace-nowrap text-[12px] font-medium text-foreground">
                   {item.status}
                 </span>
@@ -1132,8 +1368,10 @@ function SourceModuleCard({
     hourCounts.set(date.getHours(), (hourCounts.get(date.getHours()) ?? 0) + 1);
   });
   const peakHour = Array.from(hourCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
-  const sourcePct = tickets.length && topSource ? Math.round((topSource.total / tickets.length) * 100) : 0;
-  const modulePct = tickets.length && topModule ? Math.round((topModule.total / tickets.length) * 100) : 0;
+  const sourcePct =
+    tickets.length && topSource ? Math.round((topSource.total / tickets.length) * 100) : 0;
+  const modulePct =
+    tickets.length && topModule ? Math.round((topModule.total / tickets.length) * 100) : 0;
   return (
     <Card className="rounded-[14px] border-0 bg-white dark:bg-[#20263d] p-6 shadow-[0_10px_26px_rgba(25,29,51,0.06)]">
       <div className="flex items-start justify-between">
@@ -1150,7 +1388,13 @@ function SourceModuleCard({
         </p>
         <div className="space-y-2">
           {sources.map((item) => (
-            <BarRow key={item.source} label={item.label} value={item.total} max={sourceMax} color="#0b97c4" />
+            <BarRow
+              key={item.source}
+              label={item.label}
+              value={item.total}
+              max={sourceMax}
+              color="#0b97c4"
+            />
           ))}
         </div>
       </div>
@@ -1161,7 +1405,13 @@ function SourceModuleCard({
         </p>
         <div className="space-y-2">
           {modules.map((item) => (
-            <BarRow key={item.label} label={item.label} value={item.total} max={moduleMax} color="#8d6bd8" />
+            <BarRow
+              key={item.label}
+              label={item.label}
+              value={item.total}
+              max={moduleMax}
+              color="#8d6bd8"
+            />
           ))}
         </div>
       </div>
@@ -1175,7 +1425,11 @@ function SourceModuleCard({
             { icon: PhoneCall, label: "Canal principal", value: topSource?.label ?? "—" },
             { icon: Layers, label: "Módulo mais acionado", value: topModule?.label ?? "—" },
             { icon: MessageSquarePlus, label: "Chamados", value: String(tickets.length) },
-            { icon: CalendarClock, label: "Horário de pico", value: peakHour === undefined ? "—" : `${peakHour}h–${peakHour + 1}h` },
+            {
+              icon: CalendarClock,
+              label: "Horário de pico",
+              value: peakHour === undefined ? "—" : `${peakHour}h–${peakHour + 1}h`,
+            },
           ].map(({ icon: Icon, label, value }, i) => (
             <div key={label} className={cn("flex flex-col gap-0.5", i > 0 && "sm:pl-3")}>
               <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -1187,7 +1441,8 @@ function SourceModuleCard({
           ))}
         </div>
         <p className="mt-3 rounded-lg bg-muted/40 dark:bg-white/[0.03] px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-          {topSource?.label ?? "Nenhum canal"} concentra {sourcePct}% dos chamados e {topModule?.label ?? "nenhum módulo"} representa {modulePct}% das solicitações.
+          {topSource?.label ?? "Nenhum canal"} concentra {sourcePct}% dos chamados e{" "}
+          {topModule?.label ?? "nenhum módulo"} representa {modulePct}% das solicitações.
         </p>
       </div>
     </Card>
@@ -1210,9 +1465,14 @@ function BarRow({
     <div className="grid grid-cols-[92px_minmax(0,1fr)_28px] items-center gap-3">
       <span className="truncate text-[12px] font-medium text-foreground">{label}</span>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, background: color }}
+        />
       </div>
-      <span className="text-right text-[12px] font-medium tabular-nums text-foreground">{value}</span>
+      <span className="text-right text-[12px] font-medium tabular-nums text-foreground">
+        {value}
+      </span>
     </div>
   );
 }
@@ -1261,7 +1521,10 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
     <section className="space-y-6">
       <TicketsIndicatorCards tickets={supportTickets} filtered={hasDateFilter} />
 
-      <div id="analytics-detalhado" className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[0.92fr_1.35fr]">
+      <div
+        id="analytics-detalhado"
+        className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[0.92fr_1.35fr]"
+      >
         <TopAgentsCard tickets={supportTickets} />
         <StatisticsCard tickets={supportTickets} rangeEnd={to || from} />
       </div>
