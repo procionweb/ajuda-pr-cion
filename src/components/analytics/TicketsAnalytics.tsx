@@ -23,7 +23,6 @@ import {
   Headphones,
   Layers,
   MessageSquarePlus,
-  MoreVertical,
   PhoneCall,
   Trophy,
   UsersRound,
@@ -757,15 +756,32 @@ function WeeklyBacklogCard({
   filtered?: boolean;
 }) {
   const [showCompanies, setShowCompanies] = useState(false);
+  const latestTicketDate = useMemo(
+    () =>
+      tickets.reduce((latest, ticket) => {
+        const opened = new Date(ticket.openedAt).getTime();
+        return Number.isFinite(opened) ? Math.max(latest, opened) : latest;
+      }, Number.NEGATIVE_INFINITY),
+    [tickets],
+  );
+  const weekStart = Number.isFinite(latestTicketDate)
+    ? addDays(startOfDay(new Date(latestTicketDate)), -6).getTime()
+    : Number.NEGATIVE_INFINITY;
+  const weekEnd = Number.isFinite(latestTicketDate)
+    ? addDays(startOfDay(new Date(latestTicketDate)), 1).getTime()
+    : Number.POSITIVE_INFINITY;
+  const weekLabel = Number.isFinite(latestTicketDate)
+    ? new Date(latestTicketDate).toLocaleDateString("pt-BR")
+    : "sem dados";
   const weeklyCompanies = useMemo(() => {
-    const weekStart = addDays(startOfDay(new Date()), -6).getTime();
     const companies = new Map<
       string,
       { company: string; nfe: number; basic: number; others: number; modules: Map<string, number> }
     >();
     tickets.forEach((ticket) => {
       const opened = new Date(ticket.openedAt).getTime();
-      if (!Number.isFinite(opened) || (!filtered && opened < weekStart)) return;
+      if (!Number.isFinite(opened) || (!filtered && (opened < weekStart || opened >= weekEnd)))
+        return;
       const company = ticketCompany(ticket);
       const current = companies.get(company) ?? {
         company,
@@ -796,7 +812,7 @@ function WeeklyBacklogCard({
           "Não informado",
       }))
       .sort((a, b) => b.total - a.total);
-  }, [tickets, filtered]);
+  }, [tickets, filtered, weekStart, weekEnd]);
   const weeklyTopCompanies = weeklyCompanies.slice(0, 6);
 
   return (
@@ -804,10 +820,12 @@ function WeeklyBacklogCard({
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h3 className="text-base font-bold text-foreground">
-            Empresas que mais ligaram {filtered ? "no período" : "na semana"}
+            Empresas que mais ligaram {filtered ? "no período" : "na última semana registrada"}
           </h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Volume de chamados por empresa e tipo de problema.
+            {filtered
+              ? "Volume de chamados por empresa e tipo de problema."
+              : `Sete dias encerrados em ${weekLabel}.`}
           </p>
         </div>
         <Button
@@ -1358,6 +1376,7 @@ function SourceModuleCard({
   modules: { label: string; total: number }[];
   tickets: SupportTicket[];
 }) {
+  const [showTopics, setShowTopics] = useState(false);
   const sourceMax = Math.max(1, ...sources.map((s) => s.total));
   const moduleMax = Math.max(1, ...modules.map((m) => m.total));
   const topSource = [...sources].sort((a, b) => b.total - a.total)[0];
@@ -1373,6 +1392,33 @@ function SourceModuleCard({
     tickets.length && topSource ? Math.round((topSource.total / tickets.length) * 100) : 0;
   const modulePct =
     tickets.length && topModule ? Math.round((topModule.total / tickets.length) * 100) : 0;
+  const moduleTopics = useMemo(() => {
+    const grouped = new Map<string, Map<string, { label: string; total: number }>>();
+    tickets.forEach((ticket) => {
+      const module = analyticsModuleLabel(ticket.module.split(" - ").pop() ?? ticket.module);
+      const label = ticket.subject?.replace(/\s+/g, " ").trim() || "Assunto não informado";
+      const key = label
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, " ")
+        .trim()
+        .toLocaleLowerCase("pt-BR");
+      const topics = grouped.get(module) ?? new Map<string, { label: string; total: number }>();
+      const current = topics.get(key) ?? { label, total: 0 };
+      current.total += 1;
+      topics.set(key, current);
+      grouped.set(module, topics);
+    });
+    return Array.from(grouped.entries())
+      .map(([module, topics]) => ({
+        module,
+        total: Array.from(topics.values()).reduce((sum, topic) => sum + topic.total, 0),
+        topics: Array.from(topics.values())
+          .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, "pt-BR"))
+          .slice(0, 3),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [tickets]);
   return (
     <Card className="rounded-[14px] border-0 bg-white dark:bg-[#20263d] p-6 shadow-[0_10px_26px_rgba(25,29,51,0.06)]">
       <div className="flex items-start justify-between">
@@ -1380,7 +1426,15 @@ function SourceModuleCard({
           <h3 className="text-base font-bold text-foreground">Origem & Módulo</h3>
           <p className="mt-1 text-xs text-muted-foreground">Canais e áreas mais acionadas.</p>
         </div>
-        <MoreVertical className="h-5 w-5 text-muted-foreground" />
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-9 cursor-pointer gap-2 px-3 text-xs font-semibold"
+          onClick={() => setShowTopics(true)}
+        >
+          <MessageSquarePlus className="h-4 w-4" />
+          Ver assuntos
+        </Button>
       </div>
 
       <div className="mt-4">
@@ -1446,6 +1500,62 @@ function SourceModuleCard({
           {topModule?.label ?? "nenhum módulo"} representa {modulePct}% das solicitações.
         </p>
       </div>
+      <Dialog open={showTopics} onOpenChange={setShowTopics}>
+        <DialogContent className="flex max-h-[86vh] max-w-4xl flex-col gap-0 overflow-hidden border border-border p-0 shadow-2xl sm:max-w-4xl sm:p-0">
+          <DialogHeader className="border-b border-border bg-muted/30 px-6 py-5 sm:px-7">
+            <div className="flex items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
+                <MessageSquarePlus className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <DialogTitle className="text-lg text-foreground">
+                  Principais assuntos por módulo
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-xs">
+                  Os três problemas mais registrados em cada módulo no período selecionado
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto bg-muted/10 px-6 py-5 sm:px-7">
+            <div className="grid gap-3 md:grid-cols-2">
+              {moduleTopics.map((item) => (
+                <article
+                  key={item.module}
+                  className="overflow-hidden rounded-md border bg-background shadow-sm"
+                >
+                  <header className="flex items-center justify-between gap-3 border-b bg-muted/30 px-4 py-3">
+                    <span className="truncate text-sm font-bold">{item.module}</span>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
+                      {item.total} chamados
+                    </span>
+                  </header>
+                  <div className="space-y-2.5 px-4 py-3">
+                    {item.topics.map((topic, index) => (
+                      <div key={`${item.module}-${topic.label}`} className="flex items-start gap-2">
+                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                          {index + 1}
+                        </span>
+                        <span className="min-w-0 flex-1 text-xs leading-relaxed text-foreground">
+                          {topic.label}
+                        </span>
+                        <span className="shrink-0 text-xs font-bold tabular-nums">
+                          {topic.total}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+          <DialogFooter className="border-t px-6 py-4 sm:px-7">
+            <Button type="button" variant="outline" onClick={() => setShowTopics(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
