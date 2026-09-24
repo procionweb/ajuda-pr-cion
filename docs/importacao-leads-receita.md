@@ -64,3 +64,18 @@ npm run import:company-leads -- --statewide --insert-only --skip-partners
 
 `CNPJ_OPENED_FROM` limita o volume por data de abertura; esta carga incremental
 não cobre empresas mais antigas dos municípios antes fora do raio de São Carlos.
+
+## Importação nacional
+
+Para incluir todos os estabelecimentos ativos do Brasil, execute por UF. O processo
+usa a competência mais recente, preserva os CNPJs já cadastrados, registra o
+resultado de cada UF em `company_lead_sync_runs` e pode ser retomado após falha:
+
+```powershell
+npm run import:company-leads:brazil -- --states=AC,AP
+```
+
+Sem `--states`, percorre as 27 UFs. Use `CNPJ_COMPETENCE` para fixar a mesma
+competência em todas as execuções. O comando precisa de `DATABASE_URL` em
+`.env.local` e usa os arquivos ZIP no cache. A carga completa exige bastante
+espaço no banco; confira a capacidade antes de executá-la em produção.

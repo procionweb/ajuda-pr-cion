@@ -19,6 +19,44 @@ const BATCH_SIZE = Math.min(1000, Math.max(100, Number(process.env.CNPJ_IMPORT_B
 const DRY_RUN = process.argv.includes("--dry-run");
 const SKIP_PARTNERS = process.argv.includes("--skip-partners");
 const STATEWIDE = process.argv.includes("--statewide");
+const requestedState =
+  process.argv
+    .find((arg) => arg.startsWith("--state="))
+    ?.slice(8)
+    .toUpperCase() || null;
+const BRAZILIAN_STATES = new Set([
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
+]);
+if (requestedState && (!BRAZILIAN_STATES.has(requestedState) || STATEWIDE)) {
+  throw new Error("Use --state=UF com uma UF válida, sem --statewide.");
+}
+const TARGET_STATE = requestedState || (STATEWIDE ? "SP" : null);
 const EXPANSION_ONLY = process.argv.includes("--expansion-only");
 const EXPAND_RADIUS = EXPANSION_ONLY || process.argv.includes("--expand-radius");
 const INSERT_ONLY = process.argv.includes("--insert-only");
@@ -142,9 +180,12 @@ async function remoteFiles() {
     .map((match) => decodeURIComponent(match[1].split("/").pop()))
     .filter(Boolean);
   if (!names.length) throw new Error(`Nenhum ZIP encontrado em ${directoryUrl}.`);
-  const wanted = names.filter((name) =>
-    /(Estabelecimentos|Empresas|Municipios|Cnaes|Naturezas|Simples|Qualificacoes|Paises)/i.test(name) ||
-    (!SKIP_PARTNERS && /Socios/i.test(name)),
+  const wanted = names.filter(
+    (name) =>
+      /(Estabelecimentos|Empresas|Municipios|Cnaes|Naturezas|Simples|Qualificacoes|Paises)/i.test(
+        name,
+      ) ||
+      (!SKIP_PARTNERS && /Socios/i.test(name)),
   );
   const downloaded = [];
   for (const [index, name] of wanted.entries()) {
@@ -328,7 +369,11 @@ async function upsertBatch(client, rows) {
 
 const files = await sourceFiles();
 console.log(`Fonte: ${SOURCE_DIR || `${BASE_URL}/${competence}`}`);
-console.log(STATEWIDE ? "Municípios-alvo: todo o estado de São Paulo" : `Municípios-alvo: ${TARGET_CITIES.length}`);
+console.log(
+  TARGET_STATE
+    ? `Municípios-alvo: toda a UF ${TARGET_STATE}`
+    : `Municípios-alvo: ${TARGET_CITIES.length}`,
+);
 if (OPENED_FROM || OPENED_TO) {
   console.log(`Abertura filtrada: ${OPENED_FROM || "início"} até ${OPENED_TO || "hoje"}`);
 }
@@ -345,9 +390,13 @@ const qualificationLookup = files.qualifications.length
 const countryLookup = files.countries.length ? await loadLookup(files.countries) : new Map();
 const targetMunicipalities = new Map();
 for (const [rfbCode, name] of municipalityLookup) {
-  if (STATEWIDE) {
-    const known = TARGET_CITY_NAMES.get(normalizeCity(name))?.find((city) => city.state === "SP");
-    targetMunicipalities.set(rfbCode, [{ ibgeCode: known?.ibgeCode || null, name, state: "SP", distanceKm: 0 }]);
+  if (TARGET_STATE) {
+    const known = TARGET_CITY_NAMES.get(normalizeCity(name))?.find(
+      (city) => city.state === TARGET_STATE,
+    );
+    targetMunicipalities.set(rfbCode, [
+      { ibgeCode: known?.ibgeCode || null, name, state: TARGET_STATE, distanceKm: 0 },
+    ]);
     continue;
   }
   const targets = TARGET_CITY_NAMES.get(normalizeCity(name));
@@ -356,7 +405,7 @@ for (const [rfbCode, name] of municipalityLookup) {
 const foundTargetCities = new Set(
   [...targetMunicipalities.values()].flatMap((targets) => targets.map(({ ibgeCode }) => ibgeCode)),
 );
-if (!STATEWIDE && foundTargetCities.size !== TARGET_CITIES.length) {
+if (!TARGET_STATE && foundTargetCities.size !== TARGET_CITIES.length) {
   const missing = TARGET_CITIES.filter(([ibgeCode]) => !foundTargetCities.has(ibgeCode)).map(
     ([, name]) => name,
   );
@@ -378,10 +427,11 @@ for (const file of files.establishments) {
     const openedAt = isoDate(row[10]);
     if (OPENED_FROM && (!openedAt || openedAt < OPENED_FROM)) return;
     if (OPENED_TO && (!openedAt || openedAt > OPENED_TO)) return;
-    if (!STATEWIDE && !EXPAND_RADIUS && municipality.distanceKm > 80) return;
-    if (!STATEWIDE && EXPANSION_ONLY && municipality.distanceKm <= 80) return;
+    if (!TARGET_STATE && !EXPAND_RADIUS && municipality.distanceKm > 80) return;
+    if (!TARGET_STATE && EXPANSION_ONLY && municipality.distanceKm <= 80) return;
     // Mantém o histórico do núcleo e limita a expansão a leads comerciais recentes.
-    if (!STATEWIDE && municipality.distanceKm > 80 && (!openedAt || openedAt < EXPANSION_CUTOFF)) return;
+    if (!TARGET_STATE && municipality.distanceKm > 80 && (!openedAt || openedAt < EXPANSION_CUTOFF))
+      return;
     const root = digits(row[0]).padStart(8, "0");
     const order = digits(row[1]).padStart(4, "0");
     const verifier = digits(row[2]).padStart(2, "0");
@@ -522,7 +572,9 @@ async function connectDatabase() {
       ssl: { rejectUnauthorized: false },
     });
     database.on("error", (error) => {
-      console.warn(`Conexão com o banco interrompida: ${error.message}. Reconectando no próximo lote.`);
+      console.warn(
+        `Conexão com o banco interrompida: ${error.message}. Reconectando no próximo lote.`,
+      );
     });
     try {
       await database.connect();
@@ -558,12 +610,14 @@ async function withReconnect(operation, attempts = 4) {
   throw lastError;
 }
 try {
-  const clientAliases = await withReconnect((database) => database.query(
-    `select id, client_id,
+  const clientAliases = await withReconnect((database) =>
+    database.query(
+      `select id, client_id,
             regexp_replace(coalesce(document, ''), '\\D', '', 'g') cnpj,
             nullif(trim(concat_ws(' ', legal_name, trade_name)), '') search_alias
        from public.client_companies`,
-  ));
+    ),
+  );
   const aliasesByCnpj = new Map(
     clientAliases.rows
       .filter(({ cnpj }) => cnpj)
@@ -586,13 +640,15 @@ try {
       values.push(code, description);
       return `($${index * 2 + 1}, $${index * 2 + 2})`;
     });
-    await withReconnect((database) => database.query(
-      `insert into public.cnae_labels (cnae_code, cnae_description)
+    await withReconnect((database) =>
+      database.query(
+        `insert into public.cnae_labels (cnae_code, cnae_description)
        values ${placeholders.join(",")}
        on conflict (cnae_code) do update
        set cnae_description = excluded.cnae_description`,
-      values,
-    ));
+        values,
+      ),
+    );
   }
 
   for (const [index, batch] of splitBatches(leads, BATCH_SIZE).entries()) {
@@ -624,8 +680,9 @@ try {
           );
           return `(${Array.from({ length: 7 }, (_, index) => `$${start + index + 1}`).join(",")})`;
         });
-        await withReconnect((database) => database.query(
-          `insert into public.company_lead_partners
+        await withReconnect((database) =>
+          database.query(
+            `insert into public.company_lead_partners
             (company_root, source_key, partner_name, partner_type, qualification, joined_at, country)
            values ${placeholders.join(",")}
            on conflict (source_key) do update set
@@ -635,8 +692,9 @@ try {
              joined_at = excluded.joined_at,
              country = excluded.country,
              updated_at = now()`,
-          values,
-        ));
+            values,
+          ),
+        );
         importedPartners += uniquePartners.length;
         partnerBatch.length = 0;
       };

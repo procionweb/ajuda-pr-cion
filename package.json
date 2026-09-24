@@ -21,6 +21,7 @@
     "import:crm-tickets": "node scripts/import-crm-tickets.mjs",
     "import:crm-modules": "node scripts/import-crm-modules.mjs",
     "import:company-leads": "node scripts/import-receita-company-leads.mjs",
+    "import:company-leads:brazil": "node --env-file=.env.local scripts/import-receita-brazil.mjs",
     "sync:company-leads": "node --env-file=.env.local scripts/sync-receita-company-leads.mjs",
     "import:company-lead-partners": "node scripts/import-receita-company-partners.mjs",
     "import:company-tax-regimes": "node scripts/import-receita-tax-regimes.mjs",
