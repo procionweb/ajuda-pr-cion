@@ -495,17 +495,13 @@
   color: var(--muted-foreground);
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .analytics-glass:hover,
-  .analytics-cockpit .analytics-kpi:hover {
+  .analytics-glass:hover {
     transform: translateY(-6px) scale(1.018);
     z-index: 3;
     border-color: #55c9ed;
     box-shadow:
       0 22px 40px rgb(3 24 51 / 30%),
       inset 0 1px rgb(255 255 255 / 30%);
-  }
-  .analytics-cockpit section > div > [class*="bg-white"]:hover {
-    transform: translateY(-4px);
   }
 }
 @media (max-width: 1250px) {

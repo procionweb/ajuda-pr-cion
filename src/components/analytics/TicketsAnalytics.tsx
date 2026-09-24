@@ -102,7 +102,7 @@ function RevenueStyleCards({
             className={cn(
               "analytics-kpi relative flex h-full min-h-[152px] overflow-hidden rounded-[28px] border-0 bg-[#f6f7f9] pl-[74px] shadow-[0_14px_34px_rgba(15,23,42,0.08)] dark:bg-[#20263d]",
               link &&
-                "cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             )}
           >
             <div
