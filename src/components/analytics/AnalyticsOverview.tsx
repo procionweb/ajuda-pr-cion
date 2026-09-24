@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useId, useMemo, type CSSProperties, type ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -48,6 +48,7 @@ export function AnalyticsOverview({
   tickets: SupportTicket[];
   rangeEnd?: string;
 }) {
+  const funnelId = useId();
   const data = useMemo(() => {
     const latest = tickets.reduce(
       (max, ticket) => Math.max(max, Date.parse(ticket.openedAt) || 0),
@@ -133,21 +134,68 @@ export function AnalyticsOverview({
       >
         <div className="analytics-funnel">
           {stages.map((stage, index) => (
-            <div className="analytics-funnel-row" key={stage.name}>
+            <div
+              className="analytics-funnel-row"
+              key={stage.name}
+              style={
+                {
+                  "--stage-color": ["#149fff", "#00cce8", "#ffa442", "#ffc541"][index],
+                } as CSSProperties
+              }
+            >
               <div
                 className="analytics-funnel-shape"
-                style={{ width: `${100 - index * 18}%`, color: colors[index < 2 ? index : 2] }}
+                style={{ width: `${100 - index * 20}%` }}
+                aria-hidden="true"
               >
-                <i />
+                <svg viewBox="0 0 180 58" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id={`${funnelId}-body-${index}`} x1="0" x2="1">
+                      <stop offset="0" stopColor="var(--stage-color)" />
+                      <stop offset="0.12" stopColor="#c5f5ff" stopOpacity="0.9" />
+                      <stop offset="0.24" stopColor="var(--stage-color)" />
+                      <stop offset="0.55" stopColor="var(--stage-color)" stopOpacity="0.38" />
+                      <stop offset="0.85" stopColor="var(--stage-color)" stopOpacity="0.8" />
+                      <stop offset="1" stopColor="#ecfaff" />
+                    </linearGradient>
+                    <linearGradient id={`${funnelId}-top-${index}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stopColor="var(--stage-color)" stopOpacity="0.35" />
+                      <stop offset="1" stopColor="var(--stage-color)" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M5 10 Q90 23 175 10 L157 47 Q90 60 23 47 Z"
+                    fill={`url(#${funnelId}-body-${index})`}
+                    stroke="var(--stage-color)"
+                    strokeWidth="1.4"
+                  />
+                  <ellipse
+                    cx="90"
+                    cy="10"
+                    rx="85"
+                    ry="8"
+                    fill={`url(#${funnelId}-top-${index})`}
+                    stroke="#b9efff"
+                    strokeWidth="1.3"
+                  />
+                  <path d="M6 11 Q90 26 174 11" fill="none" stroke="#d5faff" strokeWidth="1.5" />
+                  <path
+                    d="M24 47 Q90 60 156 47"
+                    fill="none"
+                    stroke="var(--stage-color)"
+                    strokeWidth="2"
+                  />
+                </svg>
               </div>
-              <div>
+              <div className="analytics-funnel-tag">
                 <span>{stage.name}</span>
                 <strong>{number.format(stage.value)}</strong>
               </div>
               <small>
                 {tickets.length
                   ? ((stage.value / tickets.length) * 100).toLocaleString("pt-BR", {
-                      maximumFractionDigits: 1,
+                      maximumFractionDigits:
+                        stage.value > 0 && stage.value / tickets.length < 0.001 ? 2 : 1,
                     })
                   : 0}
                 %
