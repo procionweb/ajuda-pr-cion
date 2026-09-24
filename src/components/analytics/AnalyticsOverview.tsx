@@ -1,9 +1,10 @@
 import { useId, useMemo, type CSSProperties, type ReactNode } from "react";
 import {
   Area,
-  AreaChart,
+  ComposedChart,
   CartesianGrid,
   Cell,
+  Line,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -18,6 +19,7 @@ import type { SupportTicket } from "@/lib/support-tickets-data";
 const colors = ["#119fee", "#17cfb8", "#ffba55", "#e67ba9", "#889cf5"];
 const number = new Intl.NumberFormat("pt-BR");
 const dayKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+const dailyColors = { novos: "#4aa8ff", andamento: "#33d7dd", resolvidos: "#ffae55" };
 
 function Panel({
   title,
@@ -63,7 +65,9 @@ export function AnalyticsOverview({
         days.unshift({
           key: dayKey(cursor),
           label: cursor.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+          date: cursor.toLocaleDateString("pt-BR", { day: "numeric", month: "long" }),
           novos: 0,
+          andamento: 0,
           resolvidos: 0,
         });
       cursor.setDate(cursor.getDate() - 1);
@@ -81,6 +85,8 @@ export function AnalyticsOverview({
       const day = byDay.get(dayKey(opened));
       if (day) {
         day.novos++;
+        if (["Em andamento", "Ocupado", "Com especialista"].includes(ticket.status))
+          day.andamento++;
         const hour = opened.getHours() - 7;
         if (hour >= 0 && hour < 12 && opened.getDay() >= 1 && opened.getDay() <= 5)
           heat[opened.getDay() - 1][hour]++;
@@ -208,68 +214,94 @@ export function AnalyticsOverview({
 
       <Panel
         title="Atendimentos por dia"
-        subtitle="Últimos 20 dias úteis do período"
+        subtitle="Volume de atendimentos nos últimos 20 dias úteis"
         className="analytics-daily"
       >
         <div className="analytics-chart-legend">
-          <span style={{ color: colors[0] }}>● Novos</span>
-          <span style={{ color: colors[1] }}>● Resolvidos</span>
+          <span style={{ color: dailyColors.novos }}>● Novos</span>
+          <span style={{ color: dailyColors.andamento }}>● Em andamento</span>
+          <span style={{ color: dailyColors.resolvidos }}>● Resolvidos</span>
         </div>
         <div className="analytics-daily-chart">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data.days} margin={{ top: 10, right: 8, left: -26, bottom: 0 }}>
+            <ComposedChart data={data.days} margin={{ top: 16, right: 6, left: -22, bottom: 0 }}>
               <defs>
                 <linearGradient id="overview-new" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={colors[0]} stopOpacity={0.5} />
-                  <stop offset="100%" stopColor={colors[0]} stopOpacity={0.01} />
-                </linearGradient>
-                <linearGradient id="overview-done" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={colors[1]} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={colors[1]} stopOpacity={0} />
+                  <stop offset="0%" stopColor={dailyColors.novos} stopOpacity={0.46} />
+                  <stop offset="100%" stopColor={dailyColors.novos} stopOpacity={0.04} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke="var(--analytics-grid)" vertical={false} />
+              <CartesianGrid
+                stroke="var(--analytics-grid)"
+                vertical={false}
+                strokeDasharray="2 2"
+              />
               <XAxis
                 dataKey="label"
-                tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
+                tick={{ fill: "var(--muted-foreground)", fontSize: 9 }}
                 axisLine={false}
                 tickLine={false}
                 minTickGap={20}
               />
               <YAxis
-                tick={{ fill: "var(--muted-foreground)", fontSize: 10 }}
+                tick={{ fill: "var(--muted-foreground)", fontSize: 9 }}
                 axisLine={false}
                 tickLine={false}
                 allowDecimals={false}
               />
               <Tooltip
-                contentStyle={{
-                  background: "var(--popover)",
-                  color: "var(--foreground)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                  fontSize: 12,
+                cursor={{ stroke: "var(--analytics-grid)", strokeWidth: 1 }}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const point = payload[0].payload as (typeof data.days)[number];
+                  return (
+                    <div className="analytics-daily-tooltip">
+                      <strong>{point.date}</strong>
+                      <span>
+                        <i style={{ background: dailyColors.novos }} />
+                        Novos <b>{point.novos}</b>
+                      </span>
+                      <span>
+                        <i style={{ background: dailyColors.andamento }} />
+                        Em andamento <b>{point.andamento}</b>
+                      </span>
+                      <span>
+                        <i style={{ background: dailyColors.resolvidos }} />
+                        Resolvidos <b>{point.resolvidos}</b>
+                      </span>
+                    </div>
+                  );
                 }}
               />
               <Area
                 name="Novos"
                 dataKey="novos"
                 type="monotone"
-                stroke={colors[0]}
+                stroke={dailyColors.novos}
                 fill="url(#overview-new)"
-                strokeWidth={2}
-                activeDot={{ r: 5 }}
+                strokeWidth={2.2}
+                dot={{ r: 2, fill: dailyColors.novos, strokeWidth: 0 }}
+                activeDot={{ r: 5, stroke: "var(--analytics-surface)", strokeWidth: 2 }}
               />
-              <Area
+              <Line
+                name="Em andamento"
+                dataKey="andamento"
+                type="monotone"
+                stroke={dailyColors.andamento}
+                strokeWidth={2}
+                dot={{ r: 2, fill: dailyColors.andamento, strokeWidth: 0 }}
+                activeDot={{ r: 5, stroke: "var(--analytics-surface)", strokeWidth: 2 }}
+              />
+              <Line
                 name="Resolvidos"
                 dataKey="resolvidos"
                 type="monotone"
-                stroke={colors[1]}
-                fill="url(#overview-done)"
+                stroke={dailyColors.resolvidos}
                 strokeWidth={2}
-                activeDot={{ r: 5 }}
+                dot={{ r: 2, fill: dailyColors.resolvidos, strokeWidth: 0 }}
+                activeDot={{ r: 5, stroke: "var(--analytics-surface)", strokeWidth: 2 }}
               />
-            </AreaChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       </Panel>
