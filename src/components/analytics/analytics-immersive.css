@@ -1,10 +1,10 @@
 .analytics-cockpit.analytics-cockpit {
   --analytics-grid: rgb(38 92 128 / 15%);
   --analytics-heat-base: #d7e6ef;
-  --analytics-surface: rgb(247 252 255 / 84%);
+  --analytics-surface: #fff;
   --analytics-edge: rgb(255 255 255 / 80%);
   border-radius: 8px;
-  background: #d2e5ef;
+  background: #fff;
   overflow: clip;
   padding-bottom: 12px;
 }
@@ -406,16 +406,13 @@
   font-weight: 700;
 }
 .analytics-status {
-  max-width: 74px;
+  max-width: 104px;
   flex: 0 0 auto;
   border-radius: 5px;
   padding: 4px 6px;
   font-size: 8px;
-  background: color-mix(in srgb, #f4ae43 17%, transparent);
-  color: var(--foreground);
-}
-.analytics-status.is-finished {
-  background: color-mix(in srgb, #21b997 20%, transparent);
+  border: 1px solid;
+  white-space: nowrap;
 }
 .analytics-view-all {
   display: flex;

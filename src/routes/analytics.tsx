@@ -7,7 +7,6 @@ import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TicketsAnalyticsSection } from "@/components/analytics/TicketsAnalytics";
-import { ThemeToggle } from "@/components/portal/ThemeToggle";
 import "@/components/analytics/analytics-immersive.css";
 
 const searchSchema = z.object({
@@ -159,7 +158,6 @@ function AnalyticsPage() {
                 </div>
               </div>
             </div>
-            <ThemeToggle />
           </div>
 
           <Tabs

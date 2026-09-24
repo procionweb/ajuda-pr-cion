@@ -15,6 +15,7 @@ import {
 import {
   AlertTriangle,
   Building2,
+  BookOpenText,
   CalendarClock,
   ChevronLeft,
   ChevronRight,
@@ -895,41 +896,61 @@ function WeeklyBacklogCard({
               </div>
             </div>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 border-b bg-muted/25 px-6 py-4 sm:px-7">
-            <div>
-              <p className="text-[11px] text-muted-foreground">Empresas exibidas</p>
-              <p className="text-lg font-bold">{Math.min(30, weeklyCompanies.length)}</p>
-            </div>
-            <div>
-              <p className="text-[11px] text-muted-foreground">Total de chamados</p>
-              <p className="text-lg font-bold">
+          <div className="flex flex-wrap gap-x-8 gap-y-2 border-b bg-muted/20 px-6 py-4 text-sm sm:px-7">
+            <span>
+              <strong className="mr-1 text-lg text-foreground">
+                {Math.min(30, weeklyCompanies.length)}
+              </strong>{" "}
+              empresas
+            </span>
+            <span>
+              <strong className="mr-1 text-lg text-foreground">
                 {weeklyCompanies.slice(0, 30).reduce((sum, item) => sum + item.total, 0)}
-              </p>
-            </div>
+              </strong>{" "}
+              chamados
+            </span>
           </div>
-          <div className="flex-1 overflow-y-auto px-6 py-5 sm:px-7">
-            <div className="overflow-hidden rounded-md border bg-background shadow-sm">
-              <div className="grid grid-cols-[52px_minmax(0,1fr)_90px_minmax(150px,1fr)] gap-3 bg-muted/60 px-4 py-3 text-xs font-semibold text-muted-foreground">
-                <span>#</span>
-                <span>Empresa</span>
-                <span className="text-right">Chamados</span>
-                <span>Módulo mais acionado</span>
-              </div>
-              {weeklyCompanies.slice(0, 30).map((company, index) => (
-                <div
-                  key={company.company}
-                  className="grid grid-cols-[52px_minmax(0,1fr)_90px_minmax(150px,1fr)] items-center gap-3 border-t px-4 py-3 text-sm"
-                >
-                  <span className="inline-flex items-center gap-1 font-semibold text-muted-foreground">
-                    {index < 3 && <Trophy className="h-3.5 w-3.5 text-[#e4a11b]" />}
-                    {index + 1}
-                  </span>
-                  <span className="truncate font-semibold">{company.company}</span>
-                  <span className="text-right font-semibold">{company.total}</span>
-                  <span className="truncate text-muted-foreground">{company.topModule}</span>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-3 sm:px-7">
+            {weeklyCompanies.slice(0, 30).map((company, index) => (
+              <div
+                key={company.company}
+                className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-b border-border/70 py-3 last:border-b-0 sm:grid-cols-[32px_minmax(0,1fr)_minmax(125px,0.5fr)_auto]"
+              >
+                <span className="text-sm font-semibold tabular-nums text-muted-foreground">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0">
+                  <div
+                    className="truncate text-sm font-semibold text-foreground"
+                    title={company.company}
+                  >
+                    {company.company}
+                  </div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{
+                        width: `${Math.max(3, (company.total / (weeklyCompanies[0]?.total || 1)) * 100)}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-              ))}
-            </div>
+                <span
+                  className="col-start-2 truncate text-xs text-muted-foreground sm:col-start-3"
+                  title={company.topModule}
+                >
+                  {company.topModule}
+                </span>
+                <strong className="col-start-3 row-start-1 text-right text-sm tabular-nums text-foreground sm:col-start-4">
+                  {company.total}
+                </strong>
+              </div>
+            ))}
+            {weeklyCompanies.length === 0 && (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Nenhuma empresa encontrada no período.
+              </p>
+            )}
           </div>
           <DialogFooter className="border-t px-6 py-4 sm:px-7">
             <Button type="button" variant="outline" onClick={() => setShowCompanies(false)}>
@@ -1506,7 +1527,7 @@ function SourceModuleCard({
           <DialogHeader className="border-b border-border bg-muted/30 px-6 py-5 sm:px-7">
             <div className="flex items-center gap-3">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
-                <MessageSquarePlus className="h-5 w-5" />
+                <BookOpenText className="h-5 w-5" />
               </span>
               <div className="min-w-0">
                 <DialogTitle className="text-lg text-foreground">

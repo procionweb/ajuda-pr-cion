@@ -15,6 +15,8 @@ import {
 import { ArrowUpRight, MessageCircle, Phone, Mail, Globe } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { SupportTicket } from "@/lib/support-tickets-data";
+import { ticketStatusTone } from "@/lib/ticket-status-tone";
+import { cn } from "@/lib/utils";
 
 const colors = ["#119fee", "#17cfb8", "#ffba55", "#e67ba9", "#889cf5"];
 const number = new Intl.NumberFormat("pt-BR");
@@ -386,9 +388,7 @@ export function AnalyticsOverview({
                 <p>{ticket.subject}</p>
                 <time>{new Date(ticket.updatedAt).toLocaleDateString("pt-BR")}</time>
               </div>
-              <span
-                className={`analytics-status ${ticket.status === "Finalizado" ? "is-finished" : ""}`}
-              >
+              <span className={cn("analytics-status", ticketStatusTone[ticket.status])}>
                 {ticket.status}
               </span>
             </Link>
