@@ -431,26 +431,15 @@ function KanbanPage() {
 
   const handleDragOver = (e: DragOverEvent) => {
     const targetColumn = resolveOverColumn(e.over, cards);
-    if (!targetColumn) {
-      dragPlacementRef.current = null;
-      setDragTarget(null);
-      return;
-    }
+    if (!targetColumn) return;
     const overCardId = e.over?.data.current?.type === "card" ? String(e.over.id) : undefined;
+    const previousPlacement = dragPlacementRef.current;
     const beforeCardId =
       overCardId ??
-      (dragPlacementRef.current?.columnId === targetColumn
-        ? dragPlacementRef.current.beforeCardId
-        : undefined);
+      (previousPlacement?.columnId === targetColumn ? previousPlacement.beforeCardId : undefined);
     const placement = { columnId: targetColumn, beforeCardId };
-    if (
-      dragPlacementRef.current?.columnId === placement.columnId &&
-      dragPlacementRef.current.beforeCardId === placement.beforeCardId
-    ) {
-      return;
-    }
     dragPlacementRef.current = placement;
-    setDragTarget(placement);
+    if (previousPlacement?.columnId !== targetColumn) setDragTarget(placement);
   };
 
   const handleDragEnd = (e: DragEndEvent) => {

@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useCallback, useRef } from "react";
 import { CalendarDays, MessageSquare, Paperclip } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -70,6 +70,10 @@ export function KanbanCardItem({
     transform: isDragging ? undefined : CSS.Translate.toString(transform),
     transition: isDragging ? undefined : transition,
   };
+  const actionsRef = useRef({ onClick, onArchive });
+  actionsRef.current = { onClick, onArchive };
+  const openCard = useCallback(() => actionsRef.current.onClick?.(), []);
+  const archiveCard = useCallback((item: CardType) => actionsRef.current.onArchive?.(item), []);
 
   return (
     <div
@@ -82,7 +86,7 @@ export function KanbanCardItem({
         if (isDragging) return;
         if (!e.currentTarget.contains(e.target as Node)) return;
         e.stopPropagation();
-        onClick?.();
+        openCard();
       }}
       className={cn(
         "group cursor-grab active:cursor-grabbing rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 shadow-[0_1px_1px_rgba(15,23,42,0.08)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-slate-400 hover:shadow-md dark:border-white/10 dark:bg-[#22252a] dark:text-slate-100 dark:hover:border-white/20 dark:hover:bg-[#292c31]",
@@ -94,8 +98,8 @@ export function KanbanCardItem({
         boardId={boardId}
         boardMembers={boardMembers}
         columns={columns}
-        onClick={onClick}
-        onArchive={onArchive}
+        onClick={openCard}
+        onArchive={archiveCard}
       />
     </div>
   );
