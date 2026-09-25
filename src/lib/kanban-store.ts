@@ -19,10 +19,20 @@ const persistCard = (card: KanbanCard) =>
       title: card.title,
       description: card.description ?? card.summary,
       priority: card.priority,
-      dueDate: card.dueDate,
+      dueDate:
+        card.dueDate && card.dueTime ? `${card.dueDate}T${card.dueTime}:00-03:00` : card.dueDate,
+      dueTime: card.dueTime,
+      startDate: card.startDate,
+      recurrence: card.recurrence,
+      reminder: card.reminder,
       archived: Boolean(card.archived),
       tags: card.tags,
-      memberIds: card.participants?.length ? card.participants : [card.assigneeId],
+      tagColors: card.tagColors,
+      memberIds: card.participants?.length
+        ? card.participants
+        : card.assigneeId
+          ? [card.assigneeId]
+          : [],
       client: card.client,
       module: card.module,
       type: card.type,

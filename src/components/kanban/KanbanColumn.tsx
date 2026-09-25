@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { KanbanCardItem } from "./KanbanCard";
 import type { KanbanCard, KanbanColumn } from "@/lib/kanban-data";
+import type { BoardMember } from "@/lib/kanban-api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +37,8 @@ const columnMeta: Record<string, { dot: string; text: string }> = {
 };
 
 export function KanbanColumnView({
+  boardId,
+  boardMembers = [],
   column,
   columns,
   cards,
@@ -52,6 +55,8 @@ export function KanbanColumnView({
   onToggleFollow,
   onArchiveAll,
 }: {
+  boardId?: string;
+  boardMembers?: BoardMember[];
   column: KanbanColumn;
   columns: KanbanColumn[];
   cards: KanbanCard[];
@@ -68,7 +73,6 @@ export function KanbanColumnView({
   onToggleFollow?: (column: KanbanColumn) => void;
   onArchiveAll?: (column: KanbanColumn) => void;
 }) {
-
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
     data: { type: "column", columnId: column.id },
@@ -108,17 +112,11 @@ export function KanbanColumnView({
               <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
                 Ações da lista
               </DropdownMenuLabel>
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onSelect={() => onAddCard(column.id)}
-              >
+              <DropdownMenuItem className="cursor-pointer" onSelect={() => onAddCard(column.id)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar cartão
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onSelect={() => onCopyColumn?.(column)}
-              >
+              <DropdownMenuItem className="cursor-pointer" onSelect={() => onCopyColumn?.(column)}>
                 <Copy className="mr-2 h-4 w-4" />
                 Copiar lista
               </DropdownMenuItem>
@@ -196,12 +194,13 @@ export function KanbanColumnView({
             {cards.map((c) => (
               <KanbanCardItem
                 key={c.id}
+                boardId={boardId}
+                boardMembers={boardMembers}
                 card={c}
                 columns={columns}
                 onClick={() => onCardClick(c)}
                 onArchive={onArchiveCard}
               />
-
             ))}
           </div>
         </SortableContext>

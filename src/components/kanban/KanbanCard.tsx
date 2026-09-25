@@ -3,13 +3,9 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import {
-  type KanbanCard as CardType,
-  type KanbanColumn,
-  kanbanMembers,
-} from "@/lib/kanban-data";
+import { type KanbanCard as CardType, type KanbanColumn, kanbanMembers } from "@/lib/kanban-data";
 import { KanbanCardMenu } from "./KanbanCardMenu";
-
+import type { BoardMember } from "@/lib/kanban-api";
 
 function formatDue(iso: string) {
   if (!iso) return "Sem prazo";
@@ -49,36 +45,52 @@ function getTagColor(tag: string) {
 
 export function KanbanCardItem({
   card,
+  boardId,
+  boardMembers = [],
   columns = [],
   onClick,
   onArchive,
   overlay = false,
 }: {
   card: CardType;
+  boardId?: string;
+  boardMembers?: BoardMember[];
   columns?: KanbanColumn[];
   onClick?: () => void;
   onArchive?: (card: CardType) => void;
   overlay?: boolean;
 }) {
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: card.id, data: { type: "card", card }, disabled: overlay });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: card.id,
+    data: { type: "card", card },
+    disabled: overlay,
+  });
 
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
   };
 
-  const memberIds = Array.from(new Set([...(card.participants ?? []), card.assigneeId])).filter(Boolean);
+  const memberIds = Array.from(new Set([...(card.participants ?? []), card.assigneeId])).filter(
+    Boolean,
+  );
   const members = memberIds
-    .map((id) => kanbanMembers.find((member) => member.id === id))
-    .filter((member): member is (typeof kanbanMembers)[number] => Boolean(member));
+    .map((id) => {
+      const member = boardMembers.find((item) => item.id === id);
+      if (member)
+        return {
+          ...member,
+          initials: member.name
+            .split(" ")
+            .map((part) => part[0])
+            .slice(0, 2)
+            .join("")
+            .toUpperCase(),
+          color: "bg-primary/15 text-primary",
+        };
+      return kanbanMembers.find((item) => item.id === id);
+    })
+    .filter((member): member is NonNullable<typeof member> => Boolean(member));
   const priority = getPriorityMeta(card.priority);
   const total = card.checklist?.length || (priority.label === "Alta" ? 7 : 5);
   const done =
@@ -98,7 +110,7 @@ export function KanbanCardItem({
         onClick?.();
       }}
       className={cn(
-        "group cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 shadow-[0_1px_1px_rgba(15,23,42,0.08)] transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-400 hover:shadow-md dark:border-white/10 dark:bg-[#22252a] dark:text-slate-100 dark:hover:border-white/20 dark:hover:bg-[#292c31]",
+        "group cursor-grab active:cursor-grabbing rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 shadow-[0_1px_1px_rgba(15,23,42,0.08)] transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-400 hover:shadow-md dark:border-white/10 dark:bg-[#22252a] dark:text-slate-100 dark:hover:border-white/20 dark:hover:bg-[#292c31]",
         isDragging && !overlay && "opacity-40",
         overlay && "rotate-1 shadow-2xl",
       )}
@@ -114,6 +126,7 @@ export function KanbanCardItem({
             key={t}
             title={t}
             className={cn("h-1.5 w-10 rounded-full opacity-90", getTagColor(t))}
+            style={card.tagColors?.[t] ? { backgroundColor: card.tagColors[t] } : undefined}
           />
         ))}
       </div>
@@ -124,12 +137,14 @@ export function KanbanCardItem({
             {card.title}
           </p>
           <p className="mt-1 line-clamp-1 text-[10px] text-slate-500 dark:text-slate-400">
-            {card.client} <span className="text-slate-400 dark:text-slate-600">•</span> {card.module}
+            {card.client} <span className="text-slate-400 dark:text-slate-600">•</span>{" "}
+            {card.module}
           </p>
         </div>
         <div className="flex shrink-0 items-center">
           <KanbanCardMenu
             card={card}
+            boardId={boardId}
             columns={columns}
             onOpen={onClick}
             onArchive={onArchive}
@@ -174,7 +189,7 @@ export function KanbanCardItem({
               title={member.name}
               className="h-6 w-6 border-2 border-white bg-white shadow-sm dark:border-[#22252a] dark:bg-[#22252a]"
             >
-              <AvatarImage src={member.avatarUrl} alt={member.name} />
+              <AvatarImage src={member.avatarUrl ?? undefined} alt={member.name} />
               <AvatarFallback className={cn("text-[8px] font-semibold", member.color)}>
                 {member.initials}
               </AvatarFallback>

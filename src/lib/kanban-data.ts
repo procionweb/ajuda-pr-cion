@@ -39,7 +39,12 @@ export type KanbanCard = {
   type: CardType;
   assigneeId: string;
   dueDate: string; // ISO
+  dueTime?: string;
+  startDate?: string;
+  recurrence?: string;
+  reminder?: string;
   tags: string[];
+  tagColors?: Record<string, string>;
   comments: number;
   attachments: number;
   archived?: boolean;
@@ -59,12 +64,48 @@ export type KanbanColumn = {
 };
 
 export const kanbanMembers: KanbanMember[] = [
-  { id: "u-ar", name: "PRCGGC", initials: "GG", color: "bg-primary/15 text-primary", avatarUrl: "https://i.pravatar.cc/96?img=47" },
-  { id: "u-bl", name: "Bruno Lima", initials: "BL", color: "bg-accent/20 text-accent-foreground", avatarUrl: "https://i.pravatar.cc/96?img=12" },
-  { id: "u-ms", name: "Marina Souza", initials: "MS", color: "bg-success/15 text-success", avatarUrl: "https://i.pravatar.cc/96?img=33" },
-  { id: "u-rt", name: "Rafael Torres", initials: "RT", color: "bg-warning/25 text-warning-foreground", avatarUrl: "https://i.pravatar.cc/96?img=59" },
-  { id: "u-ca", name: "Camila Alves", initials: "CA", color: "bg-primary/15 text-primary", avatarUrl: "https://i.pravatar.cc/96?img=15" },
-  { id: "u-jp", name: "João Prado", initials: "JP", color: "bg-accent/20 text-accent-foreground", avatarUrl: "https://i.pravatar.cc/96?img=52" },
+  {
+    id: "u-ar",
+    name: "PRCGGC",
+    initials: "GG",
+    color: "bg-primary/15 text-primary",
+    avatarUrl: "https://i.pravatar.cc/96?img=47",
+  },
+  {
+    id: "u-bl",
+    name: "Bruno Lima",
+    initials: "BL",
+    color: "bg-accent/20 text-accent-foreground",
+    avatarUrl: "https://i.pravatar.cc/96?img=12",
+  },
+  {
+    id: "u-ms",
+    name: "Marina Souza",
+    initials: "MS",
+    color: "bg-success/15 text-success",
+    avatarUrl: "https://i.pravatar.cc/96?img=33",
+  },
+  {
+    id: "u-rt",
+    name: "Rafael Torres",
+    initials: "RT",
+    color: "bg-warning/25 text-warning-foreground",
+    avatarUrl: "https://i.pravatar.cc/96?img=59",
+  },
+  {
+    id: "u-ca",
+    name: "Camila Alves",
+    initials: "CA",
+    color: "bg-primary/15 text-primary",
+    avatarUrl: "https://i.pravatar.cc/96?img=15",
+  },
+  {
+    id: "u-jp",
+    name: "João Prado",
+    initials: "JP",
+    color: "bg-accent/20 text-accent-foreground",
+    avatarUrl: "https://i.pravatar.cc/96?img=52",
+  },
 ];
 
 export const kanbanColumnsDef: KanbanColumn[] = [
@@ -74,7 +115,6 @@ export const kanbanColumnsDef: KanbanColumn[] = [
   { id: "homologacao", title: "Em homologação" },
   { id: "arquivado", title: "Finalizado" },
 ];
-
 
 export const kanbanClients = [
   "Vega Distribuidora",
@@ -228,7 +268,7 @@ export const initialCards: KanbanCard[] = [
   },
   {
     id: "PRC-1050",
-columnId: "em-andamento",
+    columnId: "em-andamento",
     title: "Validação de layout de boleto personalizado",
     summary: "Aguardando aprovação do time financeiro do cliente.",
     client: "Alpha Comércio",
@@ -243,7 +283,7 @@ columnId: "em-andamento",
   },
   {
     id: "PRC-1051",
-columnId: "em-andamento",
+    columnId: "em-andamento",
     title: "Confirmação de dados para migração de estoque",
     summary: "Cliente precisa validar planilha de saldo inicial dos CDs.",
     client: "Vega Distribuidora",
@@ -258,7 +298,7 @@ columnId: "em-andamento",
   },
   {
     id: "PRC-1060",
-columnId: "concluido",
+    columnId: "concluido",
     title: "Release 2026.3.1 - homologação com cliente piloto",
     summary: "Testes de emissão fiscal, kanban e pix automático.",
     client: "Órion Serviços",
@@ -273,7 +313,7 @@ columnId: "concluido",
   },
   {
     id: "PRC-1061",
-columnId: "concluido",
+    columnId: "concluido",
     title: "Pix Automático - fluxo de cobrança recorrente",
     summary: "Validando webhooks e reconciliação automática.",
     client: "Lyra Farmácias",
@@ -333,7 +373,10 @@ columnId: "concluido",
   },
 ];
 
-export const priorityMeta: Record<Priority, { badge: string; dot: string; strip: string; ring?: string }> = {
+export const priorityMeta: Record<
+  Priority,
+  { badge: string; dot: string; strip: string; ring?: string }
+> = {
   Baixa: {
     badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
     dot: "bg-emerald-500",
@@ -378,8 +421,18 @@ export const kbArticles: RelatedArticle[] = [
 ];
 
 export const kbVersions: RelatedVersion[] = [
-  { id: "V-2026.3.1", version: "2026.3.1", date: "2026-06-28", note: "Ajustes fiscais e Pix automático" },
-  { id: "V-2026.3.0", version: "2026.3.0", date: "2026-05-30", note: "Novo módulo de produção fase 2" },
+  {
+    id: "V-2026.3.1",
+    version: "2026.3.1",
+    date: "2026-06-28",
+    note: "Ajustes fiscais e Pix automático",
+  },
+  {
+    id: "V-2026.3.0",
+    version: "2026.3.0",
+    date: "2026-05-30",
+    note: "Novo módulo de produção fase 2",
+  },
   { id: "V-2026.2.4", version: "2026.2.4", date: "2026-04-12", note: "Hotfix ICMS ST / SC" },
 ];
 
@@ -421,10 +474,30 @@ enrich("PRC-1024", {
     },
   ],
   activity: [
-    { id: "ac-1", at: daysFromNow(-4) + "T10:00:00", text: "Card criado por PRCGGC", authorId: "u-ar" },
-    { id: "ac-2", at: daysFromNow(-3) + "T11:30:00", text: "Prioridade alterada de Média para Alta", authorId: "u-ar" },
-    { id: "ac-3", at: daysFromNow(-2) + "T09:15:00", text: "Responsável definido: Bruno Lima", authorId: "u-ar" },
-    { id: "ac-4", at: daysFromNow(-1) + "T16:00:00", text: "Movido de Backlog para Triagem", authorId: "u-bl" },
+    {
+      id: "ac-1",
+      at: daysFromNow(-4) + "T10:00:00",
+      text: "Card criado por PRCGGC",
+      authorId: "u-ar",
+    },
+    {
+      id: "ac-2",
+      at: daysFromNow(-3) + "T11:30:00",
+      text: "Prioridade alterada de Média para Alta",
+      authorId: "u-ar",
+    },
+    {
+      id: "ac-3",
+      at: daysFromNow(-2) + "T09:15:00",
+      text: "Responsável definido: Bruno Lima",
+      authorId: "u-ar",
+    },
+    {
+      id: "ac-4",
+      at: daysFromNow(-1) + "T16:00:00",
+      text: "Movido de Backlog para Triagem",
+      authorId: "u-bl",
+    },
   ],
   attachmentsList: [
     { id: "at-1", name: "xml-rejeitado-539.xml", size: "48 KB", kind: "xml" },
@@ -452,16 +525,20 @@ enrich("PRC-1030", {
     },
   ],
   activity: [
-    { id: "ac-1", at: daysFromNow(-2) + "T08:00:00", text: "Card criado por PRCGGC", authorId: "u-ar" },
-    { id: "ac-2", at: daysFromNow(-1) + "T09:00:00", text: "Movido para Triagem", authorId: "u-ar" },
+    {
+      id: "ac-1",
+      at: daysFromNow(-2) + "T08:00:00",
+      text: "Card criado por PRCGGC",
+      authorId: "u-ar",
+    },
+    {
+      id: "ac-2",
+      at: daysFromNow(-1) + "T09:00:00",
+      text: "Movido para Triagem",
+      authorId: "u-ar",
+    },
   ],
-  attachmentsList: [
-    { id: "at-1", name: "plano-execucao.sql", size: "3 KB", kind: "sql" },
-  ],
+  attachmentsList: [{ id: "at-1", name: "plano-execucao.sql", size: "3 KB", kind: "sql" }],
   relatedArticles: [kbArticles[2]],
   relatedVersions: [kbVersions[0]],
 });
-
-
-
-

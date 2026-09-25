@@ -22,7 +22,7 @@ async function invoke<T>(action: string, data?: unknown): Promise<T> {
 }
 
 type Wrapped<T> = { data: T } | T;
-const unwrap = <T,>(x: Wrapped<T> | undefined): T =>
+const unwrap = <T>(x: Wrapped<T> | undefined): T =>
   (x && typeof x === "object" && "data" in (x as any) ? (x as any).data : x) as T;
 
 /* ---------- Board (contents) ---------- */
@@ -87,33 +87,38 @@ export const listKanbanWorkspaces = async () => {
     return {
       workspaces: workspaces.map((workspace, index) => ({
         ...workspace,
-        boards: boards.filter((board) =>
-          board.workspaceId === workspace.id
-          || (index === 0 && (!board.workspaceId || !knownWorkspaceIds.has(board.workspaceId))),
+        boards: boards.filter(
+          (board) =>
+            board.workspaceId === workspace.id ||
+            (index === 0 && (!board.workspaceId || !knownWorkspaceIds.has(board.workspaceId))),
         ),
       })),
     };
   }
 };
 
-export const createKanbanWorkspace = (input: Wrapped<{
-  name: string;
-  slug?: string;
-  description?: string;
-  website?: string;
-  visibility?: string;
-  settings?: WorkspaceSummary["settings"];
-}>) => invoke<{ id: string }>("createWorkspace", unwrap(input));
+export const createKanbanWorkspace = (
+  input: Wrapped<{
+    name: string;
+    slug?: string;
+    description?: string;
+    website?: string;
+    visibility?: string;
+    settings?: WorkspaceSummary["settings"];
+  }>,
+) => invoke<{ id: string }>("createWorkspace", unwrap(input));
 
-export const updateKanbanWorkspace = async (input: Wrapped<{
-  id: string;
-  name?: string;
-  slug?: string;
-  description?: string;
-  website?: string;
-  visibility?: string;
-  settings?: WorkspaceSummary["settings"];
-}>) => {
+export const updateKanbanWorkspace = async (
+  input: Wrapped<{
+    id: string;
+    name?: string;
+    slug?: string;
+    description?: string;
+    website?: string;
+    visibility?: string;
+    settings?: WorkspaceSummary["settings"];
+  }>,
+) => {
   const data = unwrap(input);
   const { error } = await (supabase as any).rpc("update_kanban_workspace", {
     workspace_id: data.id,
@@ -131,22 +136,28 @@ export const updateKanbanWorkspace = async (input: Wrapped<{
 export const listWorkspaceMembers = (input: Wrapped<{ workspaceId: string }>) =>
   invoke<{ members: BoardMember[] }>("listWorkspaceMembers", unwrap(input));
 
-export const addWorkspaceMember = (input: Wrapped<{
-  workspaceId: string;
-  profileId: string;
-  role?: "admin" | "member" | "guest";
-}>) => invoke<{ ok: true }>("addWorkspaceMember", unwrap(input));
+export const addWorkspaceMember = (
+  input: Wrapped<{
+    workspaceId: string;
+    profileId: string;
+    role?: "admin" | "member" | "guest";
+  }>,
+) => invoke<{ ok: true }>("addWorkspaceMember", unwrap(input));
 
-export const updateWorkspaceMemberRole = (input: Wrapped<{
-  workspaceId: string;
-  profileId: string;
-  role: "admin" | "member" | "guest";
-}>) => invoke<{ ok: true }>("updateWorkspaceMemberRole", unwrap(input));
+export const updateWorkspaceMemberRole = (
+  input: Wrapped<{
+    workspaceId: string;
+    profileId: string;
+    role: "admin" | "member" | "guest";
+  }>,
+) => invoke<{ ok: true }>("updateWorkspaceMemberRole", unwrap(input));
 
-export const removeWorkspaceMember = (input: Wrapped<{
-  workspaceId: string;
-  profileId: string;
-}>) => invoke<{ ok: true }>("removeWorkspaceMember", unwrap(input));
+export const removeWorkspaceMember = (
+  input: Wrapped<{
+    workspaceId: string;
+    profileId: string;
+  }>,
+) => invoke<{ ok: true }>("removeWorkspaceMember", unwrap(input));
 
 export type BoardMember = {
   id: string;
@@ -169,33 +180,36 @@ export const loadKanbanBoard = async (input: Wrapped<{ boardId: string }>) => {
 export const getKanbanBoard = (input: Wrapped<{ boardId: string }>) =>
   invoke<{ board: BoardSummary | null }>("getBoard", unwrap(input));
 
-export const listKanbanBoards = () =>
-  invoke<{ boards: BoardSummary[] }>("listBoards");
+export const listKanbanBoards = () => invoke<{ boards: BoardSummary[] }>("listBoards");
 
-export const createKanbanBoard = (input: Wrapped<{
-  name: string;
-  description?: string;
-  color?: string | null;
-  cover?: string | null;
-  visibility?: string;
-  memberIds?: string[];
-  ownerId?: string | null;
-  workspaceId?: string | null;
-}>) => invoke<{ id: string }>("createBoard", unwrap(input));
+export const createKanbanBoard = (
+  input: Wrapped<{
+    name: string;
+    description?: string;
+    color?: string | null;
+    cover?: string | null;
+    visibility?: string;
+    memberIds?: string[];
+    ownerId?: string | null;
+    workspaceId?: string | null;
+  }>,
+) => invoke<{ id: string }>("createBoard", unwrap(input));
 
-export const updateKanbanBoard = (input: Wrapped<{
-  id: string;
-  name?: string;
-  description?: string;
-  color?: string | null;
-  cover?: string | null;
-  visibility?: string;
-  isFavorite?: boolean;
-  backgroundType?: "color" | "photo" | "custom";
-  backgroundValue?: string | null;
-  backgroundMode?: "cover" | "tile";
-  backgroundTextTheme?: "auto" | "light" | "dark";
-}>) => invoke<{ ok: true }>("updateBoard", unwrap(input));
+export const updateKanbanBoard = (
+  input: Wrapped<{
+    id: string;
+    name?: string;
+    description?: string;
+    color?: string | null;
+    cover?: string | null;
+    visibility?: string;
+    isFavorite?: boolean;
+    backgroundType?: "color" | "photo" | "custom";
+    backgroundValue?: string | null;
+    backgroundMode?: "cover" | "tile";
+    backgroundTextTheme?: "auto" | "light" | "dark";
+  }>,
+) => invoke<{ ok: true }>("updateBoard", unwrap(input));
 
 export type BoardInvite = {
   id: string;
@@ -213,23 +227,31 @@ export type BoardInvite = {
 export const listBoardInvites = (input: Wrapped<{ boardId: string }>) =>
   invoke<{ invites: BoardInvite[] }>("listBoardInvites", unwrap(input));
 
-export const createBoardInvite = (input: Wrapped<{
-  boardId: string;
-  type: "email" | "link";
-  email?: string;
-  role?: "admin" | "member" | "observer";
-  expiresAt?: string | null;
-  maxUses?: number | null;
-}>) => invoke<{ invite: BoardInvite; joinedExistingMember?: boolean }>("createBoardInvite", unwrap(input));
+export const createBoardInvite = (
+  input: Wrapped<{
+    boardId: string;
+    type: "email" | "link";
+    email?: string;
+    role?: "admin" | "member" | "observer";
+    expiresAt?: string | null;
+    maxUses?: number | null;
+  }>,
+) =>
+  invoke<{ invite: BoardInvite; joinedExistingMember?: boolean }>(
+    "createBoardInvite",
+    unwrap(input),
+  );
 
 export const revokeBoardInvite = (input: Wrapped<{ id: string }>) =>
   invoke<{ ok: true }>("revokeBoardInvite", unwrap(input));
 
-export const uploadBoardBackground = (input: Wrapped<{
-  boardId: string;
-  fileName: string;
-  dataUrl: string;
-}>) => invoke<{ url: string }>("uploadBoardBackground", unwrap(input));
+export const uploadBoardBackground = (
+  input: Wrapped<{
+    boardId: string;
+    fileName: string;
+    dataUrl: string;
+  }>,
+) => invoke<{ url: string }>("uploadBoardBackground", unwrap(input));
 
 export const duplicateKanbanBoard = (input: Wrapped<{ id: string }>) =>
   invoke<{ id: string }>("duplicateBoard", unwrap(input));
@@ -248,38 +270,47 @@ export const listAvailableMembers = (input?: Wrapped<{ query?: string }>) =>
 export const listBoardMembers = (input: Wrapped<{ boardId: string }>) =>
   invoke<{ members: BoardMember[] }>("listBoardMembers", unwrap(input));
 
-export const addBoardMember = (input: Wrapped<{ boardId: string; profileId: string; role?: string }>) =>
-  invoke<{ ok: true }>("addBoardMember", unwrap(input));
+export const addBoardMember = (
+  input: Wrapped<{ boardId: string; profileId: string; role?: string }>,
+) => invoke<{ ok: true }>("addBoardMember", unwrap(input));
 
-export const updateBoardMemberRole = (input: Wrapped<{ boardId: string; profileId: string; role: string }>) =>
-  invoke<{ ok: true }>("updateBoardMemberRole", unwrap(input));
+export const updateBoardMemberRole = (
+  input: Wrapped<{ boardId: string; profileId: string; role: string }>,
+) => invoke<{ ok: true }>("updateBoardMemberRole", unwrap(input));
 
 export const removeBoardMember = (input: Wrapped<{ boardId: string; profileId: string }>) =>
   invoke<{ ok: true }>("removeBoardMember", unwrap(input));
 
 /* ---------- Cards & Columns ---------- */
 
-export const saveKanbanCard = async (input: Wrapped<{
-  id?: string;
-  columnId: string;
-  title: string;
-  description?: string;
-  priority?: string;
-  dueDate?: string;
-  archived?: boolean;
-  tags?: string[];
-  memberIds?: string[];
-  client?: string;
-  module?: string;
-  type?: string;
-  summary?: string;
-  checklist?: Array<{ id: string; text: string; done: boolean; checklistTitle?: string }>;
-  commentsList?: Array<{ id: string; authorId: string; at: string; text: string }>;
-  attachmentsList?: Array<{ id: string; name: string; size: string; kind: string; url?: string }>;
-  activity?: Array<{ id: string; at: string; text: string; authorId?: string }>;
-  relatedArticles?: Array<{ id: string; title: string; category: string }>;
-  relatedVersions?: Array<{ id: string; version: string; date: string; note: string }>;
-}>) => {
+export const saveKanbanCard = async (
+  input: Wrapped<{
+    id?: string;
+    columnId: string;
+    title: string;
+    description?: string;
+    priority?: string;
+    dueDate?: string;
+    dueTime?: string;
+    startDate?: string;
+    recurrence?: string;
+    reminder?: string;
+    archived?: boolean;
+    tags?: string[];
+    tagColors?: Record<string, string>;
+    memberIds?: string[];
+    client?: string;
+    module?: string;
+    type?: string;
+    summary?: string;
+    checklist?: Array<{ id: string; text: string; done: boolean; checklistTitle?: string }>;
+    commentsList?: Array<{ id: string; authorId: string; at: string; text: string }>;
+    attachmentsList?: Array<{ id: string; name: string; size: string; kind: string; url?: string }>;
+    activity?: Array<{ id: string; at: string; text: string; authorId?: string }>;
+    relatedArticles?: Array<{ id: string; title: string; category: string }>;
+    relatedVersions?: Array<{ id: string; version: string; date: string; note: string }>;
+  }>,
+) => {
   const payload = unwrap(input);
   const { data, error } = await supabase.rpc("save_kanban_card_payload_v2", {
     payload,
@@ -292,11 +323,13 @@ export const saveKanbanCard = async (input: Wrapped<{
   return data as { id: string };
 };
 
-export const moveKanbanCard = (input: Wrapped<{
-  cardId: string;
-  columnId: string;
-  beforeCardId?: string;
-}>) => invoke<{ ok: true }>("moveCard", unwrap(input));
+export const moveKanbanCard = (
+  input: Wrapped<{
+    cardId: string;
+    columnId: string;
+    beforeCardId?: string;
+  }>,
+) => invoke<{ ok: true }>("moveCard", unwrap(input));
 
 export const deleteKanbanCard = (input: Wrapped<{ id: string }>) =>
   invoke<{ ok: true }>("deleteCard", unwrap(input));

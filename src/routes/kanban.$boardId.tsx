@@ -15,12 +15,7 @@ import {
   type DragOverEvent,
 } from "@dnd-kit/core";
 import { Columns3, Trash2 as TrashIcon, Archive as ArchiveIcon } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,14 +51,12 @@ import {
   moveKanbanCard,
   reorderKanbanColumns,
   type BoardSummary,
+  type BoardMember,
+  listBoardMembers,
 } from "@/lib/kanban-api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectTrigger,
@@ -94,7 +87,6 @@ import {
 } from "@/lib/kanban-data";
 
 const CURRENT_USER_ID = "u-ar";
-
 
 export const Route = createFileRoute("/kanban/$boardId")({
   head: () => ({
@@ -191,6 +183,7 @@ function KanbanPage() {
   const [boardId, setBoardId] = useState<string | null>(boardIdParam ?? null);
   const [boardName, setBoardName] = useState<string>("");
   const [boardSummary, setBoardSummary] = useState<BoardSummary | null>(null);
+  const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
   const [loadingBoard, setLoadingBoard] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -200,6 +193,7 @@ function KanbanPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [activeCard, setActiveCard] = useState<KanbanCard | null>(null);
+  useEffect(() => () => document.body.classList.remove("kanban-card-dragging"), []);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<"edit" | "create">("edit");
   const [drawerCard, setDrawerCard] = useState<KanbanCard | null>(null);
@@ -217,6 +211,18 @@ function KanbanPage() {
   const lastOverColumnRef = useRef<ColumnId | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  useEffect(() => {
+    if (!boardId) return;
+    let active = true;
+    void listBoardMembers({ boardId })
+      .then(({ members }) => {
+        if (active) setBoardMembers(members);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [boardId, reloadKey]);
   const activeFilterCount =
     Object.values(filters).filter((v) => v !== "all").length + (onlyMine ? 1 : 0);
 
@@ -230,7 +236,10 @@ function KanbanPage() {
     let active = true;
     setLoadingBoard(true);
     setLoadError(false);
-    Promise.all([loadKanbanBoard({ data: { boardId: boardIdParam } }), getKanbanBoard({ boardId: boardIdParam })])
+    Promise.all([
+      loadKanbanBoard({ data: { boardId: boardIdParam } }),
+      getKanbanBoard({ boardId: boardIdParam }),
+    ])
       .then(([result, summary]) => {
         if (!active || !result.board) {
           if (active) setLoadError(true);
@@ -267,8 +276,7 @@ function KanbanPage() {
       if (c.archived && c.columnId !== "arquivado") return false;
       if (onlyMine) {
         const isMine =
-          c.assigneeId === CURRENT_USER_ID ||
-          (c.participants ?? []).includes(CURRENT_USER_ID);
+          c.assigneeId === CURRENT_USER_ID || (c.participants ?? []).includes(CURRENT_USER_ID);
         if (!isMine) return false;
       }
       if (filters.client !== "all" && c.client !== filters.client) return false;
@@ -309,8 +317,6 @@ function KanbanPage() {
     });
   }, [cards, query, filters, onlyMine, columns]);
 
-
-
   const cardsByColumn = useMemo(() => {
     const grouped = Object.fromEntries(
       columns.map((col) => [col.id, [] as KanbanCard[]]),
@@ -322,10 +328,10 @@ function KanbanPage() {
     return grouped;
   }, [filteredCards, columns]);
 
-
   const handleDragStart = (e: DragStartEvent) => {
     const c = cards.find((x) => x.id === e.active.id);
     if (c) setActiveCard(c);
+    if (c) document.body.classList.add("kanban-card-dragging");
     lastOverColumnRef.current = c?.columnId ?? null;
   };
 
@@ -352,11 +358,7 @@ function KanbanPage() {
     if (overColumn) lastOverColumnRef.current = overColumn;
   };
 
-  const moveCardToColumn = (
-    activeId: string,
-    targetColumn: ColumnId,
-    overCardId?: string,
-  ) => {
+  const moveCardToColumn = (activeId: string, targetColumn: ColumnId, overCardId?: string) => {
     setCards((prev) => {
       const activeIdx = prev.findIndex((c) => c.id === activeId);
       if (activeIdx === -1) return prev;
@@ -379,7 +381,10 @@ function KanbanPage() {
 
       let lastTargetIdx = -1;
       for (let i = withoutMoved.length - 1; i >= 0; i--) {
-        if (withoutMoved[i].columnId === targetColumn) { lastTargetIdx = i; break; }
+        if (withoutMoved[i].columnId === targetColumn) {
+          lastTargetIdx = i;
+          break;
+        }
       }
       const next = [...withoutMoved];
       next.splice(lastTargetIdx === -1 ? next.length : lastTargetIdx + 1, 0, movedCard);
@@ -390,6 +395,7 @@ function KanbanPage() {
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     setActiveCard(null);
+    document.body.classList.remove("kanban-card-dragging");
     const targetColumn = resolveOverColumn(over, cards) ?? lastOverColumnRef.current;
     const overCardId = over?.data.current?.type === "card" ? String(over.id) : undefined;
     lastOverColumnRef.current = null;
@@ -400,18 +406,20 @@ function KanbanPage() {
         data: {
           cardId: String(active.id),
           columnId: targetColumn,
-          beforeCardId:
-            overCardId && /^[0-9a-f-]{36}$/i.test(overCardId) ? overCardId : undefined,
+          beforeCardId: overCardId && /^[0-9a-f-]{36}$/i.test(overCardId) ? overCardId : undefined,
         },
       }).catch(() => {
         toast.error("Não foi possível salvar a movimentação");
-        void loadKanbanBoard({ data: { boardId: boardIdParam } }).then((result) => kanbanStore.hydrate(result.cards as KanbanCard[]));
+        void loadKanbanBoard({ data: { boardId: boardIdParam } }).then((result) =>
+          kanbanStore.hydrate(result.cards as KanbanCard[]),
+        );
       });
     }
   };
 
   const handleDragCancel = () => {
     setActiveCard(null);
+    document.body.classList.remove("kanban-card-dragging");
     lastOverColumnRef.current = null;
   };
 
@@ -422,9 +430,7 @@ function KanbanPage() {
   };
 
   const handleArchiveCard = (card: KanbanCard) => {
-    const archiveColumn = columns.find((column) =>
-      /arquiv|finaliz/i.test(column.title),
-    );
+    const archiveColumn = columns.find((column) => /arquiv|finaliz/i.test(column.title));
     kanbanStore.updateCard({
       ...card,
       columnId: archiveColumn?.id ?? card.columnId,
@@ -554,9 +560,7 @@ function KanbanPage() {
     try {
       const result = await archiveKanbanColumnCards({ data: { columnId: target.id } });
       setCards((prev) =>
-        prev.map((card) =>
-          card.columnId === target.id ? { ...card, archived: true } : card,
-        ),
+        prev.map((card) => (card.columnId === target.id ? { ...card, archived: true } : card)),
       );
       setArchiveTarget(null);
       toast.success(`${result.count} cartão(ões) arquivado(s)`);
@@ -582,19 +586,35 @@ function KanbanPage() {
   const clearFilters = () => setFilters(emptyFilters);
   const getColumnCount = (id: ColumnId) => cardsByColumn[id]?.length ?? 0;
   const hasBgImage = !!boardSummary?.backgroundValue && boardSummary?.backgroundType !== "color";
-  const boardBackgroundStyle = boardSummary?.backgroundType === "color" && boardSummary.backgroundValue
-    ? { backgroundColor: boardSummary.backgroundValue }
-    : boardSummary?.backgroundValue
-      ? { backgroundImage: `linear-gradient(rgba(15,23,42,.18),rgba(15,23,42,.18)), url(${boardSummary.backgroundValue})`, backgroundSize: boardSummary.backgroundMode === "tile" ? "auto" : "cover", backgroundPosition: "center", backgroundRepeat: boardSummary.backgroundMode === "tile" ? "repeat" : "no-repeat" }
-      : undefined;
+  const boardBackgroundStyle =
+    boardSummary?.backgroundType === "color" && boardSummary.backgroundValue
+      ? { backgroundColor: boardSummary.backgroundValue }
+      : boardSummary?.backgroundValue
+        ? {
+            backgroundImage: `linear-gradient(rgba(15,23,42,.18),rgba(15,23,42,.18)), url(${boardSummary.backgroundValue})`,
+            backgroundSize: boardSummary.backgroundMode === "tile" ? "auto" : "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: boardSummary.backgroundMode === "tile" ? "repeat" : "no-repeat",
+          }
+        : undefined;
   const hasPhotoBackground = Boolean(
     boardSummary?.backgroundValue && boardSummary.backgroundType !== "color",
   );
 
   return (
     <AppShell fullWidth={hasPhotoBackground}>
-      <div style={boardBackgroundStyle} className="min-h-[calc(100vh-92px)] overflow-hidden rounded-[18px] border border-slate-300 bg-slate-200 p-4 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#10151f] dark:text-slate-100 dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-        <div className={cn("mb-3 flex flex-col gap-3 rounded-xl border px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between", hasBgImage ? "border-white/20 bg-white/70 backdrop-blur-md dark:border-white/10 dark:bg-slate-900/55" : "border-slate-300 bg-slate-50 dark:border-white/8 dark:bg-[#1e2633]")}>
+      <div
+        style={boardBackgroundStyle}
+        className="min-h-[calc(100vh-92px)] overflow-hidden rounded-[18px] border border-slate-300 bg-slate-200 p-4 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#10151f] dark:text-slate-100 dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
+      >
+        <div
+          className={cn(
+            "mb-3 flex flex-col gap-3 rounded-xl border px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between",
+            hasBgImage
+              ? "border-white/20 bg-white/70 backdrop-blur-md dark:border-white/10 dark:bg-slate-900/55"
+              : "border-slate-300 bg-slate-50 dark:border-white/8 dark:bg-[#1e2633]",
+          )}
+        >
           <div className="min-w-0 shrink-0 lg:max-w-[260px]">
             <Link
               to="/kanban"
@@ -610,7 +630,6 @@ function KanbanPage() {
 
           <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 lg:flex-nowrap">
             <div className="relative h-9 min-w-[170px] flex-1 lg:max-w-[280px]">
-
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input
                 value={query}
@@ -624,47 +643,125 @@ function KanbanPage() {
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="relative h-9 w-9 shrink-0 cursor-pointer rounded-lg border-slate-200 bg-white p-0 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.035] dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white" title="Filtros" aria-label="Abrir filtros">
+                <Button
+                  variant="outline"
+                  className="relative h-9 w-9 shrink-0 cursor-pointer rounded-lg border-slate-200 bg-white p-0 text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.035] dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white"
+                  title="Filtros"
+                  aria-label="Abrir filtros"
+                >
                   <Filter className="h-4 w-4" />
-                  {activeFilterCount > 0 && <Badge className="absolute -right-1.5 -top-1.5 h-4 min-w-4 bg-primary px-1 text-[9px]">{activeFilterCount}</Badge>}
+                  {activeFilterCount > 0 && (
+                    <Badge className="absolute -right-1.5 -top-1.5 h-4 min-w-4 bg-primary px-1 text-[9px]">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="app-scrollbar max-h-[min(620px,calc(100dvh-120px))] w-80 overflow-y-auto p-0" align="end">
+              <PopoverContent
+                className="app-scrollbar max-h-[min(620px,calc(100dvh-120px))] w-80 overflow-y-auto p-0"
+                align="end"
+              >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="sticky top-0 z-10 flex w-full items-center justify-between border-b bg-popover px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold">Filtrar cartões</p>
-                      <p className="text-[11px] text-muted-foreground">Combine critérios para refinar o quadro.</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Combine critérios para refinar o quadro.
+                      </p>
                     </div>
-                  {activeFilterCount > 0 && (
-                    <button onClick={clearFilters} className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-                      Limpar
-                    </button>
-                  )}
+                    {activeFilterCount > 0 && (
+                      <button
+                        onClick={clearFilters}
+                        className="cursor-pointer text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Limpar
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-4 px-4 pb-4">
                   <div className="rounded-lg border bg-muted/30 p-3">
-                    <p className="mb-2 text-[11px] font-semibold uppercase text-muted-foreground">Conclusão</p>
+                    <p className="mb-2 text-[11px] font-semibold uppercase text-muted-foreground">
+                      Conclusão
+                    </p>
                     <div className="grid grid-cols-2 gap-2">
                       <FilterChoiceButton
                         active={filters.completion === "open"}
                         label="Em aberto"
-                        onClick={() => setFilters({ ...filters, completion: filters.completion === "open" ? "all" : "open" })}
+                        onClick={() =>
+                          setFilters({
+                            ...filters,
+                            completion: filters.completion === "open" ? "all" : "open",
+                          })
+                        }
                       />
                       <FilterChoiceButton
                         active={filters.completion === "completed"}
                         label="Concluídos"
-                        onClick={() => setFilters({ ...filters, completion: filters.completion === "completed" ? "all" : "completed" })}
+                        onClick={() =>
+                          setFilters({
+                            ...filters,
+                            completion: filters.completion === "completed" ? "all" : "completed",
+                          })
+                        }
                       />
                     </div>
                   </div>
-                  <FilterSelect label="Cliente" value={filters.client} onChange={(v) => setFilters({ ...filters, client: v })} options={[{ value: "all", label: "Todos" }, { value: "Interno", label: "Interno" }, ...kanbanClients.map((c) => ({ value: c, label: c }))]} />
-                  <FilterSelect label="Responsável" value={filters.assignee} onChange={(v) => setFilters({ ...filters, assignee: v })} options={[{ value: "all", label: "Todos" }, ...kanbanMembers.map((m) => ({ value: m.id, label: m.name }))]} />
-                  <FilterSelect label="Prioridade" value={filters.priority} onChange={(v) => setFilters({ ...filters, priority: v as Priority | "all" })} options={[{ value: "all", label: "Todas" }, ...priorities.map((p) => ({ value: p, label: p }))]} />
-                  <FilterSelect label="Tipo" value={filters.type} onChange={(v) => setFilters({ ...filters, type: v as CardType | "all" })} options={[{ value: "all", label: "Todos" }, ...cardTypes.map((t) => ({ value: t, label: t }))]} />
-                  <FilterSelect label="Status" value={filters.status} onChange={(v) => setFilters({ ...filters, status: v })} options={[{ value: "all", label: "Todos" }, ...columns.map((c) => ({ value: c.id, label: c.title }))]} />
-                  <FilterSelect label="Etiqueta" value={filters.tag} onChange={(v) => setFilters({ ...filters, tag: v })} options={[{ value: "all", label: "Todas" }, ...allTags.map((t) => ({ value: t, label: t }))]} />
+                  <FilterSelect
+                    label="Cliente"
+                    value={filters.client}
+                    onChange={(v) => setFilters({ ...filters, client: v })}
+                    options={[
+                      { value: "all", label: "Todos" },
+                      { value: "Interno", label: "Interno" },
+                      ...kanbanClients.map((c) => ({ value: c, label: c })),
+                    ]}
+                  />
+                  <FilterSelect
+                    label="Responsável"
+                    value={filters.assignee}
+                    onChange={(v) => setFilters({ ...filters, assignee: v })}
+                    options={[
+                      { value: "all", label: "Todos" },
+                      ...kanbanMembers.map((m) => ({ value: m.id, label: m.name })),
+                    ]}
+                  />
+                  <FilterSelect
+                    label="Prioridade"
+                    value={filters.priority}
+                    onChange={(v) => setFilters({ ...filters, priority: v as Priority | "all" })}
+                    options={[
+                      { value: "all", label: "Todas" },
+                      ...priorities.map((p) => ({ value: p, label: p })),
+                    ]}
+                  />
+                  <FilterSelect
+                    label="Tipo"
+                    value={filters.type}
+                    onChange={(v) => setFilters({ ...filters, type: v as CardType | "all" })}
+                    options={[
+                      { value: "all", label: "Todos" },
+                      ...cardTypes.map((t) => ({ value: t, label: t })),
+                    ]}
+                  />
+                  <FilterSelect
+                    label="Status"
+                    value={filters.status}
+                    onChange={(v) => setFilters({ ...filters, status: v })}
+                    options={[
+                      { value: "all", label: "Todos" },
+                      ...columns.map((c) => ({ value: c.id, label: c.title })),
+                    ]}
+                  />
+                  <FilterSelect
+                    label="Etiqueta"
+                    value={filters.tag}
+                    onChange={(v) => setFilters({ ...filters, tag: v })}
+                    options={[
+                      { value: "all", label: "Todas" },
+                      ...allTags.map((t) => ({ value: t, label: t })),
+                    ]}
+                  />
                   <FilterSelect
                     label="Prazo"
                     value={filters.due}
@@ -705,14 +802,37 @@ function KanbanPage() {
             </button>
 
             <div className="inline-flex h-9 shrink-0 items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 dark:border-white/8 dark:bg-white/[0.035]">
-              <ViewToggleButton active={viewMode === "kanban"} onClick={() => setViewMode("kanban")} icon={LayoutGrid} label="Kanban" />
-              <ViewToggleButton active={viewMode === "inbox"} onClick={() => setViewMode("inbox")} icon={Inbox} label="Caixa de entrada" />
-              <ViewToggleButton active={viewMode === "planner"} onClick={() => setViewMode("planner")} icon={CalendarDays} label="Planejador" />
-              <ViewToggleButton active={viewMode === "list"} onClick={() => setViewMode("list")} icon={List} label="Lista" />
+              <ViewToggleButton
+                active={viewMode === "kanban"}
+                onClick={() => setViewMode("kanban")}
+                icon={LayoutGrid}
+                label="Kanban"
+              />
+              <ViewToggleButton
+                active={viewMode === "inbox"}
+                onClick={() => setViewMode("inbox")}
+                icon={Inbox}
+                label="Caixa de entrada"
+              />
+              <ViewToggleButton
+                active={viewMode === "planner"}
+                onClick={() => setViewMode("planner")}
+                icon={CalendarDays}
+                label="Planejador"
+              />
+              <ViewToggleButton
+                active={viewMode === "list"}
+                onClick={() => setViewMode("list")}
+                icon={List}
+                label="Lista"
+              />
             </div>
 
             <button
-              onClick={() => { setCollaborationTab("share"); setCollaborationOpen(true); }}
+              onClick={() => {
+                setCollaborationTab("share");
+                setCollaborationOpen(true);
+              }}
               className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.08] dark:text-slate-200 dark:hover:bg-white/15"
               aria-label="Compartilhar quadro"
               title="Compartilhar"
@@ -720,7 +840,10 @@ function KanbanPage() {
               <Users className="h-4 w-4" />
             </button>
             <button
-              onClick={() => { setCollaborationTab("background"); setCollaborationOpen(true); }}
+              onClick={() => {
+                setCollaborationTab("background");
+                setCollaborationOpen(true);
+              }}
               className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.08] dark:text-slate-200 dark:hover:bg-white/15"
               aria-label="Alterar fundo do quadro"
               title="Alterar fundo"
@@ -734,11 +857,16 @@ function KanbanPage() {
             >
               <BarChart3 className="h-4 w-4" />
             </button>
-            <button className="relative grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.035] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white" title="Notificações" aria-label="Abrir notificações">
+            <button
+              className="relative grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.035] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+              title="Notificações"
+              aria-label="Abrir notificações"
+            >
               <Bell className="h-4 w-4" />
-              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">3</span>
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">
+                3
+              </span>
             </button>
-
           </div>
         </div>
 
@@ -793,6 +921,8 @@ function KanbanPage() {
                   {columns.map((col, idx) => (
                     <KanbanColumnView
                       key={col.id}
+                      boardId={boardId ?? undefined}
+                      boardMembers={boardMembers}
                       column={col}
                       columns={columns}
                       cards={cardsByColumn[col.id]}
@@ -817,7 +947,6 @@ function KanbanPage() {
                     <Plus className="h-3.5 w-3.5" />
                     Adicionar outra lista
                   </button>
-
                 </div>
               </div>
             </div>
@@ -826,7 +955,11 @@ function KanbanPage() {
               <Tabs value={mobileColumn} onValueChange={(v) => setMobileColumn(v as ColumnId)}>
                 <TabsList className="mb-3 flex h-auto w-full justify-start overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-white/6">
                   {columns.map((c) => (
-                    <TabsTrigger key={c.id} value={c.id} className="cursor-pointer whitespace-nowrap text-xs text-slate-600 data-[state=active]:bg-white data-[state=active]:text-slate-900 dark:text-slate-300 dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-white">
+                    <TabsTrigger
+                      key={c.id}
+                      value={c.id}
+                      className="cursor-pointer whitespace-nowrap text-xs text-slate-600 data-[state=active]:bg-white data-[state=active]:text-slate-900 dark:text-slate-300 dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-white"
+                    >
                       {c.title}
                       <span className="ml-1.5 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] dark:border-white/10 dark:bg-white/10">
                         {cardsByColumn[c.id]?.length ?? 0}
@@ -842,6 +975,8 @@ function KanbanPage() {
                   return (
                     <KanbanColumnView
                       key={col.id}
+                      boardId={boardId ?? undefined}
+                      boardMembers={boardMembers}
                       column={col}
                       columns={columns}
                       cards={cardsByColumn[col.id]}
@@ -867,15 +1002,11 @@ function KanbanPage() {
                 <Plus className="h-3.5 w-3.5" />
                 Adicionar outra lista
               </button>
-
             </div>
 
-            <DragOverlay>
-              {activeCard && <KanbanCardItem card={activeCard} overlay />}
-            </DragOverlay>
+            <DragOverlay>{activeCard && <KanbanCardItem card={activeCard} overlay />}</DragOverlay>
           </DndContext>
         )}
-
       </div>
 
       <KanbanCardDrawer
@@ -924,7 +1055,6 @@ function KanbanPage() {
             onClose={() => setNewColumnOpen(false)}
           />
           <div className="space-y-2 px-5 py-4">
-
             <label htmlFor="new-column-name" className="text-xs font-medium text-muted-foreground">
               Nome da coluna
             </label>
@@ -977,7 +1107,6 @@ function KanbanPage() {
             iconWrapClassName="bg-destructive text-destructive-foreground"
           />
           <DialogFooter showClose={false} className="border-t border-border bg-card px-5 py-3">
-
             <Button
               variant="outline"
               className="cursor-pointer"
@@ -985,11 +1114,7 @@ function KanbanPage() {
             >
               Cancelar
             </Button>
-            <Button
-              variant="destructive"
-              className="cursor-pointer"
-              onClick={confirmDeleteColumn}
-            >
+            <Button variant="destructive" className="cursor-pointer" onClick={confirmDeleteColumn}>
               Excluir coluna
             </Button>
           </DialogFooter>
@@ -1007,8 +1132,11 @@ function KanbanPage() {
             onClose={() => setArchiveTarget(null)}
           />
           <DialogFooter className="border-t border-border bg-card px-5 py-3">
-
-            <Button variant="outline" className="cursor-pointer" onClick={() => setArchiveTarget(null)}>
+            <Button
+              variant="outline"
+              className="cursor-pointer"
+              onClick={() => setArchiveTarget(null)}
+            >
               Cancelar
             </Button>
             <Button className="cursor-pointer" onClick={confirmArchiveColumnCards}>
@@ -1033,8 +1161,9 @@ function KanbanInboxView({
   onCreateCard: () => void;
 }) {
   const firstColumnId = columns[0]?.id;
-  const inboxCards = cards.filter((card) =>
-    !card.archived && (card.columnId === firstColumnId || !card.dueDate || !card.assigneeId),
+  const inboxCards = cards.filter(
+    (card) =>
+      !card.archived && (card.columnId === firstColumnId || !card.dueDate || !card.assigneeId),
   );
 
   return (
@@ -1042,35 +1171,82 @@ function KanbanInboxView({
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.035]">
         <div className="flex items-center justify-between border-b px-5 py-4 dark:border-white/8">
           <div>
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white"><Inbox className="h-4 w-4 text-primary" />Caixa de entrada</h2>
-            <p className="mt-1 text-xs text-slate-500">Cartões novos ou que ainda precisam de organização.</p>
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+              <Inbox className="h-4 w-4 text-primary" />
+              Caixa de entrada
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Cartões novos ou que ainda precisam de organização.
+            </p>
           </div>
-          <Button size="sm" className="cursor-pointer" onClick={onCreateCard}><Plus className="mr-1.5 h-4 w-4" />Adicionar</Button>
+          <Button size="sm" className="cursor-pointer" onClick={onCreateCard}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Adicionar
+          </Button>
         </div>
         <div className="app-scrollbar max-h-[calc(100dvh-310px)] space-y-2 overflow-y-auto p-4">
-          {inboxCards.length ? inboxCards.map((card) => {
-            const member = kanbanMembers.find((item) => item.id === card.assigneeId);
-            return (
-              <button key={card.id} type="button" onClick={() => onOpenCard(card)} className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 text-left transition hover:border-primary/30 hover:bg-primary/[0.035] dark:border-white/10 dark:hover:bg-white/[0.05]">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Inbox className="h-4 w-4" /></span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-slate-900 dark:text-white">{card.title}</span>
-                  <span className="mt-0.5 block truncate text-xs text-slate-500">{card.client} · {card.module}</span>
-                </span>
-                <span className="hidden rounded-full bg-slate-100 px-2 py-1 text-[10px] text-slate-600 dark:bg-white/8 dark:text-slate-300 sm:inline-flex">{card.priority}</span>
-                <span className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold", member?.color ?? "bg-slate-100 text-slate-600")}>{member?.initials ?? "--"}</span>
-              </button>
-            );
-          }) : <EmptyKanbanView message="A caixa de entrada está organizada." />}
+          {inboxCards.length ? (
+            inboxCards.map((card) => {
+              const member = kanbanMembers.find((item) => item.id === card.assigneeId);
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => onOpenCard(card)}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 text-left transition hover:border-primary/30 hover:bg-primary/[0.035] dark:border-white/10 dark:hover:bg-white/[0.05]"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                    <Inbox className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-slate-900 dark:text-white">
+                      {card.title}
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs text-slate-500">
+                      {card.client} · {card.module}
+                    </span>
+                  </span>
+                  <span className="hidden rounded-full bg-slate-100 px-2 py-1 text-[10px] text-slate-600 dark:bg-white/8 dark:text-slate-300 sm:inline-flex">
+                    {card.priority}
+                  </span>
+                  <span
+                    className={cn(
+                      "grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold",
+                      member?.color ?? "bg-slate-100 text-slate-600",
+                    )}
+                  >
+                    {member?.initials ?? "--"}
+                  </span>
+                </button>
+              );
+            })
+          ) : (
+            <EmptyKanbanView message="A caixa de entrada está organizada." />
+          )}
         </div>
       </section>
       <aside className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.035]">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Triagem rápida</h3>
-        <p className="mt-2 text-xs leading-5 text-slate-500">Abra um cartão para definir responsável, prioridade, prazo, etiquetas e a lista correta.</p>
+        <p className="mt-2 text-xs leading-5 text-slate-500">
+          Abra um cartão para definir responsável, prioridade, prazo, etiquetas e a lista correta.
+        </p>
         <div className="mt-5 space-y-3 text-xs">
-          <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-white/[0.04]"><span className="text-slate-500">Aguardando triagem</span><strong className="text-slate-900 dark:text-white">{inboxCards.length}</strong></div>
-          <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-white/[0.04]"><span className="text-slate-500">Sem prazo</span><strong className="text-slate-900 dark:text-white">{cards.filter((card) => !card.dueDate).length}</strong></div>
-          <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-white/[0.04]"><span className="text-slate-500">Alta prioridade</span><strong className="text-rose-500">{inboxCards.filter((card) => card.priority === "Alta").length}</strong></div>
+          <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-white/[0.04]">
+            <span className="text-slate-500">Aguardando triagem</span>
+            <strong className="text-slate-900 dark:text-white">{inboxCards.length}</strong>
+          </div>
+          <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-white/[0.04]">
+            <span className="text-slate-500">Sem prazo</span>
+            <strong className="text-slate-900 dark:text-white">
+              {cards.filter((card) => !card.dueDate).length}
+            </strong>
+          </div>
+          <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-white/[0.04]">
+            <span className="text-slate-500">Alta prioridade</span>
+            <strong className="text-rose-500">
+              {inboxCards.filter((card) => card.priority === "Alta").length}
+            </strong>
+          </div>
         </div>
       </aside>
     </div>
@@ -1110,37 +1286,110 @@ function KanbanPlannerView({
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.035]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 dark:border-white/8">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8 cursor-pointer" onClick={() => moveWeek(-1)}><ArrowLeft className="h-4 w-4" /></Button>
-          <Button variant="outline" size="icon" className="h-8 w-8 cursor-pointer" onClick={() => moveWeek(1)}><ArrowRight className="h-4 w-4" /></Button>
-          <Button variant="outline" size="sm" className="h-8 cursor-pointer text-xs" onClick={() => onDateChange(new Date())}>Esta semana</Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 cursor-pointer"
+            onClick={() => moveWeek(-1)}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 cursor-pointer"
+            onClick={() => moveWeek(1)}
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 cursor-pointer text-xs"
+            onClick={() => onDateChange(new Date())}
+          >
+            Esta semana
+          </Button>
         </div>
         <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{weekLabel}</h2>
       </div>
       <div className="app-scrollbar overflow-x-auto">
         <div className="grid min-w-[1040px] grid-cols-[240px_repeat(7,minmax(110px,1fr))]">
-          <div className="border-b border-r bg-slate-50 p-3 text-[10px] font-semibold uppercase text-slate-500 dark:border-white/8 dark:bg-white/[0.03]">Sem data ({unscheduled.length})</div>
-          {weekDays.map((day) => <div key={day.toISOString()} className="border-b border-r bg-slate-50 p-3 text-center dark:border-white/8 dark:bg-white/[0.03]"><span className="block text-[10px] uppercase text-slate-500">{day.toLocaleDateString("pt-BR", { weekday: "short" })}</span><span className="mt-1 block text-sm font-semibold text-slate-900 dark:text-white">{day.getDate()}</span></div>)}
+          <div className="border-b border-r bg-slate-50 p-3 text-[10px] font-semibold uppercase text-slate-500 dark:border-white/8 dark:bg-white/[0.03]">
+            Sem data ({unscheduled.length})
+          </div>
+          {weekDays.map((day) => (
+            <div
+              key={day.toISOString()}
+              className="border-b border-r bg-slate-50 p-3 text-center dark:border-white/8 dark:bg-white/[0.03]"
+            >
+              <span className="block text-[10px] uppercase text-slate-500">
+                {day.toLocaleDateString("pt-BR", { weekday: "short" })}
+              </span>
+              <span className="mt-1 block text-sm font-semibold text-slate-900 dark:text-white">
+                {day.getDate()}
+              </span>
+            </div>
+          ))}
           <div className="app-scrollbar max-h-[calc(100dvh-330px)] space-y-2 overflow-y-auto border-r p-2 dark:border-white/8">
-            {unscheduled.map((card) => <PlannerCard key={card.id} card={card} onOpen={() => onOpenCard(card)} />)}
-            {!unscheduled.length && <p className="p-3 text-center text-xs text-slate-400">Todos os cartões têm prazo.</p>}
+            {unscheduled.map((card) => (
+              <PlannerCard key={card.id} card={card} onOpen={() => onOpenCard(card)} />
+            ))}
+            {!unscheduled.length && (
+              <p className="p-3 text-center text-xs text-slate-400">Todos os cartões têm prazo.</p>
+            )}
           </div>
           {weekDays.map((day) => {
             const dateKey = toLocalDateKey(day);
             const dayCards = cards.filter((card) => card.dueDate === dateKey && !card.archived);
-            return <div key={dateKey} className="group min-h-[420px] space-y-2 border-r p-2 dark:border-white/8">
-              {dayCards.map((card) => <PlannerCard key={card.id} card={card} onOpen={() => onOpenCard(card)} />)}
-              {unscheduled.slice(0, 3).map((card) => <button key={card.id} type="button" onClick={() => { onSchedule(card, dateKey); toast.success(`Cartão agendado para ${day.toLocaleDateString("pt-BR")}`); }} className="hidden w-full cursor-pointer rounded-md border border-dashed border-slate-200 px-2 py-1.5 text-[9px] text-slate-400 transition hover:border-primary/40 hover:text-primary group-hover:block dark:border-white/10">Agendar {card.title}</button>)}
-            </div>;
+            return (
+              <div
+                key={dateKey}
+                className="group min-h-[420px] space-y-2 border-r p-2 dark:border-white/8"
+              >
+                {dayCards.map((card) => (
+                  <PlannerCard key={card.id} card={card} onOpen={() => onOpenCard(card)} />
+                ))}
+                {unscheduled.slice(0, 3).map((card) => (
+                  <button
+                    key={card.id}
+                    type="button"
+                    onClick={() => {
+                      onSchedule(card, dateKey);
+                      toast.success(`Cartão agendado para ${day.toLocaleDateString("pt-BR")}`);
+                    }}
+                    className="hidden w-full cursor-pointer rounded-md border border-dashed border-slate-200 px-2 py-1.5 text-[9px] text-slate-400 transition hover:border-primary/40 hover:text-primary group-hover:block dark:border-white/10"
+                  >
+                    Agendar {card.title}
+                  </button>
+                ))}
+              </div>
+            );
           })}
         </div>
       </div>
-      {unscheduled.length > 0 && <div className="border-t px-4 py-2 text-[11px] text-slate-500 dark:border-white/8">Para agendar rapidamente, abra um cartão sem data ou use os atalhos exibidos em cada dia.</div>}
+      {unscheduled.length > 0 && (
+        <div className="border-t px-4 py-2 text-[11px] text-slate-500 dark:border-white/8">
+          Para agendar rapidamente, abra um cartão sem data ou use os atalhos exibidos em cada dia.
+        </div>
+      )}
     </div>
   );
 }
 
 function PlannerCard({ card, onOpen }: { card: KanbanCard; onOpen: () => void }) {
-  return <button type="button" onClick={onOpen} className="block w-full cursor-pointer rounded-lg border border-slate-200 bg-white p-2 text-left shadow-sm transition hover:border-primary/30 hover:shadow dark:border-white/10 dark:bg-white/[0.045]"><span className="block line-clamp-2 text-[11px] font-medium text-slate-800 dark:text-slate-100">{card.title}</span><span className="mt-1 block truncate text-[9px] text-slate-500">{card.client}</span></button>;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="block w-full cursor-pointer rounded-lg border border-slate-200 bg-white p-2 text-left shadow-sm transition hover:border-primary/30 hover:shadow dark:border-white/10 dark:bg-white/[0.045]"
+    >
+      <span className="block line-clamp-2 text-[11px] font-medium text-slate-800 dark:text-slate-100">
+        {card.title}
+      </span>
+      <span className="mt-1 block truncate text-[9px] text-slate-500">{card.client}</span>
+    </button>
+  );
 }
 
 function toLocalDateKey(date: Date) {
@@ -1167,14 +1416,19 @@ function KanbanListView({
     Crítica: "bg-red-700/20 text-red-700 dark:text-red-300",
   };
 
-  if (!cards.length) return <EmptyKanbanView message="Nenhum cartão encontrado com os filtros atuais." />;
+  if (!cards.length)
+    return <EmptyKanbanView message="Nenhum cartão encontrado com os filtros atuais." />;
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.035]">
       <div className="app-scrollbar max-h-[calc(100dvh-240px)] overflow-auto">
         <div className="min-w-[820px]">
           <div className="grid grid-cols-[minmax(260px,2fr)_1fr_1fr_120px_130px] gap-4 border-b bg-slate-50 px-5 py-3 text-[10px] font-semibold uppercase text-slate-500 dark:border-white/8 dark:bg-white/[0.035] dark:text-slate-400">
-            <span>Cartão</span><span>Lista</span><span>Responsável</span><span>Prioridade</span><span>Prazo</span>
+            <span>Cartão</span>
+            <span>Lista</span>
+            <span>Responsável</span>
+            <span>Prioridade</span>
+            <span>Prazo</span>
           </div>
           {cards.map((card) => {
             const member = kanbanMembers.find((item) => item.id === card.assigneeId);
@@ -1186,16 +1440,40 @@ function KanbanListView({
                 className="grid w-full cursor-pointer grid-cols-[minmax(260px,2fr)_1fr_1fr_120px_130px] items-center gap-4 border-b px-5 py-3 text-left transition last:border-b-0 hover:bg-slate-50 dark:border-white/8 dark:hover:bg-white/[0.05]"
               >
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-slate-900 dark:text-white">{card.title}</span>
-                  <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">{card.client} · {card.module}</span>
+                  <span className="block truncate text-sm font-medium text-slate-900 dark:text-white">
+                    {card.title}
+                  </span>
+                  <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">
+                    {card.client} · {card.module}
+                  </span>
                 </span>
-                <span className="truncate text-xs text-slate-600 dark:text-slate-300">{columnNames.get(card.columnId) ?? card.columnId}</span>
+                <span className="truncate text-xs text-slate-600 dark:text-slate-300">
+                  {columnNames.get(card.columnId) ?? card.columnId}
+                </span>
                 <span className="flex min-w-0 items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                  <span className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold", member?.color ?? "bg-slate-100 text-slate-600")}>{member?.initials ?? "--"}</span>
+                  <span
+                    className={cn(
+                      "grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold",
+                      member?.color ?? "bg-slate-100 text-slate-600",
+                    )}
+                  >
+                    {member?.initials ?? "--"}
+                  </span>
                   <span className="truncate">{member?.name ?? "Sem responsável"}</span>
                 </span>
-                <span><span className={cn("inline-flex rounded-full px-2 py-1 text-[10px] font-semibold", priorityTone[card.priority])}>{card.priority}</span></span>
-                <span className="text-xs text-slate-500 dark:text-slate-400">{formatKanbanDate(card.dueDate)}</span>
+                <span>
+                  <span
+                    className={cn(
+                      "inline-flex rounded-full px-2 py-1 text-[10px] font-semibold",
+                      priorityTone[card.priority],
+                    )}
+                  >
+                    {card.priority}
+                  </span>
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {formatKanbanDate(card.dueDate)}
+                </span>
               </button>
             );
           })}
@@ -1206,7 +1484,11 @@ function KanbanListView({
 }
 
 function EmptyKanbanView({ message }: { message: string }) {
-  return <div className="grid min-h-[360px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white/50 p-8 text-sm text-slate-500 dark:border-white/10 dark:bg-white/[0.02] dark:text-slate-400">{message}</div>;
+  return (
+    <div className="grid min-h-[360px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white/50 p-8 text-sm text-slate-500 dark:border-white/10 dark:bg-white/[0.02] dark:text-slate-400">
+      {message}
+    </div>
+  );
 }
 
 function formatKanbanDate(value: string) {
@@ -1235,13 +1517,17 @@ function MetricCard({
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/8 dark:bg-white/[0.045] dark:shadow-[0_18px_40px_rgba(0,0,0,0.16)]">
       <div className="flex items-center gap-3">
-        <div className={cn("grid h-11 w-11 place-items-center rounded-xl bg-opacity-25", tones[color])}>
+        <div
+          className={cn("grid h-11 w-11 place-items-center rounded-xl bg-opacity-25", tones[color])}
+        >
           <Icon className="h-5 w-5 text-white" />
         </div>
         <div>
           <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}</p>
           <div className="mt-1 flex items-end gap-3">
-            <span className="text-3xl font-black leading-none text-slate-900 dark:text-white">{value}</span>
+            <span className="text-3xl font-black leading-none text-slate-900 dark:text-white">
+              {value}
+            </span>
           </div>
         </div>
       </div>
@@ -1259,9 +1545,22 @@ function MiniSpark({ color }: { color: "blue" | "amber" | "violet" | "emerald" }
   }[color];
 
   return (
-    <svg className="mt-4 h-8 w-full overflow-visible" viewBox="0 0 160 32" fill="none" preserveAspectRatio="none">
-      <path d="M2 24 C20 18 30 19 43 12 C56 23 74 25 91 20 C110 15 121 7 138 13 C147 17 153 15 158 12" stroke={stroke} strokeWidth="2.5" />
-      <path d="M2 29 C28 25 50 25 75 24 C106 22 132 20 158 18" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+    <svg
+      className="mt-4 h-8 w-full overflow-visible"
+      viewBox="0 0 160 32"
+      fill="none"
+      preserveAspectRatio="none"
+    >
+      <path
+        d="M2 24 C20 18 30 19 43 12 C56 23 74 25 91 20 C110 15 121 7 138 13 C147 17 153 15 158 12"
+        stroke={stroke}
+        strokeWidth="2.5"
+      />
+      <path
+        d="M2 29 C28 25 50 25 75 24 C106 22 132 20 158 18"
+        stroke="rgba(255,255,255,0.08)"
+        strokeWidth="1"
+      />
     </svg>
   );
 }
@@ -1301,8 +1600,6 @@ function ViewToggleButton({
   );
 }
 
-
-
 function FilterSelect({
   label,
   value,
@@ -1323,7 +1620,9 @@ function FilterSelect({
         </SelectTrigger>
         <SelectContent>
           {options.map((o) => (
-            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>

@@ -666,3 +666,7 @@ main th[data-auto-sortable="true"] {
     transition: none;
   }
 }
+.kanban-card-dragging,
+.kanban-card-dragging * {
+  cursor: grabbing !important;
+}
