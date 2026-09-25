@@ -418,7 +418,11 @@ function MembersDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[340px] [&>button]:hidden">
+      <DialogContent
+        className="gap-0 overflow-hidden p-0 sm:max-w-[340px] [&>button]:hidden"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         <DialogTitle className="sr-only">Alterar membros</DialogTitle>
         <DetailModalHeader
           icon={Users}
@@ -557,7 +561,11 @@ function DateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] gap-0 overflow-y-auto p-0 sm:max-w-[380px] [&>button]:hidden">
+      <DialogContent
+        className="max-h-[90vh] gap-0 overflow-y-auto p-0 sm:max-w-[380px] [&>button]:hidden"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         <DialogTitle className="sr-only">Editar datas</DialogTitle>
         <DetailModalHeader
           icon={CalendarIcon}
@@ -799,7 +807,11 @@ function ActionDialogFrame({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] gap-0 overflow-y-auto rounded-md p-0 shadow-xl sm:max-w-[350px] dark:border-white/10 dark:bg-[#2b2d31] dark:text-[#d8d8db] [&>button]:hidden">
+      <DialogContent
+        className="max-h-[90vh] gap-0 overflow-y-auto rounded-md p-0 shadow-xl sm:max-w-[350px] dark:border-white/10 dark:bg-[#2b2d31] dark:text-[#d8d8db] [&>button]:hidden"
+        onClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         <DialogTitle className="sr-only">{title}</DialogTitle>
         <div className="flex items-center border-b border-border px-4 py-3 text-sm font-semibold dark:border-white/10">
           <span className="flex-1 text-center">{title}</span>
