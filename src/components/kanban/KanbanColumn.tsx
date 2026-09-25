@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, memo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
@@ -35,7 +35,7 @@ const columnMeta: Record<string, { dot: string; text: string }> = {
   arquivado: { dot: "bg-emerald-500", text: "text-slate-800 dark:text-slate-100" },
 };
 
-export function KanbanColumnView({
+export const KanbanColumnView = memo(function KanbanColumnView({
   boardId,
   boardMembers = [],
   column,
@@ -261,4 +261,4 @@ export function KanbanColumnView({
       </div>
     </section>
   );
-}
+});

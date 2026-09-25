@@ -11,6 +11,41 @@ const emit = () => {
   listeners.forEach((l) => l());
 };
 
+export function moveCardInList(
+  current: KanbanCard[],
+  cardId: string,
+  columnId: string,
+  beforeCardId?: string,
+): KanbanCard[] {
+  const originalIndex = current.findIndex((card) => card.id === cardId);
+  if (originalIndex < 0) return current;
+  const remaining = current.filter((card) => card.id !== cardId);
+  const beforeIndex = beforeCardId
+    ? remaining.findIndex((card) => card.id === beforeCardId && card.columnId === columnId)
+    : -1;
+  let insertIndex = beforeIndex;
+  if (insertIndex < 0) {
+    let lastIndex = -1;
+    for (let index = remaining.length - 1; index >= 0; index--) {
+      if (remaining[index].columnId === columnId) {
+        lastIndex = index;
+        break;
+      }
+    }
+    insertIndex = lastIndex < 0 ? remaining.length : lastIndex + 1;
+  }
+  if (current[originalIndex].columnId === columnId && originalIndex === insertIndex) {
+    return current;
+  }
+  const next = [...remaining];
+  next.splice(insertIndex, 0, {
+    ...current[originalIndex],
+    columnId,
+    archived: false,
+  });
+  return next;
+}
+
 const persistCard = (card: KanbanCard) =>
   saveKanbanCard({
     data: {

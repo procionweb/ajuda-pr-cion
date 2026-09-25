@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { kanbanStore, useKanbanCards } from "@/lib/kanban-store";
+import { kanbanStore, moveCardInList, useKanbanCards } from "@/lib/kanban-store";
 import {
   listBoardMembers,
   listKanbanBoards,
@@ -975,21 +975,33 @@ function MoveDialog({
   const [busy, setBusy] = React.useState(false);
   const move = async () => {
     if (!destination.columnId) return;
+    const targetColumnId = destination.columnId;
+    const targetBoardId = destination.targetBoardId;
+    const beforeCardId = destination.cardsInColumn[destination.position - 1]?.id;
+    const sameBoard = targetBoardId === boardId;
+    if (sameBoard) {
+      kanbanStore.setCards((current) =>
+        moveCardInList(current, card.id, targetColumnId, beforeCardId),
+      );
+    } else {
+      kanbanStore.setCards((current) => current.filter((item) => item.id !== card.id));
+    }
+    onOpenChange(false);
     setBusy(true);
     try {
       await moveKanbanCard({
         cardId: card.id,
-        columnId: destination.columnId,
-        beforeCardId: destination.cardsInColumn[destination.position - 1]?.id,
+        columnId: targetColumnId,
+        beforeCardId,
       });
-      if (boardId) {
-        const result = await loadKanbanBoard({ boardId });
-        kanbanStore.hydrate(result.cards as KanbanCard[]);
-      }
       toast.success("Cartão movido");
-      onOpenChange(false);
     } catch {
       toast.error("Não foi possível mover o cartão");
+      if (boardId) {
+        void loadKanbanBoard({ boardId })
+          .then((result) => kanbanStore.hydrate(result.cards as KanbanCard[]))
+          .catch(() => toast.error("Não foi possível atualizar o quadro"));
+      }
     } finally {
       setBusy(false);
     }

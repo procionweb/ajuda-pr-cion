@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -41,7 +41,7 @@ import {
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
-import { kanbanStore, useKanbanCards } from "@/lib/kanban-store";
+import { kanbanStore, moveCardInList, useKanbanCards } from "@/lib/kanban-store";
 import {
   createKanbanColumn,
   copyKanbanColumn,
@@ -189,6 +189,14 @@ function normalizeColumnId(title: string, columns: KanbanColumn[]): ColumnId {
     suffix += 1;
   }
   return id;
+}
+
+function useStableHandler<Args extends unknown[], Result>(handler: (...args: Args) => Result) {
+  const handlerRef = useRef(handler);
+  useLayoutEffect(() => {
+    handlerRef.current = handler;
+  });
+  return useCallback((...args: Args) => handlerRef.current(...args), []);
 }
 
 function KanbanPage() {
@@ -403,37 +411,7 @@ function KanbanPage() {
   };
 
   const moveCardToColumn = (activeId: string, targetColumn: ColumnId, overCardId?: string) => {
-    setCards((prev) => {
-      const activeIdx = prev.findIndex((c) => c.id === activeId);
-      if (activeIdx === -1) return prev;
-
-      const movedCard = {
-        ...prev[activeIdx],
-        columnId: targetColumn,
-        archived: targetColumn === "arquivado",
-      };
-      const withoutMoved = prev.filter((c) => c.id !== activeId);
-
-      if (overCardId && overCardId !== activeId) {
-        const targetIdx = withoutMoved.findIndex((c) => c.id === overCardId);
-        if (targetIdx !== -1) {
-          const next = [...withoutMoved];
-          next.splice(targetIdx, 0, movedCard);
-          return next;
-        }
-      }
-
-      let lastTargetIdx = -1;
-      for (let i = withoutMoved.length - 1; i >= 0; i--) {
-        if (withoutMoved[i].columnId === targetColumn) {
-          lastTargetIdx = i;
-          break;
-        }
-      }
-      const next = [...withoutMoved];
-      next.splice(lastTargetIdx === -1 ? next.length : lastTargetIdx + 1, 0, movedCard);
-      return next;
-    });
+    setCards((prev) => moveCardInList(prev, activeId, targetColumn, overCardId));
   };
 
   const handleDragOver = (e: DragOverEvent) => {
@@ -736,6 +714,16 @@ function KanbanPage() {
       return next;
     });
   };
+
+  const openBoardCard = useStableHandler(openCard);
+  const archiveBoardCard = useStableHandler(handleArchiveCard);
+  const addBoardCard = useStableHandler(handleNewCard);
+  const deleteBoardColumn = useStableHandler(handleDeleteColumn);
+  const copyBoardColumn = useStableHandler(handleCopyColumn);
+  const moveBoardColumn = useStableHandler(handleMoveColumn);
+  const moveBoardColumnCards = useStableHandler(handleMoveAllCards);
+  const sortBoardColumn = useStableHandler(handleSortColumn);
+  const toggleBoardColumnFollow = useStableHandler(handleToggleFollow);
 
   const clearFilters = () => setFilters(emptyFilters);
   const getColumnCount = (id: ColumnId) => cardsByColumn[id]?.length ?? 0;
@@ -1104,17 +1092,17 @@ function KanbanPage() {
                             ? { beforeCardId: dragTarget.beforeCardId, height: dragPreviewHeight }
                             : undefined
                         }
-                        onCardClick={openCard}
-                        onArchiveCard={handleArchiveCard}
-                        onAddCard={handleNewCard}
-                        onDeleteColumn={handleDeleteColumn}
+                        onCardClick={openBoardCard}
+                        onArchiveCard={archiveBoardCard}
+                        onAddCard={addBoardCard}
+                        onDeleteColumn={deleteBoardColumn}
                         canDeleteColumn={columns.length > 1}
-                        onCopyColumn={handleCopyColumn}
-                        onMoveColumn={handleMoveColumn}
-                        onMoveAllCards={handleMoveAllCards}
-                        onSortColumn={handleSortColumn}
+                        onCopyColumn={copyBoardColumn}
+                        onMoveColumn={moveBoardColumn}
+                        onMoveAllCards={moveBoardColumnCards}
+                        onSortColumn={sortBoardColumn}
                         isFollowing={followedColumns.has(col.id)}
-                        onToggleFollow={handleToggleFollow}
+                        onToggleFollow={toggleBoardColumnFollow}
                         onArchiveAll={setArchiveTarget}
                       />
                     ))}
@@ -1164,17 +1152,17 @@ function KanbanPage() {
                             ? { beforeCardId: dragTarget.beforeCardId, height: dragPreviewHeight }
                             : undefined
                         }
-                        onCardClick={openCard}
-                        onArchiveCard={handleArchiveCard}
-                        onAddCard={handleNewCard}
-                        onDeleteColumn={handleDeleteColumn}
+                        onCardClick={openBoardCard}
+                        onArchiveCard={archiveBoardCard}
+                        onAddCard={addBoardCard}
+                        onDeleteColumn={deleteBoardColumn}
                         canDeleteColumn={columns.length > 1}
-                        onCopyColumn={handleCopyColumn}
-                        onMoveColumn={handleMoveColumn}
-                        onMoveAllCards={handleMoveAllCards}
-                        onSortColumn={handleSortColumn}
+                        onCopyColumn={copyBoardColumn}
+                        onMoveColumn={moveBoardColumn}
+                        onMoveAllCards={moveBoardColumnCards}
+                        onSortColumn={sortBoardColumn}
                         isFollowing={followedColumns.has(col.id)}
-                        onToggleFollow={handleToggleFollow}
+                        onToggleFollow={toggleBoardColumnFollow}
                         onArchiveAll={setArchiveTarget}
                       />
                     );
@@ -1210,30 +1198,34 @@ function KanbanPage() {
         )}
       </div>
 
-      <KanbanCardDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        card={drawerCard}
-        mode={drawerMode}
-        defaultColumnId={defaultColumnId}
-        columns={columns}
-        onSave={handleSave}
-        onDelete={handleDelete}
-      />
+      {drawerOpen && (
+        <KanbanCardDrawer
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          card={drawerCard}
+          mode={drawerMode}
+          defaultColumnId={defaultColumnId}
+          columns={columns}
+          onSave={handleSave}
+          onDelete={handleDelete}
+        />
+      )}
 
-      <KanbanBoardMenu
-        open={boardMenuOpen}
-        onOpenChange={setBoardMenuOpen}
-        tab={boardMenuTab}
-        onTabChange={setBoardMenuTab}
-        cards={cards}
-        columns={columns}
-        followedColumns={followedColumns}
-        onOpenCard={openCard}
-        onRestoreCard={handleRestoreCard}
-        onDeleteCard={handleDelete}
-        onCreateColumn={handleNewColumn}
-      />
+      {boardMenuOpen && (
+        <KanbanBoardMenu
+          open={boardMenuOpen}
+          onOpenChange={setBoardMenuOpen}
+          tab={boardMenuTab}
+          onTabChange={setBoardMenuTab}
+          cards={cards}
+          columns={columns}
+          followedColumns={followedColumns}
+          onOpenCard={openCard}
+          onRestoreCard={handleRestoreCard}
+          onDeleteCard={handleDelete}
+          onCreateColumn={handleNewColumn}
+        />
+      )}
 
       <KanbanTemplateDialog
         open={templatesOpen}
