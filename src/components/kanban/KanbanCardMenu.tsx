@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { kanbanStore } from "@/lib/kanban-store";
+import { kanbanStore, useKanbanCards } from "@/lib/kanban-store";
 import {
   listBoardMembers,
   listKanbanBoards,
@@ -221,13 +221,13 @@ function TagsDialog({
     setEditing(null);
     setName("");
   }, [open]);
-  const allCards = kanbanStore.getSnapshot();
+  const allCards = useKanbanCards();
+  const currentCard = allCards.find((item) => item.id === card.id) ?? card;
   const labels = Array.from(
     new Map(
-      Array.from(new Set(allCards.flatMap((item) => item.tags ?? []))).map((label) => [
-        labelKey(label),
-        label,
-      ]),
+      Array.from(
+        new Set([...allCards.flatMap((item) => item.tags ?? []), ...(card.tags ?? [])]),
+      ).map((label) => [labelKey(label), label]),
     ).values(),
   );
   const visible = labels.filter((label) =>
@@ -306,7 +306,7 @@ function TagsDialog({
             <div key={label} className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={card.tags.some((item) => labelKey(item) === labelKey(label))}
+                checked={currentCard.tags.some((item) => labelKey(item) === labelKey(label))}
                 onChange={() => toggle(label)}
                 aria-label={`Selecionar ${label}`}
               />
@@ -456,6 +456,8 @@ function MembersDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        autoFooter={false}
+        onOutsideClick={() => onOpenChange(false)}
         className="gap-0 overflow-hidden p-0 sm:max-w-[340px] [&>button]:hidden"
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
@@ -909,7 +911,7 @@ function MoveDialog({
     <ActionDialogFrame title="Mover cartão" open={open} onOpenChange={onOpenChange}>
       <DestinationFields destination={destination} />
       <Button
-        className="w-full bg-[#5f9bea] text-slate-950 hover:bg-[#7baef2]"
+        className="w-full font-normal"
         disabled={busy || destination.loading || !destination.columnId}
         onClick={() => void move()}
       >
@@ -1029,7 +1031,7 @@ function CopyDialog({
       </div>
       <DestinationFields destination={destination} />
       <Button
-        className="w-full bg-[#5f9bea] text-slate-950 hover:bg-[#7baef2]"
+        className="w-full font-normal"
         disabled={busy || destination.loading || !destination.columnId || !name.trim()}
         onClick={() => void copy()}
       >

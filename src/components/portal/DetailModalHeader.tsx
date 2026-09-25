@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { type LucideIcon } from "lucide-react";
+import { type LucideIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -49,7 +49,6 @@ export function DetailModalHeader({
       <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.05)]">
         <span aria-hidden className={cn("absolute left-0 top-0 h-full w-1", accentClassName)} />
 
-
         <div
           className={cn(
             "flex flex-wrap items-start gap-x-3 gap-y-2 px-4 py-2.5 md:gap-3 md:py-3",
@@ -78,9 +77,7 @@ export function DetailModalHeader({
               {chips}
             </div>
 
-            <h2 className="mt-0.5 text-[14px] font-medium leading-snug text-foreground">
-              {title}
-            </h2>
+            <h2 className="mt-0.5 text-[14px] font-medium leading-snug text-foreground">{title}</h2>
 
             {meta && (
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
@@ -93,6 +90,16 @@ export function DetailModalHeader({
             <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:flex-initial sm:justify-end">
               {trailing}
             </div>
+          )}
+          {onClose && (
+            <button
+              type="button"
+              aria-label="Fechar"
+              onClick={onClose}
+              className="ml-auto grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
         </div>
       </div>
