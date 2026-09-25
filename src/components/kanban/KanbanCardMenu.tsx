@@ -151,36 +151,46 @@ export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive }: Pr
         </PopoverContent>
       </Popover>
 
-      <TagsDialog
-        open={dialog === "tags"}
-        onOpenChange={(o) => !o && setDialog(null)}
-        card={card}
-      />
-      <MembersDialog
-        open={dialog === "members"}
-        onOpenChange={(o) => !o && setDialog(null)}
-        card={card}
-        boardId={boardId}
-      />
-      <DateDialog
-        open={dialog === "date"}
-        onOpenChange={(o) => !o && setDialog(null)}
-        card={card}
-      />
-      <MoveDialog
-        open={dialog === "move"}
-        onOpenChange={(o) => !o && setDialog(null)}
-        card={card}
-        boardId={boardId}
-        columns={columns}
-      />
-      <CopyDialog
-        open={dialog === "copy"}
-        onOpenChange={(o) => !o && setDialog(null)}
-        card={card}
-        boardId={boardId}
-        columns={columns}
-      />
+      {dialog === "tags" && (
+        <TagsDialog
+          open={dialog === "tags"}
+          onOpenChange={(o) => !o && setDialog(null)}
+          card={card}
+        />
+      )}
+      {dialog === "members" && (
+        <MembersDialog
+          open={dialog === "members"}
+          onOpenChange={(o) => !o && setDialog(null)}
+          card={card}
+          boardId={boardId}
+        />
+      )}
+      {dialog === "date" && (
+        <DateDialog
+          open={dialog === "date"}
+          onOpenChange={(o) => !o && setDialog(null)}
+          card={card}
+        />
+      )}
+      {dialog === "move" && (
+        <MoveDialog
+          open={dialog === "move"}
+          onOpenChange={(o) => !o && setDialog(null)}
+          card={card}
+          boardId={boardId}
+          columns={columns}
+        />
+      )}
+      {dialog === "copy" && (
+        <CopyDialog
+          open={dialog === "copy"}
+          onOpenChange={(o) => !o && setDialog(null)}
+          card={card}
+          boardId={boardId}
+          columns={columns}
+        />
+      )}
     </>
   );
 }

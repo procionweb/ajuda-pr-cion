@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -8,12 +8,10 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  closestCorners,
   pointerWithin,
   type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
-  type DragOverEvent,
 } from "@dnd-kit/core";
 import { Columns3, Trash2 as TrashIcon, Archive as ArchiveIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
@@ -73,7 +71,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { KanbanColumnView } from "@/components/kanban/KanbanColumn";
-import { KanbanCardItem } from "@/components/kanban/KanbanCard";
+import { KanbanCardPreview } from "@/components/kanban/KanbanCard";
 import { KanbanCardDrawer } from "@/components/kanban/KanbanCardDrawer";
 import { KanbanBoardMenu } from "@/components/kanban/KanbanBoardMenu";
 import { KanbanTemplateDialog } from "@/components/kanban/KanbanTemplateDialog";
@@ -143,10 +141,7 @@ function daysBetween(iso: string) {
 
 const FOLLOWED_COLUMNS_STORAGE_KEY = "procion-kanban-followed-columns";
 
-const kanbanCollisionDetection: CollisionDetection = (args) => {
-  const pointerCollisions = pointerWithin(args);
-  return pointerCollisions.length > 0 ? pointerCollisions : closestCorners(args);
-};
+const kanbanCollisionDetection: CollisionDetection = pointerWithin;
 
 function getInitialColumns(): KanbanColumn[] {
   return kanbanColumnsDef;
@@ -223,7 +218,6 @@ function KanbanPage() {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [collaborationOpen, setCollaborationOpen] = useState(false);
   const [collaborationTab, setCollaborationTab] = useState<"share" | "background">("share");
-  const lastOverColumnRef = useRef<ColumnId | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   useEffect(() => {
@@ -347,11 +341,10 @@ function KanbanPage() {
     const c = cards.find((x) => x.id === e.active.id);
     if (c) setActiveCard(c);
     if (c) document.body.classList.add("kanban-card-dragging");
-    lastOverColumnRef.current = c?.columnId ?? null;
   };
 
   const resolveOverColumn = (
-    over: DragOverEvent["over"],
+    over: DragEndEvent["over"],
     currentCards: KanbanCard[],
   ): ColumnId | undefined => {
     if (!over) return undefined;
@@ -366,11 +359,6 @@ function KanbanPage() {
       );
     }
     return columns.find((col) => col.id === over.id)?.id;
-  };
-
-  const handleDragOver = (e: DragOverEvent) => {
-    const overColumn = resolveOverColumn(e.over, cards);
-    if (overColumn) lastOverColumnRef.current = overColumn;
   };
 
   const moveCardToColumn = (activeId: string, targetColumn: ColumnId, overCardId?: string) => {
@@ -411,10 +399,10 @@ function KanbanPage() {
     const { active, over } = e;
     setActiveCard(null);
     document.body.classList.remove("kanban-card-dragging");
-    const targetColumn = resolveOverColumn(over, cards) ?? lastOverColumnRef.current;
+    const targetColumn = resolveOverColumn(over, cards);
     const overCardId = over?.data.current?.type === "card" ? String(over.id) : undefined;
-    lastOverColumnRef.current = null;
     if (!targetColumn) return;
+    if (overCardId === String(active.id)) return;
     moveCardToColumn(String(active.id), targetColumn, overCardId);
     if (/^[0-9a-f-]{36}$/i.test(String(active.id))) {
       void moveKanbanCard({
@@ -435,7 +423,6 @@ function KanbanPage() {
   const handleDragCancel = () => {
     setActiveCard(null);
     document.body.classList.remove("kanban-card-dragging");
-    lastOverColumnRef.current = null;
   };
 
   const openCard = (card: KanbanCard) => {
@@ -1009,8 +996,8 @@ function KanbanPage() {
           <DndContext
             sensors={sensors}
             collisionDetection={kanbanCollisionDetection}
+            autoScroll={false}
             onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
@@ -1104,8 +1091,8 @@ function KanbanPage() {
 
             {typeof document !== "undefined" &&
               createPortal(
-                <DragOverlay zIndex={1000}>
-                  {activeCard && <KanbanCardItem card={activeCard} overlay />}
+                <DragOverlay zIndex={1000} dropAnimation={null}>
+                  {activeCard && <KanbanCardPreview card={activeCard} />}
                 </DragOverlay>,
                 document.body,
               )}

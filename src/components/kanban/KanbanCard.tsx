@@ -50,7 +50,6 @@ export function KanbanCardItem({
   columns = [],
   onClick,
   onArchive,
-  overlay = false,
 }: {
   card: CardType;
   boardId?: string;
@@ -58,12 +57,10 @@ export function KanbanCardItem({
   columns?: KanbanColumn[];
   onClick?: () => void;
   onArchive?: (card: CardType) => void;
-  overlay?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
     data: { type: "card", card },
-    disabled: overlay,
   });
 
   const style = {
@@ -111,9 +108,8 @@ export function KanbanCardItem({
         onClick?.();
       }}
       className={cn(
-        "group cursor-grab active:cursor-grabbing rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 shadow-[0_1px_1px_rgba(15,23,42,0.08)] transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-400 hover:shadow-md dark:border-white/10 dark:bg-[#22252a] dark:text-slate-100 dark:hover:border-white/20 dark:hover:bg-[#292c31]",
-        isDragging && !overlay && "opacity-40",
-        overlay && "w-[258px] pointer-events-none rotate-1 shadow-2xl",
+        "group cursor-grab active:cursor-grabbing rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 shadow-[0_1px_1px_rgba(15,23,42,0.08)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-slate-400 hover:shadow-md dark:border-white/10 dark:bg-[#22252a] dark:text-slate-100 dark:hover:border-white/20 dark:hover:bg-[#292c31]",
+        isDragging && "opacity-30",
       )}
     >
       {/* Trello-style label strips */}
@@ -143,15 +139,13 @@ export function KanbanCardItem({
           </p>
         </div>
         <div className="flex shrink-0 items-center">
-          {!overlay && (
-            <KanbanCardMenu
-              card={card}
-              boardId={boardId}
-              columns={columns}
-              onOpen={onClick}
-              onArchive={onArchive}
-            />
-          )}
+          <KanbanCardMenu
+            card={card}
+            boardId={boardId}
+            columns={columns}
+            onOpen={onClick}
+            onArchive={onArchive}
+          />
         </div>
       </div>
 
@@ -204,6 +198,43 @@ export function KanbanCardItem({
             </span>
           )}
         </span>
+      </div>
+    </div>
+  );
+}
+
+export function KanbanCardPreview({ card }: { card: CardType }) {
+  const priority = getPriorityMeta(card.priority);
+  const completed = card.checklist?.filter((item) => item.done).length ?? 0;
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none w-full rounded-lg border border-slate-400 bg-white px-3 py-2.5 text-slate-900 shadow-xl dark:border-white/25 dark:bg-[#292c31] dark:text-slate-100"
+    >
+      <div className="mb-1.5 flex flex-wrap gap-1">
+        <span className={cn("h-1.5 w-10 rounded-full", priority.strip)} />
+        {card.tags?.slice(0, 6).map((tag) => (
+          <span
+            key={tag}
+            className={cn("h-1.5 w-10 rounded-full", getTagColor(tag))}
+            style={card.tagColors?.[tag] ? { backgroundColor: card.tagColors[tag] } : undefined}
+          />
+        ))}
+      </div>
+      <p className="line-clamp-3 text-[12px] font-medium leading-[1.35]">{card.title}</p>
+      <p className="mt-1 line-clamp-1 text-[10px] text-slate-500 dark:text-slate-400">
+        {card.client} <span aria-hidden="true">•</span> {card.module}
+      </p>
+      <div className="mt-2 flex min-h-6 items-center gap-2.5 text-[10px] text-slate-500 dark:text-slate-400">
+        <span className="inline-flex items-center gap-1">
+          <CalendarDays className="h-3 w-3" />
+          {formatDue(card.dueDate)}
+        </span>
+        {!!card.checklist?.length && (
+          <span>
+            ☑ {completed}/{card.checklist.length}
+          </span>
+        )}
       </div>
     </div>
   );
