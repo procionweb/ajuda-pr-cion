@@ -343,11 +343,35 @@ export const createKanbanColumn = (input: Wrapped<{ boardId: string; title: stri
 export const deleteKanbanColumn = (input: Wrapped<{ id: string; fallbackId: string }>) =>
   invoke<{ ok: true }>("deleteColumn", unwrap(input));
 
-export const copyKanbanColumn = (input: Wrapped<{ id: string; title: string }>) =>
-  invoke<{ column: { id: string; title: string }; cards: Array<Record<string, unknown>> }>(
-    "copyColumn",
-    unwrap(input),
-  );
+export const copyKanbanColumn = async (input: Wrapped<{ id: string; title: string }>) => {
+  const { id, title } = unwrap(input);
+  const rpc = supabase.rpc as unknown as (
+    name: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: Error | null }>;
+  const { data, error } = await rpc("copy_kanban_column_payload", {
+    source_column_id: id,
+    new_name: title,
+  });
+  if (error) throw error;
+  return { id: data as string };
+};
+
+export const moveKanbanColumn = async (
+  input: Wrapped<{ id: string; boardId: string; position: number }>,
+) => {
+  const { id, boardId, position } = unwrap(input);
+  const rpc = supabase.rpc as unknown as (
+    name: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ error: Error | null }>;
+  const { error } = await rpc("move_kanban_column_payload", {
+    source_column_id: id,
+    destination_board_id: boardId,
+    destination_position: position,
+  });
+  if (error) throw error;
+};
 
 export const reorderKanbanColumns = (input: Wrapped<{ columnIds: string[] }>) =>
   invoke<{ ok: true }>("reorderColumns", unwrap(input));

@@ -8,8 +8,6 @@ import {
   MoreVertical,
   Plus,
   Trash2,
-  ArrowLeft,
-  ArrowRight,
   Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,9 +20,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -49,8 +44,6 @@ export function KanbanColumnView({
   canDeleteColumn = true,
   onCopyColumn,
   onMoveColumn,
-  canMoveLeft = false,
-  canMoveRight = false,
   isFollowing = false,
   onToggleFollow,
   onArchiveAll,
@@ -66,9 +59,7 @@ export function KanbanColumnView({
   onDeleteColumn?: (column: KanbanColumn) => void;
   canDeleteColumn?: boolean;
   onCopyColumn?: (column: KanbanColumn) => void;
-  onMoveColumn?: (column: KanbanColumn, direction: "left" | "right") => void;
-  canMoveLeft?: boolean;
-  canMoveRight?: boolean;
+  onMoveColumn?: (column: KanbanColumn) => void;
   isFollowing?: boolean;
   onToggleFollow?: (column: KanbanColumn) => void;
   onArchiveAll?: (column: KanbanColumn) => void;
@@ -108,7 +99,7 @@ export function KanbanColumnView({
                 <MoreVertical className="h-3.5 w-3.5" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-[290px]">
               <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">
                 Ações da lista
               </DropdownMenuLabel>
@@ -120,30 +111,10 @@ export function KanbanColumnView({
                 <Copy className="mr-2 h-4 w-4" />
                 Copiar lista
               </DropdownMenuItem>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="cursor-pointer">
-                  <ArrowLeftRight className="mr-2 h-4 w-4" />
-                  Mover lista
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    disabled={!canMoveLeft}
-                    onSelect={() => onMoveColumn?.(column, "left")}
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Mover para a esquerda
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    disabled={!canMoveRight}
-                    onSelect={() => onMoveColumn?.(column, "right")}
-                  >
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Mover para a direita
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
+              <DropdownMenuItem className="cursor-pointer" onSelect={() => onMoveColumn?.(column)}>
+                <ArrowLeftRight className="mr-2 h-4 w-4" />
+                Mover lista
+              </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer"
                 onSelect={() => onToggleFollow?.(column)}

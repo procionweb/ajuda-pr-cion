@@ -39,18 +39,20 @@ import {
   UserRound,
   Users,
   Palette,
+  X,
 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
 import { kanbanStore, useKanbanCards } from "@/lib/kanban-store";
 import {
   createKanbanColumn,
   copyKanbanColumn,
+  moveKanbanColumn,
+  listKanbanBoards,
   deleteKanbanColumn,
   archiveKanbanColumnCards,
   loadKanbanBoard,
   getKanbanBoard,
   moveKanbanCard,
-  reorderKanbanColumns,
   type BoardSummary,
   type BoardMember,
   listBoardMembers,
@@ -204,6 +206,14 @@ function KanbanPage() {
   const [newColumnName, setNewColumnName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<KanbanColumn | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<KanbanColumn | null>(null);
+  const [copyColumnTarget, setCopyColumnTarget] = useState<KanbanColumn | null>(null);
+  const [copyColumnName, setCopyColumnName] = useState("");
+  const [moveColumnTarget, setMoveColumnTarget] = useState<KanbanColumn | null>(null);
+  const [moveBoardId, setMoveBoardId] = useState("");
+  const [movePosition, setMovePosition] = useState(1);
+  const [moveBoards, setMoveBoards] = useState<BoardSummary[]>([]);
+  const [moveColumnCount, setMoveColumnCount] = useState(0);
+  const [columnActionBusy, setColumnActionBusy] = useState(false);
   const [followedColumns, setFollowedColumns] = useState<Set<ColumnId>>(getInitialFollowedColumns);
   const [boardMenuOpen, setBoardMenuOpen] = useState(false);
   const [boardMenuTab, setBoardMenuTab] = useState<"about" | "activity" | "archive">("about");
@@ -534,34 +544,73 @@ function KanbanPage() {
     toast.success(`Coluna "${column.title}" excluída`);
   };
 
-  const handleCopyColumn = async (column: KanbanColumn) => {
-    const newTitle = `Cópia de ${column.title}`;
+  const handleCopyColumn = (column: KanbanColumn) => {
+    setCopyColumnTarget(column);
+    setCopyColumnName(column.title);
+  };
+
+  const confirmCopyColumn = async () => {
+    if (!copyColumnTarget || !copyColumnName.trim()) return;
+    setColumnActionBusy(true);
     try {
-      await copyKanbanColumn({ data: { id: column.id, title: newTitle } });
+      await copyKanbanColumn({ id: copyColumnTarget.id, title: copyColumnName.trim() });
       const result = await loadKanbanBoard({ data: { boardId: boardIdParam } });
       setColumns(result.columns);
       kanbanStore.hydrate(result.cards as KanbanCard[]);
-      toast.success(`Lista "${column.title}" copiada`);
+      setCopyColumnTarget(null);
+      toast.success(`Lista "${copyColumnName.trim()}" criada`);
     } catch {
       toast.error("Não foi possível copiar a lista");
+    } finally {
+      setColumnActionBusy(false);
     }
   };
 
-  const handleMoveColumn = async (column: KanbanColumn, direction: "left" | "right") => {
-    const idx = columns.findIndex((item) => item.id === column.id);
-    const target = direction === "left" ? idx - 1 : idx + 1;
-    if (idx < 0 || target < 0 || target >= columns.length) return;
-    const next = [...columns];
-    [next[idx], next[target]] = [next[target], next[idx]];
-    setColumns(next);
+  const handleMoveColumn = (column: KanbanColumn) => {
+    setMoveColumnTarget(column);
+    setMoveBoards(boardSummary ? [boardSummary] : []);
+    setMoveBoardId(boardId ?? "");
+    setMovePosition(columns.findIndex((item) => item.id === column.id) + 1);
+    setMoveColumnCount(columns.length);
+    void listKanbanBoards()
+      .then((result) => setMoveBoards(result.boards))
+      .catch(() => toast.error("Não foi possível carregar os quadros"));
+  };
+
+  const selectMoveBoard = async (targetBoardId: string) => {
+    setMoveBoardId(targetBoardId);
+    setMovePosition(1);
     try {
-      await reorderKanbanColumns({ data: { columnIds: next.map((item) => item.id) } });
-      toast.success(
-        `Lista "${column.title}" movida para a ${direction === "left" ? "esquerda" : "direita"}`,
-      );
+      if (targetBoardId === boardId) setMoveColumnCount(columns.length);
+      else {
+        const result = await loadKanbanBoard({ boardId: targetBoardId });
+        setMoveColumnCount(result.columns.length + 1);
+      }
     } catch {
-      setColumns(columns);
+      setMoveColumnCount(0);
+      toast.error("Não foi possível carregar o quadro de destino");
+    }
+  };
+
+  const confirmMoveColumn = async () => {
+    if (!moveColumnTarget || !moveBoardId || moveColumnCount < 1) return;
+    setColumnActionBusy(true);
+    try {
+      await moveKanbanColumn({
+        id: moveColumnTarget.id,
+        boardId: moveBoardId,
+        position: movePosition,
+      });
+      const result = await loadKanbanBoard({ boardId: boardIdParam });
+      setColumns(result.columns);
+      kanbanStore.hydrate(result.cards as KanbanCard[]);
+      setMobileColumn(result.columns[0]?.id ?? "a-fazer");
+      setMoveColumnTarget(null);
+      toast.success("Lista movida");
+    } catch {
       toast.error("Não foi possível mover a lista");
+    } finally {
+      setColumnActionBusy(false);
     }
   };
 
@@ -943,7 +992,7 @@ function KanbanPage() {
             <div className="hidden xl:block">
               <div className="overflow-x-auto kanban-scrollbar">
                 <div className="flex min-w-max items-start gap-4 pb-2">
-                  {columns.map((col, idx) => (
+                  {columns.map((col) => (
                     <KanbanColumnView
                       key={col.id}
                       boardId={boardId ?? undefined}
@@ -958,8 +1007,6 @@ function KanbanPage() {
                       canDeleteColumn={columns.length > 1}
                       onCopyColumn={handleCopyColumn}
                       onMoveColumn={handleMoveColumn}
-                      canMoveLeft={idx > 0}
-                      canMoveRight={idx < columns.length - 1}
                       isFollowing={followedColumns.has(col.id)}
                       onToggleFollow={handleToggleFollow}
                       onArchiveAll={setArchiveTarget}
@@ -996,7 +1043,6 @@ function KanbanPage() {
               {columns
                 .filter((c) => c.id === mobileColumn)
                 .map((col) => {
-                  const idx = columns.findIndex((c) => c.id === col.id);
                   return (
                     <KanbanColumnView
                       key={col.id}
@@ -1012,8 +1058,6 @@ function KanbanPage() {
                       canDeleteColumn={columns.length > 1}
                       onCopyColumn={handleCopyColumn}
                       onMoveColumn={handleMoveColumn}
-                      canMoveLeft={idx > 0}
-                      canMoveRight={idx < columns.length - 1}
                       isFollowing={followedColumns.has(col.id)}
                       onToggleFollow={handleToggleFollow}
                       onArchiveAll={setArchiveTarget}
@@ -1077,6 +1121,104 @@ function KanbanPage() {
         initialTab={collaborationTab}
         onChanged={() => setReloadKey((key) => key + 1)}
       />
+
+      <Dialog open={!!copyColumnTarget} onOpenChange={(open) => !open && setCopyColumnTarget(null)}>
+        <DialogContent
+          autoFooter={false}
+          onOutsideClick={() => setCopyColumnTarget(null)}
+          className="space-y-3 p-4 sm:max-w-[360px] [&>button]:hidden"
+        >
+          <div className="flex items-center justify-between border-b pb-2">
+            <DialogTitle className="flex-1 text-center text-sm font-normal">
+              Copiar lista
+            </DialogTitle>
+            <button
+              type="button"
+              className="cursor-pointer"
+              aria-label="Fechar"
+              onClick={() => setCopyColumnTarget(null)}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <label className="block space-y-1 text-xs font-normal">
+            Nome
+            <textarea
+              autoFocus
+              value={copyColumnName}
+              onChange={(event) => setCopyColumnName(event.target.value)}
+              onFocus={(event) => event.target.select()}
+              className="min-h-16 w-full resize-y rounded-md border border-input bg-background p-2 text-sm font-normal"
+            />
+          </label>
+          <Button
+            size="sm"
+            className="font-normal"
+            disabled={columnActionBusy || !copyColumnName.trim()}
+            onClick={() => void confirmCopyColumn()}
+          >
+            Criar lista
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!moveColumnTarget} onOpenChange={(open) => !open && setMoveColumnTarget(null)}>
+        <DialogContent
+          autoFooter={false}
+          onOutsideClick={() => setMoveColumnTarget(null)}
+          className="space-y-3 p-4 sm:max-w-[360px] [&>button]:hidden"
+        >
+          <div className="flex items-center justify-between border-b pb-2">
+            <DialogTitle className="flex-1 text-center text-sm font-normal">
+              Mover lista
+            </DialogTitle>
+            <button
+              type="button"
+              className="cursor-pointer"
+              aria-label="Fechar"
+              onClick={() => setMoveColumnTarget(null)}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <label className="block space-y-1 text-xs font-normal">
+            Quadro
+            <select
+              className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm font-normal"
+              value={moveBoardId}
+              onChange={(event) => void selectMoveBoard(event.target.value)}
+            >
+              {moveBoards.map((board) => (
+                <option key={board.id} value={board.id}>
+                  {board.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block space-y-1 text-xs font-normal">
+            Posição
+            <select
+              className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm font-normal"
+              value={movePosition}
+              onChange={(event) => setMovePosition(Number(event.target.value))}
+            >
+              {Array.from({ length: moveColumnCount }, (_, index) => (
+                <option key={index} value={index + 1}>
+                  {index + 1}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button
+            size="sm"
+            className="font-normal"
+            disabled={columnActionBusy || !moveBoardId || moveColumnCount < 1}
+            onClick={() => void confirmMoveColumn()}
+          >
+            Mover
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={newColumnOpen} onOpenChange={setNewColumnOpen}>
         <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[420px] [&>button]:hidden">

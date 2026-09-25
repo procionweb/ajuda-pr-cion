@@ -9,7 +9,7 @@ import {
   ExternalLink,
   Link2,
   MoreHorizontal,
-  Pencil,
+  SquarePen,
   Tag,
   Users,
   X,
@@ -376,7 +376,7 @@ function TagsDialog({
       />
       <div className="space-y-1">
         <p className="text-xs font-semibold text-muted-foreground">Etiquetas</p>
-        <div className="max-h-64 space-y-1 overflow-y-auto">
+        <div className="max-h-64 space-y-1 overflow-y-auto pr-5">
           {visible.map((label) => (
             <div key={label} className="flex items-center gap-2">
               <input
@@ -397,13 +397,14 @@ function TagsDialog({
                 type="button"
                 aria-label={`Editar ${label}`}
                 title={`Editar ${label}`}
+                className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center text-muted-foreground hover:text-foreground"
                 onClick={() => {
                   setEditing(label);
                   setName(label);
                   setColor(labelColor(label));
                 }}
               >
-                <Pencil className="h-4 w-4" />
+                <SquarePen className="h-4 w-4" strokeWidth={1.8} />
               </button>
             </div>
           ))}
@@ -455,8 +456,7 @@ function TagsDialog({
         </div>
       ) : (
         <Button
-          variant="outline"
-          className="w-full"
+          className="w-full font-normal"
           onClick={() => {
             setEditing(null);
             setName(" ");
