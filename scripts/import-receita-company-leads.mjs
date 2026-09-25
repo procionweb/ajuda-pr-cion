@@ -2,6 +2,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
 import readline from "node:readline";
+import { once } from "node:events";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import pg from "pg";
@@ -415,8 +416,18 @@ if (!TARGET_STATE && foundTargetCities.size !== TARGET_CITIES.length) {
 const establishments = [];
 const companyRoots = new Set();
 let scannedEstablishments = 0;
+let filteredEstablishments = 0;
+const stagePath = TARGET_STATE
+  ? path.join(
+      CACHE_DIR,
+      competence || "local",
+      `establishments-${TARGET_STATE}-${process.pid}.ndjson`,
+    )
+  : null;
+if (stagePath) await fs.promises.mkdir(path.dirname(stagePath), { recursive: true });
+const stage = stagePath ? fs.createWriteStream(stagePath) : null;
 for (const file of files.establishments) {
-  await forEachZipLine(file, (row) => {
+  await forEachZipLine(file, async (row) => {
     scannedEstablishments += 1;
     const municipality = targetMunicipalities
       .get(normalize(row[20]))
@@ -436,7 +447,7 @@ for (const file of files.establishments) {
     const order = digits(row[1]).padStart(4, "0");
     const verifier = digits(row[2]).padStart(2, "0");
     companyRoots.add(root);
-    establishments.push({
+    const establishment = {
       root,
       cnpj: `${root}${order}${verifier}`,
       tradeName: nullable(row[4]),
@@ -459,10 +470,18 @@ for (const file of files.establishments) {
       email: nullable(row[27]),
       specialStatus: nullable(row[28]),
       specialStatusAt: isoDate(row[29]),
-    });
+    };
+    filteredEstablishments += 1;
+    if (stage) {
+      if (!stage.write(`${JSON.stringify(establishment)}\n`)) await once(stage, "drain");
+    } else {
+      establishments.push(establishment);
+    }
   });
-  console.log(`Estabelecimentos filtrados: ${establishments.length}`);
+  console.log(`Estabelecimentos filtrados: ${filteredEstablishments}`);
 }
+if (stage)
+  await new Promise((resolve, reject) => stage.end((error) => (error ? reject(error) : resolve())));
 
 const companies = new Map();
 for (const file of files.companies) {
@@ -502,9 +521,9 @@ const sizeNames = new Map([
   ["05", "Demais"],
 ]);
 const now = new Date().toISOString();
-const leads = establishments.flatMap((establishment) => {
+function toLead(establishment) {
   const company = companies.get(establishment.root);
-  if (!company?.legalName) return [];
+  if (!company?.legalName) return null;
   const taxOptions = simple.get(establishment.root) || { simple: false, mei: false };
   const rawPayload = {
     ibge_city_code: establishment.municipality.ibgeCode,
@@ -557,12 +576,31 @@ const leads = establishments.flatMap((establishment) => {
     mei_opted_at: taxOptions.meiOptedAt || null,
     mei_excluded_at: taxOptions.meiExcludedAt || null,
   };
-  return [{ ...lead, relevance_score: scoreLead(lead) }];
-});
+  return { ...lead, relevance_score: scoreLead(lead) };
+}
+
+async function* selectedEstablishments() {
+  if (!stagePath) {
+    yield* establishments;
+    return;
+  }
+  const lines = readline.createInterface({
+    input: fs.createReadStream(stagePath),
+    crlfDelay: Infinity,
+  });
+  for await (const line of lines) yield JSON.parse(line);
+}
 
 console.log(`Registros nacionais lidos: ${scannedEstablishments.toLocaleString("pt-BR")}`);
-console.log(`Leads ativos preparados: ${leads.length.toLocaleString("pt-BR")}`);
-if (DRY_RUN) process.exit(0);
+if (DRY_RUN) {
+  let prepared = 0;
+  for await (const establishment of selectedEstablishments()) {
+    if (toLead(establishment)) prepared += 1;
+  }
+  console.log(`Leads ativos preparados: ${prepared.toLocaleString("pt-BR")}`);
+  if (stagePath) await fs.promises.unlink(stagePath);
+  process.exit(0);
+}
 
 async function connectDatabase() {
   let lastError;
@@ -610,6 +648,23 @@ async function withReconnect(operation, attempts = 4) {
   throw lastError;
 }
 try {
+  const existingCnpjs =
+    INSERT_ONLY && TARGET_STATE
+      ? new Set(
+          (
+            await withReconnect((database) =>
+              database.query("select cnpj from public.company_leads where state = $1", [
+                TARGET_STATE,
+              ]),
+            )
+          ).rows.map(({ cnpj }) => cnpj),
+        )
+      : null;
+  if (existingCnpjs) {
+    console.log(
+      `CNPJs de ${TARGET_STATE} já presentes: ${existingCnpjs.size.toLocaleString("pt-BR")}`,
+    );
+  }
   const clientAliases = await withReconnect((database) =>
     database.query(
       `select id, client_id,
@@ -626,13 +681,6 @@ try {
         { searchAlias: search_alias, clientId: client_id, companyId: id },
       ]),
   );
-  for (const lead of leads) {
-    const clientMatch = aliasesByCnpj.get(lead.cnpj);
-    lead.search_alias = clientMatch?.searchAlias || null;
-    lead.existing_client_id = clientMatch?.clientId || null;
-    lead.existing_client_company_id = clientMatch?.companyId || null;
-  }
-
   const cnaeRows = [...cnaeLookup.entries()].map(([code, description]) => ({ code, description }));
   for (const batch of splitBatches(cnaeRows, BATCH_SIZE)) {
     const values = [];
@@ -651,12 +699,30 @@ try {
     );
   }
 
-  for (const [index, batch] of splitBatches(leads, BATCH_SIZE).entries()) {
-    await withReconnect((database) => upsertBatch(database, batch));
-    console.log(
-      `Gravando empresas: ${Math.min((index + 1) * BATCH_SIZE, leads.length)}/${leads.length}`,
-    );
+  let importedLeads = 0;
+  const leadBatch = [];
+  const flushLeads = async () => {
+    if (!leadBatch.length) return;
+    await withReconnect((database) => upsertBatch(database, leadBatch));
+    importedLeads += leadBatch.length;
+    leadBatch.length = 0;
+    if (importedLeads % 10000 === 0) {
+      console.log(`Gravando empresas: ${importedLeads.toLocaleString("pt-BR")}`);
+    }
+  };
+  for await (const establishment of selectedEstablishments()) {
+    if (existingCnpjs?.has(establishment.cnpj)) continue;
+    const lead = toLead(establishment);
+    if (!lead) continue;
+    const clientMatch = aliasesByCnpj.get(lead.cnpj);
+    lead.search_alias = clientMatch?.searchAlias || null;
+    lead.existing_client_id = clientMatch?.clientId || null;
+    lead.existing_client_company_id = clientMatch?.companyId || null;
+    leadBatch.push(lead);
+    if (leadBatch.length >= BATCH_SIZE) await flushLeads();
   }
+  await flushLeads();
+  console.log(`Leads ativos preparados: ${importedLeads.toLocaleString("pt-BR")}`);
   if (files.partners.length && !SKIP_PARTNERS) {
     let importedPartners = 0;
     for (const file of files.partners) {
@@ -728,7 +794,8 @@ try {
       console.log(`Sócios criados/atualizados: ${importedPartners.toLocaleString("pt-BR")}`);
     }
   }
-  console.log(`Empresas criadas/atualizadas: ${leads.length}`);
+  console.log(`Empresas criadas/atualizadas: ${importedLeads}`);
 } finally {
   await client.end();
+  if (stagePath) await fs.promises.unlink(stagePath);
 }
