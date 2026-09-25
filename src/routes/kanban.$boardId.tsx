@@ -152,7 +152,6 @@ const kanbanCollisionDetection: CollisionDetection = (args) => {
   const targetColumnId = columnCollision.data?.droppableContainer.data.current?.columnId;
   const cardContainers = args.droppableContainers.filter(
     (container) =>
-      container.id !== args.active.id &&
       container.data.current?.type === "card" &&
       container.data.current?.card?.columnId === targetColumnId,
   );
@@ -224,6 +223,14 @@ function KanbanPage() {
   const [drawerCard, setDrawerCard] = useState<KanbanCard | null>(null);
   const [defaultColumnId, setDefaultColumnId] = useState<ColumnId>("a-fazer");
   const [mobileColumn, setMobileColumn] = useState<ColumnId>("a-fazer");
+  const [desktopBoard, setDesktopBoard] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1280px)");
+    const update = () => setDesktopBoard(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   const [newColumnOpen, setNewColumnOpen] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<KanbanColumn | null>(null);
@@ -448,23 +455,12 @@ function KanbanPage() {
     setDragTarget(null);
     document.body.classList.remove("kanban-card-dragging");
     const currentCards = kanbanStore.getSnapshot();
-    const startEvent = e.activatorEvent;
-    const pointerColumn =
-      "clientX" in startEvent && "clientY" in startEvent
-        ? document
-            .elementFromPoint(startEvent.clientX + e.delta.x, startEvent.clientY + e.delta.y)
-            ?.closest<HTMLElement>("[data-kanban-column-id]")?.dataset.kanbanColumnId
-        : undefined;
-    const targetColumn =
-      "clientX" in startEvent && "clientY" in startEvent
-        ? columns.find((column) => column.id === pointerColumn)?.id
-        : resolveOverColumn(over, currentCards);
+    const targetColumn = resolveOverColumn(over, currentCards);
     const overCardId =
       resolveOverColumn(over, currentCards) === targetColumn && over?.data.current?.type === "card"
         ? String(over.id)
         : undefined;
-    if (!targetColumn) {
-      if (dragStartCardsRef.current) kanbanStore.hydrate(dragStartCardsRef.current);
+    if (!targetColumn || over?.id === active.id) {
       dragStartCardsRef.current = null;
       dragPlacementRef.current = null;
       return;
@@ -476,15 +472,7 @@ function KanbanPage() {
         : previewPlacement?.columnId === targetColumn
           ? previewPlacement.beforeCardId
           : undefined;
-    const changedColumn =
-      currentCards.find((card) => card.id === active.id)?.columnId !== targetColumn;
-    const changedPosition =
-      overCardId &&
-      overCardId !== String(active.id) &&
-      overCardId !== previewPlacement?.beforeCardId;
-    if (changedColumn || changedPosition) {
-      moveCardToColumn(String(active.id), targetColumn, beforeCardId);
-    }
+    moveCardToColumn(String(active.id), targetColumn, beforeCardId);
     const originalCards = dragStartCardsRef.current;
     const finalCards = kanbanStore.getSnapshot();
     const originalIndex = originalCards?.findIndex((card) => card.id === active.id);
@@ -1096,107 +1084,110 @@ function KanbanPage() {
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
-            <div className="hidden xl:block">
-              <div className="overflow-x-auto kanban-scrollbar">
-                <div className="flex min-w-max items-start gap-4 pb-2">
-                  {columns.map((col) => (
-                    <KanbanColumnView
-                      key={col.id}
-                      boardId={boardId ?? undefined}
-                      boardMembers={boardMembers}
-                      column={col}
-                      columns={columns}
-                      cards={cardsByColumn[col.id]}
-                      dragPlaceholder={
-                        activeCard &&
-                        dragTarget?.columnId === col.id &&
-                        activeCard.columnId !== col.id
-                          ? { beforeCardId: dragTarget.beforeCardId, height: dragPreviewHeight }
-                          : undefined
-                      }
-                      onCardClick={openCard}
-                      onArchiveCard={handleArchiveCard}
-                      onAddCard={handleNewCard}
-                      onDeleteColumn={handleDeleteColumn}
-                      canDeleteColumn={columns.length > 1}
-                      onCopyColumn={handleCopyColumn}
-                      onMoveColumn={handleMoveColumn}
-                      onMoveAllCards={handleMoveAllCards}
-                      onSortColumn={handleSortColumn}
-                      isFollowing={followedColumns.has(col.id)}
-                      onToggleFollow={handleToggleFollow}
-                      onArchiveAll={setArchiveTarget}
-                    />
-                  ))}
-                  <button
-                    onClick={handleNewColumn}
-                    className="flex h-7 w-[210px] shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-lg border border-slate-300 bg-slate-100 px-2.5 text-[11px] font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12]"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Adicionar outra lista
-                  </button>
+            {/* Mount only one layout: duplicate DnD IDs register hidden, zero-size nodes. */}
+            {desktopBoard ? (
+              <div>
+                <div className="overflow-x-auto kanban-scrollbar">
+                  <div className="flex min-w-max items-start gap-4 pb-2">
+                    {columns.map((col) => (
+                      <KanbanColumnView
+                        key={col.id}
+                        boardId={boardId ?? undefined}
+                        boardMembers={boardMembers}
+                        column={col}
+                        columns={columns}
+                        cards={cardsByColumn[col.id]}
+                        dragPlaceholder={
+                          activeCard &&
+                          dragTarget?.columnId === col.id &&
+                          activeCard.columnId !== col.id
+                            ? { beforeCardId: dragTarget.beforeCardId, height: dragPreviewHeight }
+                            : undefined
+                        }
+                        onCardClick={openCard}
+                        onArchiveCard={handleArchiveCard}
+                        onAddCard={handleNewCard}
+                        onDeleteColumn={handleDeleteColumn}
+                        canDeleteColumn={columns.length > 1}
+                        onCopyColumn={handleCopyColumn}
+                        onMoveColumn={handleMoveColumn}
+                        onMoveAllCards={handleMoveAllCards}
+                        onSortColumn={handleSortColumn}
+                        isFollowing={followedColumns.has(col.id)}
+                        onToggleFollow={handleToggleFollow}
+                        onArchiveAll={setArchiveTarget}
+                      />
+                    ))}
+                    <button
+                      onClick={handleNewColumn}
+                      className="flex h-7 w-[210px] shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-lg border border-slate-300 bg-slate-100 px-2.5 text-[11px] font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12]"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Adicionar outra lista
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="xl:hidden">
-              <Tabs value={mobileColumn} onValueChange={(v) => setMobileColumn(v as ColumnId)}>
-                <TabsList className="mb-3 flex h-auto w-full justify-start overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-white/6">
-                  {columns.map((c) => (
-                    <TabsTrigger
-                      key={c.id}
-                      value={c.id}
-                      className="cursor-pointer whitespace-nowrap text-xs text-slate-600 data-[state=active]:bg-white data-[state=active]:text-slate-900 dark:text-slate-300 dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-white"
-                    >
-                      {c.title}
-                      <span className="ml-1.5 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] dark:border-white/10 dark:bg-white/10">
-                        {cardsByColumn[c.id]?.length ?? 0}
-                      </span>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-              {columns
-                .filter((c) => c.id === mobileColumn)
-                .map((col) => {
-                  return (
-                    <KanbanColumnView
-                      key={col.id}
-                      boardId={boardId ?? undefined}
-                      boardMembers={boardMembers}
-                      column={col}
-                      columns={columns}
-                      cards={cardsByColumn[col.id]}
-                      dragPlaceholder={
-                        activeCard &&
-                        dragTarget?.columnId === col.id &&
-                        activeCard.columnId !== col.id
-                          ? { beforeCardId: dragTarget.beforeCardId, height: dragPreviewHeight }
-                          : undefined
-                      }
-                      onCardClick={openCard}
-                      onArchiveCard={handleArchiveCard}
-                      onAddCard={handleNewCard}
-                      onDeleteColumn={handleDeleteColumn}
-                      canDeleteColumn={columns.length > 1}
-                      onCopyColumn={handleCopyColumn}
-                      onMoveColumn={handleMoveColumn}
-                      onMoveAllCards={handleMoveAllCards}
-                      onSortColumn={handleSortColumn}
-                      isFollowing={followedColumns.has(col.id)}
-                      onToggleFollow={handleToggleFollow}
-                      onArchiveAll={setArchiveTarget}
-                    />
-                  );
-                })}
-              <button
-                onClick={handleNewColumn}
-                className="mt-3 flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-3 text-[11px] font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12]"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Adicionar outra lista
-              </button>
-            </div>
+            ) : (
+              <div>
+                <Tabs value={mobileColumn} onValueChange={(v) => setMobileColumn(v as ColumnId)}>
+                  <TabsList className="mb-3 flex h-auto w-full justify-start overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-white/6">
+                    {columns.map((c) => (
+                      <TabsTrigger
+                        key={c.id}
+                        value={c.id}
+                        className="cursor-pointer whitespace-nowrap text-xs text-slate-600 data-[state=active]:bg-white data-[state=active]:text-slate-900 dark:text-slate-300 dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-white"
+                      >
+                        {c.title}
+                        <span className="ml-1.5 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] dark:border-white/10 dark:bg-white/10">
+                          {cardsByColumn[c.id]?.length ?? 0}
+                        </span>
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+                {columns
+                  .filter((c) => c.id === mobileColumn)
+                  .map((col) => {
+                    return (
+                      <KanbanColumnView
+                        key={col.id}
+                        boardId={boardId ?? undefined}
+                        boardMembers={boardMembers}
+                        column={col}
+                        columns={columns}
+                        cards={cardsByColumn[col.id]}
+                        dragPlaceholder={
+                          activeCard &&
+                          dragTarget?.columnId === col.id &&
+                          activeCard.columnId !== col.id
+                            ? { beforeCardId: dragTarget.beforeCardId, height: dragPreviewHeight }
+                            : undefined
+                        }
+                        onCardClick={openCard}
+                        onArchiveCard={handleArchiveCard}
+                        onAddCard={handleNewCard}
+                        onDeleteColumn={handleDeleteColumn}
+                        canDeleteColumn={columns.length > 1}
+                        onCopyColumn={handleCopyColumn}
+                        onMoveColumn={handleMoveColumn}
+                        onMoveAllCards={handleMoveAllCards}
+                        onSortColumn={handleSortColumn}
+                        isFollowing={followedColumns.has(col.id)}
+                        onToggleFollow={handleToggleFollow}
+                        onArchiveAll={setArchiveTarget}
+                      />
+                    );
+                  })}
+                <button
+                  onClick={handleNewColumn}
+                  className="mt-3 flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-3 text-[11px] font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.12]"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Adicionar outra lista
+                </button>
+              </div>
+            )}
 
             {typeof document !== "undefined" &&
               createPortal(
