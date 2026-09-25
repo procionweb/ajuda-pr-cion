@@ -106,13 +106,14 @@ export function KanbanCardItem({
       {...listeners}
       onClick={(e) => {
         if (isDragging) return;
+        if (!e.currentTarget.contains(e.target as Node)) return;
         e.stopPropagation();
         onClick?.();
       }}
       className={cn(
         "group cursor-grab active:cursor-grabbing rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 shadow-[0_1px_1px_rgba(15,23,42,0.08)] transition duration-200 ease-out hover:-translate-y-0.5 hover:border-slate-400 hover:shadow-md dark:border-white/10 dark:bg-[#22252a] dark:text-slate-100 dark:hover:border-white/20 dark:hover:bg-[#292c31]",
         isDragging && !overlay && "opacity-40",
-        overlay && "rotate-1 shadow-2xl",
+        overlay && "w-[258px] pointer-events-none rotate-1 shadow-2xl",
       )}
     >
       {/* Trello-style label strips */}
@@ -142,13 +143,15 @@ export function KanbanCardItem({
           </p>
         </div>
         <div className="flex shrink-0 items-center">
-          <KanbanCardMenu
-            card={card}
-            boardId={boardId}
-            columns={columns}
-            onOpen={onClick}
-            onArchive={onArchive}
-          />
+          {!overlay && (
+            <KanbanCardMenu
+              card={card}
+              boardId={boardId}
+              columns={columns}
+              onOpen={onClick}
+              onArchive={onArchive}
+            />
+          )}
         </div>
       </div>
 

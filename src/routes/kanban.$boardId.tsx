@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
@@ -1004,7 +1005,13 @@ function KanbanPage() {
               </button>
             </div>
 
-            <DragOverlay>{activeCard && <KanbanCardItem card={activeCard} overlay />}</DragOverlay>
+            {typeof document !== "undefined" &&
+              createPortal(
+                <DragOverlay zIndex={1000}>
+                  {activeCard && <KanbanCardItem card={activeCard} overlay />}
+                </DragOverlay>,
+                document.body,
+              )}
           </DndContext>
         )}
       </div>

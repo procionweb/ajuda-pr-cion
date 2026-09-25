@@ -183,7 +183,24 @@ export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive }: Pr
 
 /* ---------------- Etiquetas ---------------- */
 
-const LABEL_COLORS = ["#226e53", "#8c690a", "#b8640d", "#b9352d", "#773da2", "#1f62b8"];
+const LABEL_COLORS = [
+  "#226e53",
+  "#8c690a",
+  "#b8640d",
+  "#b9352d",
+  "#773da2",
+  "#1f62b8",
+  "#0e7490",
+  "#be185d",
+];
+const labelKey = (label: string) =>
+  label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/^prioridad normal$/, "prioridade normal");
 
 function TagsDialog({
   open,
@@ -205,20 +222,40 @@ function TagsDialog({
     setName("");
   }, [open]);
   const allCards = kanbanStore.getSnapshot();
-  const labels = Array.from(new Set(allCards.flatMap((item) => item.tags ?? [])));
+  const labels = Array.from(
+    new Map(
+      Array.from(new Set(allCards.flatMap((item) => item.tags ?? []))).map((label) => [
+        labelKey(label),
+        label,
+      ]),
+    ).values(),
+  );
   const visible = labels.filter((label) =>
     label.toLocaleLowerCase("pt-BR").includes(search.toLocaleLowerCase("pt-BR")),
   );
-  const labelColor = (label: string) =>
-    allCards.find((item) => item.tagColors?.[label])?.tagColors?.[label] ??
-    LABEL_COLORS[labels.indexOf(label) % LABEL_COLORS.length];
+  const usedColors = new Set<string>();
+  const labelColors = new Map(
+    labels.map((label, index) => {
+      const saved = allCards.find((item) => item.tagColors?.[label])?.tagColors?.[label];
+      const color =
+        saved && !usedColors.has(saved)
+          ? saved
+          : (LABEL_COLORS.find((option) => !usedColors.has(option)) ??
+            LABEL_COLORS[index % LABEL_COLORS.length]);
+      usedColors.add(color);
+      return [label, color];
+    }),
+  );
+  const labelColor = (label: string) => labelColors.get(label) ?? LABEL_COLORS[0];
 
   const toggle = (label: string) => {
     const current = kanbanStore.getSnapshot().find((item) => item.id === card.id) ?? card;
-    const selected = current.tags.includes(label);
+    const selected = current.tags.some((item) => labelKey(item) === labelKey(label));
     kanbanStore.updateCard({
       ...current,
-      tags: selected ? current.tags.filter((item) => item !== label) : [...current.tags, label],
+      tags: selected
+        ? current.tags.filter((item) => labelKey(item) !== labelKey(label))
+        : [...current.tags, label],
       tagColors: selected
         ? current.tagColors
         : { ...current.tagColors, [label]: labelColor(label) },
@@ -269,7 +306,7 @@ function TagsDialog({
             <div key={label} className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={card.tags.includes(label)}
+                checked={card.tags.some((item) => labelKey(item) === labelKey(label))}
                 onChange={() => toggle(label)}
                 aria-label={`Selecionar ${label}`}
               />
@@ -562,6 +599,8 @@ function DateDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        autoFooter={false}
+        onOutsideClick={() => onOpenChange(false)}
         className="max-h-[90vh] gap-0 overflow-y-auto p-0 sm:max-w-[380px] [&>button]:hidden"
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
@@ -583,7 +622,7 @@ function DateDialog({
             className={cn("rounded-md border p-3 pointer-events-auto")}
           />
           <div className="w-full space-y-3 text-xs">
-            <label className="block space-y-1 font-semibold">
+            <label className="block space-y-1 font-normal">
               Data de início
               <Input
                 type="date"
@@ -592,7 +631,7 @@ function DateDialog({
               />
             </label>
             <div className="grid grid-cols-[1fr_110px] gap-2">
-              <label className="space-y-1 font-semibold">
+              <label className="space-y-1 font-normal">
                 Data de entrega
                 <Input
                   type="date"
@@ -600,7 +639,7 @@ function DateDialog({
                   onChange={(event) => setDate(parse(event.target.value))}
                 />
               </label>
-              <label className="space-y-1 font-semibold">
+              <label className="space-y-1 font-normal">
                 Horário
                 <Input
                   type="time"
@@ -610,7 +649,7 @@ function DateDialog({
                 />
               </label>
             </div>
-            <label className="block space-y-1 font-semibold">
+            <label className="block space-y-1 font-normal">
               Recorrente
               <select
                 className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
@@ -623,7 +662,7 @@ function DateDialog({
                 <option value="monthly">Mensalmente</option>
               </select>
             </label>
-            <label className="block space-y-1 font-semibold">
+            <label className="block space-y-1 font-normal">
               Definir lembrete
               <select
                 className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
@@ -639,7 +678,10 @@ function DateDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex-col gap-2 border-t border-border bg-card px-5 py-3 sm:flex-col">
+        <DialogFooter
+          showClose={false}
+          className="flex-col gap-2 border-t border-border bg-card px-5 py-3 sm:flex-col"
+        >
           <Button className="w-full cursor-pointer" onClick={save}>
             Salvar
           </Button>
@@ -742,7 +784,7 @@ function DestinationFields({ destination }: { destination: Destination }) {
     "h-10 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground";
   return (
     <div className="space-y-4">
-      <label className="block space-y-1 text-xs font-semibold">
+      <label className="block space-y-1 text-xs font-normal">
         Quadro
         <select
           className={field}
@@ -757,7 +799,7 @@ function DestinationFields({ destination }: { destination: Destination }) {
         </select>
       </label>
       <div className="grid grid-cols-[minmax(0,1fr)_76px] gap-2">
-        <label className="space-y-1 text-xs font-semibold">
+        <label className="space-y-1 text-xs font-normal">
           Lista
           <select
             className={field}
@@ -775,7 +817,7 @@ function DestinationFields({ destination }: { destination: Destination }) {
             ))}
           </select>
         </label>
-        <label className="space-y-1 text-xs font-semibold">
+        <label className="space-y-1 text-xs font-normal">
           Posição
           <select
             className={field}
@@ -808,12 +850,14 @@ function ActionDialogFrame({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        autoFooter={false}
+        onOutsideClick={() => onOpenChange(false)}
         className="max-h-[90vh] gap-0 overflow-y-auto rounded-md p-0 shadow-xl sm:max-w-[350px] dark:border-white/10 dark:bg-[#2b2d31] dark:text-[#d8d8db] [&>button]:hidden"
         onClick={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
       >
         <DialogTitle className="sr-only">{title}</DialogTitle>
-        <div className="flex items-center border-b border-border px-4 py-3 text-sm font-semibold dark:border-white/10">
+        <div className="flex items-center border-b border-border px-4 py-3 text-sm font-normal dark:border-white/10">
           <span className="flex-1 text-center">{title}</span>
           <button type="button" onClick={() => onOpenChange(false)} aria-label="Fechar">
             <X className="h-4 w-4" />
@@ -956,7 +1000,7 @@ function CopyDialog({
   };
   return (
     <ActionDialogFrame title="Copiar cartão" open={open} onOpenChange={onOpenChange}>
-      <label className="block space-y-1 text-xs font-semibold">
+      <label className="block space-y-1 text-xs font-normal">
         Nome
         <textarea
           className="min-h-16 w-full rounded-md border border-input bg-background p-2 text-sm font-normal text-foreground"
