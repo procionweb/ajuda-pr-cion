@@ -98,6 +98,7 @@ export function KanbanCardItem({
   return (
     <div
       ref={setNodeRef}
+      data-kanban-card
       style={style}
       {...attributes}
       {...listeners}
@@ -209,7 +210,7 @@ export function KanbanCardPreview({ card }: { card: CardType }) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none w-full rounded-lg border border-slate-400 bg-white px-3 py-2.5 text-slate-900 shadow-xl dark:border-white/25 dark:bg-[#292c31] dark:text-slate-100"
+      className="pointer-events-none box-border w-full rounded-lg border border-slate-400 bg-white px-3 py-2.5 text-slate-900 shadow-xl dark:border-white/25 dark:bg-[#292c31] dark:text-slate-100"
     >
       <div className="mb-1.5 flex flex-wrap gap-1">
         <span className={cn("h-1.5 w-10 rounded-full", priority.strip)} />

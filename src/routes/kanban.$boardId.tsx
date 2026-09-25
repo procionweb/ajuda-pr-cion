@@ -194,6 +194,7 @@ function KanbanPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [activeCard, setActiveCard] = useState<KanbanCard | null>(null);
+  const [dragPreviewWidth, setDragPreviewWidth] = useState(258);
   useEffect(() => () => document.body.classList.remove("kanban-card-dragging"), []);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<"edit" | "create">("edit");
@@ -339,8 +340,13 @@ function KanbanPage() {
 
   const handleDragStart = (e: DragStartEvent) => {
     const c = cards.find((x) => x.id === e.active.id);
-    if (c) setActiveCard(c);
-    if (c) document.body.classList.add("kanban-card-dragging");
+    if (!c) return;
+    const target = e.activatorEvent.target;
+    const cardElement = target instanceof Element ? target.closest("[data-kanban-card]") : null;
+    const measuredWidth = cardElement?.getBoundingClientRect().width;
+    setDragPreviewWidth(measuredWidth && measuredWidth > 100 ? measuredWidth : 258);
+    setActiveCard(c);
+    document.body.classList.add("kanban-card-dragging");
   };
 
   const resolveOverColumn = (
@@ -1091,7 +1097,16 @@ function KanbanPage() {
 
             {typeof document !== "undefined" &&
               createPortal(
-                <DragOverlay zIndex={1000} dropAnimation={null}>
+                <DragOverlay
+                  zIndex={1000}
+                  dropAnimation={null}
+                  style={{
+                    width: dragPreviewWidth,
+                    minWidth: dragPreviewWidth,
+                    height: "auto",
+                    pointerEvents: "none",
+                  }}
+                >
                   {activeCard && <KanbanCardPreview card={activeCard} />}
                 </DragOverlay>,
                 document.body,
