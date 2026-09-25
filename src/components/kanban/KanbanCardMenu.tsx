@@ -850,7 +850,7 @@ function useDestination(
     }
   };
   const cardsInColumn = targetCards.filter(
-    (item) => item.columnId === columnId && item.id !== card.id,
+    (item) => item.columnId === columnId && !item.archived && item.id !== card.id,
   );
   return {
     boards,
