@@ -35,6 +35,8 @@ import {
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  tab: "about" | "activity" | "archive";
+  onTabChange: (tab: "about" | "activity" | "archive") => void;
   cards: KanbanCard[];
   columns: KanbanColumn[];
   followedColumns: Set<ColumnId>;
@@ -62,6 +64,8 @@ function memberById(id?: string) {
 export function KanbanBoardMenu({
   open,
   onOpenChange,
+  tab,
+  onTabChange,
   cards,
   columns,
   followedColumns,
@@ -114,7 +118,11 @@ export function KanbanBoardMenu({
             </SheetDescription>
           </SheetHeader>
 
-          <Tabs defaultValue="about" className="flex min-h-0 flex-1 flex-col">
+          <Tabs
+            value={tab}
+            onValueChange={(value) => onTabChange(value as "about" | "activity" | "archive")}
+            className="flex min-h-0 flex-1 flex-col"
+          >
             <div className="border-b border-slate-200 px-5 py-3 dark:border-white/10">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="about">Quadro</TabsTrigger>
@@ -143,7 +151,11 @@ export function KanbanBoardMenu({
                     <h3 className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       Listas
                     </h3>
-                    <Button size="sm" className="h-8 cursor-pointer text-xs" onClick={onCreateColumn}>
+                    <Button
+                      size="sm"
+                      className="h-8 cursor-pointer text-xs"
+                      onClick={onCreateColumn}
+                    >
                       Nova lista
                     </Button>
                   </div>
@@ -186,7 +198,9 @@ export function KanbanBoardMenu({
                             {member.initials}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="min-w-0 truncate text-xs font-semibold">{member.name}</span>
+                        <span className="min-w-0 truncate text-xs font-semibold">
+                          {member.name}
+                        </span>
                       </div>
                     ))}
                   </div>

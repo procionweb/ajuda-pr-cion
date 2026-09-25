@@ -206,6 +206,7 @@ function KanbanPage() {
   const [archiveTarget, setArchiveTarget] = useState<KanbanColumn | null>(null);
   const [followedColumns, setFollowedColumns] = useState<Set<ColumnId>>(getInitialFollowedColumns);
   const [boardMenuOpen, setBoardMenuOpen] = useState(false);
+  const [boardMenuTab, setBoardMenuTab] = useState<"about" | "activity" | "archive">("about");
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [collaborationOpen, setCollaborationOpen] = useState(false);
   const [collaborationTab, setCollaborationTab] = useState<"share" | "background">("share");
@@ -274,7 +275,7 @@ function KanbanPage() {
   const filteredCards = useMemo(() => {
     const q = query.trim().toLowerCase();
     return cards.filter((c) => {
-      if (c.archived && c.columnId !== "arquivado") return false;
+      if (c.archived) return false;
       if (onlyMine) {
         const isMine =
           c.assigneeId === CURRENT_USER_ID || (c.participants ?? []).includes(CURRENT_USER_ID);
@@ -436,6 +437,15 @@ function KanbanPage() {
       ...card,
       columnId: archiveColumn?.id ?? card.columnId,
       archived: true,
+    });
+    toast.success("Cartão arquivado", {
+      action: {
+        label: "Ver no arquivo",
+        onClick: () => {
+          setBoardMenuTab("archive");
+          setBoardMenuOpen(true);
+        },
+      },
     });
   };
 
@@ -852,7 +862,21 @@ function KanbanPage() {
               <Palette className="h-4 w-4" />
             </button>
             <button
-              onClick={() => setBoardMenuOpen(true)}
+              onClick={() => {
+                setBoardMenuTab("archive");
+                setBoardMenuOpen(true);
+              }}
+              className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.035] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+              aria-label="Abrir cartões arquivados"
+              title="Arquivo"
+            >
+              <ArchiveIcon className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => {
+                setBoardMenuTab("about");
+                setBoardMenuOpen(true);
+              }}
               className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.035] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
               aria-label="Abrir menu do quadro"
             >
@@ -1030,6 +1054,8 @@ function KanbanPage() {
       <KanbanBoardMenu
         open={boardMenuOpen}
         onOpenChange={setBoardMenuOpen}
+        tab={boardMenuTab}
+        onTabChange={setBoardMenuTab}
         cards={cards}
         columns={columns}
         followedColumns={followedColumns}

@@ -4,6 +4,7 @@ import {
   Archive,
   ArrowRightLeft,
   CalendarIcon,
+  Check,
   Copy,
   ExternalLink,
   Link2,
@@ -70,6 +71,10 @@ export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive }: Pr
 
   const handleArchive = () => {
     setMenuOpen(false);
+    if (onArchive) {
+      onArchive(card);
+      return;
+    }
     const archivedCol = columns.find(
       (c) =>
         c.id === "arquivado" || /arquiv|finaliz/i.test(c.id) || /arquiv|finaliz/i.test(c.title),
@@ -83,7 +88,6 @@ export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive }: Pr
     } else {
       kanbanStore.updateCard({ ...card, archived: true });
     }
-    onArchive?.(card);
     toast.success("Cartão arquivado");
   };
 
@@ -184,14 +188,36 @@ export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive }: Pr
 /* ---------------- Etiquetas ---------------- */
 
 const LABEL_COLORS = [
+  "#164b3e",
+  "#604900",
+  "#743d00",
+  "#692a25",
+  "#4a245b",
   "#226e53",
   "#8c690a",
   "#b8640d",
   "#b9352d",
   "#773da2",
+  "#4bc4a0",
+  "#e0b719",
+  "#ffad0d",
+  "#fb746d",
+  "#ca79ed",
+  "#1b3c70",
+  "#1b5366",
+  "#405623",
+  "#5b2c4f",
+  "#585c63",
   "#1f62b8",
-  "#0e7490",
-  "#be185d",
+  "#277e9e",
+  "#628b25",
+  "#ad4b91",
+  "#7d828a",
+  "#6a9fe8",
+  "#70bbd5",
+  "#9dcb53",
+  "#e977bc",
+  "#9ca1a8",
 ];
 const labelKey = (label: string) =>
   label
@@ -201,6 +227,20 @@ const labelKey = (label: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/^prioridad normal$/, "prioridade normal");
+const priorityLabelKey = (priority: string) =>
+  priority === "Alta"
+    ? "prioridade alta"
+    : priority === "Baixa"
+      ? "prioridade normal"
+      : "prioridade media";
+const priorityForLabel = (key: string): KanbanCard["priority"] | null =>
+  key === "prioridade alta"
+    ? "Alta"
+    : key === "prioridade normal"
+      ? "Baixa"
+      : key === "prioridade media"
+        ? "Média"
+        : null;
 
 function TagsDialog({
   open,
@@ -247,14 +287,49 @@ function TagsDialog({
     }),
   );
   const labelColor = (label: string) => labelColors.get(label) ?? LABEL_COLORS[0];
+  const isSelected = (label: string) => {
+    const key = labelKey(label);
+    if (currentCard.tags.some((item) => labelKey(item) === key)) return true;
+    const hasPriorityTag = currentCard.tags.some((item) =>
+      labelKey(item).startsWith("prioridade "),
+    );
+    return !hasPriorityTag && key === priorityLabelKey(currentCard.priority);
+  };
 
   const toggle = (label: string) => {
     const current = kanbanStore.getSnapshot().find((item) => item.id === card.id) ?? card;
-    const selected = current.tags.some((item) => labelKey(item) === labelKey(label));
+    const key = labelKey(label);
+    const selected = current.tags.some((item) => labelKey(item) === key);
+    const hasPriorityTag = current.tags.some((item) => labelKey(item).startsWith("prioridade "));
+    const derivedPriority = !hasPriorityTag && key === priorityLabelKey(current.priority);
+    const nextPriority = priorityForLabel(key);
+    if (derivedPriority) {
+      kanbanStore.updateCard({
+        ...current,
+        priority: current.priority === "Média" ? "Baixa" : "Média",
+      });
+      return;
+    }
+    if (selected && nextPriority) {
+      kanbanStore.updateCard({
+        ...current,
+        priority: current.priority === "Média" ? "Baixa" : "Média",
+        tags: current.tags.filter((item) => labelKey(item) !== key),
+      });
+      return;
+    }
+    if (!selected && nextPriority) {
+      kanbanStore.updateCard({
+        ...current,
+        priority: nextPriority,
+        tags: current.tags.filter((item) => !labelKey(item).startsWith("prioridade ")),
+      });
+      return;
+    }
     kanbanStore.updateCard({
       ...current,
       tags: selected
-        ? current.tags.filter((item) => labelKey(item) !== labelKey(label))
+        ? current.tags.filter((item) => labelKey(item) !== key)
         : [...current.tags, label],
       tagColors: selected
         ? current.tagColors
@@ -306,7 +381,7 @@ function TagsDialog({
             <div key={label} className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={currentCard.tags.some((item) => labelKey(item) === labelKey(label))}
+                checked={isSelected(label)}
                 onChange={() => toggle(label)}
                 aria-label={`Selecionar ${label}`}
               />
@@ -344,7 +419,7 @@ function TagsDialog({
               if (event.key === "Enter") saveLabel();
             }}
           />
-          <div className="flex gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {LABEL_COLORS.map((option) => (
               <button
                 key={option}
@@ -354,11 +429,13 @@ function TagsDialog({
                 aria-pressed={color === option}
                 onClick={() => setColor(option)}
                 className={cn(
-                  "h-7 flex-1 rounded border-2",
-                  color === option ? "border-foreground" : "border-transparent",
+                  "grid h-8 place-items-center rounded border border-white/30 text-white",
+                  color === option && "ring-2 ring-foreground ring-offset-2",
                 )}
                 style={{ backgroundColor: option }}
-              />
+              >
+                {color === option && <Check className="h-4 w-4" />}
+              </button>
             ))}
           </div>
           <div className="flex gap-2">
