@@ -141,7 +141,22 @@ function daysBetween(iso: string) {
 
 const FOLLOWED_COLUMNS_STORAGE_KEY = "procion-kanban-followed-columns";
 
-const kanbanCollisionDetection: CollisionDetection = pointerWithin;
+const kanbanCollisionDetection: CollisionDetection = (args) => {
+  const columnContainers = args.droppableContainers.filter(
+    (container) => container.data.current?.type === "column",
+  );
+  const columnCollision = pointerWithin({ ...args, droppableContainers: columnContainers })[0];
+  if (!columnCollision) return [];
+
+  const targetColumnId = columnCollision.data?.droppableContainer.data.current?.columnId;
+  const cardContainers = args.droppableContainers.filter(
+    (container) =>
+      container.id !== args.active.id &&
+      container.data.current?.type === "card" &&
+      container.data.current?.card?.columnId === targetColumnId,
+  );
+  return pointerWithin({ ...args, droppableContainers: cardContainers }).concat(columnCollision);
+};
 
 function getInitialColumns(): KanbanColumn[] {
   return kanbanColumnsDef;
