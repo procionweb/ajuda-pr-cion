@@ -80,6 +80,7 @@ export function KanbanColumnView({
   return (
     <section
       ref={setNodeRef}
+      data-kanban-column-id={column.id}
       className="relative flex h-[clamp(390px,calc(100dvh-250px),720px)] w-[280px] shrink-0 flex-col overflow-hidden rounded-xl border border-slate-300 bg-slate-100 p-2.5 shadow-sm dark:border-white/8 dark:bg-[#171a20] dark:shadow-[0_18px_40px_rgba(0,0,0,0.16)]"
     >
       <div className="mb-3 flex h-7 items-center justify-between gap-2">

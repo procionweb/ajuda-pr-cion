@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import {
   pointerWithin,
   type CollisionDetection,
   type DragEndEvent,
+  type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { Columns3, Trash2 as TrashIcon, Archive as ArchiveIcon } from "lucide-react";
@@ -210,6 +211,8 @@ function KanbanPage() {
   const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [activeCard, setActiveCard] = useState<KanbanCard | null>(null);
   const [dragPreviewWidth, setDragPreviewWidth] = useState(258);
+  const dragStartCardsRef = useRef<KanbanCard[] | null>(null);
+  const dragPlacementRef = useRef<{ columnId: ColumnId; beforeCardId?: string } | null>(null);
   useEffect(() => () => document.body.classList.remove("kanban-card-dragging"), []);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<"edit" | "create">("edit");
@@ -360,6 +363,8 @@ function KanbanPage() {
     const cardElement = target instanceof Element ? target.closest("[data-kanban-card]") : null;
     const measuredWidth = cardElement?.getBoundingClientRect().width;
     setDragPreviewWidth(measuredWidth && measuredWidth > 100 ? measuredWidth : 258);
+    dragStartCardsRef.current = cards;
+    dragPlacementRef.current = null;
     setActiveCard(c);
     document.body.classList.add("kanban-card-dragging");
   };
@@ -416,21 +421,74 @@ function KanbanPage() {
     });
   };
 
+  const handleDragOver = (e: DragOverEvent) => {
+    const currentCards = kanbanStore.getSnapshot();
+    const targetColumn = resolveOverColumn(e.over, currentCards);
+    const active = currentCards.find((card) => card.id === e.active.id);
+    if (!active || !targetColumn || active.columnId === targetColumn) return;
+    const overCardId = e.over?.data.current?.type === "card" ? String(e.over.id) : undefined;
+    moveCardToColumn(String(e.active.id), targetColumn, overCardId);
+    dragPlacementRef.current = { columnId: targetColumn, beforeCardId: overCardId };
+  };
+
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     setActiveCard(null);
     document.body.classList.remove("kanban-card-dragging");
-    const targetColumn = resolveOverColumn(over, cards);
-    const overCardId = over?.data.current?.type === "card" ? String(over.id) : undefined;
-    if (!targetColumn) return;
-    if (overCardId === String(active.id)) return;
-    moveCardToColumn(String(active.id), targetColumn, overCardId);
-    if (/^[0-9a-f-]{36}$/i.test(String(active.id))) {
+    const currentCards = kanbanStore.getSnapshot();
+    const startEvent = e.activatorEvent;
+    const pointerColumn =
+      "clientX" in startEvent && "clientY" in startEvent
+        ? document
+            .elementFromPoint(startEvent.clientX + e.delta.x, startEvent.clientY + e.delta.y)
+            ?.closest<HTMLElement>("[data-kanban-column-id]")?.dataset.kanbanColumnId
+        : undefined;
+    const targetColumn =
+      "clientX" in startEvent && "clientY" in startEvent
+        ? columns.find((column) => column.id === pointerColumn)?.id
+        : resolveOverColumn(over, currentCards);
+    const overCardId =
+      resolveOverColumn(over, currentCards) === targetColumn && over?.data.current?.type === "card"
+        ? String(over.id)
+        : undefined;
+    if (!targetColumn) {
+      if (dragStartCardsRef.current) kanbanStore.hydrate(dragStartCardsRef.current);
+      dragStartCardsRef.current = null;
+      dragPlacementRef.current = null;
+      return;
+    }
+    const previewPlacement = dragPlacementRef.current;
+    const beforeCardId =
+      overCardId && overCardId !== String(active.id)
+        ? overCardId
+        : previewPlacement?.columnId === targetColumn
+          ? previewPlacement.beforeCardId
+          : undefined;
+    const changedColumn =
+      currentCards.find((card) => card.id === active.id)?.columnId !== targetColumn;
+    const changedPosition =
+      overCardId &&
+      overCardId !== String(active.id) &&
+      overCardId !== previewPlacement?.beforeCardId;
+    if (changedColumn || changedPosition) {
+      moveCardToColumn(String(active.id), targetColumn, beforeCardId);
+    }
+    const originalCards = dragStartCardsRef.current;
+    const finalCards = kanbanStore.getSnapshot();
+    const originalIndex = originalCards?.findIndex((card) => card.id === active.id);
+    const finalIndex = finalCards.findIndex((card) => card.id === active.id);
+    const didMove =
+      originalIndex !== finalIndex ||
+      originalCards?.[originalIndex ?? -1]?.columnId !== finalCards[finalIndex]?.columnId;
+    dragStartCardsRef.current = null;
+    dragPlacementRef.current = null;
+    if (didMove && /^[0-9a-f-]{36}$/i.test(String(active.id))) {
       void moveKanbanCard({
         data: {
           cardId: String(active.id),
           columnId: targetColumn,
-          beforeCardId: overCardId && /^[0-9a-f-]{36}$/i.test(overCardId) ? overCardId : undefined,
+          beforeCardId:
+            beforeCardId && /^[0-9a-f-]{36}$/i.test(beforeCardId) ? beforeCardId : undefined,
         },
       }).catch(() => {
         toast.error("Não foi possível salvar a movimentação");
@@ -442,6 +500,9 @@ function KanbanPage() {
   };
 
   const handleDragCancel = () => {
+    if (dragStartCardsRef.current) kanbanStore.hydrate(dragStartCardsRef.current);
+    dragStartCardsRef.current = null;
+    dragPlacementRef.current = null;
     setActiveCard(null);
     document.body.classList.remove("kanban-card-dragging");
   };
@@ -1019,6 +1080,7 @@ function KanbanPage() {
             collisionDetection={kanbanCollisionDetection}
             autoScroll={false}
             onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
