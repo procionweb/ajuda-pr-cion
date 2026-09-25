@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
@@ -52,6 +53,7 @@ export function KanbanColumnView({
   isFollowing = false,
   onToggleFollow,
   onArchiveAll,
+  dragPlaceholder,
 }: {
   boardId?: string;
   boardMembers?: BoardMember[];
@@ -70,6 +72,7 @@ export function KanbanColumnView({
   isFollowing?: boolean;
   onToggleFollow?: (column: KanbanColumn) => void;
   onArchiveAll?: (column: KanbanColumn) => void;
+  dragPlaceholder?: { beforeCardId?: string; height: number };
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
@@ -220,16 +223,31 @@ export function KanbanColumnView({
         <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           <div className="app-scrollbar min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-1">
             {cards.map((c) => (
-              <KanbanCardItem
-                key={c.id}
-                boardId={boardId}
-                boardMembers={boardMembers}
-                card={c}
-                columns={columns}
-                onClick={() => onCardClick(c)}
-                onArchive={onArchiveCard}
-              />
+              <Fragment key={c.id}>
+                {dragPlaceholder?.beforeCardId === c.id && (
+                  <div
+                    aria-hidden="true"
+                    className="rounded-lg border-2 border-dashed border-sky-400/60 bg-sky-100/70 dark:bg-sky-400/10"
+                    style={{ height: dragPlaceholder.height }}
+                  />
+                )}
+                <KanbanCardItem
+                  boardId={boardId}
+                  boardMembers={boardMembers}
+                  card={c}
+                  columns={columns}
+                  onClick={() => onCardClick(c)}
+                  onArchive={onArchiveCard}
+                />
+              </Fragment>
             ))}
+            {dragPlaceholder && !cards.some((card) => card.id === dragPlaceholder.beforeCardId) && (
+              <div
+                aria-hidden="true"
+                className="rounded-lg border-2 border-dashed border-sky-400/60 bg-sky-100/70 dark:bg-sky-400/10"
+                style={{ height: dragPlaceholder.height }}
+              />
+            )}
           </div>
         </SortableContext>
 

@@ -211,6 +211,11 @@ function KanbanPage() {
   const [calendarDate, setCalendarDate] = useState(() => new Date());
   const [activeCard, setActiveCard] = useState<KanbanCard | null>(null);
   const [dragPreviewWidth, setDragPreviewWidth] = useState(258);
+  const [dragPreviewHeight, setDragPreviewHeight] = useState(100);
+  const [dragTarget, setDragTarget] = useState<{
+    columnId: ColumnId;
+    beforeCardId?: string;
+  } | null>(null);
   const dragStartCardsRef = useRef<KanbanCard[] | null>(null);
   const dragPlacementRef = useRef<{ columnId: ColumnId; beforeCardId?: string } | null>(null);
   useEffect(() => () => document.body.classList.remove("kanban-card-dragging"), []);
@@ -362,9 +367,12 @@ function KanbanPage() {
     const target = e.activatorEvent.target;
     const cardElement = target instanceof Element ? target.closest("[data-kanban-card]") : null;
     const measuredWidth = cardElement?.getBoundingClientRect().width;
+    const measuredHeight = cardElement?.getBoundingClientRect().height;
     setDragPreviewWidth(measuredWidth && measuredWidth > 100 ? measuredWidth : 258);
+    setDragPreviewHeight(measuredHeight && measuredHeight > 40 ? measuredHeight : 100);
     dragStartCardsRef.current = cards;
     dragPlacementRef.current = null;
+    setDragTarget(null);
     setActiveCard(c);
     document.body.classList.add("kanban-card-dragging");
   };
@@ -422,18 +430,33 @@ function KanbanPage() {
   };
 
   const handleDragOver = (e: DragOverEvent) => {
-    const currentCards = kanbanStore.getSnapshot();
-    const targetColumn = resolveOverColumn(e.over, currentCards);
-    const active = currentCards.find((card) => card.id === e.active.id);
-    if (!active || !targetColumn || active.columnId === targetColumn) return;
+    const targetColumn = resolveOverColumn(e.over, cards);
+    if (!targetColumn) {
+      dragPlacementRef.current = null;
+      setDragTarget(null);
+      return;
+    }
     const overCardId = e.over?.data.current?.type === "card" ? String(e.over.id) : undefined;
-    moveCardToColumn(String(e.active.id), targetColumn, overCardId);
-    dragPlacementRef.current = { columnId: targetColumn, beforeCardId: overCardId };
+    const beforeCardId =
+      overCardId ??
+      (dragPlacementRef.current?.columnId === targetColumn
+        ? dragPlacementRef.current.beforeCardId
+        : undefined);
+    const placement = { columnId: targetColumn, beforeCardId };
+    if (
+      dragPlacementRef.current?.columnId === placement.columnId &&
+      dragPlacementRef.current.beforeCardId === placement.beforeCardId
+    ) {
+      return;
+    }
+    dragPlacementRef.current = placement;
+    setDragTarget(placement);
   };
 
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     setActiveCard(null);
+    setDragTarget(null);
     document.body.classList.remove("kanban-card-dragging");
     const currentCards = kanbanStore.getSnapshot();
     const startEvent = e.activatorEvent;
@@ -500,10 +523,10 @@ function KanbanPage() {
   };
 
   const handleDragCancel = () => {
-    if (dragStartCardsRef.current) kanbanStore.hydrate(dragStartCardsRef.current);
     dragStartCardsRef.current = null;
     dragPlacementRef.current = null;
     setActiveCard(null);
+    setDragTarget(null);
     document.body.classList.remove("kanban-card-dragging");
   };
 
@@ -1095,6 +1118,13 @@ function KanbanPage() {
                       column={col}
                       columns={columns}
                       cards={cardsByColumn[col.id]}
+                      dragPlaceholder={
+                        activeCard &&
+                        dragTarget?.columnId === col.id &&
+                        activeCard.columnId !== col.id
+                          ? { beforeCardId: dragTarget.beforeCardId, height: dragPreviewHeight }
+                          : undefined
+                      }
                       onCardClick={openCard}
                       onArchiveCard={handleArchiveCard}
                       onAddCard={handleNewCard}
@@ -1148,6 +1178,13 @@ function KanbanPage() {
                       column={col}
                       columns={columns}
                       cards={cardsByColumn[col.id]}
+                      dragPlaceholder={
+                        activeCard &&
+                        dragTarget?.columnId === col.id &&
+                        activeCard.columnId !== col.id
+                          ? { beforeCardId: dragTarget.beforeCardId, height: dragPreviewHeight }
+                          : undefined
+                      }
                       onCardClick={openCard}
                       onArchiveCard={handleArchiveCard}
                       onAddCard={handleNewCard}
