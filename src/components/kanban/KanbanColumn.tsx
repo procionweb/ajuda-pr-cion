@@ -2,6 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
   ArrowLeftRight,
+  ArrowUpDown,
   Copy,
   Eye,
   EyeOff,
@@ -13,13 +14,15 @@ import {
 import { cn } from "@/lib/utils";
 import { KanbanCardItem } from "./KanbanCard";
 import type { KanbanCard, KanbanColumn } from "@/lib/kanban-data";
-import type { BoardMember } from "@/lib/kanban-api";
+import type { BoardMember, KanbanColumnSortMode } from "@/lib/kanban-api";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -44,6 +47,8 @@ export function KanbanColumnView({
   canDeleteColumn = true,
   onCopyColumn,
   onMoveColumn,
+  onMoveAllCards,
+  onSortColumn,
   isFollowing = false,
   onToggleFollow,
   onArchiveAll,
@@ -60,6 +65,8 @@ export function KanbanColumnView({
   canDeleteColumn?: boolean;
   onCopyColumn?: (column: KanbanColumn) => void;
   onMoveColumn?: (column: KanbanColumn) => void;
+  onMoveAllCards?: (column: KanbanColumn, destination: KanbanColumn) => void;
+  onSortColumn?: (column: KanbanColumn, mode: KanbanColumnSortMode) => void;
   isFollowing?: boolean;
   onToggleFollow?: (column: KanbanColumn) => void;
   onArchiveAll?: (column: KanbanColumn) => void;
@@ -115,6 +122,54 @@ export function KanbanColumnView({
                 <ArrowLeftRight className="mr-2 h-4 w-4" />
                 Mover lista
               </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger
+                  className="cursor-pointer"
+                  disabled={cards.length === 0 || columns.length < 2}
+                >
+                  <ArrowLeftRight className="mr-2 h-4 w-4" />
+                  Mover todos os cartões
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="min-w-[230px]">
+                  {columns.map((destination) => (
+                    <DropdownMenuItem
+                      key={destination.id}
+                      className="cursor-pointer"
+                      disabled={destination.id === column.id}
+                      onSelect={() => onMoveAllCards?.(column, destination)}
+                    >
+                      {destination.title}
+                      {destination.id === column.id ? " (atual)" : ""}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer" disabled={cards.length < 2}>
+                  <ArrowUpDown className="mr-2 h-4 w-4" />
+                  Ordenar lista
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="min-w-[280px]">
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onSelect={() => onSortColumn?.(column, "created_newest")}
+                  >
+                    Data de criação (mais recente primeiro)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onSelect={() => onSortColumn?.(column, "created_oldest")}
+                  >
+                    Data de criação (mais antigo primeiro)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onSelect={() => onSortColumn?.(column, "name")}
+                  >
+                    Nome do cartão (ordem alfabética)
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuItem
                 className="cursor-pointer"
                 onSelect={() => onToggleFollow?.(column)}
@@ -131,7 +186,6 @@ export function KanbanColumnView({
                   </>
                 )}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="cursor-pointer"
                 disabled={cards.length === 0}

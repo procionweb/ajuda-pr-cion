@@ -373,6 +373,33 @@ export const moveKanbanColumn = async (
   if (error) throw error;
 };
 
+export const moveAllKanbanCards = async (sourceColumnId: string, destinationColumnId: string) => {
+  const rpc = supabase.rpc as unknown as (
+    name: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: Error | null }>;
+  const { data, error } = await rpc("move_all_kanban_cards", {
+    source_column_id: sourceColumnId,
+    destination_column_id: destinationColumnId,
+  });
+  if (error) throw error;
+  return Number(data ?? 0);
+};
+
+export type KanbanColumnSortMode = "created_newest" | "created_oldest" | "name";
+
+export const sortKanbanColumnCards = async (columnId: string, mode: KanbanColumnSortMode) => {
+  const rpc = supabase.rpc as unknown as (
+    name: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ error: Error | null }>;
+  const { error } = await rpc("sort_kanban_column_cards", {
+    target_column_id: columnId,
+    sort_mode: mode,
+  });
+  if (error) throw error;
+};
+
 export const reorderKanbanColumns = (input: Wrapped<{ columnIds: string[] }>) =>
   invoke<{ ok: true }>("reorderColumns", unwrap(input));
 

@@ -47,6 +47,8 @@ import {
   createKanbanColumn,
   copyKanbanColumn,
   moveKanbanColumn,
+  moveAllKanbanCards,
+  sortKanbanColumnCards,
   listKanbanBoards,
   deleteKanbanColumn,
   archiveKanbanColumnCards,
@@ -55,6 +57,7 @@ import {
   moveKanbanCard,
   type BoardSummary,
   type BoardMember,
+  type KanbanColumnSortMode,
   listBoardMembers,
 } from "@/lib/kanban-api";
 import { Button } from "@/components/ui/button";
@@ -614,6 +617,28 @@ function KanbanPage() {
     }
   };
 
+  const handleMoveAllCards = async (source: KanbanColumn, destination: KanbanColumn) => {
+    try {
+      const count = await moveAllKanbanCards(source.id, destination.id);
+      const result = await loadKanbanBoard({ boardId: boardIdParam });
+      kanbanStore.hydrate(result.cards as KanbanCard[]);
+      toast.success(`${count} cartão(ões) movido(s) para "${destination.title}"`);
+    } catch {
+      toast.error("Não foi possível mover os cartões");
+    }
+  };
+
+  const handleSortColumn = async (column: KanbanColumn, mode: KanbanColumnSortMode) => {
+    try {
+      await sortKanbanColumnCards(column.id, mode);
+      const result = await loadKanbanBoard({ boardId: boardIdParam });
+      kanbanStore.hydrate(result.cards as KanbanCard[]);
+      toast.success(`Lista "${column.title}" ordenada`);
+    } catch {
+      toast.error("Não foi possível ordenar a lista");
+    }
+  };
+
   const confirmArchiveColumnCards = async () => {
     if (!archiveTarget) return;
     const target = archiveTarget;
@@ -1007,6 +1032,8 @@ function KanbanPage() {
                       canDeleteColumn={columns.length > 1}
                       onCopyColumn={handleCopyColumn}
                       onMoveColumn={handleMoveColumn}
+                      onMoveAllCards={handleMoveAllCards}
+                      onSortColumn={handleSortColumn}
                       isFollowing={followedColumns.has(col.id)}
                       onToggleFollow={handleToggleFollow}
                       onArchiveAll={setArchiveTarget}
@@ -1058,6 +1085,8 @@ function KanbanPage() {
                       canDeleteColumn={columns.length > 1}
                       onCopyColumn={handleCopyColumn}
                       onMoveColumn={handleMoveColumn}
+                      onMoveAllCards={handleMoveAllCards}
+                      onSortColumn={handleSortColumn}
                       isFollowing={followedColumns.has(col.id)}
                       onToggleFollow={handleToggleFollow}
                       onArchiveAll={setArchiveTarget}
@@ -1126,7 +1155,7 @@ function KanbanPage() {
         <DialogContent
           autoFooter={false}
           onOutsideClick={() => setCopyColumnTarget(null)}
-          className="space-y-3 p-4 sm:max-w-[360px] [&>button]:hidden"
+          className="space-y-3 p-4 sm:max-w-[360px]"
         >
           <div className="flex items-center justify-between border-b pb-2">
             <DialogTitle className="flex-1 text-center text-sm font-normal">
@@ -1166,7 +1195,7 @@ function KanbanPage() {
         <DialogContent
           autoFooter={false}
           onOutsideClick={() => setMoveColumnTarget(null)}
-          className="space-y-3 p-4 sm:max-w-[360px] [&>button]:hidden"
+          className="space-y-3 p-4 sm:max-w-[360px]"
         >
           <div className="flex items-center justify-between border-b pb-2">
             <DialogTitle className="flex-1 text-center text-sm font-normal">
