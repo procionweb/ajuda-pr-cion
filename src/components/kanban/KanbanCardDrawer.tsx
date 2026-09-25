@@ -173,19 +173,25 @@ export function KanbanCardDrawer({
   const [tagsInput, setTagsInput] = useState((card?.tags ?? []).join(", "));
   const [newComment, setNewComment] = useState("");
   const [newChecklistItem, setNewChecklistItem] = useState("");
-  const [newChecklistTitle, setNewChecklistTitle] = useState("Checklist");
+  const [newChecklistTitle, setNewChecklistTitle] = useState(
+    card?.checklist?.[0]?.checklistTitle || "Checklist",
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    if (open) {
-      const base = card ? withDefaults(card) : emptyDraft(defaultColumnId);
-      setDraft(base);
-      setTagsInput((base.tags ?? []).join(", "));
-      setNewComment("");
-      setNewChecklistItem("");
-      setNewChecklistTitle(base.checklist?.[0]?.checklistTitle || "Checklist");
-      if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!open) return;
+    if (!initialized.current) {
+      initialized.current = true;
+      return;
     }
+    const base = card ? withDefaults(card) : emptyDraft(defaultColumnId);
+    setDraft(base);
+    setTagsInput((base.tags ?? []).join(", "));
+    setNewComment("");
+    setNewChecklistItem("");
+    setNewChecklistTitle(base.checklist?.[0]?.checklistTitle || "Checklist");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }, [open, card, defaultColumnId]);
 
   const update = <K extends keyof KanbanCard>(key: K, value: KanbanCard[K]) => {
@@ -487,7 +493,7 @@ export function KanbanCardDrawer({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        className="w-full sm:max-w-3xl lg:max-w-5xl h-full max-h-screen p-0 flex flex-col gap-0"
+        className="w-full sm:max-w-3xl lg:max-w-5xl h-full max-h-screen p-0 flex flex-col gap-0 data-[state=open]:duration-200 data-[state=closed]:duration-150"
       >
         {/* Header */}
         <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-border bg-background">

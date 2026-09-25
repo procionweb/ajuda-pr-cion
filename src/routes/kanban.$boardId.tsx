@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -199,6 +208,43 @@ function useStableHandler<Args extends unknown[], Result>(handler: (...args: Arg
   return useCallback((...args: Args) => handlerRef.current(...args), []);
 }
 
+type DrawerRequest = {
+  card: KanbanCard | null;
+  mode: "edit" | "create";
+  defaultColumnId: ColumnId;
+};
+
+type DrawerHandle = {
+  open: (request: DrawerRequest) => void;
+};
+
+const CardDrawerHost = forwardRef<
+  DrawerHandle,
+  {
+    columns: KanbanColumn[];
+    onSave: (card: KanbanCard, mode: DrawerRequest["mode"]) => void;
+    onDelete: (id: string) => void;
+  }
+>(function CardDrawerHost({ columns, onSave, onDelete }, ref) {
+  const [request, setRequest] = useState<DrawerRequest | null>(null);
+  useImperativeHandle(ref, () => ({ open: setRequest }), []);
+  if (!request) return null;
+  return (
+    <KanbanCardDrawer
+      open
+      onOpenChange={(open) => {
+        if (!open) setRequest(null);
+      }}
+      card={request.card}
+      mode={request.mode}
+      defaultColumnId={request.defaultColumnId}
+      columns={columns}
+      onSave={(card) => onSave(card, request.mode)}
+      onDelete={onDelete}
+    />
+  );
+});
+
 function KanbanPage() {
   const { boardId: boardIdParam } = Route.useParams();
   const cards = useKanbanCards();
@@ -226,10 +272,8 @@ function KanbanPage() {
   const dragStartCardsRef = useRef<KanbanCard[] | null>(null);
   const dragPlacementRef = useRef<{ columnId: ColumnId; beforeCardId?: string } | null>(null);
   useEffect(() => () => document.body.classList.remove("kanban-card-dragging"), []);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerMode, setDrawerMode] = useState<"edit" | "create">("edit");
-  const [drawerCard, setDrawerCard] = useState<KanbanCard | null>(null);
-  const [defaultColumnId, setDefaultColumnId] = useState<ColumnId>("a-fazer");
+  const drawerRef = useRef<DrawerHandle>(null);
+  const defaultColumnIdRef = useRef<ColumnId>("a-fazer");
   const [mobileColumn, setMobileColumn] = useState<ColumnId>("a-fazer");
   const [desktopBoard, setDesktopBoard] = useState(false);
   useEffect(() => {
@@ -298,7 +342,7 @@ function KanbanPage() {
         setBoardSummary(summary.board);
         setColumns(result.columns);
         kanbanStore.hydrate(result.cards as KanbanCard[]);
-        setDefaultColumnId(result.columns[0]?.id ?? "a-fazer");
+        defaultColumnIdRef.current = result.columns[0]?.id ?? "a-fazer";
         setMobileColumn(result.columns[0]?.id ?? "a-fazer");
       })
       .catch(() => {
@@ -486,9 +530,7 @@ function KanbanPage() {
   };
 
   const openCard = (card: KanbanCard) => {
-    setDrawerMode("edit");
-    setDrawerCard(card);
-    setDrawerOpen(true);
+    drawerRef.current?.open({ card, mode: "edit", defaultColumnId: card.columnId });
   };
 
   const handleArchiveCard = (card: KanbanCard) => {
@@ -516,24 +558,24 @@ function KanbanPage() {
   };
 
   const handleNewCard = (columnId: ColumnId = "a-fazer") => {
-    setDrawerMode("create");
-    setDrawerCard(null);
-    setDefaultColumnId(columnId);
-    setDrawerOpen(true);
+    defaultColumnIdRef.current = columnId;
+    drawerRef.current?.open({ card: null, mode: "create", defaultColumnId: columnId });
   };
 
   const handleUseTemplate = (template: KanbanCardTemplate) => {
-    const columnId = columns.some((column) => column.id === defaultColumnId)
-      ? defaultColumnId
+    const columnId = columns.some((column) => column.id === defaultColumnIdRef.current)
+      ? defaultColumnIdRef.current
       : (columns[0]?.id ?? "a-fazer");
-    setDrawerMode("create");
-    setDrawerCard(templateToCard(template, columnId));
     setTemplatesOpen(false);
-    setDrawerOpen(true);
+    drawerRef.current?.open({
+      card: templateToCard(template, columnId),
+      mode: "create",
+      defaultColumnId: columnId,
+    });
   };
 
-  const handleSave = (card: KanbanCard) => {
-    if (drawerMode === "create") kanbanStore.addCard(card);
+  const handleSave = (card: KanbanCard, mode: DrawerRequest["mode"]) => {
+    if (mode === "create") kanbanStore.addCard(card);
     else kanbanStore.updateCard(card);
   };
 
@@ -1198,18 +1240,12 @@ function KanbanPage() {
         )}
       </div>
 
-      {drawerOpen && (
-        <KanbanCardDrawer
-          open={drawerOpen}
-          onOpenChange={setDrawerOpen}
-          card={drawerCard}
-          mode={drawerMode}
-          defaultColumnId={defaultColumnId}
-          columns={columns}
-          onSave={handleSave}
-          onDelete={handleDelete}
-        />
-      )}
+      <CardDrawerHost
+        ref={drawerRef}
+        columns={columns}
+        onSave={handleSave}
+        onDelete={handleDelete}
+      />
 
       {boardMenuOpen && (
         <KanbanBoardMenu
