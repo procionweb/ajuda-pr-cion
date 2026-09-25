@@ -1182,6 +1182,7 @@ function KanbanPage() {
                     minWidth: dragPreviewWidth,
                     height: "auto",
                     pointerEvents: "none",
+                    willChange: "transform",
                   }}
                 >
                   {activeCard && <KanbanCardPreview card={activeCard} />}

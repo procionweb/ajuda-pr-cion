@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { CalendarDays, MessageSquare, Paperclip } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -43,6 +44,15 @@ function getTagColor(tag: string) {
   return TAG_COLORS.find((t) => t.match.test(tag))?.className ?? "bg-slate-400";
 }
 
+type KanbanCardItemProps = {
+  card: CardType;
+  boardId?: string;
+  boardMembers?: BoardMember[];
+  columns?: KanbanColumn[];
+  onClick?: () => void;
+  onArchive?: (card: CardType) => void;
+};
+
 export function KanbanCardItem({
   card,
   boardId,
@@ -50,24 +60,55 @@ export function KanbanCardItem({
   columns = [],
   onClick,
   onArchive,
-}: {
-  card: CardType;
-  boardId?: string;
-  boardMembers?: BoardMember[];
-  columns?: KanbanColumn[];
-  onClick?: () => void;
-  onArchive?: (card: CardType) => void;
-}) {
+}: KanbanCardItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
     data: { type: "card", card },
   });
 
   const style = {
-    transform: CSS.Translate.toString(transform),
-    transition,
+    transform: isDragging ? undefined : CSS.Translate.toString(transform),
+    transition: isDragging ? undefined : transition,
   };
 
+  return (
+    <div
+      ref={setNodeRef}
+      data-kanban-card
+      style={style}
+      {...attributes}
+      {...listeners}
+      onClick={(e) => {
+        if (isDragging) return;
+        if (!e.currentTarget.contains(e.target as Node)) return;
+        e.stopPropagation();
+        onClick?.();
+      }}
+      className={cn(
+        "group cursor-grab active:cursor-grabbing rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 shadow-[0_1px_1px_rgba(15,23,42,0.08)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-slate-400 hover:shadow-md dark:border-white/10 dark:bg-[#22252a] dark:text-slate-100 dark:hover:border-white/20 dark:hover:bg-[#292c31]",
+        isDragging && "opacity-30",
+      )}
+    >
+      <KanbanCardContent
+        card={card}
+        boardId={boardId}
+        boardMembers={boardMembers}
+        columns={columns}
+        onClick={onClick}
+        onArchive={onArchive}
+      />
+    </div>
+  );
+}
+
+const KanbanCardContent = memo(function KanbanCardContent({
+  card,
+  boardId,
+  boardMembers = [],
+  columns = [],
+  onClick,
+  onArchive,
+}: KanbanCardItemProps) {
   const memberIds = Array.from(new Set([...(card.participants ?? []), card.assigneeId])).filter(
     Boolean,
   );
@@ -96,23 +137,7 @@ export function KanbanCardItem({
   const progress = Math.round((done / total) * 100);
 
   return (
-    <div
-      ref={setNodeRef}
-      data-kanban-card
-      style={style}
-      {...attributes}
-      {...listeners}
-      onClick={(e) => {
-        if (isDragging) return;
-        if (!e.currentTarget.contains(e.target as Node)) return;
-        e.stopPropagation();
-        onClick?.();
-      }}
-      className={cn(
-        "group cursor-grab active:cursor-grabbing rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 shadow-[0_1px_1px_rgba(15,23,42,0.08)] transition-[background-color,border-color,box-shadow] duration-150 hover:border-slate-400 hover:shadow-md dark:border-white/10 dark:bg-[#22252a] dark:text-slate-100 dark:hover:border-white/20 dark:hover:bg-[#292c31]",
-        isDragging && "opacity-30",
-      )}
-    >
+    <>
       {/* Trello-style label strips */}
       <div className="mb-1.5 flex flex-wrap gap-1">
         <span
@@ -200,9 +225,9 @@ export function KanbanCardItem({
           )}
         </span>
       </div>
-    </div>
+    </>
   );
-}
+});
 
 export function KanbanCardPreview({ card }: { card: CardType }) {
   const priority = getPriorityMeta(card.priority);
