@@ -31,8 +31,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpDown,
-  BarChart3,
-  Bell,
   BriefcaseBusiness,
   CheckCircle2,
   Clock3,
@@ -41,6 +39,7 @@ import {
   Filter,
   FileStack,
   LayoutGrid,
+  Layers3,
   List,
   Plus,
   Search,
@@ -86,6 +85,8 @@ import { KanbanColumnView } from "@/components/kanban/KanbanColumn";
 import { KanbanCardPreview } from "@/components/kanban/KanbanCard";
 import { KanbanCardDrawer } from "@/components/kanban/KanbanCardDrawer";
 import { KanbanBoardMenu } from "@/components/kanban/KanbanBoardMenu";
+import { BoardNotifications } from "@/components/kanban/BoardNotifications";
+import { BoardSwitcherDialog } from "@/components/kanban/BoardSwitcherDialog";
 import { KanbanTemplateDialog } from "@/components/kanban/KanbanTemplateDialog";
 import { BoardCollaborationDialog } from "@/components/kanban/BoardCollaborationDialog";
 import { templateToCard, type KanbanCardTemplate } from "@/lib/kanban-templates";
@@ -301,6 +302,7 @@ function KanbanPage() {
   const [columnActionBusy, setColumnActionBusy] = useState(false);
   const [followedColumns, setFollowedColumns] = useState<Set<ColumnId>>(getInitialFollowedColumns);
   const [boardMenuOpen, setBoardMenuOpen] = useState(false);
+  const [boardSwitcherOpen, setBoardSwitcherOpen] = useState(false);
   const [boardMenuTab, setBoardMenuTab] = useState<"about" | "activity" | "archive">("about");
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [collaborationOpen, setCollaborationOpen] = useState(false);
@@ -1114,18 +1116,9 @@ function KanbanPage() {
               className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.035] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
               aria-label="Abrir menu do quadro"
             >
-              <BarChart3 className="h-4 w-4" />
+              <Layers3 className="h-4 w-4" />
             </button>
-            <button
-              className="relative grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.035] dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-              title="Notificações"
-              aria-label="Abrir notificações"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">
-                3
-              </span>
-            </button>
+            <BoardNotifications boardId={boardId ?? ""} cards={cards} onOpenCard={openCard} />
           </div>
         </div>
 
@@ -1301,6 +1294,22 @@ function KanbanPage() {
               )}
           </DndContext>
         )}
+        {!loadingBoard && !loadError && (
+          <div className="mt-3 flex flex-wrap items-center gap-1 rounded-lg border border-slate-300 bg-white/90 p-1 dark:border-white/10 dark:bg-[#171a20]/95">
+            {([
+              { mode: "inbox" as const, label: "Caixa de entrada", icon: Inbox },
+              { mode: "planner" as const, label: "Planejador", icon: CalendarDays },
+              { mode: "kanban" as const, label: "Quadro", icon: Columns3 },
+            ]).map(({ mode, label, icon: Icon }) => (
+              <button key={mode} type="button" onClick={() => setViewMode(mode)} aria-pressed={viewMode === mode} className={cn("flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-medium transition", viewMode === mode ? "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-200" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10")}>
+                <Icon className="h-4 w-4" /> {label}
+              </button>
+            ))}
+            <button type="button" onClick={() => setBoardSwitcherOpen(true)} className="flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10">
+              <LayoutGrid className="h-4 w-4" /> Mudar de quadros
+            </button>
+          </div>
+        )}
       </div>
 
       <CardDrawerHost
@@ -1310,6 +1319,7 @@ function KanbanPage() {
         onSave={handleSave}
         onDelete={handleDelete}
       />
+      <BoardSwitcherDialog open={boardSwitcherOpen} onOpenChange={setBoardSwitcherOpen} currentBoardId={boardId} />
 
       {boardMenuOpen && (
         <KanbanBoardMenu

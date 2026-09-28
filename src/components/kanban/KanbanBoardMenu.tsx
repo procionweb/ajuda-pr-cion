@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import type { ComponentType } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -22,7 +23,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
@@ -74,13 +75,24 @@ export function KanbanBoardMenu({
   onDeleteCard,
   onCreateColumn,
 }: Props) {
-  const archivedCards = cards.filter((card) => card.archived || card.columnId === "arquivado");
+  const [archiveQuery, setArchiveQuery] = useState("");
+  const [archiveLimit, setArchiveLimit] = useState(30);
+  const archivedCards = useMemo(
+    () => cards.filter((card) => card.archived || card.columnId === "arquivado"),
+    [cards],
+  );
+  const matchingArchivedCards = useMemo(() => {
+    const query = archiveQuery.trim().toLocaleLowerCase("pt-BR");
+    return query
+      ? archivedCards.filter((card) => `${card.title} ${card.client} ${card.module}`.toLocaleLowerCase("pt-BR").includes(query))
+      : archivedCards;
+  }, [archivedCards, archiveQuery]);
   const activeCards = cards.filter((card) => !card.archived && card.columnId !== "arquivado");
   const watchedLists = columns.filter((column) => followedColumns.has(column.id));
   const commentTotal = cards.reduce((sum, card) => sum + card.comments, 0);
   const attachmentTotal = cards.reduce((sum, card) => sum + card.attachments, 0);
 
-  const activity = cards
+  const activity = (tab === "activity" ? cards : [])
     .flatMap((card) => {
       const entries =
         card.activity?.map((entry) => ({
@@ -106,7 +118,7 @@ export function KanbanBoardMenu({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-hidden p-0 sm:max-w-[440px]">
+      <SheetContent className="h-dvh w-full max-w-full overflow-hidden p-0 sm:max-w-[480px]">
         <div className="flex h-full flex-col bg-white text-slate-900 dark:bg-[#07111f] dark:text-slate-100">
           <SheetHeader className="border-b border-slate-200 px-5 py-5 text-left dark:border-white/10">
             <SheetTitle className="flex items-center gap-2">
@@ -131,7 +143,7 @@ export function KanbanBoardMenu({
               </TabsList>
             </div>
 
-            <ScrollArea className="min-h-0 flex-1">
+            <div className="app-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
               <TabsContent value="about" className="m-0 space-y-5 p-5">
                 <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.04]">
                   <p className="text-sm font-black">Kanban Procion</p>
@@ -268,14 +280,21 @@ export function KanbanBoardMenu({
                     Restaure ou exclua definitivamente os cards que sairam do quadro.
                   </p>
                 </div>
+                <Input
+                  value={archiveQuery}
+                  onChange={(event) => { setArchiveQuery(event.target.value); setArchiveLimit(30); }}
+                  placeholder="Buscar cards arquivados..."
+                  aria-label="Buscar cards arquivados"
+                  className="mb-4"
+                />
 
-                {archivedCards.length === 0 ? (
+                {matchingArchivedCards.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-                    Nenhum card arquivado por enquanto.
+                    {archiveQuery ? "Nenhum card encontrado." : "Nenhum card arquivado por enquanto."}
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {archivedCards.map((card) => (
+                    {matchingArchivedCards.slice(0, archiveLimit).map((card) => (
                       <div
                         key={card.id}
                         className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-white/[0.04]"
@@ -311,10 +330,15 @@ export function KanbanBoardMenu({
                         </div>
                       </div>
                     ))}
+                    {matchingArchivedCards.length > archiveLimit && (
+                      <Button variant="outline" className="w-full cursor-pointer" onClick={() => setArchiveLimit((limit) => limit + 30)}>
+                        Mostrar mais ({matchingArchivedCards.length - archiveLimit})
+                      </Button>
+                    )}
                   </div>
                 )}
               </TabsContent>
-            </ScrollArea>
+            </div>
           </Tabs>
         </div>
       </SheetContent>
