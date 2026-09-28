@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   addWorkspaceMember,
   createKanbanWorkspace,
+  deleteKanbanWorkspace,
   listAvailableMembers,
   listWorkspaceMembers,
   removeWorkspaceMember,
@@ -65,6 +66,7 @@ export function WorkspaceModal({
   const [available, setAvailable] = useState<BoardMember[]>([]);
   const [query, setQuery] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -125,6 +127,21 @@ export function WorkspaceModal({
       onChanged();
     } catch {
       toast.error("Não foi possível adicionar o membro.");
+    }
+  };
+
+  const deleteArea = async () => {
+    if (!workspace || !window.confirm(`Excluir a área "${workspace.name}"? Esta ação não pode ser desfeita.`)) return;
+    setDeleting(true);
+    try {
+      await deleteKanbanWorkspace({ data: { workspaceId: workspace.id } });
+      toast.success("Área excluída.");
+      onChanged();
+      onOpenChange(false);
+    } catch {
+      toast.error("Não foi possível excluir. Verifique se a área não possui quadros, inclusive arquivados.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -194,7 +211,7 @@ export function WorkspaceModal({
               </div>
             </section>
 
-            {workspace && <section className="flex items-center justify-between gap-4 rounded-md border border-red-200 bg-white p-4 dark:border-red-900/60 dark:bg-slate-950"><div><h3 className="text-sm font-medium text-red-600">Excluir área de trabalho</h3><p className="text-xs text-slate-500">Remova ou transfira os quadros antes de excluir esta área.</p></div><Button variant="outline" disabled className="shrink-0 border-red-200 text-red-600"><Trash2 className="mr-2 h-4 w-4" />Excluir área</Button></section>}
+            {workspace && <section className="flex items-center justify-between gap-4 rounded-md border border-red-200 bg-white p-4 dark:border-red-900/60 dark:bg-slate-950"><div><h3 className="text-sm font-medium text-red-600">Excluir área de trabalho</h3><p className="text-xs text-slate-500">{(workspace.boardsCount ?? workspace.boards.length) > 0 ? "Remova ou transfira os quadros, inclusive arquivados, antes de excluir esta área." : "Esta área não possui quadros."}</p></div><Button variant="outline" disabled={deleting || (workspace.boardsCount ?? workspace.boards.length) > 0 || workspace.membershipRole !== "admin"} onClick={() => void deleteArea()} className="shrink-0 border-red-200 text-red-600"><Trash2 className="mr-2 h-4 w-4" />Excluir área</Button></section>}
           </TabsContent>
           {workspace && (
             <TabsContent value="members" className="mt-4 space-y-4">
@@ -204,13 +221,13 @@ export function WorkspaceModal({
                 {members.length === 0 && <p className="rounded-md border border-dashed p-5 text-center text-sm text-slate-500">Nenhum membro adicionado.</p>}
                 {members.map((member) => (
                   <div key={member.id} className="flex items-center gap-3 rounded-md border p-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs text-primary">{member.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>
-                    <div className="min-w-0 flex-1"><p className="truncate text-sm">{member.name}</p><p className="truncate text-xs text-slate-500">{member.operator ?? member.email}</p></div>
-                    <Select value={member.role ?? "member"} onValueChange={async (role) => { await updateWorkspaceMemberRole({ data: { workspaceId: workspace.id, profileId: member.id, role: role as "admin" | "member" | "guest" } }); setMembers((current) => current.map((item) => item.id === member.id ? { ...item, role } : item)); onChanged(); }}>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xs text-primary">{member.avatarUrl ? <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" /> : member.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>
+                    <div className="min-w-0 flex-1"><p className="truncate text-sm">{member.name}{member.id === workspace.ownerId && <span className="ml-2 text-xs text-primary">Criador</span>}</p><p className="truncate text-xs text-slate-500">{member.operator ?? member.email}</p></div>
+                    <Select disabled={member.id === workspace.ownerId} value={member.role ?? "member"} onValueChange={async (role) => { await updateWorkspaceMemberRole({ data: { workspaceId: workspace.id, profileId: member.id, role: role as "admin" | "member" | "guest" } }); setMembers((current) => current.map((item) => item.id === member.id ? { ...item, role } : item)); onChanged(); }}>
                       <SelectTrigger className="w-36 cursor-pointer"><ShieldCheck className="mr-1 h-4 w-4" /><SelectValue /></SelectTrigger>
                       <SelectContent>{Object.entries(roleLabel).map(([value, label]) => <SelectItem key={value} value={value} className="cursor-pointer">{label}</SelectItem>)}</SelectContent>
                     </Select>
-                    <Button variant="ghost" size="icon" className="cursor-pointer" onClick={async () => { await removeWorkspaceMember({ data: { workspaceId: workspace.id, profileId: member.id } }); setMembers((current) => current.filter((item) => item.id !== member.id)); onChanged(); }}><Trash2 className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" disabled={member.id === workspace.ownerId} className="cursor-pointer" onClick={async () => { await removeWorkspaceMember({ data: { workspaceId: workspace.id, profileId: member.id } }); setMembers((current) => current.filter((item) => item.id !== member.id)); onChanged(); }}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 ))}
               </div>

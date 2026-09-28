@@ -55,6 +55,8 @@ export type BoardSummary = {
 
 export type WorkspaceSummary = {
   id: string;
+  ownerId?: string | null;
+  boardsCount?: number;
   name: string;
   slug: string;
   description: string;
@@ -107,6 +109,12 @@ export const createKanbanWorkspace = (
     settings?: WorkspaceSummary["settings"];
   }>,
 ) => invoke<{ id: string }>("createWorkspace", unwrap(input));
+
+export const deleteKanbanWorkspace = (input: Wrapped<{ workspaceId: string }>) =>
+  invoke<{ ok: true }>("deleteWorkspace", unwrap(input));
+
+export const uploadProfileAvatar = (dataUrl: string) =>
+  invoke<{ url: string }>("uploadProfileAvatar", { dataUrl });
 
 export const updateKanbanWorkspace = async (
   input: Wrapped<{

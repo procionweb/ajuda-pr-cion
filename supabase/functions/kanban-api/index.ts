@@ -110,8 +110,17 @@ async function listBoards() {
   };
 }
 
-async function listWorkspaces() {
-  const [{ data: workspaces, error }, boardsResult, membersResult] = await Promise.all([
+async function actorId(req: Request) {
+  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  if (!token) throw new Error("unauthorized");
+  const { data: { user }, error } = await admin.auth.getUser(token);
+  if (error || !user) throw new Error("unauthorized");
+  return user.id;
+}
+
+async function listWorkspaces(req: Request) {
+  const currentId = await actorId(req);
+  const [{ data: workspaces, error }, boardsResult, membersResult, allBoardsResult] = await Promise.all([
     admin
       .from("kanban_workspaces")
       .select("id, name, slug, description, website, logo_url, visibility, settings, owner_id, created_at")
@@ -120,14 +129,16 @@ async function listWorkspaces() {
     admin
       .from("kanban_workspace_members")
       .select("workspace_id, role, profiles:profile_id(id, full_name, operator_code, avatar_url)"),
+    admin.from("kanban_boards").select("workspace_id"),
   ]);
   if (error) throw error;
+  if (allBoardsResult.error) throw allBoardsResult.error;
 
   const boardsByWorkspace = groupBy(boardsResult.boards ?? [], (b: any) => b.workspaceId ?? "unassigned");
   const membersByWorkspace = groupBy(membersResult.data ?? [], (m: any) => m.workspace_id);
 
   return {
-    workspaces: (workspaces ?? []).map((workspace: any, index: number) => ({
+    workspaces: (workspaces ?? []).map((workspace: any) => ({
       id: workspace.id,
       name: workspace.name,
       slug: workspace.slug ?? "",
@@ -141,18 +152,23 @@ async function listWorkspaces() {
         boardDeletion: "admins",
         guestSharing: "admins",
       },
-      membershipRole: index === 0 ? "admin" : "member",
+      ownerId: workspace.owner_id,
+      membershipRole: workspace.owner_id === currentId ? "admin" :
+        (membersByWorkspace[workspace.id] ?? []).find((member: any) => member.profiles?.id === currentId)?.role ?? "member",
       membersCount: (membersByWorkspace[workspace.id] ?? []).length,
+      boardsCount: (allBoardsResult.data ?? []).filter((board: any) => board.workspace_id === workspace.id).length,
       boards: boardsByWorkspace[workspace.id] ?? [],
     })),
   };
 }
 
-async function createWorkspace(payload: any) {
+async function createWorkspace(payload: any, req: Request) {
+  const ownerId = await actorId(req);
   const { data, error } = await admin
     .from("kanban_workspaces")
     .insert({
       name: String(payload?.name ?? "").trim(),
+      owner_id: ownerId,
       slug: String(payload?.slug ?? "").trim() || null,
       description: String(payload?.description ?? "").trim(),
       website: String(payload?.website ?? "").trim(),
@@ -162,7 +178,28 @@ async function createWorkspace(payload: any) {
     .select("id")
     .single();
   if (error) throw error;
+  const { error: memberError } = await admin.from("kanban_workspace_members").upsert({
+    workspace_id: data.id, profile_id: ownerId, role: "admin",
+  }, { onConflict: "workspace_id,profile_id" });
+  if (memberError) throw memberError;
   return { id: data.id };
+}
+
+async function deleteWorkspace(payload: any, req: Request) {
+  const currentId = await actorId(req);
+  const { data: workspace, error: workspaceError } = await admin.from("kanban_workspaces")
+    .select("owner_id").eq("id", payload.workspaceId).single();
+  if (workspaceError) throw workspaceError;
+  const { data: membership } = await admin.from("kanban_workspace_members")
+    .select("role").eq("workspace_id", payload.workspaceId).eq("profile_id", currentId).maybeSingle();
+  if (workspace.owner_id !== currentId && membership?.role !== "admin") throw new Error("forbidden");
+  const { count, error: countError } = await admin.from("kanban_boards")
+    .select("id", { count: "exact", head: true }).eq("workspace_id", payload.workspaceId);
+  if (countError) throw countError;
+  if (count) throw new Error("workspace_has_boards");
+  const { error } = await admin.from("kanban_workspaces").delete().eq("id", payload.workspaceId);
+  if (error) throw error;
+  return { ok: true };
 }
 
 async function updateWorkspace(payload: any) {
@@ -191,19 +228,26 @@ async function updateWorkspace(payload: any) {
 }
 
 async function listWorkspaceMembers(payload: any) {
-  const { data, error } = await admin
+  const [{ data, error }, ownerResult] = await Promise.all([admin
     .from("kanban_workspace_members")
     .select("role, profiles:profile_id(id, full_name, email, operator_code, avatar_url)")
-    .eq("workspace_id", payload.workspaceId);
+    .eq("workspace_id", payload.workspaceId),
+    admin.from("kanban_workspaces").select("owner_id, owner:owner_id(id, full_name, email, operator_code, avatar_url)")
+      .eq("id", payload.workspaceId).maybeSingle()]);
   if (error) throw error;
+  const owner = (ownerResult.data as any)?.owner;
+  const rows = [...(data ?? [])];
+  if (owner?.id && !rows.some((item: any) => item.profiles?.id === owner.id)) {
+    rows.unshift({ role: "admin", profiles: owner } as any);
+  }
   return {
-    members: (data ?? []).map((item: any) => ({
+    members: rows.map((item: any) => ({
       id: item.profiles?.id,
       name: item.profiles?.full_name ?? "",
       email: item.profiles?.email ?? null,
       operator: item.profiles?.operator_code ?? null,
       avatarUrl: item.profiles?.avatar_url ?? null,
-      role: item.role,
+      role: item.profiles?.id === (ownerResult.data as any)?.owner_id ? "admin" : item.role,
     })).filter((item: any) => item.id),
   };
 }
@@ -215,6 +259,10 @@ async function addWorkspaceMember(payload: any) {
     role: payload.role ?? "member",
   }], { onConflict: "workspace_id,profile_id" });
   if (error) throw error;
+  const { data: workspace } = await admin.from("kanban_workspaces").select("name").eq("id", payload.workspaceId).maybeSingle();
+  await admin.from("notifications").insert({ profile_id: payload.profileId,
+    title: "Você foi adicionado a uma área", body: workspace?.name ?? "Área de trabalho",
+    link: "/kanban" });
   return { ok: true };
 }
 
@@ -666,11 +714,13 @@ async function archiveColumnCards(payload: any) {
 
 /* ---------- BOARDS ---------- */
 
-async function createBoard(payload: any) {
+async function createBoard(payload: any, req: Request) {
+  const ownerId = await actorId(req);
   const { data: board, error } = await admin
     .from("kanban_boards")
     .insert({
       name: payload.name,
+      owner_id: ownerId,
       description: payload.description ?? "",
       color: payload.color ?? null,
       cover: payload.cover ?? null,
@@ -694,11 +744,11 @@ async function createBoard(payload: any) {
     }));
     await admin.from("kanban_board_members").upsert(rows, { onConflict: "board_id,profile_id" });
   }
-  if (payload.ownerId) {
+  if (ownerId) {
     await admin
       .from("kanban_board_members")
       .upsert(
-        [{ board_id: board.id, profile_id: payload.ownerId, role: "admin" }],
+        [{ board_id: board.id, profile_id: ownerId, role: "admin" }],
         { onConflict: "board_id,profile_id" },
       );
   }
@@ -857,6 +907,10 @@ async function addBoardMember(payload: any) {
       { onConflict: "board_id,profile_id" },
     );
   if (error) throw error;
+  const { data: board } = await admin.from("kanban_boards").select("name").eq("id", payload.boardId).maybeSingle();
+  await admin.from("notifications").insert({ profile_id: payload.profileId,
+    title: "Você foi adicionado a um quadro", body: board?.name ?? "Quadro",
+    link: `/kanban/${payload.boardId}` });
   return { ok: true };
 }
 
@@ -1050,6 +1104,23 @@ async function uploadBoardBackground(payload: any) {
   return { url: data.publicUrl };
 }
 
+async function uploadProfileAvatar(payload: any, req: Request) {
+  const userId = await actorId(req);
+  const match = String(payload.dataUrl ?? "").match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+  if (!match) throw new Error("invalid_avatar");
+  const bytes = Uint8Array.from(atob(match[2]), (char) => char.charCodeAt(0));
+  if (bytes.length > 2 * 1024 * 1024) throw new Error("avatar_too_large");
+  const extension = match[1] === "image/jpeg" ? "jpg" : match[1].split("/")[1];
+  const path = `${userId}/${crypto.randomUUID()}.${extension}`;
+  const { error: uploadError } = await admin.storage.from("profile-avatars")
+    .upload(path, bytes, { contentType: match[1], upsert: false });
+  if (uploadError) throw uploadError;
+  const { data } = admin.storage.from("profile-avatars").getPublicUrl(path);
+  const { error } = await admin.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", userId);
+  if (error) throw error;
+  return { url: data.publicUrl };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -1057,10 +1128,13 @@ serve(async (req) => {
     let result: unknown;
     switch (action) {
       case "listWorkspaces":
-        result = await listWorkspaces();
+        result = await listWorkspaces(req);
         break;
       case "createWorkspace":
-        result = await createWorkspace(data);
+        result = await createWorkspace(data, req);
+        break;
+      case "deleteWorkspace":
+        result = await deleteWorkspace(data, req);
         break;
       case "updateWorkspace":
         result = await updateWorkspace(data);
@@ -1087,7 +1161,7 @@ serve(async (req) => {
         result = await loadBoard(data);
         break;
       case "createBoard":
-        result = await createBoard(data);
+        result = await createBoard(data, req);
         break;
       case "updateBoard":
         result = await updateBoard(data);
@@ -1133,6 +1207,9 @@ serve(async (req) => {
         break;
       case "uploadBoardBackground":
         result = await uploadBoardBackground(data);
+        break;
+      case "uploadProfileAvatar":
+        result = await uploadProfileAvatar(data, req);
         break;
       case "createCard":
       case "updateCard":

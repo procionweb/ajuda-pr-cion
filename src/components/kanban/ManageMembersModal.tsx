@@ -4,7 +4,6 @@ import { Search, UserPlus, Users, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
@@ -125,7 +124,7 @@ export function ManageMembersModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="gap-0 overflow-hidden p-0 sm:max-w-2xl [&>button]:hidden"
+        className="max-h-[90vh] gap-0 overflow-y-auto p-0 sm:max-w-4xl [&>button]:hidden"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogTitle className="sr-only">Gerenciar membros</DialogTitle>
@@ -152,8 +151,8 @@ export function ManageMembersModal({
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <section>
+          <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+            <section className="min-w-0">
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Membros do quadro ({members.length})
               </h3>
@@ -168,8 +167,8 @@ export function ManageMembersModal({
                       key={m.id}
                       className="flex items-center gap-2 rounded-md p-2 hover:bg-slate-50 dark:hover:bg-white/5"
                     >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
-                        {initials(m.name)}
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
+                        {m.avatarUrl ? <img src={m.avatarUrl} alt="" className="h-full w-full object-cover" /> : initials(m.name)}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium text-slate-900 dark:text-white">{m.name}</p>
@@ -177,11 +176,9 @@ export function ManageMembersModal({
                           {m.operator || m.email || ""}
                         </p>
                       </div>
-                      <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px]", meta.tone)}>
-                        {meta.label}
-                      </Badge>
+                      <Badge variant="outline" className={cn("hidden h-5 shrink-0 px-1.5 text-[10px] sm:inline-flex", meta.tone)}>{meta.label}</Badge>
                       <Select value={m.role ?? "member"} onValueChange={(v) => void changeRole(m, v)}>
-                        <SelectTrigger className="h-7 w-[36px] cursor-pointer border-none bg-transparent p-0 [&>svg]:h-3 [&>svg]:w-3" aria-label="Função">
+                        <SelectTrigger className="h-8 w-32 shrink-0 cursor-pointer text-xs" aria-label="Função">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent align="end">
@@ -206,7 +203,7 @@ export function ManageMembersModal({
               </div>
             </section>
 
-            <section>
+            <section className="min-w-0">
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Disponíveis {loading && "..."}
               </h3>
@@ -221,8 +218,8 @@ export function ManageMembersModal({
                     key={m.id}
                     className="flex items-center gap-2 rounded-md p-2 hover:bg-slate-50 dark:hover:bg-white/5"
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-600 dark:bg-white/10 dark:text-slate-300">
-                      {initials(m.name)}
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-[11px] font-semibold text-slate-600 dark:bg-white/10 dark:text-slate-300">
+                      {m.avatarUrl ? <img src={m.avatarUrl} alt="" className="h-full w-full object-cover" /> : initials(m.name)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-medium text-slate-900 dark:text-white">{m.name}</p>
@@ -246,11 +243,6 @@ export function ManageMembersModal({
           </div>
         </div>
 
-        <DialogFooter className="border-t border-border bg-card px-5 py-3">
-          <Button variant="outline" className="cursor-pointer" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

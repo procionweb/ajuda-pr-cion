@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { LogOut, Settings, UserCircle, Sparkles } from "lucide-react";
+import { LogOut, UserCircle } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +12,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { currentUser } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
+import { useProfileAvatar } from "@/lib/profile-avatar";
 
 export function UserMenu() {
+  const avatarUrl = useProfileAvatar();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -28,6 +30,7 @@ export function UserMenu() {
             <p className="text-[11px] text-muted-foreground mt-1">{currentUser.role}</p>
           </div>
           <Avatar className="h-9 w-9 ring-2 ring-transparent group-hover:ring-primary/30 transition">
+            <AvatarImage src={avatarUrl ?? undefined} alt="" />
             <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
               {currentUser.initials}
             </AvatarFallback>
@@ -37,6 +40,7 @@ export function UserMenu() {
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="flex items-center gap-3 py-2">
           <Avatar className="h-9 w-9">
+            <AvatarImage src={avatarUrl ?? undefined} alt="" />
             <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
               {currentUser.initials}
             </AvatarFallback>
@@ -53,22 +57,6 @@ export function UserMenu() {
           <Link to="/minha-conta" className="cursor-pointer">
             <UserCircle className="mr-2 h-4 w-4" /> Minha Conta
           </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() =>
-            toast("Preferências em breve", {
-              description: "Personalização de tema, idioma e notificações.",
-            })
-          }
-        >
-          <Settings className="mr-2 h-4 w-4" /> Preferências
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() =>
-            toast("Novidades", { description: "Confira as últimas atualizações do portal." })
-          }
-        >
-          <Sparkles className="mr-2 h-4 w-4" /> Novidades
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem

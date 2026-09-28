@@ -31,6 +31,7 @@ import contactsIconUrl from "@/assets/menu-contacts-solid.png";
 import { cn } from "@/lib/utils";
 import { sidebarStore, useSidebarCollapsed } from "@/lib/sidebar-store";
 import { canAccessPortalPath, usePortalAuth } from "@/lib/portal-auth";
+import { supabase } from "@/lib/supabase";
 
 type NavIcon = ComponentType<{ className?: string; strokeWidth?: number }>;
 
@@ -120,7 +121,22 @@ function isActivePath(pathname: string, item: NavItem) {
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const collapsed = useSidebarCollapsed();
-  const { role, department } = usePortalAuth();
+  const { role, department, session } = usePortalAuth();
+  const [taskProgress, setTaskProgress] = useState<{ completed: number; total: number } | null>(null);
+  useEffect(() => {
+    if (!session?.user.id) return;
+    let active = true;
+    const load = async () => {
+      const { data, error } = await (supabase as any).rpc("get_my_kanban_task_progress");
+      if (!error && active) {
+        const row = Array.isArray(data) ? data[0] : data;
+        setTaskProgress({ completed: Number(row?.completed ?? 0), total: Number(row?.total ?? 0) });
+      }
+    };
+    void load();
+    const interval = window.setInterval(load, 60_000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [session?.user.id]);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [collapsedFlyout, setCollapsedFlyout] = useState<{
     item: NavItem;
@@ -414,10 +430,10 @@ export function AppSidebar() {
                   <MessageSquare className="h-3.5 w-3.5 text-primary" />
                   Task Progress
                 </span>
-                <span className="font-medium text-sidebar-foreground">20/45</span>
+                <span className="font-medium text-sidebar-foreground">{taskProgress ? `${taskProgress.completed}/${taskProgress.total}` : "..."}</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <div className="h-full w-[44%] rounded-full bg-gradient-to-r from-primary to-[#0490d1]" />
+                <div className="h-full rounded-full bg-gradient-to-r from-primary to-[#0490d1]" style={{ width: `${taskProgress?.total ? Math.round(100 * taskProgress.completed / taskProgress.total) : 0}%` }} />
               </div>
             </div>
           </div>

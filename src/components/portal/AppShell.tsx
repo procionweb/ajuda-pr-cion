@@ -6,6 +6,7 @@ import { FleetActionModals } from "@/components/fleet/FleetActionModals";
 import { useSidebarCollapsed } from "@/lib/sidebar-store";
 import { cn } from "@/lib/utils";
 import { CalendarNotifications } from "./CalendarNotifications";
+import { KanbanMembershipNotifications } from "./KanbanMembershipNotifications";
 import { useAutoTableSort } from "@/lib/use-auto-table-sort";
 
 export function AppShell({ children, fullWidth = false }: { children: ReactNode; fullWidth?: boolean }) {
@@ -29,6 +30,7 @@ export function AppShell({ children, fullWidth = false }: { children: ReactNode;
       </div>
       <FleetActionModals />
       <CalendarNotifications />
+      <KanbanMembershipNotifications />
     </div>
   );
 }

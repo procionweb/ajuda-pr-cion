@@ -1,10 +1,12 @@
 import { useSyncExternalStore } from "react";
+import { Bell } from "lucide-react";
 import { notifications as seed, type Notification } from "@/lib/notifications-data";
 
 const STORAGE_KEY = "procion.notifications.v1";
 let items: Notification[] = seed;
 const listeners = new Set<() => void>();
 let hydrated = false;
+let seenIds = new Set<string>();
 
 function hydrate() {
   if (hydrated || typeof window === "undefined") return;
@@ -12,12 +14,15 @@ function hydrate() {
   try {
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") as {
       readIds?: string[];
+      seenIds?: string[];
+      dynamic?: Array<Omit<Notification, "icon">>;
     };
     const readIds = new Set(state.readIds || []);
-    items = seed.map((item) => ({
+    seenIds = new Set(state.seenIds || []);
+    items = [...(state.dynamic ?? []).map((item) => ({ ...item, icon: Bell })), ...seed.map((item) => ({
       ...item,
       read: item.read || readIds.has(item.id),
-    }));
+    }))];
   } catch {
     items = seed;
   }
@@ -29,6 +34,9 @@ function persist() {
     STORAGE_KEY,
     JSON.stringify({
       readIds: items.filter((item) => item.read).map((item) => item.id),
+      seenIds: [...seenIds],
+      dynamic: items.filter((item) => !seed.some((original) => original.id === item.id))
+        .slice(0, 100).map(({ icon: _icon, ...item }) => item),
     }),
   );
 }
@@ -41,9 +49,11 @@ function emit() {
 export function addNotification(notification: Notification) {
   hydrate();
   if (items.some((item) => item.id === notification.id)) return false;
-  items = [notification, ...items];
+  const firstSeen = !seenIds.has(notification.id);
+  seenIds.add(notification.id);
+  items = [{ ...notification, read: notification.read || !firstSeen }, ...items];
   emit();
-  return true;
+  return firstSeen;
 }
 
 export function markAllNotificationsRead() {

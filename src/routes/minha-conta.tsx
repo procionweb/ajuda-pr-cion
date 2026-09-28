@@ -1,12 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Mail, Shield, Bell, KeyRound } from "lucide-react";
+import { useRef, useState } from "react";
+import { Mail, Shield, Bell, KeyRound, Camera } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { currentUser } from "@/lib/mock-data";
+import { useProfileAvatar } from "@/lib/profile-avatar";
+import { uploadProfileAvatar } from "@/lib/kanban-api";
 
 export const Route = createFileRoute("/minha-conta")({
   head: () => ({
@@ -19,6 +23,32 @@ export const Route = createFileRoute("/minha-conta")({
 });
 
 function AccountPage() {
+  const avatarUrl = useProfileAvatar();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const upload = async (file?: File) => {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 2 * 1024 * 1024) {
+      toast.error("Escolha uma imagem JPG, PNG ou WebP de até 2 MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      await uploadProfileAvatar(dataUrl);
+      window.dispatchEvent(new Event("procion:avatar-updated"));
+      toast.success("Foto de perfil atualizada.");
+    } catch {
+      toast.error("Não foi possível atualizar a foto.");
+    } finally {
+      setUploading(false);
+    }
+  };
   return (
     <AppShell>
       <PageHeader
@@ -31,6 +61,7 @@ function AccountPage() {
         <Card className="p-6 lg:col-span-1">
           <div className="flex flex-col items-center text-center">
             <Avatar className="h-20 w-20">
+              <AvatarImage src={avatarUrl ?? undefined} alt="Foto de perfil" />
               <AvatarFallback className="bg-primary text-primary-foreground text-xl font-semibold">
                 {currentUser.initials}
               </AvatarFallback>
@@ -46,8 +77,9 @@ function AccountPage() {
                 <span className="truncate">{currentUser.email}</span>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="mt-6 w-full">
-              Editar perfil
+            <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => void upload(event.target.files?.[0])} />
+            <Button variant="outline" size="sm" className="mt-6 w-full" disabled={uploading} onClick={() => fileInput.current?.click()}>
+              <Camera className="mr-2 h-4 w-4" />{uploading ? "Enviando..." : "Trocar foto"}
             </Button>
           </div>
         </Card>
