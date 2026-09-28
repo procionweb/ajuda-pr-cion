@@ -282,6 +282,26 @@ function KanbanPage() {
   const [mobileColumn, setMobileColumn] = useState<ColumnId>("a-fazer");
   const [desktopBoard, setDesktopBoard] = useState(false);
   useEffect(() => {
+    const root = document.documentElement;
+    const main = document.querySelector("main");
+    if (!main) return;
+    const previousOverflow = root.style.overflowY;
+    const updateOverflow = () => {
+      const fits = window.matchMedia("(min-width: 1280px)").matches &&
+        main.getBoundingClientRect().bottom <= window.innerHeight;
+      root.style.overflowY = fits ? "hidden" : previousOverflow;
+    };
+    const observer = new ResizeObserver(updateOverflow);
+    observer.observe(main);
+    window.addEventListener("resize", updateOverflow);
+    updateOverflow();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateOverflow);
+      root.style.overflowY = previousOverflow;
+    };
+  }, []);
+  useEffect(() => {
     const media = window.matchMedia("(min-width: 1280px)");
     const update = () => setDesktopBoard(media.matches);
     update();
