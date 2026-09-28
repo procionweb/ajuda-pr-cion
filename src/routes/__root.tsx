@@ -200,10 +200,7 @@ function PortalRouteGuard() {
 
   useEffect(() => {
     if (loading) return;
-    if (!session && pathname !== "/login") {
-      if (pathname.startsWith("/kanban/convite/")) {
-        sessionStorage.setItem("post_login_redirect", pathname);
-      }
+    if (!session && pathname !== "/login" && !pathname.startsWith("/kanban/convite/")) {
       void router.navigate({ to: "/login", replace: true });
       return;
     }
@@ -218,7 +215,7 @@ function PortalRouteGuard() {
     }
   }, [department, loading, pathname, role, router, session]);
 
-  if (loading || (!session && pathname !== "/login")) {
+  if (loading || (!session && pathname !== "/login" && !pathname.startsWith("/kanban/convite/"))) {
     return (
       <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">
         Carregando acesso...

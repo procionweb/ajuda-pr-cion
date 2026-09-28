@@ -925,12 +925,18 @@ async function sendBoardInvite(email: string, boardName: string, link: string) {
   const transport = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
   try {
     await transport.sendMail({
-      from, to: email, subject: "Convite para um quadro no CRM Prócion",
-      text: `Você foi convidado para o quadro "${boardName}". Acesse ${link} com sua conta do CRM para aceitar o convite.`,
+      from: { name: "Prócion CRM", address: from }, to: email,
+      subject: "Convite para acessar um quadro da Prócion",
+      text: `Olá,\n\nVocê recebeu um convite para acessar o quadro "${boardName}" no CRM Prócion.\n\nAbra o link abaixo e entre com este mesmo endereço de email para aceitar:\n${link}\n\nSe você ainda não possui uma conta no CRM, solicite a criação do seu acesso antes de abrir o link.\n\nEste convite foi enviado pela equipe Prócion. Se não o esperava, ignore esta mensagem.`,
+      html: `<p>Olá,</p><p>Você recebeu um convite para acessar o quadro <strong>${escapeHtml(boardName)}</strong> no CRM Prócion.</p><p><a href="${escapeHtml(link)}">Abrir convite</a></p><p>Entre com este mesmo endereço de email. Se ainda não possui uma conta no CRM, solicite a criação do seu acesso antes de abrir o link.</p><p>Se não esperava este convite, ignore esta mensagem.</p>`,
     });
   } finally {
     transport.close();
   }
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
 }
 
 async function createBoardInvite(payload: any, req: Request) {
@@ -981,12 +987,18 @@ async function acceptBoardInvite(payload: any, req: Request) {
   if (authError || !user) throw new Error("unauthorized");
   const { data: invite, error } = await admin.from("kanban_board_invites")
     .select("*").eq("token", payload.token).single();
-  if (error || !invite || invite.status !== "pending" ||
+  if (error || !invite || !["pending", "accepted"].includes(invite.status) ||
       (invite.expires_at && Date.parse(invite.expires_at) <= Date.now()) ||
-      (invite.max_uses && invite.uses_count >= invite.max_uses) ||
       (invite.invite_type === "email" && invite.email?.toLowerCase() !== user.email?.toLowerCase())) {
     throw new Error("invalid_invite");
   }
+  if (invite.status === "accepted") {
+    const { data: member } = await admin.from("kanban_board_members")
+      .select("profile_id").eq("board_id", invite.board_id).eq("profile_id", user.id).maybeSingle();
+    if (!member) throw new Error("invalid_invite");
+    return { boardId: invite.board_id };
+  }
+  if (invite.max_uses && invite.uses_count >= invite.max_uses) throw new Error("invalid_invite");
   const { error: memberError } = await admin.from("kanban_board_members").upsert({
     board_id: invite.board_id, profile_id: user.id, role: invite.role,
   }, { onConflict: "board_id,profile_id" });
@@ -995,6 +1007,28 @@ async function acceptBoardInvite(payload: any, req: Request) {
     status: "accepted", uses_count: invite.uses_count + 1, updated_at: new Date().toISOString(),
   }).eq("id", invite.id);
   return { boardId: invite.board_id };
+}
+
+async function getBoardInviteInfo(payload: any, req: Request) {
+  const { data: invite, error } = await admin.from("kanban_board_invites")
+    .select("board_id, invite_type, email, status, expires_at").eq("token", payload.token).single();
+  if (error || !invite) throw new Error("invalid_invite");
+  const { data: board } = await admin.from("kanban_boards").select("name").eq("id", invite.board_id).single();
+  const email = invite.email?.toLowerCase() ?? null;
+  const { data: profile } = email
+    ? await admin.from("profiles").select("id").ilike("email", email).maybeSingle()
+    : { data: null };
+  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const { data: { user } } = token ? await admin.auth.getUser(token) : { data: { user: null } };
+  return {
+    boardName: board?.name ?? "Quadro",
+    status: invite.status,
+    expired: Boolean(invite.expires_at && Date.parse(invite.expires_at) <= Date.now()),
+    recipient: email ? email.replace(/^(.).*(?=@)/, "$1***") : null,
+    accountExists: Boolean(profile),
+    recipientMatches: user ? (!email || user.email?.toLowerCase() === email) : null,
+    signedInEmail: user?.email ?? null,
+  };
 }
 
 async function revokeBoardInvite(payload: any) {
@@ -1090,6 +1124,9 @@ serve(async (req) => {
         break;
       case "acceptBoardInvite":
         result = await acceptBoardInvite(data, req);
+        break;
+      case "getBoardInviteInfo":
+        result = await getBoardInviteInfo(data, req);
         break;
       case "revokeBoardInvite":
         result = await revokeBoardInvite(data);

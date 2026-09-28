@@ -29,7 +29,11 @@ function LoginPage() {
   useEffect(() => {
     let active = true;
     void supabase.auth.getSession().then(({ data }) => {
-      if (active && data.session) void navigate({ to: "/", replace: true });
+      if (active && data.session) {
+        const redirect = sessionStorage.getItem("post_login_redirect");
+        sessionStorage.removeItem("post_login_redirect");
+        void navigate({ to: redirect?.startsWith("/kanban/convite/") ? redirect : "/", replace: true });
+      }
     });
     return () => {
       active = false;

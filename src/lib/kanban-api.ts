@@ -245,6 +245,19 @@ export const createBoardInvite = (
 export const acceptBoardInvite = (token: string) =>
   invoke<{ boardId: string }>("acceptBoardInvite", { token });
 
+export type BoardInviteInfo = {
+  boardName: string;
+  status: string;
+  expired: boolean;
+  recipient: string | null;
+  accountExists: boolean;
+  recipientMatches: boolean | null;
+  signedInEmail: string | null;
+};
+
+export const getBoardInviteInfo = (token: string) =>
+  invoke<BoardInviteInfo>("getBoardInviteInfo", { token });
+
 export const revokeBoardInvite = (input: Wrapped<{ id: string }>) =>
   invoke<{ ok: true }>("revokeBoardInvite", unwrap(input));
 
