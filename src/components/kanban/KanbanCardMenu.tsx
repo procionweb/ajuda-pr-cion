@@ -260,7 +260,10 @@ function TagsDialog({
   }, [open]);
   const allCards = useKanbanCards();
   const currentCard = allCards.find((item) => item.id === card.id) ?? card;
-  const priorityKeys = new Set(priorityLabels.map((item) => labelKey(item.name)));
+  const priorityKeys = new Set([
+    ...priorityLabels.map((item) => labelKey(item.name)),
+    ...["Prioridade Normal", "Prioridade Média", "Prioridade Alta", "Prioridade Crítica"].map(labelKey),
+  ]);
   const labels = [...priorityLabels.map((item) => item.name), ...Array.from(
     new Map(
       Array.from(
@@ -271,7 +274,16 @@ function TagsDialog({
   const visible = labels.filter((label) =>
     label.toLocaleLowerCase("pt-BR").includes(search.toLocaleLowerCase("pt-BR")),
   );
-  const priorityFor = (label: string) => priorityLabels.find((item) => labelKey(item.name) === labelKey(label));
+  const priorityFor = (label: string) => {
+    const key = labelKey(label);
+    const legacy = new Map([
+      ["prioridade normal", "Baixa"],
+      ["prioridade media", "Média"],
+      ["prioridade alta", "Alta"],
+      ["prioridade critica", "Crítica"],
+    ]);
+    return priorityLabels.find((item) => item.name === label || item.name === legacy.get(key));
+  };
   const labelColor = (label: string) => priorityFor(label)?.color ?? kanbanLabelColor(label, allCards);
   const isSelected = (label: string) => {
     const priority = priorityFor(label);

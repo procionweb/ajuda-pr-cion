@@ -1077,7 +1077,7 @@ export function KanbanCardDrawer({
                     {priorities.map((p) => (
                       <SelectItem key={p} value={p}>
                         <span className="inline-flex items-center gap-2.5">
-                          <span className={cn("h-2 w-14 rounded-full", priorityMeta[p].strip)} />
+                          <span className="h-2 w-14 rounded-full" style={{ backgroundColor: priorityMeta[p].color }} />
                           {p}
                         </span>
                       </SelectItem>

@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { type KanbanCard as CardType, type KanbanColumn, kanbanLabelColor } from "@/lib/kanban-data";
+import { type KanbanCard as CardType, type KanbanColumn, isPriorityLabel, kanbanLabelColor, priorityMeta } from "@/lib/kanban-data";
 import { kanbanStore } from "@/lib/kanban-store";
 import { KanbanCardMenu } from "./KanbanCardMenu";
 import type { BoardMember } from "@/lib/kanban-api";
@@ -19,15 +19,15 @@ function formatDue(iso: string) {
 function getPriorityMeta(priority: string) {
   const normalized = priority.toLowerCase();
   if (normalized.includes("baixa")) {
-    return { label: "Baixa", accent: "bg-emerald-400", strip: "bg-emerald-500" };
+    return { label: "Baixa", color: priorityMeta.Baixa.color };
   }
   if (normalized.includes("alta")) {
-    return { label: "Alta", accent: "bg-rose-400", strip: "bg-rose-500" };
+    return { label: "Alta", color: priorityMeta.Alta.color };
   }
   if (normalized.includes("cr")) {
-    return { label: "Crítica", accent: "bg-red-500", strip: "bg-red-600" };
+    return { label: "Crítica", color: priorityMeta.Crítica.color };
   }
-  return { label: "Média", accent: "bg-amber-400", strip: "bg-yellow-400" };
+  return { label: "Média", color: priorityMeta.Média.color };
 }
 
 type KanbanCardItemProps = {
@@ -126,9 +126,10 @@ const KanbanCardContent = memo(function KanbanCardContent({
       <div className="mb-1.5 flex flex-wrap gap-1">
         <span
           title={`Prioridade: ${priority.label}`}
-          className={cn("h-1.5 w-10 rounded-full", priority.strip)}
+          className="h-1.5 w-10 rounded-full"
+          style={{ backgroundColor: priority.color }}
         />
-        {card.tags?.slice(0, 6).map((t) => (
+        {card.tags?.filter((tag) => !isPriorityLabel(tag)).slice(0, 6).map((t) => (
           <span
             key={t}
             title={t}
@@ -222,8 +223,8 @@ export function KanbanCardPreview({ card }: { card: CardType }) {
       className="pointer-events-none box-border w-full rounded-lg border border-slate-400 bg-white px-3 py-2.5 text-slate-900 shadow-xl dark:border-white/25 dark:bg-[#292c31] dark:text-slate-100"
     >
       <div className="mb-1.5 flex flex-wrap gap-1">
-        <span className={cn("h-1.5 w-10 rounded-full", priority.strip)} />
-        {card.tags?.slice(0, 6).map((tag) => (
+        <span className="h-1.5 w-10 rounded-full" style={{ backgroundColor: priority.color }} />
+        {card.tags?.filter((tag) => !isPriorityLabel(tag)).slice(0, 6).map((tag) => (
           <span
             key={tag}
             className="h-1.5 w-10 rounded-full"

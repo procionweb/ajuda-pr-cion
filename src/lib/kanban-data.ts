@@ -1,10 +1,4 @@
 export type Priority = "Baixa" | "Média" | "Alta" | "Crítica";
-export const priorityLabels: { name: string; priority: Priority; color: string }[] = [
-  { name: "Prioridade Normal", priority: "Baixa", color: "#8c690a" },
-  { name: "Prioridade Média", priority: "Média", color: "#b8640d" },
-  { name: "Prioridade Alta", priority: "Alta", color: "#b9352d" },
-  { name: "Prioridade Crítica", priority: "Crítica", color: "#991b1b" },
-];
 export type CardType = "Suporte" | "Melhoria" | "Bug" | "Implantação" | "Documentação";
 export type ColumnId = string;
 
@@ -390,27 +384,31 @@ export const initialCards: KanbanCard[] = [
 
 export const priorityMeta: Record<
   Priority,
-  { badge: string; dot: string; strip: string; ring?: string }
+  { badge: string; dot: string; strip: string; color: string; ring?: string }
 > = {
   Baixa: {
     badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
     dot: "bg-emerald-500",
     strip: "bg-emerald-500",
+    color: "#10b981",
   },
   Média: {
     badge: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
     dot: "bg-amber-400",
     strip: "bg-amber-400",
+    color: "#fbbf24",
   },
   Alta: {
     badge: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
     dot: "bg-rose-500",
     strip: "bg-rose-500",
+    color: "#f43f5e",
   },
   Crítica: {
     badge: "bg-red-600/15 text-red-700 dark:text-red-300",
     dot: "bg-red-600",
     strip: "bg-red-600",
+    color: "#dc2626",
     ring: "ring-1 ring-destructive/40",
   },
 };
@@ -424,6 +422,15 @@ export const typeMeta: Record<CardType, string> = {
 };
 
 export const priorities: Priority[] = ["Baixa", "Média", "Alta", "Crítica"];
+export const priorityLabels = priorities.map((priority) => ({
+  name: priority,
+  priority,
+  color: priorityMeta[priority].color,
+}));
+export function isPriorityLabel(label: string): boolean {
+  const normalized = label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  return ["baixa", "media", "alta", "critica", "prioridade normal", "prioridade media", "prioridade alta", "prioridade critica"].includes(normalized);
+}
 export const cardTypes: CardType[] = ["Suporte", "Melhoria", "Bug", "Implantação", "Documentação"];
 
 export const kbArticles: RelatedArticle[] = [

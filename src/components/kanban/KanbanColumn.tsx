@@ -1,4 +1,4 @@
-import { Fragment, memo } from "react";
+import { Fragment, memo, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
@@ -79,6 +79,8 @@ export const KanbanColumnView = memo(function KanbanColumnView({
     data: { type: "column", columnId: column.id },
   });
   const meta = columnMeta[column.id] ?? columnMeta["a-fazer"];
+  const [visibleCount, setVisibleCount] = useState(20);
+  const visibleCards = cards.slice(0, visibleCount);
 
   return (
     <section
@@ -220,9 +222,17 @@ export const KanbanColumnView = memo(function KanbanColumnView({
           isOver && "border-primary/50 bg-primary/10",
         )}
       >
-        <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-          <div className="app-scrollbar min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-1">
-            {cards.map((c) => (
+        <SortableContext items={visibleCards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+          <div
+            className="app-scrollbar min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pr-1"
+            onScroll={(event) => {
+              const element = event.currentTarget;
+              if (visibleCount < cards.length && element.scrollTop + element.clientHeight >= element.scrollHeight - 320) {
+                setVisibleCount((count) => Math.min(count + 20, cards.length));
+              }
+            }}
+          >
+            {visibleCards.map((c) => (
               <Fragment key={c.id}>
                 {dragPlaceholder?.beforeCardId === c.id && (
                   <div
@@ -241,7 +251,7 @@ export const KanbanColumnView = memo(function KanbanColumnView({
                 />
               </Fragment>
             ))}
-            {dragPlaceholder && !cards.some((card) => card.id === dragPlaceholder.beforeCardId) && (
+            {dragPlaceholder && !visibleCards.some((card) => card.id === dragPlaceholder.beforeCardId) && (
               <div
                 aria-hidden="true"
                 className="rounded-lg border-2 border-dashed border-sky-400/60 bg-sky-100/70 dark:bg-sky-400/10"
