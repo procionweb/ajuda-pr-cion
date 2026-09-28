@@ -112,7 +112,7 @@ export const KanbanColumnView = memo(function KanbanColumnView({
       ref={setColumnRef}
       data-kanban-column-id={column.id}
       style={{ contain: "layout paint" }}
-      className="relative flex h-[clamp(390px,calc(100dvh-250px),720px)] w-[280px] shrink-0 flex-col overflow-hidden rounded-xl border border-slate-300 bg-slate-100 p-2.5 shadow-sm dark:border-white/8 dark:bg-[#171a20] dark:shadow-[0_18px_40px_rgba(0,0,0,0.16)]"
+      className="relative flex h-[clamp(390px,calc(100dvh-250px),720px)] w-[280px] shrink-0 flex-col overflow-hidden rounded-xl border border-slate-300 bg-slate-100 p-2.5 shadow-sm xl:h-[clamp(320px,calc(100dvh-330px),640px)] dark:border-white/8 dark:bg-[#171a20] dark:shadow-[0_18px_40px_rgba(0,0,0,0.16)]"
     >
       <div className="mb-3 flex h-7 items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">

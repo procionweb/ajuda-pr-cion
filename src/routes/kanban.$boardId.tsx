@@ -846,7 +846,7 @@ function KanbanPage() {
     <AppShell fullWidth={hasPhotoBackground}>
       <div
         style={boardBackgroundStyle}
-        className="min-h-[calc(100vh-92px)] overflow-hidden rounded-[18px] border border-slate-300 bg-slate-200 p-4 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#10151f] dark:text-slate-100 dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
+        className="min-h-[calc(100dvh-96px)] overflow-hidden rounded-[18px] border border-slate-300 bg-slate-200 p-4 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:min-h-[calc(100dvh-112px)] lg:min-h-[calc(100dvh-128px)] dark:border-white/8 dark:bg-[#10151f] dark:text-slate-100 dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
       >
         <div
           className={cn(
@@ -1295,7 +1295,7 @@ function KanbanPage() {
           </DndContext>
         )}
         {!loadingBoard && !loadError && (
-          <div className="mt-3 flex flex-wrap items-center gap-1 rounded-lg border border-slate-300 bg-white/90 p-1 dark:border-white/10 dark:bg-[#171a20]/95">
+          <div className="mx-auto mt-3 flex w-fit max-w-full flex-wrap items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white/90 p-1 dark:border-white/10 dark:bg-[#171a20]/95">
             {([
               { mode: "inbox" as const, label: "Caixa de entrada", icon: Inbox },
               { mode: "planner" as const, label: "Planejador", icon: CalendarDays },
