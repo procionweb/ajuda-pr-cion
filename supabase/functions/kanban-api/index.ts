@@ -904,7 +904,13 @@ async function requireBoardInviter(req: Request, boardId: string, invitedRole: s
   if (board.owner_id === user.id) return;
   const { data: member } = await admin.from("kanban_board_members")
     .select("role").eq("board_id", boardId).eq("profile_id", user.id).maybeSingle();
-  if (!member || member.role === "observer" || (invitedRole === "admin" && member.role !== "admin")) {
+  if (member?.role === "observer") throw new Error("forbidden");
+  if (member?.role === "admin") return;
+  if (invitedRole === "admin") throw new Error("forbidden");
+  if (member?.role === "member") return;
+  const { data: profile } = await admin.from("profiles")
+    .select("role, active").eq("id", user.id).maybeSingle();
+  if (!profile?.active || !["admin", "support", "specialist"].includes(profile.role)) {
     throw new Error("forbidden");
   }
 }
