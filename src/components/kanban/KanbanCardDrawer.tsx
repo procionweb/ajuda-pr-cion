@@ -16,6 +16,8 @@ import {
   Calendar,
   Building2,
   Boxes,
+  ChevronDown,
+  Search,
   X,
 } from "lucide-react";
 import {
@@ -55,9 +57,6 @@ import {
   type ActivityEntry,
   type RelatedArticle,
   type RelatedVersion,
-  kanbanMembers,
-  kanbanClients,
-  kanbanModules,
   kanbanColumnsDef,
   priorities,
   cardTypes,
@@ -69,6 +68,9 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { SmartTextarea } from "@/components/ui/smart-text";
+import { matchClient, useClients } from "@/lib/clients-store";
+import { loadHadronModules } from "@/lib/hadron-modules-api";
+import type { BoardMember } from "@/lib/kanban-api";
 
 const kbArticles: RelatedArticle[] = kbArticlesFull.map((a) => ({
   id: a.id,
@@ -83,6 +85,7 @@ type Props = {
   mode: "edit" | "create";
   defaultColumnId?: ColumnId;
   columns?: KanbanColumn[];
+  boardMembers?: BoardMember[];
   onSave: (card: KanbanCard) => void;
   onDelete?: (id: string) => void;
 };
@@ -94,11 +97,11 @@ const emptyDraft = (columnId: ColumnId): KanbanCard => ({
   columnId,
   title: "",
   summary: "",
-  client: kanbanClients[0],
-  module: kanbanModules[0],
+  client: "Interno",
+  module: "",
   priority: "Média",
   type: "Suporte",
-  assigneeId: kanbanMembers[0].id,
+  assigneeId: "",
   dueDate: new Date().toISOString().slice(0, 10),
   tags: [],
   comments: 0,
@@ -133,7 +136,7 @@ const withDefaults = (c: KanbanCard): KanbanCard => ({
   ...c,
   priority: normalizePriority(c.priority),
   description: c.description ?? c.summary,
-  participants: c.participants ?? [c.assigneeId],
+  participants: c.participants ?? (c.assigneeId ? [c.assigneeId] : []),
   checklist: c.checklist ?? [],
   commentsList: c.commentsList ?? [],
   activity: c.activity ?? [],
@@ -153,8 +156,25 @@ function formatWhen(iso: string) {
   });
 }
 
-function memberById(id?: string) {
-  return kanbanMembers.find((m) => m.id === id);
+function memberById(id: string | undefined, boardMembers: BoardMember[]) {
+  const member = boardMembers.find((item) => item.id === id);
+  if (member) {
+    const name = member.name || member.operator || member.email || "Membro";
+    return {
+      ...member,
+      name,
+      initials: name
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join("")
+        .toUpperCase(),
+      color: "bg-primary/15 text-primary",
+    };
+  }
+  return id
+    ? { id, name: "Membro anterior", initials: "?", color: "bg-muted text-muted-foreground" }
+    : undefined;
 }
 
 export function KanbanCardDrawer({
@@ -164,6 +184,7 @@ export function KanbanCardDrawer({
   mode,
   defaultColumnId = "a-fazer",
   columns = kanbanColumnsDef,
+  boardMembers = [],
   onSave,
   onDelete,
 }: Props) {
@@ -178,6 +199,44 @@ export function KanbanCardDrawer({
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const initialized = useRef(false);
+  const { clients, loading: clientsLoading, error: clientsError } = useClients();
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [clientQuery, setClientQuery] = useState("");
+  const [moduleOptions, setModuleOptions] = useState<string[]>([]);
+  const [modulesLoading, setModulesLoading] = useState(true);
+  const [moduleError, setModuleError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    loadHadronModules()
+      .then((modules) => {
+        if (active) {
+          setModuleOptions([...new Set(modules.map((module) => module.nome).filter(Boolean))]);
+        }
+      })
+      .catch(() => {
+        if (active) setModuleError(true);
+      })
+      .finally(() => {
+        if (active) setModulesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const filteredClients = useMemo(
+    () => clients.filter((client) => matchClient(client, clientQuery)).slice(0, 60),
+    [clients, clientQuery],
+  );
+  const availableMembers = useMemo(
+    () => [
+      ...new Map(
+        boardMembers.filter((member) => member.id).map((member) => [member.id, member]),
+      ).values(),
+    ],
+    [boardMembers],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -412,8 +471,8 @@ export function KanbanCardDrawer({
         changes.push(`Movido de "${from}" para "${to}"`);
       }
       if (before.assigneeId !== final.assigneeId) {
-        const from = memberById(before.assigneeId)?.name ?? before.assigneeId;
-        const to = memberById(final.assigneeId)?.name ?? final.assigneeId;
+        const from = memberById(before.assigneeId, boardMembers)?.name ?? before.assigneeId;
+        const to = memberById(final.assigneeId, boardMembers)?.name ?? final.assigneeId;
         changes.push(`Responsável alterado de "${from}" para "${to}"`);
       }
       const sorted = (values: string[]) => [...values].sort().join("|");
@@ -486,7 +545,7 @@ export function KanbanCardDrawer({
     return [...groups.entries()];
   }, [draft.checklist]);
 
-  const assignee = memberById(draft.assigneeId);
+  const assignee = memberById(draft.assigneeId, boardMembers);
   const isCritical = draft.priority === "Crítica";
   const currentPriorityMeta = priorityMeta[draft.priority] ?? priorityMeta["Média"];
 
@@ -856,7 +915,7 @@ export function KanbanCardDrawer({
                   {[...(draft.commentsList ?? [])]
                     .sort((a, b) => a.at.localeCompare(b.at))
                     .map((c) => {
-                      const author = memberById(c.authorId);
+                      const author = memberById(c.authorId, boardMembers);
                       return (
                         <div key={c.id} className="flex gap-3">
                           <Avatar className="h-8 w-8 shrink-0">
@@ -896,10 +955,10 @@ export function KanbanCardDrawer({
                     <AvatarFallback
                       className={cn(
                         "text-[10px] font-medium",
-                        memberById(CURRENT_USER_ID)?.color,
+                        memberById(CURRENT_USER_ID, boardMembers)?.color,
                       )}
                     >
-                      {memberById(CURRENT_USER_ID)?.initials}
+                      {memberById(CURRENT_USER_ID, boardMembers)?.initials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 space-y-2">
@@ -930,7 +989,7 @@ export function KanbanCardDrawer({
                   {[...(draft.activity ?? [])]
                     .sort((a, b) => b.at.localeCompare(a.at))
                     .map((e) => {
-                      const author = memberById(e.authorId);
+                      const author = memberById(e.authorId, boardMembers);
                       return (
                         <li key={e.id} className="relative">
                           <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
@@ -994,21 +1053,33 @@ export function KanbanCardDrawer({
               </SidebarField>
 
               <SidebarField icon={Users} label="Responsável">
-                <Select value={draft.assigneeId} onValueChange={handleChangeAssignee}>
+                <Select value={draft.assigneeId || undefined} onValueChange={handleChangeAssignee}>
                   <SelectTrigger className="h-9 cursor-pointer">
-                    <SelectValue />
+                    <SelectValue placeholder="Selecionar membro" />
                   </SelectTrigger>
                   <SelectContent>
-                    {kanbanMembers.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        <span className="inline-flex items-center gap-2">
-                          <span className={cn("h-5 w-5 rounded-full grid place-items-center text-[9px] font-semibold", m.color)}>
-                            {m.initials}
+                    {draft.assigneeId &&
+                      !availableMembers.some((member) => member.id === draft.assigneeId) && (
+                        <SelectItem value={draft.assigneeId}>Membro anterior</SelectItem>
+                      )}
+                    {availableMembers.map((member) => {
+                      const m = memberById(member.id, boardMembers)!;
+                      return (
+                        <SelectItem key={m.id} value={m.id}>
+                          <span className="inline-flex items-center gap-2">
+                            <span
+                              className={cn(
+                                "grid h-5 w-5 place-items-center rounded-full text-[9px] font-semibold",
+                                m.color,
+                              )}
+                            >
+                              {m.initials}
+                            </span>
+                            {m.name}
                           </span>
-                          {m.name}
-                        </span>
-                      </SelectItem>
-                    ))}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 {assignee && (
@@ -1026,7 +1097,7 @@ export function KanbanCardDrawer({
               <SidebarField icon={Users} label="Participantes">
                 <div className="flex items-center flex-wrap gap-1.5">
                   {(draft.participants ?? []).map((pid) => {
-                    const p = memberById(pid);
+                    const p = memberById(pid, boardMembers);
                     if (!p) return null;
                     return (
                       <button
@@ -1052,7 +1123,8 @@ export function KanbanCardDrawer({
                     </PopoverTrigger>
                     <PopoverContent className="w-64 p-2" align="end">
                       <div className="space-y-0.5 max-h-64 overflow-y-auto">
-                        {kanbanMembers.map((m) => {
+                        {availableMembers.map((member) => {
+                          const m = memberById(member.id, boardMembers)!;
                           const selected = (draft.participants ?? []).includes(m.id);
                           return (
                             <button
@@ -1073,6 +1145,11 @@ export function KanbanCardDrawer({
                             </button>
                           );
                         })}
+                        {availableMembers.length === 0 && (
+                          <p className="px-2 py-3 text-sm text-muted-foreground">
+                            Nenhum membro no quadro.
+                          </p>
+                        )}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -1080,26 +1157,96 @@ export function KanbanCardDrawer({
               </SidebarField>
 
               <SidebarField icon={Building2} label="Cliente">
-                <Select value={draft.client} onValueChange={(v) => update("client", v)}>
-                  <SelectTrigger className="h-9 cursor-pointer"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Interno">Interno</SelectItem>
-                    {kanbanClients.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover
+                  open={clientPickerOpen}
+                  onOpenChange={(next) => {
+                    setClientPickerOpen(next);
+                    if (!next) setClientQuery("");
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-input bg-background px-3 text-left text-sm"
+                    >
+                      <span className="truncate">{draft.client || "Selecionar cliente"}</span>
+                      <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-[min(360px,calc(100vw-32px))] p-2">
+                    <div className="relative mb-2">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={clientQuery}
+                        onChange={(event) => setClientQuery(event.target.value)}
+                        placeholder="Buscar cliente, sigla ou CNPJ"
+                        className="h-9 pl-9"
+                      />
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {"interno".includes(clientQuery.trim().toLocaleLowerCase("pt-BR")) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            update("client", "Interno");
+                            setClientPickerOpen(false);
+                          }}
+                          className="w-full rounded px-2 py-2 text-left text-sm hover:bg-muted"
+                        >
+                          Interno
+                        </button>
+                      )}
+                      {filteredClients.map((client) => {
+                        const label =
+                          client.fantasia || client.name || client.razaoSocial || client.acronym;
+                        const value = client.acronym ? `${client.acronym} - ${label}` : label;
+                        return (
+                          <button
+                            key={client.id}
+                            type="button"
+                            onClick={() => {
+                              update("client", value);
+                              setClientPickerOpen(false);
+                            }}
+                            className="w-full rounded px-2 py-2 text-left hover:bg-muted"
+                          >
+                            <span className="block truncate text-sm">{label}</span>
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {client.acronym}{client.cnpj ? ` · ${client.cnpj}` : ""}
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {clientsLoading && (
+                        <p className="px-2 py-3 text-sm text-muted-foreground">Carregando clientes...</p>
+                      )}
+                      {clientsError && (
+                        <p className="px-2 py-3 text-sm text-destructive">
+                          Não foi possível carregar os clientes.
+                        </p>
+                      )}
+                      {!clientsLoading && !clientsError && filteredClients.length === 0 && (
+                        <p className="px-2 py-3 text-sm text-muted-foreground">
+                          Nenhum cliente encontrado.
+                        </p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </SidebarField>
 
               <SidebarField icon={Boxes} label="Módulo do sistema">
-                <Select value={draft.module} onValueChange={(v) => update("module", v)}>
-                  <SelectTrigger className="h-9 cursor-pointer"><SelectValue /></SelectTrigger>
+                <Select value={draft.module || undefined} onValueChange={(v) => update("module", v)}>
+                  <SelectTrigger className="h-9 cursor-pointer"><SelectValue placeholder="Selecionar módulo" /></SelectTrigger>
                   <SelectContent>
-                    {kanbanModules.map((m) => (
+                    {draft.module && !moduleOptions.includes(draft.module) && <SelectItem value={draft.module}>{draft.module} (módulo anterior)</SelectItem>}
+                    {moduleOptions.map((m) => (
                       <SelectItem key={m} value={m}>{m}</SelectItem>
                     ))}
+                    {modulesLoading && <p className="px-2 py-3 text-sm text-muted-foreground">Carregando módulos...</p>}
                   </SelectContent>
                 </Select>
+                {moduleError && <p className="text-xs text-destructive">Não foi possível carregar os módulos.</p>}
               </SidebarField>
 
               <SidebarField icon={Calendar} label="Prazo">

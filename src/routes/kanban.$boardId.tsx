@@ -222,10 +222,11 @@ const CardDrawerHost = forwardRef<
   DrawerHandle,
   {
     columns: KanbanColumn[];
+    boardMembers: BoardMember[];
     onSave: (card: KanbanCard, mode: DrawerRequest["mode"]) => void;
     onDelete: (id: string) => void;
   }
->(function CardDrawerHost({ columns, onSave, onDelete }, ref) {
+>(function CardDrawerHost({ columns, boardMembers, onSave, onDelete }, ref) {
   const [request, setRequest] = useState<DrawerRequest | null>(null);
   useImperativeHandle(ref, () => ({ open: setRequest }), []);
   if (!request) return null;
@@ -239,6 +240,7 @@ const CardDrawerHost = forwardRef<
       mode={request.mode}
       defaultColumnId={request.defaultColumnId}
       columns={columns}
+      boardMembers={boardMembers}
       onSave={(card) => onSave(card, request.mode)}
       onDelete={onDelete}
     />
@@ -1243,6 +1245,7 @@ function KanbanPage() {
       <CardDrawerHost
         ref={drawerRef}
         columns={columns}
+        boardMembers={boardMembers}
         onSave={handleSave}
         onDelete={handleDelete}
       />
