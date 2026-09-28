@@ -201,11 +201,16 @@ function PortalRouteGuard() {
   useEffect(() => {
     if (loading) return;
     if (!session && pathname !== "/login") {
+      if (pathname.startsWith("/kanban/convite/")) {
+        sessionStorage.setItem("post_login_redirect", pathname);
+      }
       void router.navigate({ to: "/login", replace: true });
       return;
     }
     if (session && pathname === "/login") {
-      void router.navigate({ to: "/", replace: true });
+      const redirect = sessionStorage.getItem("post_login_redirect");
+      sessionStorage.removeItem("post_login_redirect");
+      void router.navigate({ to: redirect?.startsWith("/kanban/convite/") ? redirect : "/", replace: true });
       return;
     }
     if (session && !canAccessPortalPath(role, department, pathname)) {

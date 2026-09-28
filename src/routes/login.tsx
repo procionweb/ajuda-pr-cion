@@ -63,7 +63,9 @@ function LoginPage() {
       }
 
       toast.success("Login realizado com sucesso.");
-      await navigate({ to: "/", replace: true });
+      const redirect = sessionStorage.getItem("post_login_redirect");
+      sessionStorage.removeItem("post_login_redirect");
+      await navigate({ to: redirect?.startsWith("/kanban/convite/") ? redirect : "/", replace: true });
     } catch {
       toast.error("Não foi possível entrar.", {
         description: "O serviço de autenticação não respondeu. Tente novamente.",

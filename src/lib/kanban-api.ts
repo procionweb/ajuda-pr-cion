@@ -237,10 +237,13 @@ export const createBoardInvite = (
     maxUses?: number | null;
   }>,
 ) =>
-  invoke<{ invite: BoardInvite; joinedExistingMember?: boolean }>(
+  invoke<{ invite: BoardInvite; joinedExistingMember?: boolean; emailSent?: boolean }>(
     "createBoardInvite",
     unwrap(input),
   );
+
+export const acceptBoardInvite = (token: string) =>
+  invoke<{ boardId: string }>("acceptBoardInvite", { token });
 
 export const revokeBoardInvite = (input: Wrapped<{ id: string }>) =>
   invoke<{ ok: true }>("revokeBoardInvite", unwrap(input));

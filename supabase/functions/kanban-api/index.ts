@@ -4,6 +4,7 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import nodemailer from "npm:nodemailer@^9";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -892,23 +893,100 @@ async function listBoardInvites(payload: any) {
   return { invites: (data ?? []).map(mapInvite) };
 }
 
-async function createBoardInvite(payload: any) {
+async function requireBoardAdmin(req: Request, boardId: string) {
+  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  if (!token) throw new Error("unauthorized");
+  const { data: { user }, error } = await admin.auth.getUser(token);
+  if (error || !user) throw new Error("unauthorized");
+  const { data: board, error: boardError } = await admin.from("kanban_boards")
+    .select("owner_id").eq("id", boardId).single();
+  if (boardError || !board) throw new Error("board_not_found");
+  if (board.owner_id === user.id) return;
+  const { data: member } = await admin.from("kanban_board_members")
+    .select("role").eq("board_id", boardId).eq("profile_id", user.id).maybeSingle();
+  if (member?.role !== "admin") throw new Error("forbidden");
+}
+
+async function sendBoardInvite(email: string, boardName: string, link: string) {
+  const host = Deno.env.get("SMTP_HOST");
+  const user = Deno.env.get("SMTP_USER");
+  const pass = Deno.env.get("SMTP_PASSWORD");
+  const from = Deno.env.get("SMTP_FROM");
+  const port = Number(Deno.env.get("SMTP_PORT"));
+  if (!host || !user || !pass || !from || !Number.isInteger(port)) throw new Error("smtp_not_configured");
+  const transport = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
+  try {
+    await transport.sendMail({
+      from, to: email, subject: "Convite para um quadro no CRM Prócion",
+      text: `Você foi convidado para o quadro "${boardName}". Acesse ${link} com sua conta do CRM para aceitar o convite.`,
+    });
+  } finally {
+    transport.close();
+  }
+}
+
+async function createBoardInvite(payload: any, req: Request) {
+  await requireBoardAdmin(req, payload.boardId);
+  if (!['email', 'link'].includes(payload.type) || !['admin', 'member', 'observer'].includes(payload.role ?? 'member')) throw new Error('invalid_invite');
   const email = payload.email?.trim().toLowerCase() || null;
+  if (payload.type === "email" && (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) throw new Error("invalid_email");
   let joinedExistingMember = false;
+  let existingProfileId: string | null = null;
   if (payload.type === "email" && email) {
     const { data: profile } = await admin.from("profiles").select("id").ilike("email", email).maybeSingle();
-    if (profile?.id) {
-      await admin.from("kanban_board_members").upsert({ board_id: payload.boardId, profile_id: profile.id, role: payload.role ?? "member" }, { onConflict: "board_id,profile_id" });
-      joinedExistingMember = true;
-    }
+    existingProfileId = profile?.id ?? null;
   }
   const { data, error } = await admin.from("kanban_board_invites").insert({
     board_id: payload.boardId, invite_type: payload.type, email, role: payload.role ?? "member",
-    status: joinedExistingMember ? "accepted" : "pending", expires_at: payload.expiresAt ?? null,
+    status: "pending", expires_at: payload.expiresAt ?? null,
     max_uses: payload.maxUses ?? null,
   }).select("*").single();
   if (error) throw error;
-  return { invite: mapInvite(data), joinedExistingMember };
+  if (payload.type === "email" && email) {
+    const { data: board } = await admin.from("kanban_boards").select("name").eq("id", payload.boardId).single();
+    const link = existingProfileId
+      ? `https://ajuda-pr-cion.vercel.app/kanban/${payload.boardId}`
+      : `https://ajuda-pr-cion.vercel.app/kanban/convite/${data.token}`;
+    try {
+      await sendBoardInvite(email, board?.name ?? "Quadro", link);
+    } catch (sendError) {
+      await admin.from("kanban_board_invites").delete().eq("id", data.id);
+      throw sendError;
+    }
+    if (existingProfileId) {
+      const { error: memberError } = await admin.from("kanban_board_members").upsert({
+        board_id: payload.boardId, profile_id: existingProfileId, role: payload.role ?? "member",
+      }, { onConflict: "board_id,profile_id" });
+      if (memberError) throw memberError;
+      const { error: acceptError } = await admin.from("kanban_board_invites").update({ status: "accepted" }).eq("id", data.id);
+      if (acceptError) throw acceptError;
+      joinedExistingMember = true;
+    }
+  }
+  return { invite: mapInvite(data), joinedExistingMember, emailSent: payload.type === "email" };
+}
+
+async function acceptBoardInvite(payload: any, req: Request) {
+  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  if (!token) throw new Error("unauthorized");
+  const { data: { user }, error: authError } = await admin.auth.getUser(token);
+  if (authError || !user) throw new Error("unauthorized");
+  const { data: invite, error } = await admin.from("kanban_board_invites")
+    .select("*").eq("token", payload.token).single();
+  if (error || !invite || invite.status !== "pending" ||
+      (invite.expires_at && Date.parse(invite.expires_at) <= Date.now()) ||
+      (invite.max_uses && invite.uses_count >= invite.max_uses) ||
+      (invite.invite_type === "email" && invite.email?.toLowerCase() !== user.email?.toLowerCase())) {
+    throw new Error("invalid_invite");
+  }
+  const { error: memberError } = await admin.from("kanban_board_members").upsert({
+    board_id: invite.board_id, profile_id: user.id, role: invite.role,
+  }, { onConflict: "board_id,profile_id" });
+  if (memberError) throw memberError;
+  await admin.from("kanban_board_invites").update({
+    status: "accepted", uses_count: invite.uses_count + 1, updated_at: new Date().toISOString(),
+  }).eq("id", invite.id);
+  return { boardId: invite.board_id };
 }
 
 async function revokeBoardInvite(payload: any) {
@@ -1000,7 +1078,10 @@ serve(async (req) => {
         result = await listBoardInvites(data);
         break;
       case "createBoardInvite":
-        result = await createBoardInvite(data);
+        result = await createBoardInvite(data, req);
+        break;
+      case "acceptBoardInvite":
+        result = await acceptBoardInvite(data, req);
         break;
       case "revokeBoardInvite":
         result = await revokeBoardInvite(data);

@@ -42,6 +42,7 @@ import { Route as ComercialAgendamentosRouteImport } from './routes/comercial.ag
 import { Route as ClientesClienteIdRouteImport } from './routes/clientes.$clienteId'
 import { Route as ChamadosNovoRouteImport } from './routes/chamados.novo'
 import { Route as BaseDeConhecimentoSlugRouteImport } from './routes/base-de-conhecimento.$slug'
+import { Route as KanbanConviteTokenRouteImport } from './routes/kanban.convite.$token'
 import { Route as ComercialContatosLeadIdRouteImport } from './routes/comercial/contatos/$leadId'
 import { Route as ComercialContatoLeadIdRouteImport } from './routes/comercial.contato.$leadId'
 import { Route as ApiPublicTestPlacesRouteImport } from './routes/api/public/test-places'
@@ -214,6 +215,11 @@ const BaseDeConhecimentoSlugRoute = BaseDeConhecimentoSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => BaseDeConhecimentoRoute,
 } as any)
+const KanbanConviteTokenRoute = KanbanConviteTokenRouteImport.update({
+  id: '/convite/$token',
+  path: '/convite/$token',
+  getParentRoute: () => KanbanRoute,
+} as any)
 const ComercialContatosLeadIdRoute = ComercialContatosLeadIdRouteImport.update({
   id: '/$leadId',
   path: '/$leadId',
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/api/public/test-places': typeof ApiPublicTestPlacesRoute
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
   '/comercial/contatos/$leadId': typeof ComercialContatosLeadIdRoute
+  '/kanban/convite/$token': typeof KanbanConviteTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -303,6 +310,7 @@ export interface FileRoutesByTo {
   '/api/public/test-places': typeof ApiPublicTestPlacesRoute
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
   '/comercial/contatos/$leadId': typeof ComercialContatosLeadIdRoute
+  '/kanban/convite/$token': typeof KanbanConviteTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -342,6 +350,7 @@ export interface FileRoutesById {
   '/api/public/test-places': typeof ApiPublicTestPlacesRoute
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
   '/comercial/contatos/$leadId': typeof ComercialContatosLeadIdRoute
+  '/kanban/convite/$token': typeof KanbanConviteTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -382,6 +391,7 @@ export interface FileRouteTypes {
     | '/api/public/test-places'
     | '/comercial/contato/$leadId'
     | '/comercial/contatos/$leadId'
+    | '/kanban/convite/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -418,6 +428,7 @@ export interface FileRouteTypes {
     | '/api/public/test-places'
     | '/comercial/contato/$leadId'
     | '/comercial/contatos/$leadId'
+    | '/kanban/convite/$token'
   id:
     | '__root__'
     | '/'
@@ -456,6 +467,7 @@ export interface FileRouteTypes {
     | '/api/public/test-places'
     | '/comercial/contato/$leadId'
     | '/comercial/contatos/$leadId'
+    | '/kanban/convite/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -723,6 +735,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BaseDeConhecimentoSlugRouteImport
       parentRoute: typeof BaseDeConhecimentoRoute
     }
+    '/kanban/convite/$token': {
+      id: '/kanban/convite/$token'
+      path: '/convite/$token'
+      fullPath: '/kanban/convite/$token'
+      preLoaderRoute: typeof KanbanConviteTokenRouteImport
+      parentRoute: typeof KanbanRoute
+    }
     '/comercial/contatos/$leadId': {
       id: '/comercial/contatos/$leadId'
       path: '/$leadId'
@@ -786,10 +805,12 @@ const FrotaRouteWithChildren = FrotaRoute._addFileChildren(FrotaRouteChildren)
 
 interface KanbanRouteChildren {
   KanbanBoardIdRoute: typeof KanbanBoardIdRoute
+  KanbanConviteTokenRoute: typeof KanbanConviteTokenRoute
 }
 
 const KanbanRouteChildren: KanbanRouteChildren = {
   KanbanBoardIdRoute: KanbanBoardIdRoute,
+  KanbanConviteTokenRoute: KanbanConviteTokenRoute,
 }
 
 const KanbanRouteWithChildren =
