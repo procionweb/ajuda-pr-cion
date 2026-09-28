@@ -79,13 +79,14 @@ export const KanbanColumnView = memo(function KanbanColumnView({
     data: { type: "column", columnId: column.id },
   });
   const meta = columnMeta[column.id] ?? columnMeta["a-fazer"];
-  const [visibleCount, setVisibleCount] = useState(20);
+  const [visibleCount, setVisibleCount] = useState(12);
   const visibleCards = cards.slice(0, visibleCount);
 
   return (
     <section
       ref={setNodeRef}
       data-kanban-column-id={column.id}
+      style={{ contentVisibility: "auto", containIntrinsicSize: "280px 720px" }}
       className="relative flex h-[clamp(390px,calc(100dvh-250px),720px)] w-[280px] shrink-0 flex-col overflow-hidden rounded-xl border border-slate-300 bg-slate-100 p-2.5 shadow-sm dark:border-white/8 dark:bg-[#171a20] dark:shadow-[0_18px_40px_rgba(0,0,0,0.16)]"
     >
       <div className="mb-3 flex h-7 items-center justify-between gap-2">
@@ -228,7 +229,7 @@ export const KanbanColumnView = memo(function KanbanColumnView({
             onScroll={(event) => {
               const element = event.currentTarget;
               if (visibleCount < cards.length && element.scrollTop + element.clientHeight >= element.scrollHeight - 320) {
-                setVisibleCount((count) => Math.min(count + 20, cards.length));
+                setVisibleCount((count) => Math.min(count + 12, cards.length));
               }
             }}
           >
