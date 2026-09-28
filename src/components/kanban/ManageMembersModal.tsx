@@ -124,6 +124,7 @@ export function ManageMembersModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        autoFooter={false}
         className="max-h-[90vh] gap-0 overflow-y-auto p-0 sm:max-w-4xl [&>button]:hidden"
         onInteractOutside={(e) => e.preventDefault()}
       >

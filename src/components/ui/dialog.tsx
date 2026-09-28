@@ -19,12 +19,12 @@ const containsFooter = (children: React.ReactNode): boolean =>
       React.isValidElement<{ children?: React.ReactNode }>(child) &&
       (child.type === DialogFooter || containsFooter(child.props.children)),
   );
-const containsClose = (children: React.ReactNode): boolean =>
+const containsDismiss = (children: React.ReactNode): boolean =>
   React.Children.toArray(children).some((child) =>
     typeof child === "string"
-      ? child.trim() === "Fechar"
+      ? ["Fechar", "Cancelar"].includes(child.trim())
       : React.isValidElement<{ children?: React.ReactNode }>(child) &&
-        containsClose(child.props.children),
+        containsDismiss(child.props.children),
   );
 
 const DialogOverlay = React.forwardRef<
@@ -115,7 +115,7 @@ const DialogFooter = ({ className, children, showClose = true, ...props }: Dialo
     )}
     {...props}
   >
-    {showClose && !containsClose(children) && (
+    {showClose && !containsDismiss(children) && (
       <DialogPrimitive.Close asChild>
         <Button type="button" variant="outline">
           Fechar
