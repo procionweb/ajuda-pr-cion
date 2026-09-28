@@ -70,7 +70,7 @@ import { cn } from "@/lib/utils";
 import { SmartTextarea } from "@/components/ui/smart-text";
 import { matchClient, useClients } from "@/lib/clients-store";
 import { loadHadronModules } from "@/lib/hadron-modules-api";
-import type { BoardMember } from "@/lib/kanban-api";
+import { listAvailableMembers, type BoardMember } from "@/lib/kanban-api";
 
 const kbArticles: RelatedArticle[] = kbArticlesFull.map((a) => ({
   id: a.id,
@@ -191,7 +191,9 @@ export function KanbanCardDrawer({
   const [draft, setDraft] = useState<KanbanCard>(
     card ? withDefaults(card) : emptyDraft(defaultColumnId),
   );
-  const [tagsInput, setTagsInput] = useState((card?.tags ?? []).join(", "));
+  const [tagsInput, setTagsInput] = useState("");
+  const [systemMembers, setSystemMembers] = useState<BoardMember[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [newChecklistItem, setNewChecklistItem] = useState("");
   const [newChecklistTitle, setNewChecklistTitle] = useState(
@@ -205,6 +207,23 @@ export function KanbanCardDrawer({
   const [moduleOptions, setModuleOptions] = useState<string[]>([]);
   const [modulesLoading, setModulesLoading] = useState(true);
   const [moduleError, setModuleError] = useState(false);
+
+  useEffect(() => {
+    if (boardMembers.length) return;
+    let active = true;
+    setMembersLoading(true);
+    listAvailableMembers()
+      .then(({ members }) => {
+        if (active) setSystemMembers(members);
+      })
+      .catch(() => {
+        if (active) toast.error("Não foi possível carregar os membros ativos");
+      })
+      .finally(() => {
+        if (active) setMembersLoading(false);
+      });
+    return () => { active = false; };
+  }, [boardMembers.length]);
 
   useEffect(() => {
     let active = true;
@@ -229,13 +248,14 @@ export function KanbanCardDrawer({
     () => clients.filter((client) => matchClient(client, clientQuery)).slice(0, 60),
     [clients, clientQuery],
   );
+  const memberDirectory = boardMembers.length ? boardMembers : systemMembers;
   const availableMembers = useMemo(
     () => [
       ...new Map(
-        boardMembers.filter((member) => member.id).map((member) => [member.id, member]),
+        memberDirectory.filter((member) => member.id).map((member) => [member.id, member]),
       ).values(),
     ],
-    [boardMembers],
+    [memberDirectory],
   );
 
   useEffect(() => {
@@ -246,7 +266,7 @@ export function KanbanCardDrawer({
     }
     const base = card ? withDefaults(card) : emptyDraft(defaultColumnId);
     setDraft(base);
-    setTagsInput((base.tags ?? []).join(", "));
+    setTagsInput("");
     setNewComment("");
     setNewChecklistItem("");
     setNewChecklistTitle(base.checklist?.[0]?.checklistTitle || "Checklist");
@@ -405,6 +425,16 @@ export function KanbanCardDrawer({
     });
   };
 
+  const addTags = () => {
+    const incoming = tagsInput.split(",").map((tag) => tag.trim().replace(/^#/, "")).filter(Boolean);
+    if (!incoming.length) return;
+    setDraft((current) => ({
+      ...current,
+      tags: [...new Set([...(current.tags ?? []), ...incoming])],
+    }));
+    setTagsInput("");
+  };
+
   const handleArchive = () => {
     const updated: KanbanCard = {
       ...draft,
@@ -434,10 +464,10 @@ export function KanbanCardDrawer({
       toast.error("Informe o título do cartão");
       return;
     }
-    const tags = tagsInput
-      .split(",")
-      .map((t) => t.trim().replace(/^#/, ""))
-      .filter(Boolean);
+    const tags = [...new Set([
+      ...(draft.tags ?? []),
+      ...tagsInput.split(",").map((tag) => tag.trim().replace(/^#/, "")).filter(Boolean),
+    ])];
     let final: KanbanCard = {
       ...draft,
       title,
@@ -471,8 +501,8 @@ export function KanbanCardDrawer({
         changes.push(`Movido de "${from}" para "${to}"`);
       }
       if (before.assigneeId !== final.assigneeId) {
-        const from = memberById(before.assigneeId, boardMembers)?.name ?? before.assigneeId;
-        const to = memberById(final.assigneeId, boardMembers)?.name ?? final.assigneeId;
+        const from = memberById(before.assigneeId, memberDirectory)?.name ?? before.assigneeId;
+        const to = memberById(final.assigneeId, memberDirectory)?.name ?? final.assigneeId;
         changes.push(`Responsável alterado de "${from}" para "${to}"`);
       }
       const sorted = (values: string[]) => [...values].sort().join("|");
@@ -545,7 +575,7 @@ export function KanbanCardDrawer({
     return [...groups.entries()];
   }, [draft.checklist]);
 
-  const assignee = memberById(draft.assigneeId, boardMembers);
+  const assignee = memberById(draft.assigneeId, memberDirectory);
   const isCritical = draft.priority === "Crítica";
   const currentPriorityMeta = priorityMeta[draft.priority] ?? priorityMeta["Média"];
 
@@ -858,6 +888,7 @@ export function KanbanCardDrawer({
                         primary: a.title,
                         secondary: `${a.id} · ${a.category}`,
                         href: full ? `/base-de-conhecimento/${full.slug}` : undefined,
+                        onRemove: () => toggleArticle(a),
                       };
                     })}
                     emptyLabel="Nenhum artigo vinculado."
@@ -883,6 +914,7 @@ export function KanbanCardDrawer({
                       key: v.id,
                       primary: `v${v.version}`,
                       secondary: `${v.date} · ${v.note}`,
+                      onRemove: () => toggleVersion(v),
                     }))}
                     emptyLabel="Nenhuma versão vinculada."
                     picker={
@@ -915,7 +947,7 @@ export function KanbanCardDrawer({
                   {[...(draft.commentsList ?? [])]
                     .sort((a, b) => a.at.localeCompare(b.at))
                     .map((c) => {
-                      const author = memberById(c.authorId, boardMembers);
+                      const author = memberById(c.authorId, memberDirectory);
                       return (
                         <div key={c.id} className="flex gap-3">
                           <Avatar className="h-8 w-8 shrink-0">
@@ -955,10 +987,10 @@ export function KanbanCardDrawer({
                     <AvatarFallback
                       className={cn(
                         "text-[10px] font-medium",
-                        memberById(CURRENT_USER_ID, boardMembers)?.color,
+                        memberById(CURRENT_USER_ID, memberDirectory)?.color,
                       )}
                     >
-                      {memberById(CURRENT_USER_ID, boardMembers)?.initials}
+                      {memberById(CURRENT_USER_ID, memberDirectory)?.initials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 space-y-2">
@@ -989,7 +1021,7 @@ export function KanbanCardDrawer({
                   {[...(draft.activity ?? [])]
                     .sort((a, b) => b.at.localeCompare(a.at))
                     .map((e) => {
-                      const author = memberById(e.authorId, boardMembers);
+                      const author = memberById(e.authorId, memberDirectory);
                       return (
                         <li key={e.id} className="relative">
                           <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
@@ -1062,8 +1094,11 @@ export function KanbanCardDrawer({
                       !availableMembers.some((member) => member.id === draft.assigneeId) && (
                         <SelectItem value={draft.assigneeId}>Membro anterior</SelectItem>
                       )}
+                    {membersLoading && availableMembers.length === 0 && (
+                      <div className="px-2 py-2 text-sm text-muted-foreground">Carregando membros...</div>
+                    )}
                     {availableMembers.map((member) => {
-                      const m = memberById(member.id, boardMembers)!;
+                      const m = memberById(member.id, memberDirectory)!;
                       return (
                         <SelectItem key={m.id} value={m.id}>
                           <span className="inline-flex items-center gap-2">
@@ -1097,7 +1132,7 @@ export function KanbanCardDrawer({
               <SidebarField icon={Users} label="Participantes">
                 <div className="flex items-center flex-wrap gap-1.5">
                   {(draft.participants ?? []).map((pid) => {
-                    const p = memberById(pid, boardMembers);
+                    const p = memberById(pid, memberDirectory);
                     if (!p) return null;
                     return (
                       <button
@@ -1117,21 +1152,21 @@ export function KanbanCardDrawer({
                   })}
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button className="inline-flex items-center gap-1 h-6 px-2 rounded-full border border-dashed border-border text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/40">
+                      <button className="inline-flex cursor-pointer items-center gap-1 h-6 px-2 rounded-full border border-dashed border-border text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/40">
                         <Plus className="h-3 w-3" /> Adicionar
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-64 p-2" align="end">
                       <div className="space-y-0.5 max-h-64 overflow-y-auto">
                         {availableMembers.map((member) => {
-                          const m = memberById(member.id, boardMembers)!;
+                          const m = memberById(member.id, memberDirectory)!;
                           const selected = (draft.participants ?? []).includes(m.id);
                           return (
                             <button
                               key={m.id}
                               onClick={() => toggleParticipant(m.id)}
                               className={cn(
-                                "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted",
+                                "w-full cursor-pointer flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted",
                                 selected && "bg-muted",
                               )}
                             >
@@ -1147,7 +1182,7 @@ export function KanbanCardDrawer({
                         })}
                         {availableMembers.length === 0 && (
                           <p className="px-2 py-3 text-sm text-muted-foreground">
-                            Nenhum membro no quadro.
+                            {membersLoading ? "Carregando membros..." : "Nenhum membro ativo encontrado."}
                           </p>
                         )}
                       </div>
@@ -1259,9 +1294,33 @@ export function KanbanCardDrawer({
               </SidebarField>
 
               <SidebarField icon={Tag} label="Tags">
+                {(draft.tags ?? []).length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-1">
+                    {draft.tags.map((tag) => (
+                      <span key={tag} className="inline-flex items-center gap-1 rounded bg-muted px-2 py-1 text-xs">
+                        {tag}
+                        <button
+                          type="button"
+                          aria-label={`Remover tag ${tag}`}
+                          onClick={() => update("tags", draft.tags.filter((item) => item !== tag))}
+                          className="cursor-pointer text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <Input
                   value={tagsInput}
                   onChange={(e) => setTagsInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === ",") {
+                      e.preventDefault();
+                      addTags();
+                    }
+                  }}
+                  onBlur={addTags}
                   placeholder="fiscal, nf-e"
                   className="h-9 cursor-pointer"
                 />
@@ -1413,7 +1472,7 @@ function RelatedBlock({
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
-  items: { key: string; primary: string; secondary: string; href?: string }[];
+  items: { key: string; primary: string; secondary: string; href?: string; onRemove: () => void }[];
   emptyLabel: string;
   picker: React.ReactNode;
 }) {
@@ -1431,18 +1490,26 @@ function RelatedBlock({
           <p className="text-xs text-muted-foreground italic">{emptyLabel}</p>
         )}
         {items.map((it) => (
-          <div key={it.key} className="text-sm">
-            {it.href ? (
-              <a
-                href={it.href}
-                className="font-medium leading-tight hover:underline block"
-              >
-                {it.primary}
-              </a>
-            ) : (
-              <p className="font-medium leading-tight">{it.primary}</p>
-            )}
-            <p className="text-[11px] text-muted-foreground">{it.secondary}</p>
+          <div key={it.key} className="flex items-start justify-between gap-2 text-sm">
+            <div className="min-w-0">
+              {it.href ? (
+                <a href={it.href} className="block font-medium leading-tight hover:underline">
+                  {it.primary}
+                </a>
+              ) : (
+                <p className="font-medium leading-tight">{it.primary}</p>
+              )}
+              <p className="text-[11px] text-muted-foreground">{it.secondary}</p>
+            </div>
+            <button
+              type="button"
+              onClick={it.onRemove}
+              aria-label={`Remover ${it.primary}`}
+              title="Remover vínculo"
+              className="shrink-0 cursor-pointer rounded p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         ))}
       </div>
@@ -1463,6 +1530,7 @@ function RelationPicker({
     onToggle: () => void;
   }[];
 }) {
+  const [open, setOpen] = useState(false);
   const sortedOptions = useMemo(
     () =>
       [...options].sort((a, b) =>
@@ -1471,7 +1539,7 @@ function RelationPicker({
     [options],
   );
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button className="cursor-pointer inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/40">
           <Plus className="h-3 w-3" /> {label}
@@ -1482,7 +1550,10 @@ function RelationPicker({
           {sortedOptions.map((o) => (
             <button
               key={o.id}
-              onClick={o.onToggle}
+              onClick={() => {
+                o.onToggle();
+                setOpen(false);
+              }}
               className={cn(
                 "cursor-pointer w-full text-left px-2 py-1.5 rounded hover:bg-muted flex items-start gap-2",
                 o.selected && "bg-muted",
