@@ -893,7 +893,7 @@ async function listBoardInvites(payload: any) {
   return { invites: (data ?? []).map(mapInvite) };
 }
 
-async function requireBoardAdmin(req: Request, boardId: string) {
+async function requireBoardInviter(req: Request, boardId: string, invitedRole: string) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) throw new Error("unauthorized");
   const { data: { user }, error } = await admin.auth.getUser(token);
@@ -904,7 +904,9 @@ async function requireBoardAdmin(req: Request, boardId: string) {
   if (board.owner_id === user.id) return;
   const { data: member } = await admin.from("kanban_board_members")
     .select("role").eq("board_id", boardId).eq("profile_id", user.id).maybeSingle();
-  if (member?.role !== "admin") throw new Error("forbidden");
+  if (!member || member.role === "observer" || (invitedRole === "admin" && member.role !== "admin")) {
+    throw new Error("forbidden");
+  }
 }
 
 async function sendBoardInvite(email: string, boardName: string, link: string) {
@@ -926,8 +928,8 @@ async function sendBoardInvite(email: string, boardName: string, link: string) {
 }
 
 async function createBoardInvite(payload: any, req: Request) {
-  await requireBoardAdmin(req, payload.boardId);
   if (!['email', 'link'].includes(payload.type) || !['admin', 'member', 'observer'].includes(payload.role ?? 'member')) throw new Error('invalid_invite');
+  await requireBoardInviter(req, payload.boardId, payload.role ?? "member");
   const email = payload.email?.trim().toLowerCase() || null;
   if (payload.type === "email" && (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) throw new Error("invalid_email");
   let joinedExistingMember = false;
