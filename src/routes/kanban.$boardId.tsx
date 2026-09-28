@@ -846,7 +846,7 @@ function KanbanPage() {
     <AppShell fullWidth={hasPhotoBackground}>
       <div
         style={boardBackgroundStyle}
-        className="min-h-[calc(100dvh-96px)] overflow-hidden rounded-[18px] border border-slate-300 bg-slate-200 p-4 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:min-h-[calc(100dvh-112px)] lg:min-h-[calc(100dvh-128px)] dark:border-white/8 dark:bg-[#10151f] dark:text-slate-100 dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
+        className="min-h-[calc(100dvh-96px)] overflow-hidden rounded-[18px] border border-slate-300 bg-slate-200 p-4 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] sm:min-h-[calc(100dvh-112px)] lg:min-h-[calc(100dvh-136px)] dark:border-white/8 dark:bg-[#10151f] dark:text-slate-100 dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
       >
         <div
           className={cn(
