@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { kanbanStore, moveCardInList, useKanbanCards } from "@/lib/kanban-store";
+import { kanbanStore, moveCardInList, persistKanbanCard, useKanbanCards } from "@/lib/kanban-store";
 import {
   listBoardMembers,
   listKanbanBoards,
@@ -34,6 +34,7 @@ import {
   type BoardSummary,
 } from "@/lib/kanban-api";
 import { type KanbanCard, type KanbanColumn } from "@/lib/kanban-data";
+import { usePortalAuth } from "@/lib/portal-auth";
 
 type Props = {
   card: KanbanCard;
@@ -237,20 +238,6 @@ const labelKey = (label: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/^prioridad normal$/, "prioridade normal");
-const priorityLabelKey = (priority: string) =>
-  priority === "Alta"
-    ? "prioridade alta"
-    : priority === "Baixa"
-      ? "prioridade normal"
-      : "prioridade media";
-const priorityForLabel = (key: string): KanbanCard["priority"] | null =>
-  key === "prioridade alta"
-    ? "Alta"
-    : key === "prioridade normal"
-      ? "Baixa"
-      : key === "prioridade media"
-        ? "Média"
-        : null;
 
 function TagsDialog({
   open,
@@ -297,45 +284,13 @@ function TagsDialog({
     }),
   );
   const labelColor = (label: string) => labelColors.get(label) ?? LABEL_COLORS[0];
-  const isSelected = (label: string) => {
-    const key = labelKey(label);
-    if (currentCard.tags.some((item) => labelKey(item) === key)) return true;
-    const hasPriorityTag = currentCard.tags.some((item) =>
-      labelKey(item).startsWith("prioridade "),
-    );
-    return !hasPriorityTag && key === priorityLabelKey(currentCard.priority);
-  };
+  const isSelected = (label: string) =>
+    currentCard.tags.some((item) => labelKey(item) === labelKey(label));
 
   const toggle = (label: string) => {
     const current = kanbanStore.getSnapshot().find((item) => item.id === card.id) ?? card;
     const key = labelKey(label);
     const selected = current.tags.some((item) => labelKey(item) === key);
-    const hasPriorityTag = current.tags.some((item) => labelKey(item).startsWith("prioridade "));
-    const derivedPriority = !hasPriorityTag && key === priorityLabelKey(current.priority);
-    const nextPriority = priorityForLabel(key);
-    if (derivedPriority) {
-      kanbanStore.updateCard({
-        ...current,
-        priority: current.priority === "Média" ? "Baixa" : "Média",
-      });
-      return;
-    }
-    if (selected && nextPriority) {
-      kanbanStore.updateCard({
-        ...current,
-        priority: current.priority === "Média" ? "Baixa" : "Média",
-        tags: current.tags.filter((item) => labelKey(item) !== key),
-      });
-      return;
-    }
-    if (!selected && nextPriority) {
-      kanbanStore.updateCard({
-        ...current,
-        priority: nextPriority,
-        tags: current.tags.filter((item) => !labelKey(item).startsWith("prioridade ")),
-      });
-      return;
-    }
     kanbanStore.updateCard({
       ...current,
       tags: selected
@@ -972,6 +927,7 @@ function MoveDialog({
   columns: KanbanColumn[];
 }) {
   const destination = useDestination(open, boardId, columns, card);
+  const { session, operator } = usePortalAuth();
   const [busy, setBusy] = React.useState(false);
   const move = async () => {
     if (!destination.columnId) return;
@@ -994,6 +950,29 @@ function MoveDialog({
         columnId: targetColumnId,
         beforeCardId,
       });
+      const from = columns.find((column) => column.id === card.columnId)?.title ?? card.columnId;
+      const to = destination.targetColumns.find((column) => column.id === targetColumnId)?.title ?? targetColumnId;
+      const activity = [...(card.activity ?? []), {
+        id: crypto.randomUUID(),
+        at: new Date().toISOString(),
+        text: targetColumnId === card.columnId && sameBoard
+          ? `Posição alterada em "${to}"`
+          : `Movido de "${from}" para "${to}"`,
+        authorId: session?.user.id,
+        authorName: String(session?.user.user_metadata?.full_name || operator || session?.user.email || "Usuário"),
+        authorOperator: operator || undefined,
+      }];
+      if (sameBoard) {
+        const moved = kanbanStore.getSnapshot().find((item) => item.id === card.id);
+        if (moved) {
+          kanbanStore.updateCard({
+            ...moved,
+            activity,
+          });
+        }
+      } else {
+        await persistKanbanCard({ ...card, columnId: targetColumnId, activity });
+      }
       toast.success("Cartão movido");
     } catch {
       toast.error("Não foi possível mover o cartão");

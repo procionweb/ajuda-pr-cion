@@ -122,27 +122,21 @@ const KanbanCardContent = memo(function KanbanCardContent({
       if (member)
         return {
           ...member,
-          initials: member.name
-            .split(" ")
-            .map((part) => part[0])
-            .slice(0, 2)
-            .join("")
-            .toUpperCase(),
+          initials: member.operator?.toUpperCase().startsWith("PRC")
+            ? "PRC"
+            : member.name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase(),
           color: "bg-primary/15 text-primary",
         };
       return kanbanMembers.find((item) => item.id === id);
     })
     .filter((member): member is NonNullable<typeof member> => Boolean(member));
   const priority = getPriorityMeta(card.priority);
-  const total = card.checklist?.length || (priority.label === "Alta" ? 7 : 5);
-  const done =
-    card.checklist?.filter((c) => c.done).length ||
-    Math.max(1, Math.min(total, Math.round((card.comments + card.attachments + 2) / 2)));
-  const progress = Math.round((done / total) * 100);
+  const total = card.checklist?.length ?? 0;
+  const done = card.checklist?.filter((item) => item.done).length ?? 0;
+  const progress = total ? Math.round((done / total) * 100) : 0;
 
   return (
     <>
-      {/* Trello-style label strips */}
       <div className="mb-1.5 flex flex-wrap gap-1">
         <span
           title={`Prioridade: ${priority.label}`}

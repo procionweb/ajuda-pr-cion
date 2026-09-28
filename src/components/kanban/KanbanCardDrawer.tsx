@@ -71,6 +71,7 @@ import { SmartTextarea } from "@/components/ui/smart-text";
 import { matchClient, useClients } from "@/lib/clients-store";
 import { loadHadronModules } from "@/lib/hadron-modules-api";
 import { listAvailableMembers, type BoardMember } from "@/lib/kanban-api";
+import { usePortalAuth } from "@/lib/portal-auth";
 
 const kbArticles: RelatedArticle[] = kbArticlesFull.map((a) => ({
   id: a.id,
@@ -90,7 +91,6 @@ type Props = {
   onDelete?: (id: string) => void;
 };
 
-const CURRENT_USER_ID = "u-ar"; // usuário logado simulado
 
 const emptyDraft = (columnId: ColumnId): KanbanCard => ({
   id: "",
@@ -163,12 +163,9 @@ function memberById(id: string | undefined, boardMembers: BoardMember[]) {
     return {
       ...member,
       name,
-      initials: name
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((part) => part[0])
-        .join("")
-        .toUpperCase(),
+      initials: member.operator?.toUpperCase().startsWith("PRC")
+        ? "PRC"
+        : name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase(),
       color: "bg-primary/15 text-primary",
     };
   }
@@ -191,6 +188,10 @@ export function KanbanCardDrawer({
   const [draft, setDraft] = useState<KanbanCard>(
     card ? withDefaults(card) : emptyDraft(defaultColumnId),
   );
+  const { session, operator } = usePortalAuth();
+  const actorId = session?.user.id;
+  const actorName = String(session?.user.user_metadata?.full_name || operator || session?.user.email || "Usuário");
+  const actorOperator = operator || String(session?.user.user_metadata?.operator || "");
   const [tagsInput, setTagsInput] = useState("");
   const [systemMembers, setSystemMembers] = useState<BoardMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -248,7 +249,11 @@ export function KanbanCardDrawer({
     () => clients.filter((client) => matchClient(client, clientQuery)).slice(0, 60),
     [clients, clientQuery],
   );
-  const memberDirectory = boardMembers.length ? boardMembers : systemMembers;
+  const memberDirectory = useMemo(() => {
+    const listed = boardMembers.length ? boardMembers : systemMembers;
+    if (!actorId || listed.some((member) => member.id === actorId)) return listed;
+    return [...listed, { id: actorId, name: actorName, operator: actorOperator }];
+  }, [boardMembers, systemMembers, actorId, actorName, actorOperator]);
   const availableMembers = useMemo(
     () => [
       ...new Map(
@@ -272,6 +277,11 @@ export function KanbanCardDrawer({
     setNewChecklistTitle(base.checklist?.[0]?.checklistTitle || "Checklist");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, [open, card, defaultColumnId]);
+
+  useEffect(() => {
+    if (mode !== "create" || !actorId) return;
+    setDraft((current) => current.assigneeId ? current : { ...current, assigneeId: actorId });
+  }, [mode, actorId]);
 
   const update = <K extends keyof KanbanCard>(key: K, value: KanbanCard[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -344,7 +354,7 @@ export function KanbanCardDrawer({
     if (!t) return;
     const entry: CommentEntry = {
       id: uid("cm"),
-      authorId: CURRENT_USER_ID,
+      authorId: actorId || "unknown",
       at: nowIso(),
       text: t,
     };
@@ -446,7 +456,9 @@ export function KanbanCardDrawer({
           id: uid("ac"),
           at: nowIso(),
           text: "Arquivado",
-          authorId: CURRENT_USER_ID,
+          authorId: actorId,
+          authorName: actorName,
+          authorOperator: actorOperator,
         },
       ],
     };
@@ -551,7 +563,9 @@ export function KanbanCardDrawer({
             id: uid(`ac-${index}`),
             at,
             text,
-            authorId: CURRENT_USER_ID,
+            authorId: actorId,
+            authorName: actorName,
+            authorOperator: actorOperator,
           })),
         ],
       };
@@ -575,7 +589,6 @@ export function KanbanCardDrawer({
     return [...groups.entries()];
   }, [draft.checklist]);
 
-  const assignee = memberById(draft.assigneeId, memberDirectory);
   const isCritical = draft.priority === "Crítica";
   const currentPriorityMeta = priorityMeta[draft.priority] ?? priorityMeta["Média"];
 
@@ -987,10 +1000,10 @@ export function KanbanCardDrawer({
                     <AvatarFallback
                       className={cn(
                         "text-[10px] font-medium",
-                        memberById(CURRENT_USER_ID, memberDirectory)?.color,
+                        memberById(actorId, memberDirectory)?.color,
                       )}
                     >
-                      {memberById(CURRENT_USER_ID, memberDirectory)?.initials}
+                      {memberById(actorId, memberDirectory)?.initials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 space-y-2">
@@ -1027,7 +1040,7 @@ export function KanbanCardDrawer({
                           <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
                           <p className="text-sm">{e.text}</p>
                           <p className="text-[11px] text-muted-foreground">
-                            {author?.name ? `${author.name} · ` : ""}
+                            {e.authorName || (author?.name === "Membro anterior" ? "Autor não registrado" : author?.name) || "Autor não registrado"} · {e.authorOperator && `${e.authorOperator} · `}
                             {formatWhen(e.at)}
                           </p>
                         </li>
@@ -1110,23 +1123,14 @@ export function KanbanCardDrawer({
                             >
                               {m.initials}
                             </span>
-                            {m.name}
+                            <span>{m.name}</span>
+                            {m.operator && <span className="text-[10px] text-muted-foreground">{m.operator}</span>}
                           </span>
                         </SelectItem>
                       );
                     })}
                   </SelectContent>
                 </Select>
-                {assignee && (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className={cn("text-[10px] font-medium", assignee.color)}>
-                        {assignee.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    {assignee.name}
-                  </div>
-                )}
               </SidebarField>
 
               <SidebarField icon={Users} label="Participantes">
@@ -1138,7 +1142,7 @@ export function KanbanCardDrawer({
                       <button
                         key={pid}
                         onClick={() => toggleParticipant(pid)}
-                        className="group inline-flex items-center gap-1 pl-0.5 pr-1.5 py-0.5 rounded-full bg-background border border-border text-[11px]"
+                        className="group inline-flex cursor-pointer items-center gap-1 pl-0.5 pr-1.5 py-0.5 rounded-full bg-background border border-border text-[11px]"
                       >
                         <Avatar className="h-5 w-5">
                           <AvatarFallback className={cn("text-[9px] font-semibold", p.color)}>
@@ -1175,7 +1179,7 @@ export function KanbanCardDrawer({
                                   {m.initials}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="flex-1 text-left">{m.name}</span>
+                              <span className="flex-1 text-left">{m.name}{m.operator && <span className="ml-1 text-[10px] text-muted-foreground">{m.operator}</span>}</span>
                               {selected && <CheckSquare className="h-3.5 w-3.5 text-primary" />}
                             </button>
                           );

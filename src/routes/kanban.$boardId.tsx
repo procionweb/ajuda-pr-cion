@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
 import { kanbanStore, moveCardInList, useKanbanCards } from "@/lib/kanban-store";
+import { usePortalAuth } from "@/lib/portal-auth";
 import {
   createKanbanColumn,
   copyKanbanColumn,
@@ -100,7 +101,6 @@ import {
   cardTypes,
 } from "@/lib/kanban-data";
 
-const CURRENT_USER_ID = "u-ar";
 
 export const Route = createFileRoute("/kanban/$boardId")({
   head: () => ({
@@ -249,6 +249,9 @@ const CardDrawerHost = forwardRef<
 
 function KanbanPage() {
   const { boardId: boardIdParam } = Route.useParams();
+  const { session, operator } = usePortalAuth();
+  const actorId = session?.user.id;
+  const actorName = String(session?.user.user_metadata?.full_name || operator || session?.user.email || "Usuário");
   const cards = useKanbanCards();
   const setCards = kanbanStore.setCards;
   const [columns, setColumns] = useState<KanbanColumn[]>(getInitialColumns);
@@ -370,7 +373,7 @@ function KanbanPage() {
       if (c.archived) return false;
       if (onlyMine) {
         const isMine =
-          c.assigneeId === CURRENT_USER_ID || (c.participants ?? []).includes(CURRENT_USER_ID);
+          c.assigneeId === actorId || (actorId && (c.participants ?? []).includes(actorId));
         if (!isMine) return false;
       }
       if (filters.client !== "all" && c.client !== filters.client) return false;
@@ -409,7 +412,7 @@ function KanbanPage() {
         c.tags.some((t) => t.toLowerCase().includes(q))
       );
     });
-  }, [cards, query, filters, onlyMine, columns]);
+  }, [cards, query, filters, onlyMine, columns, actorId]);
 
   const cardsByColumn = useMemo(() => {
     const grouped = Object.fromEntries(
@@ -504,6 +507,7 @@ function KanbanPage() {
     const didMove =
       originalIndex !== finalIndex ||
       originalCards?.[originalIndex ?? -1]?.columnId !== finalCards[finalIndex]?.columnId;
+    const previousColumnId = originalCards?.[originalIndex ?? -1]?.columnId;
     dragStartCardsRef.current = null;
     dragPlacementRef.current = null;
     if (didMove && /^[0-9a-f-]{36}$/i.test(String(active.id))) {
@@ -514,6 +518,25 @@ function KanbanPage() {
           beforeCardId:
             beforeCardId && /^[0-9a-f-]{36}$/i.test(beforeCardId) ? beforeCardId : undefined,
         },
+      }).then(() => {
+        if (!previousColumnId) return;
+        const moved = kanbanStore.getSnapshot().find((card) => card.id === active.id);
+        if (!moved) return;
+        const from = columns.find((column) => column.id === previousColumnId)?.title ?? previousColumnId;
+        const to = columns.find((column) => column.id === targetColumn)?.title ?? targetColumn;
+        kanbanStore.updateCard({
+          ...moved,
+          activity: [...(moved.activity ?? []), {
+            id: crypto.randomUUID(),
+            at: new Date().toISOString(),
+            text: previousColumnId === targetColumn
+              ? `Posição alterada em "${to}"`
+              : `Movido de "${from}" para "${to}"`,
+            authorId: actorId,
+            authorName: actorName,
+            authorOperator: operator || undefined,
+          }],
+        });
       }).catch(() => {
         toast.error("Não foi possível salvar a movimentação");
         void loadKanbanBoard({ data: { boardId: boardIdParam } }).then((result) =>

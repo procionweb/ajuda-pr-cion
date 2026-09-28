@@ -17,7 +17,7 @@ export type ChecklistItem = {
   checklistTitle?: string;
 };
 export type CommentEntry = { id: string; authorId: string; at: string; text: string };
-export type ActivityEntry = { id: string; at: string; text: string; authorId?: string };
+export type ActivityEntry = { id: string; at: string; text: string; authorId?: string; authorName?: string; authorOperator?: string };
 export type AttachmentItem = {
   id: string;
   name: string;
