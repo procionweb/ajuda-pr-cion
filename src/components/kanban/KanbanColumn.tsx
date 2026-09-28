@@ -1,4 +1,4 @@
-import { Fragment, memo, useState } from "react";
+import { Fragment, memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
@@ -78,13 +78,38 @@ export const KanbanColumnView = memo(function KanbanColumnView({
     id: column.id,
     data: { type: "column", columnId: column.id },
   });
+  const columnRef = useRef<HTMLElement | null>(null);
+  const [renderCards, setRenderCards] = useState(false);
+  const setColumnRef = useCallback((node: HTMLElement | null) => {
+    columnRef.current = node;
+    setNodeRef(node);
+  }, [setNodeRef]);
+  useLayoutEffect(() => {
+    const node = columnRef.current;
+    if (!node) return;
+    const scrollRoot = node.closest(".kanban-scrollbar");
+    if (!scrollRoot) {
+      setRenderCards(true);
+      return;
+    }
+    const rootRect = scrollRoot.getBoundingClientRect();
+    const rect = node.getBoundingClientRect();
+    if (rect.left < rootRect.right + 560 && rect.right > rootRect.left - 560) {
+      setRenderCards(true);
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setRenderCards(true);
+    }, { root: scrollRoot, rootMargin: "0px 560px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   const meta = columnMeta[column.id] ?? columnMeta["a-fazer"];
   const [visibleCount, setVisibleCount] = useState(12);
-  const visibleCards = cards.slice(0, visibleCount);
+  const visibleCards = renderCards ? cards.slice(0, visibleCount) : [];
 
   return (
     <section
-      ref={setNodeRef}
+      ref={setColumnRef}
       data-kanban-column-id={column.id}
       style={{ contain: "layout paint" }}
       className="relative flex h-[clamp(390px,calc(100dvh-250px),720px)] w-[280px] shrink-0 flex-col overflow-hidden rounded-xl border border-slate-300 bg-slate-100 p-2.5 shadow-sm dark:border-white/8 dark:bg-[#171a20] dark:shadow-[0_18px_40px_rgba(0,0,0,0.16)]"
