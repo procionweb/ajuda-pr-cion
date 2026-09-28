@@ -4,7 +4,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { type KanbanCard as CardType, type KanbanColumn, kanbanMembers } from "@/lib/kanban-data";
+import { type KanbanCard as CardType, type KanbanColumn, kanbanLabelColor } from "@/lib/kanban-data";
+import { kanbanStore } from "@/lib/kanban-store";
 import { KanbanCardMenu } from "./KanbanCardMenu";
 import type { BoardMember } from "@/lib/kanban-api";
 
@@ -27,21 +28,6 @@ function getPriorityMeta(priority: string) {
     return { label: "Crítica", accent: "bg-red-500", strip: "bg-red-600" };
   }
   return { label: "Média", accent: "bg-amber-400", strip: "bg-yellow-400" };
-}
-
-const TAG_COLORS: { match: RegExp; className: string }[] = [
-  { match: /fiscal|nf|sped|icms/i, className: "bg-sky-500" },
-  { match: /financ|pix|boleto|comiss/i, className: "bg-emerald-500" },
-  { match: /estoque|wms|log/i, className: "bg-indigo-500" },
-  { match: /performance|bug/i, className: "bg-rose-500" },
-  { match: /doc|api/i, className: "bg-violet-500" },
-  { match: /ux|design|release/i, className: "bg-pink-500" },
-  { match: /implant|migra|produ/i, className: "bg-teal-500" },
-  { match: /seg|2fa|infra/i, className: "bg-amber-500" },
-];
-
-function getTagColor(tag: string) {
-  return TAG_COLORS.find((t) => t.match.test(tag))?.className ?? "bg-slate-400";
 }
 
 type KanbanCardItemProps = {
@@ -127,7 +113,7 @@ const KanbanCardContent = memo(function KanbanCardContent({
             : member.name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase(),
           color: "bg-primary/15 text-primary",
         };
-      return kanbanMembers.find((item) => item.id === id);
+      return undefined;
     })
     .filter((member): member is NonNullable<typeof member> => Boolean(member));
   const priority = getPriorityMeta(card.priority);
@@ -146,8 +132,8 @@ const KanbanCardContent = memo(function KanbanCardContent({
           <span
             key={t}
             title={t}
-            className={cn("h-1.5 w-10 rounded-full opacity-90", getTagColor(t))}
-            style={card.tagColors?.[t] ? { backgroundColor: card.tagColors[t] } : undefined}
+            className="h-1.5 w-10 rounded-full opacity-90"
+            style={{ backgroundColor: kanbanLabelColor(t, kanbanStore.getSnapshot()) }}
           />
         ))}
       </div>
@@ -240,8 +226,8 @@ export function KanbanCardPreview({ card }: { card: CardType }) {
         {card.tags?.slice(0, 6).map((tag) => (
           <span
             key={tag}
-            className={cn("h-1.5 w-10 rounded-full", getTagColor(tag))}
-            style={card.tagColors?.[tag] ? { backgroundColor: card.tagColors[tag] } : undefined}
+            className="h-1.5 w-10 rounded-full"
+            style={{ backgroundColor: kanbanLabelColor(tag, kanbanStore.getSnapshot()) }}
           />
         ))}
       </div>

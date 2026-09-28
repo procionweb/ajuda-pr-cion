@@ -1,4 +1,10 @@
 export type Priority = "Baixa" | "Média" | "Alta" | "Crítica";
+export const priorityLabels: { name: string; priority: Priority; color: string }[] = [
+  { name: "Prioridade Normal", priority: "Baixa", color: "#8c690a" },
+  { name: "Prioridade Média", priority: "Média", color: "#b8640d" },
+  { name: "Prioridade Alta", priority: "Alta", color: "#b9352d" },
+  { name: "Prioridade Crítica", priority: "Crítica", color: "#991b1b" },
+];
 export type CardType = "Suporte" | "Melhoria" | "Bug" | "Implantação" | "Documentação";
 export type ColumnId = string;
 
@@ -57,6 +63,15 @@ export type KanbanCard = {
   relatedArticles?: RelatedArticle[];
   relatedVersions?: RelatedVersion[];
 };
+
+export function kanbanLabelColor(label: string, cards: KanbanCard[]): string {
+  const saved = cards.find((card) => card.tagColors?.[label])?.tagColors?.[label];
+  if (saved) return saved;
+  if (/fiscal|nf|sped|icms/i.test(label)) return "#8c690a";
+  const palette = ["#226e53", "#1f62b8", "#773da2", "#b8640d", "#277e9e", "#ad4b91"];
+  const hash = [...label].reduce((value, char) => value + char.charCodeAt(0), 0);
+  return palette[hash % palette.length];
+}
 
 export type KanbanColumn = {
   id: ColumnId;

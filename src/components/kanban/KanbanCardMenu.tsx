@@ -33,7 +33,7 @@ import {
   type BoardMember,
   type BoardSummary,
 } from "@/lib/kanban-api";
-import { type KanbanCard, type KanbanColumn } from "@/lib/kanban-data";
+import { type KanbanCard, type KanbanColumn, priorityLabels, kanbanLabelColor } from "@/lib/kanban-data";
 import { usePortalAuth } from "@/lib/portal-auth";
 
 type Props = {
@@ -260,36 +260,40 @@ function TagsDialog({
   }, [open]);
   const allCards = useKanbanCards();
   const currentCard = allCards.find((item) => item.id === card.id) ?? card;
-  const labels = Array.from(
+  const priorityKeys = new Set(priorityLabels.map((item) => labelKey(item.name)));
+  const labels = [...priorityLabels.map((item) => item.name), ...Array.from(
     new Map(
       Array.from(
         new Set([...allCards.flatMap((item) => item.tags ?? []), ...(card.tags ?? [])]),
-      ).map((label) => [labelKey(label), label]),
+      ).filter((label) => !priorityKeys.has(labelKey(label))).map((label) => [labelKey(label), label]),
     ).values(),
-  );
+  )];
   const visible = labels.filter((label) =>
     label.toLocaleLowerCase("pt-BR").includes(search.toLocaleLowerCase("pt-BR")),
   );
-  const usedColors = new Set<string>();
-  const labelColors = new Map(
-    labels.map((label, index) => {
-      const saved = allCards.find((item) => item.tagColors?.[label])?.tagColors?.[label];
-      const color =
-        saved && !usedColors.has(saved)
-          ? saved
-          : (LABEL_COLORS.find((option) => !usedColors.has(option)) ??
-            LABEL_COLORS[index % LABEL_COLORS.length]);
-      usedColors.add(color);
-      return [label, color];
-    }),
-  );
-  const labelColor = (label: string) => labelColors.get(label) ?? LABEL_COLORS[0];
-  const isSelected = (label: string) =>
-    currentCard.tags.some((item) => labelKey(item) === labelKey(label));
+  const priorityFor = (label: string) => priorityLabels.find((item) => labelKey(item.name) === labelKey(label));
+  const labelColor = (label: string) => priorityFor(label)?.color ?? kanbanLabelColor(label, allCards);
+  const isSelected = (label: string) => {
+    const priority = priorityFor(label);
+    return priority
+      ? currentCard.priority === priority.priority
+      : currentCard.tags.some((item) => labelKey(item) === labelKey(label));
+  };
 
   const toggle = (label: string) => {
     const current = kanbanStore.getSnapshot().find((item) => item.id === card.id) ?? card;
     const key = labelKey(label);
+    const priority = priorityFor(label);
+    if (priority) {
+      if (current.priority !== priority.priority) {
+        kanbanStore.updateCard({
+          ...current,
+          priority: priority.priority,
+          tags: current.tags.filter((tag) => !priorityKeys.has(labelKey(tag))),
+        });
+      }
+      return;
+    }
     const selected = current.tags.some((item) => labelKey(item) === key);
     kanbanStore.updateCard({
       ...current,
@@ -304,6 +308,7 @@ function TagsDialog({
   const saveLabel = () => {
     const clean = name.trim();
     if (!clean) return;
+    if (priorityKeys.has(labelKey(clean))) return toast.error("Use o campo Prioridade para essa etiqueta");
     if (editing && editing !== clean && labels.includes(clean))
       return toast.error("Já existe uma etiqueta com esse nome");
     const affected = kanbanStore.getSnapshot().filter((item) => item.tags.includes(editing ?? ""));
@@ -358,7 +363,7 @@ function TagsDialog({
               >
                 {label}
               </button>
-              <button
+              {!priorityFor(label) && <button
                 type="button"
                 aria-label={`Editar ${label}`}
                 title={`Editar ${label}`}
@@ -370,7 +375,7 @@ function TagsDialog({
                 }}
               >
                 <SquarePen className="h-4 w-4" strokeWidth={1.8} />
-              </button>
+              </button>}
             </div>
           ))}
         </div>

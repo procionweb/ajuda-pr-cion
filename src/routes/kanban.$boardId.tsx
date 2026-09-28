@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowUpDown,
   BarChart3,
   Bell,
   BriefcaseBusiness,
@@ -95,8 +96,6 @@ import {
   type Priority,
   type CardType,
   kanbanColumnsDef,
-  kanbanMembers,
-  kanbanClients,
   priorities,
   cardTypes,
 } from "@/lib/kanban-data";
@@ -328,6 +327,10 @@ function KanbanPage() {
     cards.forEach((c) => c.tags.forEach((t) => set.add(t)));
     return Array.from(set).sort();
   }, [cards]);
+  const clientOptions = useMemo(
+    () => [...new Set(cards.map((card) => card.client).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [cards],
+  );
 
   useEffect(() => {
     let active = true;
@@ -385,7 +388,6 @@ function KanbanPage() {
       if (filters.completion !== "all") {
         const column = columns.find((item) => item.id === c.columnId);
         const isCompleted =
-          c.archived === true ||
           c.columnId === "arquivado" ||
           /conclu|finaliz|arquivad/i.test(column?.title ?? "");
         if (filters.completion === "completed" && !isCompleted) return false;
@@ -602,6 +604,34 @@ function KanbanPage() {
   const handleSave = (card: KanbanCard, mode: DrawerRequest["mode"]) => {
     if (mode === "create") kanbanStore.addCard(card);
     else kanbanStore.updateCard(card);
+  };
+
+  const handleQuickMove = async (card: KanbanCard, columnId: ColumnId) => {
+    if (card.columnId === columnId) return;
+    moveCardToColumn(card.id, columnId);
+    try {
+      await moveKanbanCard({ cardId: card.id, columnId });
+      const moved = kanbanStore.getSnapshot().find((item) => item.id === card.id);
+      if (!moved) return;
+      const from = columns.find((column) => column.id === card.columnId)?.title ?? card.columnId;
+      const to = columns.find((column) => column.id === columnId)?.title ?? columnId;
+      kanbanStore.updateCard({
+        ...moved,
+        activity: [...(moved.activity ?? []), {
+          id: crypto.randomUUID(),
+          at: new Date().toISOString(),
+          text: `Movido de "${from}" para "${to}"`,
+          authorId: actorId,
+          authorName: actorName,
+          authorOperator: operator || undefined,
+        }],
+      });
+    } catch {
+      toast.error("Não foi possível mover o cartão");
+      void loadKanbanBoard({ boardId: boardIdParam }).then((result) =>
+        kanbanStore.hydrate(result.cards as KanbanCard[]),
+      );
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -867,8 +897,12 @@ function KanbanPage() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent
-                className="app-scrollbar max-h-[min(620px,calc(100dvh-120px))] w-80 overflow-y-auto p-0"
+                className="app-scrollbar w-80 max-w-[calc(100vw-24px)] overflow-y-scroll p-0"
                 align="end"
+                side="bottom"
+                sideOffset={6}
+                collisionPadding={12}
+                style={{ maxHeight: "min(620px, var(--radix-popover-content-available-height))" }}
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="sticky top-0 z-10 flex w-full items-center justify-between border-b bg-popover px-4 py-3">
@@ -922,8 +956,7 @@ function KanbanPage() {
                     onChange={(v) => setFilters({ ...filters, client: v })}
                     options={[
                       { value: "all", label: "Todos" },
-                      { value: "Interno", label: "Interno" },
-                      ...kanbanClients.map((c) => ({ value: c, label: c })),
+                      ...clientOptions.map((client) => ({ value: client, label: client })),
                     ]}
                   />
                   <FilterSelect
@@ -932,7 +965,10 @@ function KanbanPage() {
                     onChange={(v) => setFilters({ ...filters, assignee: v })}
                     options={[
                       { value: "all", label: "Todos" },
-                      ...kanbanMembers.map((m) => ({ value: m.id, label: m.name })),
+                      ...boardMembers.map((member) => ({
+                        value: member.id,
+                        label: member.operator ? `${member.name} (${member.operator})` : member.name,
+                      })),
                     ]}
                   />
                   <FilterSelect
@@ -1113,12 +1149,14 @@ function KanbanPage() {
             </div>
           </div>
         ) : viewMode === "list" ? (
-          <KanbanListView cards={filteredCards} columns={columns} onOpenCard={openCard} />
+          <KanbanListView cards={filteredCards} columns={columns} boardMembers={boardMembers} onOpenCard={openCard} />
         ) : viewMode === "inbox" ? (
           <KanbanInboxView
             cards={filteredCards}
             columns={columns}
+            boardMembers={boardMembers}
             onOpenCard={openCard}
+            onMoveCard={handleQuickMove}
             onCreateCard={() => handleNewCard(columns[0]?.id ?? "a-fazer")}
           />
         ) : viewMode === "planner" ? (
@@ -1507,32 +1545,30 @@ function KanbanPage() {
 function KanbanInboxView({
   cards,
   columns,
+  boardMembers,
   onOpenCard,
   onCreateCard,
+  onMoveCard,
 }: {
   cards: KanbanCard[];
   columns: KanbanColumn[];
+  boardMembers: BoardMember[];
   onOpenCard: (card: KanbanCard) => void;
   onCreateCard: () => void;
+  onMoveCard: (card: KanbanCard, columnId: ColumnId) => void;
 }) {
   const firstColumnId = columns[0]?.id;
-  const inboxCards = cards.filter(
-    (card) =>
-      !card.archived && (card.columnId === firstColumnId || !card.dueDate || !card.assigneeId),
-  );
+  const inboxCards = cards.filter((card) => !card.archived && card.columnId === firstColumnId);
 
   return (
     <div className="grid min-h-[480px] gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.035]">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#1e2633]">
         <div className="flex items-center justify-between border-b px-5 py-4 dark:border-white/8">
           <div>
             <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
               <Inbox className="h-4 w-4 text-primary" />
               Caixa de entrada
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Cartões novos ou que ainda precisam de organização.
-            </p>
           </div>
           <Button size="sm" className="cursor-pointer" onClick={onCreateCard}>
             <Plus className="mr-1.5 h-4 w-4" />
@@ -1542,37 +1578,42 @@ function KanbanInboxView({
         <div className="app-scrollbar max-h-[calc(100dvh-310px)] space-y-2 overflow-y-auto p-4">
           {inboxCards.length ? (
             inboxCards.map((card) => {
-              const member = kanbanMembers.find((item) => item.id === card.assigneeId);
+              const member = boardMembers.find((item) => item.id === card.assigneeId);
               return (
-                <button
+                <div
                   key={card.id}
-                  type="button"
-                  onClick={() => onOpenCard(card)}
-                  className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 text-left transition hover:border-primary/30 hover:bg-primary/[0.035] dark:border-white/10 dark:hover:bg-white/[0.05]"
+                  className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-slate-300 dark:border-slate-700 dark:bg-[#263244] dark:hover:border-slate-500"
                 >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                    <Inbox className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-slate-900 dark:text-white">
-                      {card.title}
+                  <button type="button" onClick={() => onOpenCard(card)} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300">
+                      <Inbox className="h-4 w-4" />
                     </span>
-                    <span className="mt-0.5 block truncate text-xs text-slate-500">
-                      {card.client} · {card.module}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">{card.title}</span>
+                      <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">{card.client} · {card.module}</span>
                     </span>
-                  </span>
-                  <span className="hidden rounded-full bg-slate-100 px-2 py-1 text-[10px] text-slate-600 dark:bg-white/8 dark:text-slate-300 sm:inline-flex">
-                    {card.priority}
-                  </span>
+                  </button>
+                  <span className="hidden rounded bg-white px-2 py-1 text-[10px] text-slate-700 dark:bg-slate-700 dark:text-slate-200 sm:inline-flex">{card.priority}</span>
                   <span
                     className={cn(
                       "grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold",
-                      member?.color ?? "bg-slate-100 text-slate-600",
+                      "bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-100",
                     )}
+                    title={member?.operator || member?.name || "Sem responsável"}
                   >
-                    {member?.initials ?? "--"}
+                    {member?.operator?.startsWith("PRC") ? "PRC" : member?.name?.slice(0, 2).toUpperCase() ?? "--"}
                   </span>
-                </button>
+                  {columns.length > 1 && <Select onValueChange={(columnId) => onMoveCard(card, columnId)}>
+                    <SelectTrigger aria-label={`Mover ${card.title}`} className="h-8 w-28 shrink-0 cursor-pointer text-xs">
+                      <SelectValue placeholder="Mover" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {columns.filter((column) => column.id !== card.columnId).map((column) => (
+                        <SelectItem key={column.id} value={column.id}>{column.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>}
+                </div>
               );
             })
           ) : (
@@ -1580,26 +1621,23 @@ function KanbanInboxView({
           )}
         </div>
       </section>
-      <aside className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.035]">
+      <aside className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-[#1e2633]">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Triagem rápida</h3>
-        <p className="mt-2 text-xs leading-5 text-slate-500">
-          Abra um cartão para definir responsável, prioridade, prazo, etiquetas e a lista correta.
-        </p>
         <div className="mt-5 space-y-3 text-xs">
-          <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-white/[0.04]">
-            <span className="text-slate-500">Aguardando triagem</span>
+          <div className="flex items-center justify-between rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
+            <span className="text-slate-600 dark:text-slate-300">Aguardando triagem</span>
             <strong className="text-slate-900 dark:text-white">{inboxCards.length}</strong>
           </div>
-          <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-white/[0.04]">
-            <span className="text-slate-500">Sem prazo</span>
+          <div className="flex items-center justify-between rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
+            <span className="text-slate-600 dark:text-slate-300">Sem prazo</span>
             <strong className="text-slate-900 dark:text-white">
-              {cards.filter((card) => !card.dueDate).length}
+              {inboxCards.filter((card) => !card.dueDate).length}
             </strong>
           </div>
-          <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-white/[0.04]">
-            <span className="text-slate-500">Alta prioridade</span>
+          <div className="flex items-center justify-between rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
+            <span className="text-slate-600 dark:text-slate-300">Alta prioridade</span>
             <strong className="text-rose-500">
-              {inboxCards.filter((card) => card.priority === "Alta").length}
+              {inboxCards.filter((card) => card.priority === "Alta" || card.priority === "Crítica").length}
             </strong>
           </div>
         </div>
@@ -1638,7 +1676,7 @@ function KanbanPlannerView({
   const weekLabel = `${weekDays[0].toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} – ${weekDays[6].toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.035]">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#1e2633]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 dark:border-white/8">
         <div className="flex items-center gap-2">
           <Button
@@ -1670,13 +1708,13 @@ function KanbanPlannerView({
       </div>
       <div className="app-scrollbar overflow-x-auto">
         <div className="grid min-w-[1040px] grid-cols-[240px_repeat(7,minmax(110px,1fr))]">
-          <div className="border-b border-r bg-slate-50 p-3 text-[10px] font-semibold uppercase text-slate-500 dark:border-white/8 dark:bg-white/[0.03]">
+          <div className="border-b border-r bg-slate-100 p-3 text-[10px] font-semibold uppercase text-slate-600 dark:border-slate-700 dark:bg-[#263244] dark:text-slate-300">
             Sem data ({unscheduled.length})
           </div>
           {weekDays.map((day) => (
             <div
               key={day.toISOString()}
-              className="border-b border-r bg-slate-50 p-3 text-center dark:border-white/8 dark:bg-white/[0.03]"
+              className="border-b border-r bg-slate-100 p-3 text-center dark:border-slate-700 dark:bg-[#263244]"
             >
               <span className="block text-[10px] uppercase text-slate-500">
                 {day.toLocaleDateString("pt-BR", { weekday: "short" })}
@@ -1688,7 +1726,17 @@ function KanbanPlannerView({
           ))}
           <div className="app-scrollbar max-h-[calc(100dvh-330px)] space-y-2 overflow-y-auto border-r p-2 dark:border-white/8">
             {unscheduled.map((card) => (
-              <PlannerCard key={card.id} card={card} onOpen={() => onOpenCard(card)} />
+              <div key={card.id} className="space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-[#263244]">
+                <PlannerCard card={card} onOpen={() => onOpenCard(card)} />
+                <input
+                  type="date"
+                  aria-label={`Agendar ${card.title}`}
+                  className="h-8 w-full cursor-pointer rounded border border-slate-200 bg-white px-2 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                  onChange={(event) => {
+                    if (event.target.value) onSchedule(card, event.target.value);
+                  }}
+                />
+              </div>
             ))}
             {!unscheduled.length && (
               <p className="p-3 text-center text-xs text-slate-400">Todos os cartões têm prazo.</p>
@@ -1705,29 +1753,11 @@ function KanbanPlannerView({
                 {dayCards.map((card) => (
                   <PlannerCard key={card.id} card={card} onOpen={() => onOpenCard(card)} />
                 ))}
-                {unscheduled.slice(0, 3).map((card) => (
-                  <button
-                    key={card.id}
-                    type="button"
-                    onClick={() => {
-                      onSchedule(card, dateKey);
-                      toast.success(`Cartão agendado para ${day.toLocaleDateString("pt-BR")}`);
-                    }}
-                    className="hidden w-full cursor-pointer rounded-md border border-dashed border-slate-200 px-2 py-1.5 text-[9px] text-slate-400 transition hover:border-primary/40 hover:text-primary group-hover:block dark:border-white/10"
-                  >
-                    Agendar {card.title}
-                  </button>
-                ))}
               </div>
             );
           })}
         </div>
       </div>
-      {unscheduled.length > 0 && (
-        <div className="border-t px-4 py-2 text-[11px] text-slate-500 dark:border-white/8">
-          Para agendar rapidamente, abra um cartão sem data ou use os atalhos exibidos em cada dia.
-        </div>
-      )}
     </div>
   );
 }
@@ -1737,7 +1767,7 @@ function PlannerCard({ card, onOpen }: { card: KanbanCard; onOpen: () => void })
     <button
       type="button"
       onClick={onOpen}
-      className="block w-full cursor-pointer rounded-lg border border-slate-200 bg-white p-2 text-left shadow-sm transition hover:border-primary/30 hover:shadow dark:border-white/10 dark:bg-white/[0.045]"
+      className="block w-full cursor-pointer rounded-lg border border-slate-200 bg-white p-2 text-left shadow-sm transition hover:border-primary/30 hover:shadow dark:border-slate-600 dark:bg-[#263244] dark:hover:bg-[#2c3a4f]"
     >
       <span className="block line-clamp-2 text-[11px] font-medium text-slate-800 dark:text-slate-100">
         {card.title}
@@ -1757,13 +1787,32 @@ function toLocalDateKey(date: Date) {
 function KanbanListView({
   cards,
   columns,
+  boardMembers,
   onOpenCard,
 }: {
   cards: KanbanCard[];
   columns: KanbanColumn[];
+  boardMembers: BoardMember[];
   onOpenCard: (card: KanbanCard) => void;
 }) {
+  const [sortBy, setSortBy] = useState<"title" | "column" | "assignee" | "priority" | "due">("title");
+  const [descending, setDescending] = useState(false);
   const columnNames = new Map(columns.map((column) => [column.id, column.title]));
+  const sortedCards = [...cards].sort((left, right) => {
+    const value = (card: KanbanCard) => {
+      if (sortBy === "column") return columnNames.get(card.columnId) ?? card.columnId;
+      if (sortBy === "assignee") return boardMembers.find((member) => member.id === card.assigneeId)?.name ?? "";
+      if (sortBy === "priority") return String(["Baixa", "Média", "Alta", "Crítica"].indexOf(card.priority));
+      if (sortBy === "due") return card.dueDate || "9999-12-31";
+      return card.title;
+    };
+    const result = value(left).localeCompare(value(right), "pt-BR", { sensitivity: "base" });
+    return descending ? -result : result;
+  });
+  const changeSort = (field: typeof sortBy) => {
+    if (sortBy === field) setDescending((value) => !value);
+    else { setSortBy(field); setDescending(false); }
+  };
   const priorityTone: Record<Priority, string> = {
     Alta: "bg-rose-500/12 text-rose-600 dark:text-rose-300",
     Média: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
@@ -1775,18 +1824,18 @@ function KanbanListView({
     return <EmptyKanbanView message="Nenhum cartão encontrado com os filtros atuais." />;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.035]">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-[#1e2633]">
       <div className="app-scrollbar max-h-[calc(100dvh-240px)] overflow-auto">
         <div className="min-w-[820px]">
-          <div className="grid grid-cols-[minmax(260px,2fr)_1fr_1fr_120px_130px] gap-4 border-b bg-slate-50 px-5 py-3 text-[10px] font-semibold uppercase text-slate-500 dark:border-white/8 dark:bg-white/[0.035] dark:text-slate-400">
-            <span>Cartão</span>
-            <span>Lista</span>
-            <span>Responsável</span>
-            <span>Prioridade</span>
-            <span>Prazo</span>
+          <div className="grid grid-cols-[minmax(260px,2fr)_1fr_1fr_120px_130px] gap-4 border-b bg-slate-100 px-5 py-3 text-[10px] font-semibold uppercase text-slate-600 dark:border-slate-700 dark:bg-[#263244] dark:text-slate-300">
+            {([ ["title", "Cartão"], ["column", "Lista"], ["assignee", "Responsável"], ["priority", "Prioridade"], ["due", "Prazo"] ] as const).map(([field, label]) => (
+              <button key={field} type="button" onClick={() => changeSort(field)} className="inline-flex cursor-pointer items-center gap-1 text-left hover:text-primary" aria-label={`Ordenar por ${label}`}>
+                {label}<ArrowUpDown className="h-3 w-3" />
+              </button>
+            ))}
           </div>
-          {cards.map((card) => {
-            const member = kanbanMembers.find((item) => item.id === card.assigneeId);
+          {sortedCards.map((card) => {
+            const member = boardMembers.find((item) => item.id === card.assigneeId);
             return (
               <button
                 key={card.id}
@@ -1809,12 +1858,12 @@ function KanbanListView({
                   <span
                     className={cn(
                       "grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold",
-                      member?.color ?? "bg-slate-100 text-slate-600",
+                      "bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-100",
                     )}
                   >
-                    {member?.initials ?? "--"}
+                    {member?.operator?.startsWith("PRC") ? "PRC" : member?.name?.slice(0, 2).toUpperCase() ?? "--"}
                   </span>
-                  <span className="truncate">{member?.name ?? "Sem responsável"}</span>
+                  <span className="truncate">{member?.operator || member?.name || "Sem responsável"}</span>
                 </span>
                 <span>
                   <span
