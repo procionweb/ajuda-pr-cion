@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Users } from "lucide-react";
+import { CalendarDays, Users } from "lucide-react";
 import { toast } from "sonner";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { addNotification } from "@/lib/notifications-store";
@@ -44,6 +44,7 @@ export function KanbanMembershipNotifications() {
           "Você foi removido de um quadro",
           "Você foi adicionado a um cartão",
           "Você foi removido de um cartão",
+          "Você foi adicionado a um agendamento",
         ])
         .order("created_at", { ascending: false })
         .limit(30);
@@ -60,7 +61,7 @@ export function KanbanMembershipNotifications() {
           title: row.title,
           description: row.body ?? "",
           time: "agora",
-          icon: Users,
+          icon: row.title.includes("agendamento") ? CalendarDays : Users,
           tone: "info",
           href: row.link ?? "/kanban",
         });
