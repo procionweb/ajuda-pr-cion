@@ -87,6 +87,7 @@ type Props = {
   defaultColumnId?: ColumnId;
   columns?: KanbanColumn[];
   boardMembers?: BoardMember[];
+  canManageMembers?: boolean;
   onSave: (card: KanbanCard) => void;
   onDelete?: (id: string) => void;
 };
@@ -182,6 +183,7 @@ export function KanbanCardDrawer({
   defaultColumnId = "a-fazer",
   columns = kanbanColumnsDef,
   boardMembers = [],
+  canManageMembers = false,
   onSave,
   onDelete,
 }: Props) {
@@ -190,6 +192,7 @@ export function KanbanCardDrawer({
   );
   const { session, operator } = usePortalAuth();
   const actorId = session?.user.id;
+  const canEditMembers = mode === "create" || canManageMembers || Boolean(card?.createdBy && card.createdBy === actorId);
   const actorName = String(session?.user.user_metadata?.full_name || operator || session?.user.email || "Usuário");
   const actorOperator = operator || String(session?.user.user_metadata?.operator || "");
   const [tagsInput, setTagsInput] = useState("");
@@ -210,7 +213,6 @@ export function KanbanCardDrawer({
   const [moduleError, setModuleError] = useState(false);
 
   useEffect(() => {
-    if (boardMembers.length) return;
     let active = true;
     setMembersLoading(true);
     listAvailableMembers()
@@ -224,7 +226,7 @@ export function KanbanCardDrawer({
         if (active) setMembersLoading(false);
       });
     return () => { active = false; };
-  }, [boardMembers.length]);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -250,7 +252,7 @@ export function KanbanCardDrawer({
     [clients, clientQuery],
   );
   const memberDirectory = useMemo(() => {
-    const listed = boardMembers.length ? boardMembers : systemMembers;
+    const listed = [...new Map([...systemMembers, ...boardMembers].map((member) => [member.id, member])).values()];
     if (!actorId || listed.some((member) => member.id === actorId)) return listed;
     return [...listed, { id: actorId, name: actorName, operator: actorOperator }];
   }, [boardMembers, systemMembers, actorId, actorName, actorOperator]);
@@ -1098,7 +1100,7 @@ export function KanbanCardDrawer({
               </SidebarField>
 
               <SidebarField icon={Users} label="Responsável">
-                <Select value={draft.assigneeId || undefined} onValueChange={handleChangeAssignee}>
+                <Select value={draft.assigneeId || undefined} onValueChange={handleChangeAssignee} disabled={!canEditMembers}>
                   <SelectTrigger className="h-9 cursor-pointer">
                     <SelectValue placeholder="Selecionar membro" />
                   </SelectTrigger>
@@ -1141,8 +1143,8 @@ export function KanbanCardDrawer({
                     return (
                       <button
                         key={pid}
-                        onClick={() => toggleParticipant(pid)}
-                        className="group inline-flex cursor-pointer items-center gap-1 pl-0.5 pr-1.5 py-0.5 rounded-full bg-background border border-border text-[11px]"
+                        onClick={() => { if (canEditMembers) toggleParticipant(pid); }}
+                        className="group inline-flex items-center gap-1 pl-0.5 pr-1.5 py-0.5 rounded-full bg-background border border-border text-[11px]"
                       >
                         <Avatar className="h-5 w-5">
                           <AvatarFallback className={cn("text-[9px] font-semibold", p.color)}>
@@ -1150,11 +1152,11 @@ export function KanbanCardDrawer({
                           </AvatarFallback>
                         </Avatar>
                         <span>{p.name.split(" ")[0]}</span>
-                        <X className="h-3 w-3 text-muted-foreground group-hover:text-destructive" />
+                        {canEditMembers && <X className="h-3 w-3 text-muted-foreground group-hover:text-destructive" />}
                       </button>
                     );
                   })}
-                  <Popover>
+                  {canEditMembers && <Popover>
                     <PopoverTrigger asChild>
                       <button className="inline-flex cursor-pointer items-center gap-1 h-6 px-2 rounded-full border border-dashed border-border text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/40">
                         <Plus className="h-3 w-3" /> Adicionar
@@ -1191,7 +1193,7 @@ export function KanbanCardDrawer({
                         )}
                       </div>
                     </PopoverContent>
-                  </Popover>
+                  </Popover>}
                 </div>
               </SidebarField>
 

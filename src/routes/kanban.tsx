@@ -25,6 +25,7 @@ import {
   Building2,
 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
+import { usePortalAuth } from "@/lib/portal-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +83,6 @@ function KanbanRoute() {
 }
 
 type FilterTab = "all" | "mine" | "favorites";
-const CURRENT_USER_ID = "u-ar"; // legacy placeholder while auth is not wired
 
 function formatDate(iso: string) {
   if (!iso) return "";
@@ -106,12 +106,16 @@ function coverClass(color: string | null) {
 
 function BoardListPage() {
   const navigate = useNavigate();
+  const { session, role } = usePortalAuth();
+  const actorId = session?.user.id;
+  const isGeneralAdmin = role === "admin" || role === "s_admin";
   const [boards, setBoards] = useState<BoardSummary[]>([]);
   const [workspaces, setWorkspaces] = useState<WorkspaceSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState("");
+  const [collapsedWorkspaces, setCollapsedWorkspaces] = useState<Set<string>>(() => new Set());
   const [tab, setTab] = useState<FilterTab>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [createWorkspaceOpen, setCreateWorkspaceOpen] = useState(false);
@@ -175,13 +179,12 @@ function BoardListPage() {
         return false;
       }
       if (tab === "favorites" && !b.isFavorite) return false;
-      if (tab === "mine" && !b.members.some((m) => m.id === CURRENT_USER_ID || m.operator === CURRENT_USER_ID)) {
-        // fallback: while auth is not wired, show boards where the current placeholder user is a member
+      if (tab === "mine" && !b.members.some((m) => m.id === actorId)) {
         return false;
       }
       return true;
     });
-  }, [boards, query, tab]);
+  }, [boards, query, tab, actorId]);
 
   const workspaceSections = useMemo(() => {
     const workspaceIds = new Set(workspaces.map((workspace) => workspace.id));
@@ -273,16 +276,17 @@ function BoardListPage() {
               <Building2 className="h-4 w-4" />
               Criar área
             </Button>
-            <Button
+            {(isGeneralAdmin || workspaces.some((workspace) => workspace.membershipRole === "admin")) && <Button
               onClick={() => {
-                setCreateBoardWorkspaceId(workspaces[0]?.id === "legacy" ? null : workspaces[0]?.id ?? null);
+                const workspace = workspaces.find((item) => isGeneralAdmin || item.membershipRole === "admin");
+                setCreateBoardWorkspaceId(workspace?.id === "legacy" ? null : workspace?.id ?? null);
                 setCreateOpen(true);
               }}
               className="h-11 cursor-pointer gap-2 rounded-lg"
             >
               <Plus className="h-4 w-4" />
               Criar quadro
-            </Button>
+            </Button>}
           </div>
         </div>
 
@@ -347,12 +351,12 @@ function BoardListPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="secondary" size="sm" className="cursor-pointer gap-2"><LayoutGrid className="h-4 w-4" />Quadros</Button>
-                    <Button variant="outline" size="sm" className="cursor-pointer gap-2" onClick={() => setWorkspaceModal({ workspace, tab: "members" })}><Users className="h-4 w-4" />Membros <span className="text-xs text-slate-400">{workspace.membersCount || ""}</span></Button>
-                    <Button variant="outline" size="sm" className="cursor-pointer gap-2" onClick={() => setWorkspaceModal({ workspace, tab: "settings" })}><Settings className="h-4 w-4" />Configurações</Button>
+                    <Button variant="secondary" size="sm" className="cursor-pointer gap-2" aria-expanded={!collapsedWorkspaces.has(workspace.id)} aria-controls={`workspace-boards-${workspace.id}`} onClick={() => setCollapsedWorkspaces((current) => { const next = new Set(current); if (next.has(workspace.id)) next.delete(workspace.id); else next.add(workspace.id); return next; })}><LayoutGrid className="h-4 w-4" />Quadros <span className="text-xs text-muted-foreground">{workspace.boards.length}</span></Button>
+                    {(role === "admin" || role === "s_admin" || workspace.membershipRole === "admin") && <Button variant="outline" size="sm" className="cursor-pointer gap-2" onClick={() => setWorkspaceModal({ workspace, tab: "members" })}><Users className="h-4 w-4" />Membros <span className="text-xs text-slate-400">{workspace.membersCount || ""}</span></Button>}
+                    {(role === "admin" || role === "s_admin" || workspace.membershipRole === "admin") && <Button variant="outline" size="sm" className="cursor-pointer gap-2" onClick={() => setWorkspaceModal({ workspace, tab: "settings" })}><Settings className="h-4 w-4" />Configurações</Button>}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {!collapsedWorkspaces.has(workspace.id) && <div id={`workspace-boards-${workspace.id}`} className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {workspace.boards.map((board) => (
               <div
                 key={board.id}
@@ -442,7 +446,7 @@ function BoardListPage() {
                   >
                     <Star className={cn("h-4 w-4", board.isFavorite && "fill-current")} />
                   </button>
-                  <DropdownMenu>
+                  {(role === "admin" || role === "s_admin" || workspace.membershipRole === "admin" || board.members.some((member) => member.id === actorId && member.role === "admin")) && <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
@@ -494,11 +498,11 @@ function BoardListPage() {
                         Excluir
                       </DropdownMenuItem>
                     </DropdownMenuContent>
-                  </DropdownMenu>
+                  </DropdownMenu>}
                 </div>
               </div>
             ))}
-                  <button
+                  {(isGeneralAdmin || workspace.membershipRole === "admin") && <button
                     type="button"
                     onClick={() => {
                       setCreateBoardWorkspaceId(workspace.id === "legacy" ? null : workspace.id);
@@ -507,8 +511,8 @@ function BoardListPage() {
                     className="flex min-h-[190px] cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-600 transition hover:border-primary hover:text-primary dark:border-white/15 dark:bg-white/[0.03] dark:text-slate-300"
                   >
                     <Plus className="h-4 w-4" /> Criar novo quadro
-                  </button>
-                </div>
+                  </button>}
+                </div>}
               </section>
             ))}
           </div>

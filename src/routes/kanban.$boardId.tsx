@@ -53,6 +53,7 @@ import {
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
+import { ProcionLogo } from "@/components/portal/ProcionLogo";
 import { kanbanStore, moveCardInList, useKanbanCards } from "@/lib/kanban-store";
 import { usePortalAuth } from "@/lib/portal-auth";
 import {
@@ -259,8 +260,9 @@ const CardDrawerHost = forwardRef<
     onSave: (card: KanbanCard, mode: DrawerRequest["mode"]) => void;
     onDelete: (id: string) => void;
     canDelete: boolean;
+    canManageMembers: boolean;
   }
->(function CardDrawerHost({ columns, boardMembers, onSave, onDelete, canDelete }, ref) {
+>(function CardDrawerHost({ columns, boardMembers, onSave, onDelete, canDelete, canManageMembers }, ref) {
   const [request, setRequest] = useState<DrawerRequest | null>(null);
   useImperativeHandle(ref, () => ({ open: setRequest }), []);
   if (!request) return null;
@@ -275,6 +277,7 @@ const CardDrawerHost = forwardRef<
       defaultColumnId={request.defaultColumnId}
       columns={columns}
       boardMembers={boardMembers}
+      canManageMembers={canManageMembers}
       onSave={(card) => onSave(card, request.mode)}
       onDelete={canDelete ? onDelete : undefined}
     />
@@ -293,7 +296,7 @@ function KanbanPage() {
   const [boardName, setBoardName] = useState<string>("");
   const [boardSummary, setBoardSummary] = useState<BoardSummary | null>(null);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
-  const canDeleteCard = role === "admin" || role === "s_admin" || boardMembers.some((member) => member.id === actorId && member.role === "admin");
+  const canDeleteCard = Boolean(boardSummary?.canManage) || role === "admin" || role === "s_admin" || boardMembers.some((member) => member.id === actorId && member.role === "admin");
   const [cardDeleteTarget, setCardDeleteTarget] = useState<KanbanCard | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [cardMembers, setCardMembers] = useState<BoardMember[]>([]);
@@ -1019,7 +1022,9 @@ function KanbanPage() {
               : "border-slate-300 bg-slate-50 dark:border-white/8 dark:bg-[#1e2633]",
           )}
         >
-          <div className="min-w-0 shrink-0 lg:max-w-[260px]">
+          <div className="flex min-w-0 shrink-0 items-center gap-3 lg:max-w-[360px]">
+            <ProcionLogo className="h-9 w-[130px] text-primary" />
+            <div className="min-w-0">
             <Link
               to="/kanban"
               className="mb-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
@@ -1030,6 +1035,7 @@ function KanbanPage() {
             <h1 className="truncate text-base font-semibold text-slate-900 dark:text-white">
               {boardName || "Kanban Prócion"}
             </h1>
+            </div>
           </div>
 
           <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 lg:flex-nowrap">
@@ -1251,7 +1257,7 @@ function KanbanPage() {
                 {headerMembers.length > 4 && <span className="grid h-7 min-w-7 place-items-center rounded-full border-2 border-white bg-muted px-1 text-[9px] font-semibold dark:border-[#1e2530]">+{headerMembers.length - 4}</span>}
               </div>
             )}
-            <button
+            {canDeleteCard && <button
               onClick={() => {
                 setCollaborationTab("share");
                 setCollaborationOpen(true);
@@ -1261,8 +1267,8 @@ function KanbanPage() {
               title="Compartilhar"
             >
               <Users className="h-4 w-4" />
-            </button>
-            <button
+            </button>}
+            {canDeleteCard && <button
               onClick={() => {
                 setCollaborationTab("background");
                 setCollaborationOpen(true);
@@ -1272,7 +1278,7 @@ function KanbanPage() {
               title="Alterar fundo"
             >
               <Palette className="h-4 w-4" />
-            </button>
+            </button>}
             <button
               onClick={() => {
                 setBoardMenuTab("archive");
@@ -1507,6 +1513,7 @@ function KanbanPage() {
         onSave={handleSave}
         onDelete={handleDelete}
         canDelete={canDeleteCard}
+        canManageMembers={canDeleteCard}
       />
       <BoardSwitcherDialog open={boardSwitcherOpen} onOpenChange={setBoardSwitcherOpen} currentBoardId={boardId} />
 

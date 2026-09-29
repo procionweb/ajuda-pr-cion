@@ -43,14 +43,108 @@ function groupBy<T>(rows: T[], key: (r: T) => string): Record<string, T[]> {
   return out;
 }
 
-async function listBoards() {
+type Actor = { id: string; generalAdmin: boolean };
+
+async function getActor(req: Request): Promise<Actor> {
+  const id = await actorId(req);
+  const { data, error } = await admin.from("profiles").select("role, active").eq("id", id).single();
+  if (error || !data?.active) throw new Error("forbidden");
+  return { id, generalAdmin: data.role === "admin" || data.role === "s_admin" };
+}
+
+async function workspaceAccess(actor: Actor, workspaceId: string, adminOnly = false) {
+  if (actor.generalAdmin) return true;
+  const [{ data: workspace, error }, { data: member }] = await Promise.all([
+    admin.from("kanban_workspaces").select("owner_id, visibility").eq("id", workspaceId).maybeSingle(),
+    admin.from("kanban_workspace_members").select("role").eq("workspace_id", workspaceId).eq("profile_id", actor.id).maybeSingle(),
+  ]);
+  if (error || !workspace) return false;
+  if (workspace.owner_id === actor.id || member?.role === "admin") return true;
+  return !adminOnly && (Boolean(member) || workspace.visibility === "company");
+}
+
+async function boardAccess(actor: Actor, boardId: string, adminOnly = false) {
+  if (actor.generalAdmin) return true;
+  const [{ data: board, error }, { data: member }] = await Promise.all([
+    admin.from("kanban_boards").select("owner_id, workspace_id, visibility").eq("id", boardId).maybeSingle(),
+    admin.from("kanban_board_members").select("role").eq("board_id", boardId).eq("profile_id", actor.id).maybeSingle(),
+  ]);
+  if (error || !board) return false;
+  if (board.owner_id === actor.id || member?.role === "admin") return true;
+  if (adminOnly) return Boolean(board.workspace_id && await workspaceAccess(actor, board.workspace_id, true));
+  if (board.workspace_id && !await workspaceAccess(actor, board.workspace_id)) return false;
+  return Boolean(member) || board.visibility !== "private";
+}
+
+async function boardIdFor(action: string, data: any): Promise<string | null> {
+  if (data?.boardId) return data.boardId;
+  if (action === "revokeBoardInvite") {
+    const { data: invite } = await admin.from("kanban_board_invites").select("board_id").eq("id", data?.id).maybeSingle();
+    return invite?.board_id ?? null;
+  }
+  if (action === "reorderColumns") {
+    const { data: column } = await admin.from("kanban_columns").select("board_id").eq("id", data?.columnIds?.[0]).maybeSingle();
+    return column?.board_id ?? null;
+  }
+  if (["updateBoard", "duplicateBoard", "archiveBoard", "deleteBoard"].includes(action)) return data?.id ?? null;
+  if (data?.columnId || ["deleteColumn", "copyColumn", "archiveColumnCards"].includes(action)) {
+    const columnId = data?.columnId ?? data?.id;
+    const { data: column } = await admin.from("kanban_columns").select("board_id").eq("id", columnId).maybeSingle();
+    return column?.board_id ?? null;
+  }
+  if (data?.cardId || ["archiveCard", "deleteCard"].includes(action)) {
+    const { data: card } = await admin.from("kanban_cards").select("kanban_columns!inner(board_id)").eq("id", data?.cardId ?? data?.id).maybeSingle();
+    return (card?.kanban_columns as any)?.board_id ?? null;
+  }
+  return null;
+}
+
+async function authorizeAction(action: string, data: any, actor: Actor) {
+  if (["listBoards", "listWorkspaces", "listAvailableMembers", "createWorkspace", "uploadProfileAvatar", "getBoardInviteInfo", "acceptBoardInvite"].includes(action)) return;
+  if (action === "createBoard") {
+    if (data?.workspaceId ? !await workspaceAccess(actor, data.workspaceId, true) : !actor.generalAdmin) throw new Error("forbidden");
+    return;
+  }
+  if (["updateWorkspace", "deleteWorkspace", "addWorkspaceMember", "updateWorkspaceMemberRole", "removeWorkspaceMember"].includes(action)) {
+    if (!await workspaceAccess(actor, data?.workspaceId ?? data?.id, true)) throw new Error("forbidden");
+    return;
+  }
+  if (action === "listWorkspaceMembers") {
+    if (!await workspaceAccess(actor, data?.workspaceId)) throw new Error("forbidden");
+    return;
+  }
+  const boardId = await boardIdFor(action, data);
+  if (!boardId) throw new Error("board_not_found");
+  const adminOnly = ["updateBoard", "duplicateBoard", "archiveBoard", "deleteBoard", "addBoardMember", "updateBoardMemberRole", "removeBoardMember", "createBoardInvite", "revokeBoardInvite", "uploadBoardBackground", "deleteCard"].includes(action);
+  if (!await boardAccess(actor, boardId, adminOnly)) throw new Error("forbidden");
+  if (action === "moveCard" || action === "updateCard") {
+    const { data: card } = await admin.from("kanban_cards")
+      .select("created_by, member_legacy_ids, kanban_columns!inner(board_id)")
+      .eq("id", data?.cardId ?? data?.id).maybeSingle();
+    const sourceBoardId = (card?.kanban_columns as any)?.board_id;
+    if (sourceBoardId && !await boardAccess(actor, sourceBoardId)) throw new Error("forbidden");
+    if (action === "updateCard" && card && !await boardAccess(actor, boardId, true) && card.created_by !== actor.id) {
+      const before = new Set((card.member_legacy_ids ?? []) as string[]);
+      const after = new Set((data?.memberIds ?? []) as string[]);
+      if (before.size !== after.size || [...before].some((id) => !after.has(id))) throw new Error("forbidden");
+    }
+  }
+  if (action === "reorderColumns") {
+    const { data: columns } = await admin.from("kanban_columns").select("board_id").in("id", data.columnIds);
+    if (!columns?.length || columns.some((column: any) => column.board_id !== boardId)) throw new Error("forbidden");
+  }
+}
+
+async function listBoards(actor: Actor) {
   const { data: boards, error } = await admin
     .from("kanban_boards")
     .select("id, workspace_id, name, description, color, cover, visibility, is_favorite, updated_at, created_at")
     .eq("archived", false)
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  const ids = (boards ?? []).map((b: any) => b.id);
+  const allowedBoards = actor.generalAdmin ? boards ?? [] : (await Promise.all((boards ?? []).map(async (board: any) =>
+    await boardAccess(actor, board.id) ? board : null))).filter(Boolean);
+  const ids = allowedBoards.map((b: any) => b.id);
   if (!ids.length) return { boards: [] };
 
   const [colsResult, cardsResult, membersResult] = await Promise.allSettled([
@@ -86,7 +180,7 @@ async function listBoards() {
   const membersByBoard = groupBy(membersRes.data ?? [], (r: any) => r.board_id);
 
   return {
-    boards: (boards ?? []).map((b: any) => ({
+    boards: allowedBoards.map((b: any) => ({
       id: b.id,
       workspaceId: b.workspace_id ?? null,
       name: b.name,
@@ -118,14 +212,14 @@ async function actorId(req: Request) {
   return user.id;
 }
 
-async function listWorkspaces(req: Request) {
-  const currentId = await actorId(req);
+async function listWorkspaces(actor: Actor) {
+  const currentId = actor.id;
   const [{ data: workspaces, error }, boardsResult, membersResult, allBoardsResult] = await Promise.all([
     admin
       .from("kanban_workspaces")
       .select("id, name, slug, description, website, logo_url, visibility, settings, owner_id, created_at")
       .order("created_at", { ascending: true }),
-    listBoards(),
+    listBoards(actor),
     admin
       .from("kanban_workspace_members")
       .select("workspace_id, role, profiles:profile_id(id, full_name, operator_code, avatar_url)"),
@@ -138,7 +232,10 @@ async function listWorkspaces(req: Request) {
   const membersByWorkspace = groupBy(membersResult.data ?? [], (m: any) => m.workspace_id);
 
   return {
-    workspaces: (workspaces ?? []).map((workspace: any) => ({
+    workspaces: (workspaces ?? []).filter((workspace: any) =>
+      actor.generalAdmin || workspace.owner_id === currentId || workspace.visibility === "company" ||
+      (membersByWorkspace[workspace.id] ?? []).some((member: any) => member.profiles?.id === currentId),
+    ).map((workspace: any) => ({
       id: workspace.id,
       name: workspace.name,
       slug: workspace.slug ?? "",
@@ -284,7 +381,7 @@ async function removeWorkspaceMember(payload: any) {
   return { ok: true };
 }
 
-async function getBoard(payload: any) {
+async function getBoard(payload: any, actor: Actor) {
   const { data, error } = await admin
     .from("kanban_boards")
     .select("id, name, description, color, cover, visibility, is_favorite, background_type, background_value, background_mode, background_text_theme")
@@ -295,6 +392,7 @@ async function getBoard(payload: any) {
   return {
     board: {
       id: data.id,
+      canManage: await boardAccess(actor, data.id, true),
       name: data.name,
       description: data.description ?? "",
       color: data.color ?? null,
@@ -860,7 +958,7 @@ async function listAvailableMembers(payload: any) {
     .select("id, full_name, email, operator_code, avatar_url, role, active")
     .eq("active", true)
     .order("full_name", { ascending: true })
-    .limit(100);
+    .limit(500);
   if (q) {
     query = query.or(
       `full_name.ilike.%${q}%,email.ilike.%${q}%,operator_code.ilike.%${q}%`,
@@ -1125,10 +1223,12 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const { action, data } = await req.json();
+    const actor = await getActor(req);
+    await authorizeAction(action, data, actor);
     let result: unknown;
     switch (action) {
       case "listWorkspaces":
-        result = await listWorkspaces(req);
+        result = await listWorkspaces(actor);
         break;
       case "createWorkspace":
         result = await createWorkspace(data, req);
@@ -1152,10 +1252,10 @@ serve(async (req) => {
         result = await removeWorkspaceMember(data);
         break;
       case "listBoards":
-        result = await listBoards();
+        result = await listBoards(actor);
         break;
       case "getBoard":
-        result = await getBoard(data);
+        result = await getBoard(data, actor);
         break;
       case "loadBoard":
         result = await loadBoard(data);
@@ -1245,6 +1345,9 @@ serve(async (req) => {
     return json({ data: result });
   } catch (err) {
     console.error("[kanban-api]", err);
+    if (err instanceof Error && (err.message === "forbidden" || err.message === "unauthorized")) {
+      return json({ error: err.message }, err.message === "forbidden" ? 403 : 401);
+    }
     return json({ error: "KANBAN_UNAVAILABLE" }, 500);
   }
 });

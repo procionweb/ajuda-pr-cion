@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { kanbanStore, moveCardInList, persistKanbanCard, useKanbanCards } from "@/lib/kanban-store";
 import {
   listBoardMembers,
+  listAvailableMembers,
   listKanbanBoards,
   loadKanbanBoard,
   moveKanbanCard,
@@ -48,6 +49,8 @@ type Props = {
 };
 
 export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive, onDelete, canDelete }: Props) {
+  const { session } = usePortalAuth();
+  const canManageMembers = Boolean(canDelete || card.createdBy === session?.user.id);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [dialog, setDialog] = React.useState<"tags" | "members" | "date" | "move" | "copy" | null>(
     null,
@@ -112,7 +115,7 @@ export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive, onDe
       },
     },
     { key: "tags", label: "Editar etiquetas", icon: Tag, onClick: () => openDialog("tags") },
-    { key: "members", label: "Alterar membros", icon: Users, onClick: () => openDialog("members") },
+    ...(canManageMembers ? [{ key: "members", label: "Alterar membros", icon: Users, onClick: () => openDialog("members") }] : []),
     { key: "date", label: "Editar datas", icon: CalendarIcon, onClick: () => openDialog("date") },
     { key: "move", label: "Mover", icon: ArrowRightLeft, onClick: () => openDialog("move") },
     { key: "copy", label: "Copiar cartão", icon: Copy, onClick: () => openDialog("copy") },
@@ -163,7 +166,7 @@ export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive, onDe
           card={card}
         />
       )}
-      {dialog === "members" && (
+      {dialog === "members" && canManageMembers && (
         <MembersDialog
           open={dialog === "members"}
           onOpenChange={(o) => !o && setDialog(null)}
@@ -478,11 +481,11 @@ function MembersDialog({
     let active = true;
     setLoading(true);
     setSearch("");
-    listBoardMembers({ boardId })
+    listAvailableMembers()
       .then(({ members: result }) => {
         if (active) setMembers(result);
       })
-      .catch(() => toast.error("Não foi possível carregar os membros do quadro"))
+      .catch(() => toast.error("Não foi possível carregar os membros ativos"))
       .finally(() => {
         if (active) setLoading(false);
       });

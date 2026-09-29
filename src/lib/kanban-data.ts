@@ -30,6 +30,7 @@ export type RelatedVersion = { id: string; version: string; date: string; note: 
 
 export type KanbanCard = {
   id: string;
+  createdBy?: string | null;
   columnId: ColumnId;
   title: string;
   summary: string;

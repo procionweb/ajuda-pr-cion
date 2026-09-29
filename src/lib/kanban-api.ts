@@ -29,6 +29,7 @@ const unwrap = <T>(x: Wrapped<T> | undefined): T =>
 
 export type BoardSummary = {
   id: string;
+  canManage?: boolean;
   workspaceId: string | null;
   name: string;
   description: string;
@@ -74,17 +75,43 @@ export type WorkspaceSummary = {
   boards: BoardSummary[];
 };
 
+async function visibleKanbanIds() {
+  // The database policies are authoritative while the Edge Function deployment catches up.
+  const [workspaceResult, boardResult] = await Promise.all([
+    (supabase as any).rpc("get_kanban_workspaces"),
+    (supabase as any).from("kanban_boards").select("id").eq("archived", false).limit(10000),
+  ]);
+  if (workspaceResult.error || boardResult.error) throw new KanbanUnavailableError();
+  return {
+    workspaceIds: new Set<string>((workspaceResult.data ?? []).map((item: { id: string }) => item.id)),
+    boardIds: new Set<string>((boardResult.data ?? []).map((item: { id: string }) => item.id)),
+  };
+}
+
 export const listKanbanWorkspaces = async () => {
   try {
-    return await invoke<{ workspaces: WorkspaceSummary[] }>("listWorkspaces");
+    const [result, visible] = await Promise.all([
+      invoke<{ workspaces: WorkspaceSummary[] }>("listWorkspaces"),
+      visibleKanbanIds(),
+    ]);
+    return {
+      workspaces: result.workspaces
+        .filter((workspace) => visible.workspaceIds.has(workspace.id))
+        .map((workspace) => ({
+          ...workspace,
+          boards: workspace.boards.filter((board) => visible.boardIds.has(board.id)),
+        })),
+    };
   } catch {
     const [{ data, error }, boardResult] = await Promise.all([
       (supabase as any).rpc("get_kanban_workspaces"),
       invoke<{ boards: BoardSummary[] }>("listBoards"),
     ]);
     if (error) throw error;
-    const boards = boardResult.boards ?? [];
-    const workspaces = (data ?? []) as Omit<WorkspaceSummary, "boards">[];
+    const visible = await visibleKanbanIds();
+    const boards = (boardResult.boards ?? []).filter((board) => visible.boardIds.has(board.id));
+    const workspaces = ((data ?? []) as Omit<WorkspaceSummary, "boards">[])
+      .filter((workspace) => visible.workspaceIds.has(workspace.id));
     const knownWorkspaceIds = new Set(workspaces.map((workspace) => workspace.id));
     return {
       workspaces: workspaces.map((workspace, index) => ({
@@ -185,10 +212,28 @@ export const loadKanbanBoard = async (input: Wrapped<{ boardId: string }>) => {
   return data as { board: any; columns: any[]; cards: any[] };
 };
 
-export const getKanbanBoard = (input: Wrapped<{ boardId: string }>) =>
-  invoke<{ board: BoardSummary | null }>("getBoard", unwrap(input));
+export const getKanbanBoard = async (input: Wrapped<{ boardId: string }>) => {
+  const payload = unwrap(input);
+  const [result, permission] = await Promise.all([
+    invoke<{ board: BoardSummary | null }>("getBoard", payload),
+    (supabase as any).rpc("can_access_kanban_board", {
+      target_id: payload.boardId,
+      require_admin: true,
+    }),
+  ]);
+  if (permission.error) throw new KanbanUnavailableError();
+  return {
+    board: result.board ? { ...result.board, canManage: Boolean(permission.data) } : null,
+  };
+};
 
-export const listKanbanBoards = () => invoke<{ boards: BoardSummary[] }>("listBoards");
+export const listKanbanBoards = async () => {
+  const [result, visible] = await Promise.all([
+    invoke<{ boards: BoardSummary[] }>("listBoards"),
+    visibleKanbanIds(),
+  ]);
+  return { boards: result.boards.filter((board) => visible.boardIds.has(board.id)) };
+};
 
 export const createKanbanBoard = (
   input: Wrapped<{
@@ -288,8 +333,28 @@ export const deleteKanbanBoard = (input: Wrapped<{ id: string }>) =>
 
 /* ---------- Members ---------- */
 
-export const listAvailableMembers = (input?: Wrapped<{ query?: string }>) =>
-  invoke<{ members: BoardMember[] }>("listAvailableMembers", unwrap(input ?? { data: {} }));
+export const listAvailableMembers = async (input?: Wrapped<{ query?: string }>) => {
+  const search = unwrap(input ?? { data: {} })?.query?.trim().toLocaleLowerCase("pt-BR") ?? "";
+  const { data, error } = await (supabase as any)
+    .from("profiles")
+    .select("id, full_name, email, operator_code, avatar_url")
+    .eq("active", true)
+    .order("full_name", { ascending: true })
+    .limit(500);
+  if (error) return invoke<{ members: BoardMember[] }>("listAvailableMembers", unwrap(input ?? { data: {} }));
+  const members = (data ?? []).map((profile: { id: string; full_name: string; email: string; operator_code: string | null; avatar_url: string | null }) => ({
+    id: profile.id,
+    name: profile.full_name,
+    email: profile.email,
+    operator: profile.operator_code,
+    avatarUrl: profile.avatar_url,
+  }));
+  return {
+    members: members.filter((member: BoardMember) =>
+      !search || `${member.name} ${member.email ?? ""} ${member.operator ?? ""}`.toLocaleLowerCase("pt-BR").includes(search),
+    ),
+  };
+};
 
 export const listBoardMembers = (input: Wrapped<{ boardId: string }>) =>
   invoke<{ members: BoardMember[] }>("listBoardMembers", unwrap(input));
