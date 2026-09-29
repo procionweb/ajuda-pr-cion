@@ -44,6 +44,7 @@ type Props = {
   onOpenCard: (card: KanbanCard) => void;
   onRestoreCard: (card: KanbanCard) => void;
   onDeleteCard: (id: string) => void;
+  canDeleteCard: boolean;
   onCreateColumn: () => void;
 };
 
@@ -73,6 +74,7 @@ export function KanbanBoardMenu({
   onOpenCard,
   onRestoreCard,
   onDeleteCard,
+  canDeleteCard,
   onCreateColumn,
 }: Props) {
   const [archiveQuery, setArchiveQuery] = useState("");
@@ -319,14 +321,14 @@ export function KanbanBoardMenu({
                             <ArchiveRestore className="mr-1.5 h-3.5 w-3.5" />
                             Restaurar
                           </Button>
-                          <Button
+                          {canDeleteCard && <Button
                             size="sm"
                             variant="outline"
                             className="h-8 cursor-pointer border-rose-200 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-500/30 dark:text-rose-300 dark:hover:bg-rose-500/10"
                             onClick={() => onDeleteCard(card.id)}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          </Button>}
                         </div>
                       </div>
                     ))}

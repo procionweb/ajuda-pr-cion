@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Link2,
   MoreHorizontal,
+  Trash2,
   SquarePen,
   Tag,
   Users,
@@ -42,9 +43,11 @@ type Props = {
   columns: KanbanColumn[];
   onOpen?: () => void;
   onArchive?: (card: KanbanCard) => void;
+  onDelete?: (card: KanbanCard) => void;
+  canDelete?: boolean;
 };
 
-export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive }: Props) {
+export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive, onDelete, canDelete }: Props) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [dialog, setDialog] = React.useState<"tags" | "members" | "date" | "move" | "copy" | null>(
     null,
@@ -115,6 +118,7 @@ export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive }: Pr
     { key: "copy", label: "Copiar cartão", icon: Copy, onClick: () => openDialog("copy") },
     { key: "link", label: "Copiar link", icon: Link2, onClick: handleCopyLink },
     { key: "archive", label: "Arquivar", icon: Archive, onClick: handleArchive, danger: true },
+    ...(canDelete && onDelete ? [{ key: "delete", label: "Excluir", icon: Trash2, onClick: () => { setMenuOpen(false); onDelete(card); }, danger: true }] : []),
   ];
 
   return (

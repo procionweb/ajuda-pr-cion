@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import {
   DndContext,
   DragOverlay,
+  useDroppable,
   PointerSensor,
   useSensor,
   useSensors,
@@ -21,6 +22,7 @@ import {
   type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
+  type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { Columns3, Trash2 as TrashIcon, Archive as ArchiveIcon } from "lucide-react";
@@ -65,6 +67,7 @@ import {
   loadKanbanBoard,
   getKanbanBoard,
   moveKanbanCard,
+  deleteKanbanCard,
   type BoardSummary,
   type BoardMember,
   type KanbanColumnSortMode,
@@ -154,6 +157,9 @@ function daysBetween(iso: string) {
 const FOLLOWED_COLUMNS_STORAGE_KEY = "procion-kanban-followed-columns";
 
 const kanbanCollisionDetection: CollisionDetection = (args) => {
+  const actions = args.droppableContainers.filter((container) => container.data.current?.type === "action");
+  const actionCollision = pointerWithin({ ...args, droppableContainers: actions });
+  if (actionCollision.length) return actionCollision;
   const columnContainers = args.droppableContainers.filter(
     (container) => container.data.current?.type === "column",
   );
@@ -210,6 +216,31 @@ function useStableHandler<Args extends unknown[], Result>(handler: (...args: Arg
   return useCallback((...args: Args) => handlerRef.current(...args), []);
 }
 
+function KanbanDropTarget({ action, label, icon: Icon }: {
+  action: "archive" | "delete";
+  label: string;
+  icon: typeof ArchiveIcon;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `kanban-action-${action}`,
+    data: { type: "action", action },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      role="status"
+      aria-label={label}
+      className={cn(
+        "flex h-14 min-w-36 items-center justify-center gap-2 rounded-lg border-2 border-dashed bg-white px-4 text-sm font-semibold shadow-xl transition-[background-color,border-color,transform] dark:bg-[#22252a]",
+        action === "delete" ? "border-rose-400 text-rose-600 dark:text-rose-300" : "border-sky-400 text-sky-700 dark:text-sky-300",
+        isOver && "scale-105 bg-sky-100 dark:bg-slate-700",
+      )}
+    >
+      <Icon className="h-5 w-5" /> {label}
+    </div>
+  );
+}
+
 type DrawerRequest = {
   card: KanbanCard | null;
   mode: "edit" | "create";
@@ -227,8 +258,9 @@ const CardDrawerHost = forwardRef<
     boardMembers: BoardMember[];
     onSave: (card: KanbanCard, mode: DrawerRequest["mode"]) => void;
     onDelete: (id: string) => void;
+    canDelete: boolean;
   }
->(function CardDrawerHost({ columns, boardMembers, onSave, onDelete }, ref) {
+>(function CardDrawerHost({ columns, boardMembers, onSave, onDelete, canDelete }, ref) {
   const [request, setRequest] = useState<DrawerRequest | null>(null);
   useImperativeHandle(ref, () => ({ open: setRequest }), []);
   if (!request) return null;
@@ -244,14 +276,14 @@ const CardDrawerHost = forwardRef<
       columns={columns}
       boardMembers={boardMembers}
       onSave={(card) => onSave(card, request.mode)}
-      onDelete={onDelete}
+      onDelete={canDelete ? onDelete : undefined}
     />
   );
 });
 
 function KanbanPage() {
   const { boardId: boardIdParam } = Route.useParams();
-  const { session, operator } = usePortalAuth();
+  const { session, operator, role } = usePortalAuth();
   const actorId = session?.user.id;
   const actorName = String(session?.user.user_metadata?.full_name || operator || session?.user.email || "Usuário");
   const cards = useKanbanCards();
@@ -261,6 +293,9 @@ function KanbanPage() {
   const [boardName, setBoardName] = useState<string>("");
   const [boardSummary, setBoardSummary] = useState<BoardSummary | null>(null);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
+  const canDeleteCard = role === "admin" || role === "s_admin" || boardMembers.some((member) => member.id === actorId && member.role === "admin");
+  const [cardDeleteTarget, setCardDeleteTarget] = useState<KanbanCard | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [cardMembers, setCardMembers] = useState<BoardMember[]>([]);
   const [loadingBoard, setLoadingBoard] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -278,8 +313,15 @@ function KanbanPage() {
     beforeCardId?: string;
   } | null>(null);
   const dragStartCardsRef = useRef<KanbanCard[] | null>(null);
+  const scrollRootRef = useRef<HTMLDivElement>(null);
+  const dragStartPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const dragScrollFrameRef = useRef<number | null>(null);
   const dragPlacementRef = useRef<{ columnId: ColumnId; beforeCardId?: string } | null>(null);
-  useEffect(() => () => document.body.classList.remove("kanban-card-dragging"), []);
+  useEffect(() => () => {
+    document.body.classList.remove("kanban-card-dragging");
+    if (dragScrollFrameRef.current !== null) cancelAnimationFrame(dragScrollFrameRef.current);
+  }, []);
   const drawerRef = useRef<DrawerHandle>(null);
   const defaultColumnIdRef = useRef<ColumnId>("a-fazer");
   const [mobileColumn, setMobileColumn] = useState<ColumnId>("a-fazer");
@@ -483,6 +525,32 @@ function KanbanPage() {
     return grouped;
   }, [filteredCards, columns]);
 
+  const stopDragScroll = () => {
+    if (dragScrollFrameRef.current !== null) cancelAnimationFrame(dragScrollFrameRef.current);
+    dragScrollFrameRef.current = null;
+    dragPointerRef.current = null;
+    dragStartPointerRef.current = null;
+  };
+
+  const scrollWhileDragging = () => {
+    const root = scrollRootRef.current;
+    const pointer = dragPointerRef.current;
+    if (root && pointer) {
+      const rect = root.getBoundingClientRect();
+      if (pointer.y >= rect.top - 24 && pointer.y <= rect.bottom + 24) {
+        const edge = 90;
+        const right = pointer.x >= rect.right - edge && pointer.x <= rect.right + 32;
+        const left = pointer.x <= rect.left + edge && pointer.x >= rect.left - 32;
+        if (right || left) {
+          const distance = right ? rect.right - pointer.x : pointer.x - rect.left;
+          const speed = Math.max(8, Math.round((edge - distance) / 2.5));
+          root.scrollLeft += right ? speed : -speed;
+        }
+      }
+    }
+    dragScrollFrameRef.current = requestAnimationFrame(scrollWhileDragging);
+  };
+
   const handleDragStart = (e: DragStartEvent) => {
     const c = cards.find((x) => x.id === e.active.id);
     if (!c) return;
@@ -496,7 +564,18 @@ function KanbanPage() {
     dragPlacementRef.current = null;
     setDragTarget(null);
     setActiveCard(c);
+    const event = e.activatorEvent as MouseEvent;
+    if (desktopBoard && typeof event.clientX === "number") {
+      dragStartPointerRef.current = { x: event.clientX, y: event.clientY };
+      dragPointerRef.current = dragStartPointerRef.current;
+      dragScrollFrameRef.current = requestAnimationFrame(scrollWhileDragging);
+    }
     document.body.classList.add("kanban-card-dragging");
+  };
+
+  const handleDragMove = (e: DragMoveEvent) => {
+    const start = dragStartPointerRef.current;
+    if (start) dragPointerRef.current = { x: start.x + e.delta.x, y: start.y + e.delta.y };
   };
 
   const resolveOverColumn = (
@@ -536,9 +615,18 @@ function KanbanPage() {
 
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
+    stopDragScroll();
     setActiveCard(null);
     setDragTarget(null);
     document.body.classList.remove("kanban-card-dragging");
+    if (over?.data.current?.type === "action") {
+      const card = kanbanStore.getSnapshot().find((item) => item.id === active.id);
+      dragStartCardsRef.current = null;
+      dragPlacementRef.current = null;
+      if (card && over.data.current.action === "archive") handleArchiveCard(card);
+      if (card && over.data.current.action === "delete" && canDeleteCard) setCardDeleteTarget(card);
+      return;
+    }
     const currentCards = kanbanStore.getSnapshot();
     const targetColumn = resolveOverColumn(over, currentCards);
     const overCardId =
@@ -605,6 +693,7 @@ function KanbanPage() {
   };
 
   const handleDragCancel = () => {
+    stopDragScroll();
     dragStartCardsRef.current = null;
     dragPlacementRef.current = null;
     setActiveCard(null);
@@ -691,7 +780,26 @@ function KanbanPage() {
   };
 
   const handleDelete = (id: string) => {
-    kanbanStore.deleteCard(id);
+    if (!canDeleteCard) return;
+    const card = kanbanStore.getSnapshot().find((item) => item.id === id);
+    if (card) setCardDeleteTarget(card);
+  };
+
+  const confirmDeleteCard = async () => {
+    if (!cardDeleteTarget || !canDeleteCard) return;
+    setDeleteBusy(true);
+    try {
+      if (/^[0-9a-f-]{36}$/i.test(cardDeleteTarget.id)) {
+        await deleteKanbanCard({ id: cardDeleteTarget.id });
+      }
+      setCards((previous) => previous.filter((item) => item.id !== cardDeleteTarget.id));
+      toast.success("Cartão excluído");
+      setCardDeleteTarget(null);
+    } catch {
+      toast.error("Não foi possível excluir o cartão");
+    } finally {
+      setDeleteBusy(false);
+    }
   };
 
   const handleNewColumn = () => {
@@ -870,6 +978,7 @@ function KanbanPage() {
 
   const openBoardCard = useStableHandler(openCard);
   const archiveBoardCard = useStableHandler(handleArchiveCard);
+  const deleteBoardCard = useStableHandler((card: KanbanCard) => handleDelete(card.id));
   const addBoardCard = useStableHandler(handleNewCard);
   const deleteBoardColumn = useStableHandler(handleDeleteColumn);
   const copyBoardColumn = useStableHandler(handleCopyColumn);
@@ -1233,6 +1342,7 @@ function KanbanPage() {
             collisionDetection={kanbanCollisionDetection}
             autoScroll={false}
             onDragStart={handleDragStart}
+            onDragMove={handleDragMove}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
@@ -1240,7 +1350,7 @@ function KanbanPage() {
             {/* Mount only one layout: duplicate DnD IDs register hidden, zero-size nodes. */}
             {desktopBoard ? (
               <div>
-                <div className="overflow-x-auto kanban-scrollbar">
+                <div ref={scrollRootRef} className="overflow-x-auto kanban-scrollbar">
                   <div className="flex min-w-max items-start gap-4 pb-2">
                     {columns.map((col) => (
                       <KanbanColumnView
@@ -1259,6 +1369,8 @@ function KanbanPage() {
                         }
                         onCardClick={openBoardCard}
                         onArchiveCard={archiveBoardCard}
+                        onDeleteCard={deleteBoardCard}
+                        canDeleteCard={canDeleteCard}
                         onAddCard={addBoardCard}
                         onDeleteColumn={deleteBoardColumn}
                         canDeleteColumn={columns.length > 1}
@@ -1319,6 +1431,8 @@ function KanbanPage() {
                         }
                         onCardClick={openBoardCard}
                         onArchiveCard={archiveBoardCard}
+                        onDeleteCard={deleteBoardCard}
+                        canDeleteCard={canDeleteCard}
                         onAddCard={addBoardCard}
                         onDeleteColumn={deleteBoardColumn}
                         canDeleteColumn={columns.length > 1}
@@ -1339,6 +1453,13 @@ function KanbanPage() {
                   <Plus className="h-3.5 w-3.5" />
                   Adicionar outra lista
                 </button>
+              </div>
+            )}
+
+            {activeCard && (
+              <div className="fixed bottom-20 left-1/2 z-[1001] flex -translate-x-1/2 gap-3 pointer-events-auto">
+                <KanbanDropTarget action="archive" label="Arquivar" icon={ArchiveIcon} />
+                {canDeleteCard && <KanbanDropTarget action="delete" label="Excluir" icon={TrashIcon} />}
               </div>
             )}
 
@@ -1385,6 +1506,7 @@ function KanbanPage() {
         boardMembers={boardMembers}
         onSave={handleSave}
         onDelete={handleDelete}
+        canDelete={canDeleteCard}
       />
       <BoardSwitcherDialog open={boardSwitcherOpen} onOpenChange={setBoardSwitcherOpen} currentBoardId={boardId} />
 
@@ -1400,6 +1522,7 @@ function KanbanPage() {
           onOpenCard={openCard}
           onRestoreCard={handleRestoreCard}
           onDeleteCard={handleDelete}
+          canDeleteCard={canDeleteCard}
           onCreateColumn={handleNewColumn}
         />
       )}
@@ -1556,6 +1679,18 @@ function KanbanPage() {
             >
               Criar coluna
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!cardDeleteTarget} onOpenChange={(open) => !open && !deleteBusy && setCardDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-[420px] [&>button]:hidden">
+          <DialogTitle className="text-base">Excluir cartão?</DialogTitle>
+          <p className="text-sm text-muted-foreground">{cardDeleteTarget?.title}</p>
+          <p className="text-sm text-muted-foreground">Essa ação não pode ser desfeita.</p>
+          <DialogFooter showClose={false} className="mt-3">
+            <Button variant="outline" disabled={deleteBusy} onClick={() => setCardDeleteTarget(null)}>Cancelar</Button>
+            <Button variant="destructive" disabled={deleteBusy} onClick={() => void confirmDeleteCard()}>Excluir cartão</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

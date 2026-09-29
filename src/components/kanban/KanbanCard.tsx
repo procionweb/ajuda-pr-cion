@@ -37,6 +37,8 @@ type KanbanCardItemProps = {
   columns?: KanbanColumn[];
   onClick?: () => void;
   onArchive?: (card: CardType) => void;
+  onDelete?: (card: CardType) => void;
+  canDelete?: boolean;
 };
 
 export function KanbanCardItem({
@@ -46,6 +48,8 @@ export function KanbanCardItem({
   columns = [],
   onClick,
   onArchive,
+  onDelete,
+  canDelete,
 }: KanbanCardItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
@@ -56,10 +60,11 @@ export function KanbanCardItem({
     transform: isDragging ? undefined : CSS.Translate.toString(transform),
     transition: isDragging ? undefined : transition,
   };
-  const actionsRef = useRef({ onClick, onArchive });
-  actionsRef.current = { onClick, onArchive };
+  const actionsRef = useRef({ onClick, onArchive, onDelete });
+  actionsRef.current = { onClick, onArchive, onDelete };
   const openCard = useCallback(() => actionsRef.current.onClick?.(), []);
   const archiveCard = useCallback((item: CardType) => actionsRef.current.onArchive?.(item), []);
+  const deleteCard = useCallback((item: CardType) => actionsRef.current.onDelete?.(item), []);
 
   return (
     <div
@@ -86,6 +91,8 @@ export function KanbanCardItem({
         columns={columns}
         onClick={openCard}
         onArchive={archiveCard}
+        onDelete={deleteCard}
+        canDelete={canDelete}
       />
     </div>
   );
@@ -98,6 +105,8 @@ const KanbanCardContent = memo(function KanbanCardContent({
   columns = [],
   onClick,
   onArchive,
+  onDelete,
+  canDelete,
 }: KanbanCardItemProps) {
   const memberIds = Array.from(new Set([...(card.participants ?? []), card.assigneeId])).filter(
     Boolean,
@@ -156,6 +165,8 @@ const KanbanCardContent = memo(function KanbanCardContent({
             columns={columns}
             onOpen={onClick}
             onArchive={onArchive}
+            onDelete={onDelete}
+            canDelete={canDelete}
           />
         </div>
       </div>

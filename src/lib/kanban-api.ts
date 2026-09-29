@@ -355,8 +355,14 @@ export const moveKanbanCard = (
   }>,
 ) => invoke<{ ok: true }>("moveCard", unwrap(input));
 
-export const deleteKanbanCard = (input: Wrapped<{ id: string }>) =>
-  invoke<{ ok: true }>("deleteCard", unwrap(input));
+export const deleteKanbanCard = async (input: Wrapped<{ id: string }>) => {
+  const { id } = unwrap(input);
+  const { data, error } = await supabase.rpc("delete_kanban_card_as_admin" as never, {
+    target_card_id: id,
+  } as never);
+  if (error || data !== true) throw new KanbanUnavailableError();
+  return { ok: true as const };
+};
 
 export const archiveKanbanCard = (input: Wrapped<{ id: string }>) =>
   invoke<{ ok: true }>("archiveCard", unwrap(input));

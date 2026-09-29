@@ -43,6 +43,8 @@ export const KanbanColumnView = memo(function KanbanColumnView({
   cards,
   onCardClick,
   onArchiveCard,
+  onDeleteCard,
+  canDeleteCard = false,
   onAddCard,
   onDeleteColumn,
   canDeleteColumn = true,
@@ -62,6 +64,8 @@ export const KanbanColumnView = memo(function KanbanColumnView({
   cards: KanbanCard[];
   onCardClick: (card: KanbanCard) => void;
   onArchiveCard: (card: KanbanCard) => void;
+  onDeleteCard?: (card: KanbanCard) => void;
+  canDeleteCard?: boolean;
   onAddCard: (columnId: KanbanColumn["id"]) => void;
   onDeleteColumn?: (column: KanbanColumn) => void;
   canDeleteColumn?: boolean;
@@ -274,6 +278,8 @@ export const KanbanColumnView = memo(function KanbanColumnView({
                   columns={columns}
                   onClick={() => onCardClick(c)}
                   onArchive={onArchiveCard}
+                  onDelete={onDeleteCard}
+                  canDelete={canDeleteCard}
                 />
               </Fragment>
             ))}
