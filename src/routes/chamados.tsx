@@ -175,7 +175,7 @@ const priorityTone: Record<TicketPriority, string> = {
   Alta: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30",
   Media: "border-warning/70 bg-warning/20 text-warning-foreground dark:bg-warning/25",
   Baixa:
-    "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-500/30",
+    "border-success/30 bg-success/12 text-success dark:border-success/40 dark:bg-success/20",
 };
 
 const statusRowTint: Record<TicketStatus, string> = {
@@ -202,7 +202,7 @@ const statusRowTint: Record<TicketStatus, string> = {
 const priorityTint: Record<TicketPriority, string> = {
   Alta: "bg-rose-100/80 dark:bg-rose-500/[0.14]",
   Media: "bg-amber-100/80 dark:bg-amber-500/[0.14]",
-  Baixa: "bg-slate-100/70 dark:bg-slate-500/[0.10]",
+  Baixa: "bg-emerald-50/80 dark:bg-emerald-500/[0.10]",
 };
 
 // Green row tint reserved for finalized/resolved status.

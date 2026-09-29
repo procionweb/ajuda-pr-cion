@@ -338,12 +338,32 @@ export function EventDetailsModal({
               )}
               {vehicle && (
                 <>
-                  <Info icon={Car} label="Saída prevista">
+                  <Info icon={Car} label={usage?.departureAt ? "Saída realizada" : "Saída prevista"}>
                     {formatFleetDateTime(departureRef) || "—"}
                   </Info>
-                  <Info icon={Car} label="Devolução prevista">
+                  <Info icon={Car} label={usage?.returnedAt ? "Devolução realizada" : "Devolução prevista"}>
                     {formatFleetDateTime(returnRef) || "—"}
                   </Info>
+                  {usage?.departureMileage !== undefined && (
+                    <Info icon={Car} label="KM de saída">
+                      {usage.departureMileage.toLocaleString("pt-BR")} km
+                    </Info>
+                  )}
+                  {usage?.returnMileage !== undefined && (
+                    <Info icon={Car} label="KM de devolução">
+                      {usage.returnMileage.toLocaleString("pt-BR")} km
+                    </Info>
+                  )}
+                  {usage?.fuelAtDeparture && (
+                    <Info icon={Car} label="Combustível na saída">
+                      {usage.fuelAtDeparture}
+                    </Info>
+                  )}
+                  {usage?.fuelAtReturn && (
+                    <Info icon={Car} label="Combustível na devolução">
+                      {usage.fuelAtReturn}
+                    </Info>
+                  )}
                 </>
               )}
             </div>
@@ -621,9 +641,6 @@ function EventReportDialog({
         <DialogFooter className="flex-wrap border-t border-border px-5 py-3">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Fechar
-          </Button>
-          <Button variant="outline" onClick={() => onSave(false)}>
-            Salvar e continuar
           </Button>
           <Button onClick={() => onSave(true)}>Salvar e finalizar</Button>
         </DialogFooter>

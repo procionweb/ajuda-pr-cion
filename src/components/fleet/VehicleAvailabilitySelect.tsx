@@ -68,7 +68,9 @@ export function evaluateVehicle(
     windowEnd,
     ignoredReservation?.id,
   );
-  return { key: "pre_agendado", label: "Pré-agendado", conflict: !!conflict };
+  return conflict
+    ? { key: "pre_agendado", label: "Pré-agendado", conflict: true }
+    : { key: "disponivel", label: "Disponível" };
 }
 
 export function isUnavailable(info?: VehicleAvailability) {

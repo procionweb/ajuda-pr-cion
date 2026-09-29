@@ -61,7 +61,7 @@ const priorityChip: Record<TicketPriority, string> = {
   Media:
     "bg-[#fff4d1] text-[#8a6300] border-[#f2d97a] dark:bg-[#3a2f10] dark:text-[#f3d66d] dark:border-[#5c4a1c]",
   Baixa:
-    "bg-[#eaf4ff] text-[#246cb5] border-[#bfdcff] dark:bg-[#17314e] dark:text-[#9dcaff] dark:border-[#24527d]",
+    "border-success/30 bg-success/12 text-success dark:border-success/40 dark:bg-success/20",
 };
 
 function formatDateTime(iso: string) {
@@ -455,7 +455,7 @@ export function PastAttendanceDetailModal({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-[12px] font-medium text-primary-foreground transition hover:bg-primary/90"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-1.5 text-[12px] font-medium text-foreground transition hover:bg-muted"
           >
             Fechar
           </button>

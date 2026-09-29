@@ -5,7 +5,13 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { getUsageById, getVehicleById, registerReturn } from "@/lib/fleet-store";
 import { fleetActions } from "@/lib/fleet-action-store";
@@ -17,6 +23,7 @@ export function ReturnVehicleModal({ usageId }: { usageId: string }) {
   const usage = getUsageById(usageId);
   const vehicle = getVehicleById(usage?.vehicleId);
   const [mileage, setMileage] = useState("");
+  const [fuelLevel, setFuelLevel] = useState(vehicle?.fuelLevel ?? "");
   const [notes, setNotes] = useState("");
 
   if (!usage || !vehicle) return null;
@@ -31,9 +38,10 @@ export function ReturnVehicleModal({ usageId }: { usageId: string }) {
     if (!km || Number.isNaN(km)) return toast.error("Informe a KM final.");
     if (usage.departureMileage && km < usage.departureMileage)
       return toast.error("KM final não pode ser menor que a KM de saída.");
+    if (!fuelLevel) return toast.error("Informe o combustível na devolução.");
     registerReturn(usageId, {
       returnMileage: km,
-      fuelAtReturn: vehicle.fuelLevel,
+      fuelAtReturn: fuelLevel,
       returnNotes: notes.trim() || undefined,
     });
     toast.success("Devolução registrada com sucesso.");
@@ -71,6 +79,24 @@ export function ReturnVehicleModal({ usageId }: { usageId: string }) {
               {" · "}
               <b>Combustível:</b> {usage.fuelAtDeparture ?? "—"}
             </p>
+          </div>
+
+          <div>
+            <Label className="mb-1.5 block text-[12.5px] font-medium">
+              Combustível na devolução *
+            </Label>
+            <Select value={fuelLevel} onValueChange={setFuelLevel}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione o nível" />
+              </SelectTrigger>
+              <SelectContent>
+                {["Cheio", "3/4", "1/2", "1/4", "Reserva"].map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {level}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

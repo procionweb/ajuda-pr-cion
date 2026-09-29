@@ -125,7 +125,7 @@ const priorityTone: Record<TicketPriority, string> = {
   Alta: "bg-destructive/12 text-destructive border-destructive/20",
   Media: "border-warning/70 bg-warning/20 text-warning-foreground dark:bg-warning/25",
   Baixa:
-    "bg-[#eaf4ff] text-[#246cb5] border-[#bfdcff] dark:bg-[#17314e] dark:text-[#9dcaff] dark:border-[#24527d]",
+    "border-success/30 bg-success/12 text-success dark:border-success/40 dark:bg-success/20",
 };
 
 const sourceLabels: Record<SupportTicket["source"], string> = {
@@ -1021,7 +1021,7 @@ export function TicketDetailSheet({
               </div>
             </div>
             {/* fim body wrapper */}
-            {!selectedHistory && (
+            {!selectedHistory && !selectedCalendarEvent && (
               <DialogFooter className="border-t border-border py-4 pl-5 pr-20 sm:pr-5">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Fechar

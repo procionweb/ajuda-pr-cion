@@ -36,7 +36,7 @@ const priorityChip: Record<TicketPriority, string> = {
   Media:
     "bg-[#fff4d1] text-[#8a6300] border-[#f2d97a] dark:bg-[#3a2f10] dark:text-[#f3d66d] dark:border-[#5c4a1c]",
   Baixa:
-    "bg-[#eaf4ff] text-[#246cb5] border-[#bfdcff] dark:bg-[#17314e] dark:text-[#9dcaff] dark:border-[#24527d]",
+    "border-success/30 bg-success/12 text-success dark:border-success/40 dark:bg-success/20",
 };
 
 const priorityAccent: Record<TicketPriority, string> = {
