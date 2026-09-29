@@ -6,6 +6,23 @@ export async function showBrowserNotification(
 ) {
   if (!("Notification" in window) || Notification.permission !== "granted") return false;
 
+  const showFromPage = () => {
+    const notice = new Notification(title, { body, tag });
+    notice.onclick = () => {
+      window.focus();
+      window.location.assign(href);
+    };
+  };
+
+  if (document.visibilityState === "visible") {
+    try {
+      showFromPage();
+      return true;
+    } catch {
+      // Some browsers only support notifications through a service worker.
+    }
+  }
+
   if ("serviceWorker" in navigator) {
     try {
       const registration = await navigator.serviceWorker.register("/notification-sw.js");
@@ -17,11 +34,7 @@ export async function showBrowserNotification(
   }
 
   try {
-    const notice = new Notification(title, { body, tag });
-    notice.onclick = () => {
-      window.focus();
-      window.location.assign(href);
-    };
+    showFromPage();
     return true;
   } catch {
     return false;

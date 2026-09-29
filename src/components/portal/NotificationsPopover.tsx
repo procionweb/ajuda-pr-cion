@@ -2,11 +2,7 @@ import { Bell, Check, MonitorUp } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toneStyles } from "@/lib/notifications-data";
 import {
@@ -15,6 +11,7 @@ import {
   useNotifications,
 } from "@/lib/notifications-store";
 import { cn } from "@/lib/utils";
+import { showBrowserNotification } from "@/lib/browser-notification";
 
 export function NotificationsPopover() {
   const navigate = useNavigate();
@@ -37,9 +34,25 @@ export function NotificationsPopover() {
       toast.error("Este navegador não oferece notificações no computador.");
       return;
     }
-    const permission = await Notification.requestPermission();
-    if (permission === "granted") toast.success("Avisos no computador ativados.");
-    else toast.error("Permissão de notificações não concedida.");
+    const permission =
+      Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+    if (permission !== "granted") {
+      toast.error("Permissão de notificações não concedida neste navegador.");
+      return;
+    }
+    const sent = await showBrowserNotification(
+      "Teste de notificação do CRM",
+      "Os avisos do Kanban devem aparecer no computador.",
+      `procion-notification-test:${Date.now()}`,
+      window.location.href,
+    );
+    if (sent) {
+      toast.success(
+        "Teste enviado ao navegador. Se não apareceu no computador, verifique as notificações do navegador no Windows.",
+      );
+    } else {
+      toast.error("O navegador não conseguiu enviar a notificação de teste.");
+    }
   };
 
   return (
@@ -100,19 +113,13 @@ export function NotificationsPopover() {
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium leading-snug truncate">
-                      {n.title}
-                    </p>
+                    <p className="text-sm font-medium leading-snug truncate">{n.title}</p>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                       {n.description}
                     </p>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      {n.time}
-                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-1">{n.time}</p>
                   </div>
-                  {!n.read && (
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" />
-                  )}
+                  {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" />}
                 </li>
               );
             })}
@@ -131,7 +138,7 @@ export function NotificationsPopover() {
             onClick={enableDesktopNotifications}
             className="inline-flex cursor-pointer items-center gap-1 text-xs text-primary hover:underline"
           >
-            <MonitorUp className="h-3.5 w-3.5" /> Ativar avisos no computador
+            <MonitorUp className="h-3.5 w-3.5" /> Testar aviso no computador
           </button>
         </div>
       </PopoverContent>
