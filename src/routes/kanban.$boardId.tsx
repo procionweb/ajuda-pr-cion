@@ -27,6 +27,7 @@ import { Columns3, Trash2 as TrashIcon, Archive as ArchiveIcon } from "lucide-re
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ArrowLeft,
   ArrowRight,
@@ -260,6 +261,7 @@ function KanbanPage() {
   const [boardName, setBoardName] = useState<string>("");
   const [boardSummary, setBoardSummary] = useState<BoardSummary | null>(null);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
+  const [cardMembers, setCardMembers] = useState<BoardMember[]>([]);
   const [loadingBoard, setLoadingBoard] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -339,11 +341,15 @@ function KanbanPage() {
           if (!active) return;
           const members = new Map(available.members.map((member) => [member.id, member]));
           board.members.forEach((member) => members.set(member.id, member));
-          setBoardMembers([...members.values()]);
+          setBoardMembers(board.members);
+          setCardMembers([...members.values()]);
         })
         .catch(() => {
           void listBoardMembers({ boardId }).then(({ members }) => {
-            if (active) setBoardMembers(members);
+            if (active) {
+              setBoardMembers(members);
+              setCardMembers(members);
+            }
           }).catch(() => {});
         });
     };
@@ -1108,6 +1114,19 @@ function KanbanPage() {
               />
             </div>
 
+            {boardMembers.length > 0 && (
+              <div className="flex shrink-0 items-center -space-x-2" aria-label="Membros do quadro">
+                {boardMembers.slice(0, 4).map((member) => (
+                  <Avatar key={member.id} title={member.name} className="h-7 w-7 border-2 border-white dark:border-[#1e2530]">
+                    <AvatarImage src={member.avatarUrl ?? undefined} alt={member.name} />
+                    <AvatarFallback className="bg-primary/15 text-[9px] font-semibold text-primary">
+                      {member.name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+                {boardMembers.length > 4 && <span className="grid h-7 min-w-7 place-items-center rounded-full border-2 border-white bg-muted px-1 text-[9px] font-semibold dark:border-[#1e2530]">+{boardMembers.length - 4}</span>}
+              </div>
+            )}
             <button
               onClick={() => {
                 setCollaborationTab("share");
@@ -1175,12 +1194,12 @@ function KanbanPage() {
             </div>
           </div>
         ) : viewMode === "list" ? (
-          <KanbanListView cards={filteredCards} columns={columns} boardMembers={boardMembers} onOpenCard={openCard} />
+          <KanbanListView cards={filteredCards} columns={columns} boardMembers={cardMembers} onOpenCard={openCard} />
         ) : viewMode === "inbox" ? (
           <KanbanInboxView
             cards={filteredCards}
             columns={columns}
-            boardMembers={boardMembers}
+            boardMembers={cardMembers}
             onOpenCard={openCard}
             onMoveCard={handleQuickMove}
             onCreateCard={() => handleNewCard(columns[0]?.id ?? "a-fazer")}
@@ -1212,7 +1231,7 @@ function KanbanPage() {
                       <KanbanColumnView
                         key={col.id}
                         boardId={boardId ?? undefined}
-                        boardMembers={boardMembers}
+                        boardMembers={cardMembers}
                         column={col}
                         columns={columns}
                         cards={cardsByColumn[col.id]}
@@ -1272,7 +1291,7 @@ function KanbanPage() {
                       <KanbanColumnView
                         key={col.id}
                         boardId={boardId ?? undefined}
-                        boardMembers={boardMembers}
+                        boardMembers={cardMembers}
                         column={col}
                         columns={columns}
                         cards={cardsByColumn[col.id]}

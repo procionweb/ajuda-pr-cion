@@ -34,6 +34,7 @@ export function KanbanMembershipNotifications() {
           "Você foi adicionado a um quadro",
           "Você foi removido de um quadro",
           "Você foi adicionado a um cartão",
+          "Você foi removido de um cartão",
         ])
         .order("created_at", { ascending: false })
         .limit(30);
@@ -78,6 +79,7 @@ export function KanbanMembershipNotifications() {
       }
     };
     void check();
+    window.addEventListener("procion:kanban-card-saved", check);
     const interval = window.setInterval(check, 60_000);
     const channel = supabase
       .channel(`kanban-membership-${userId}`)
@@ -94,6 +96,7 @@ export function KanbanMembershipNotifications() {
       .subscribe();
     return () => {
       active = false;
+      window.removeEventListener("procion:kanban-card-saved", check);
       window.clearInterval(interval);
       void supabase.removeChannel(channel);
     };

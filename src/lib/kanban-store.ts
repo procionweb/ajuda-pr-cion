@@ -147,6 +147,7 @@ export const kanbanStore = {
       .then(({ id }) => {
         cards = cards.map((item) => (item.id === withId.id ? { ...item, id } : item));
         emit();
+        window.dispatchEvent(new Event("procion:kanban-card-saved"));
       })
       .catch(() => {
         cards = cards.filter((item) => item.id !== withId.id);
@@ -160,7 +161,9 @@ export const kanbanStore = {
     const updated = withChangeHistory(previous, card);
     cards = cards.map((c) => (c.id === card.id ? updated : c));
     emit();
-    void persistKanbanCard(updated).catch(() => {
+    void persistKanbanCard(updated).then(() => {
+      window.dispatchEvent(new Event("procion:kanban-card-saved"));
+    }).catch(() => {
       if (previous) cards = cards.map((item) => (item.id === card.id ? previous : item));
       emit();
       toast.error("Não foi possível salvar as alterações do cartão");
