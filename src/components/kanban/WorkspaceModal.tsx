@@ -147,7 +147,7 @@ export function WorkspaceModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[88vh] gap-0 overflow-y-auto p-0 sm:max-w-3xl [&>button]:hidden" onInteractOutside={(event) => event.preventDefault()}>
+      <DialogContent autoFooter={false} className="max-h-[88vh] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-3xl [&>button]:hidden" onInteractOutside={(event) => event.preventDefault()}>
         <DialogTitle className="sr-only">{workspace ? workspace.name : "Criar área de trabalho"}</DialogTitle>
 
         <DetailModalHeader
@@ -157,7 +157,7 @@ export function WorkspaceModal({
           onClose={() => onOpenChange(false)}
         />
 
-        <div className="px-5 py-4">
+        <div className="min-h-0 overflow-y-auto px-5 py-4 modal-scrollbar">
 
 
         <Tabs value={workspace ? tab : "settings"} onValueChange={(value) => setTab(value as typeof tab)}>
@@ -237,7 +237,7 @@ export function WorkspaceModal({
         </Tabs>
         </div>
 
-        <DialogFooter className="border-t border-border bg-card px-5 py-3">
+        <DialogFooter className="static z-auto border-t border-border bg-card px-5 py-3">
           <Button variant="outline" className="cursor-pointer" onClick={() => onOpenChange(false)}>Cancelar</Button>
           {(!workspace || tab === "settings") && <Button className="cursor-pointer" disabled={saving} onClick={() => void save()}>{saving ? "Salvando..." : workspace ? "Salvar" : "Criar área"}</Button>}
         </DialogFooter>

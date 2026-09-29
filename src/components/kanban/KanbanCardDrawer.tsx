@@ -157,8 +157,18 @@ function formatWhen(iso: string) {
   });
 }
 
+function findMemberByIdentifier(id: string | undefined, boardMembers: BoardMember[]) {
+  const normalized = id?.trim().toLocaleLowerCase("pt-BR");
+  if (!normalized) return undefined;
+  return boardMembers.find((item) =>
+    [item.id, item.operator, item.email]
+      .filter(Boolean)
+      .some((value) => String(value).trim().toLocaleLowerCase("pt-BR") === normalized),
+  );
+}
+
 function memberById(id: string | undefined, boardMembers: BoardMember[]) {
-  const member = boardMembers.find((item) => item.id === id);
+  const member = findMemberByIdentifier(id, boardMembers);
   if (member) {
     const name = member.name || member.operator || member.email || "Membro";
     return {
@@ -264,6 +274,31 @@ export function KanbanCardDrawer({
     ],
     [memberDirectory],
   );
+
+  useEffect(() => {
+    if (!open || memberDirectory.length === 0) return;
+    setDraft((current) => {
+      const resolvedParticipants = (current.participants ?? [])
+        .map((id) => findMemberByIdentifier(id, memberDirectory)?.id)
+        .filter((id): id is string => Boolean(id));
+      const creator = findMemberByIdentifier(
+        card?.createdBy || (mode === "create" ? actorId : undefined),
+        memberDirectory,
+      );
+      const participants = [...new Set([
+        ...resolvedParticipants,
+        ...(creator ? [creator.id] : []),
+      ])];
+      const assignee = findMemberByIdentifier(current.assigneeId, memberDirectory);
+      const assigneeId = assignee?.id ?? creator?.id ?? participants[0] ?? "";
+      if (
+        assigneeId === current.assigneeId
+        && participants.length === (current.participants ?? []).length
+        && participants.every((id, index) => id === current.participants?.[index])
+      ) return current;
+      return { ...current, assigneeId, participants };
+    });
+  }, [open, mode, card?.createdBy, actorId, memberDirectory]);
 
   useEffect(() => {
     if (!open) return;
@@ -489,6 +524,14 @@ export function KanbanCardDrawer({
       comments: (draft.commentsList ?? []).length || draft.comments,
       attachments: (draft.attachmentsList ?? []).length || draft.attachments,
     };
+    if (mode === "create" && actorId) {
+      final = {
+        ...final,
+        createdBy: actorId,
+        assigneeId: final.assigneeId || actorId,
+        participants: [...new Set([...(final.participants ?? []), actorId])],
+      };
+    }
     const changes: string[] = [];
     const before = card ? withDefaults(card) : null;
     const changed = (label: string, previous: unknown, next: unknown) => {
