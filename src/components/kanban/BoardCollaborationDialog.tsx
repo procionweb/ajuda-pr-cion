@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Image, Link2, Mail, Palette, Trash2, Upload, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,7 +65,10 @@ export function BoardCollaborationDialog({ board, open, onOpenChange, initialTab
     await navigator.clipboard.writeText(`${appOrigin}/kanban/convite/${token}`);
     toast.success("Link copiado.");
   };
-  const revoke = async (id: string) => { await revokeBoardInvite({ id }); await reload(); toast.success("Link revogado."); };
+  const revoke = async (id: string) => {
+    try { await revokeBoardInvite({ id }); await reload(); toast.success("Convite cancelado."); }
+    catch { toast.error("Não foi possível cancelar o convite."); }
+  };
   const setBackground = async (type: "color" | "photo", value: string) => {
     if (!board) return;
     await updateKanbanBoard({ id: board.id, backgroundType: type, backgroundValue: value, backgroundMode: "cover" });
@@ -87,12 +89,10 @@ export function BoardCollaborationDialog({ board, open, onOpenChange, initialTab
   return <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl [&>button]:hidden" onInteractOutside={(event) => event.preventDefault()}>
       <DialogTitle className="sr-only">Configurações do quadro</DialogTitle>
-      <DetailModalHeader
-        icon={Users}
-        title="Configurações do quadro"
-        meta="Compartilhe com a equipe e personalize o ambiente deste quadro."
-        onClose={() => onOpenChange(false)}
-      />
+      <header className="flex items-center gap-3 border-b px-5 py-4">
+        <Users className="h-5 w-5 shrink-0 text-primary" />
+        <div className="min-w-0"><h2 className="text-base font-semibold">Configurações do quadro</h2><p className="text-xs text-muted-foreground">Compartilhe com a equipe e personalize o ambiente deste quadro.</p></div>
+      </header>
       <div className="px-5 py-4">
       <Tabs key={`${initialTab}-${open}`} defaultValue={initialTab}>
 
@@ -100,7 +100,7 @@ export function BoardCollaborationDialog({ board, open, onOpenChange, initialTab
         <TabsContent value="share" className="space-y-5 pt-3">
           <div className="grid gap-2 sm:grid-cols-[1fr_130px_auto]"><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Endereço de e-mail" /><RoleSelect value={role} onChange={setRole} /><Button className="cursor-pointer" disabled={busy} onClick={() => void invite()}><Mail className="mr-2 h-4 w-4" />Adicionar</Button></div>
           <p className="text-xs text-muted-foreground">Contas existentes são adicionadas e avisadas por e-mail. Para novos e-mails, enviaremos um link de convite.</p>
-          {invites.filter((item) => item.type === "email" && item.status === "pending").length > 0 && <section><h3 className="mb-2 text-xs font-medium uppercase text-muted-foreground">Convites pendentes</h3><div className="space-y-1">{invites.filter((item) => item.type === "email" && item.status === "pending").map((item) => <p key={item.id} className="truncate text-sm">{item.email}</p>)}</div></section>}
+          {invites.filter((item) => item.type === "email" && item.status === "pending").length > 0 && <section><h3 className="mb-2 text-xs font-medium uppercase text-muted-foreground">Convites pendentes</h3><div className="space-y-1">{invites.filter((item) => item.type === "email" && item.status === "pending").map((item) => <div key={item.id} className="flex min-w-0 items-center justify-between gap-2 rounded-md px-1 py-1"><span className="min-w-0 truncate text-sm">{item.email}</span><Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive" aria-label={`Cancelar convite para ${item.email}`} title="Cancelar convite" onClick={() => void revoke(item.id)}><Trash2 className="h-4 w-4" /></Button></div>)}</div></section>}
           <section><h3 className="mb-2 text-xs font-medium uppercase text-muted-foreground">Membros do quadro ({members.length})</h3><div className="grid gap-2 sm:grid-cols-2">{members.map((member) => <div key={member.id} className="flex items-center gap-3 rounded-lg border p-3"><span className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-xs text-primary">{initials(member.name)}</span><div className="min-w-0"><p className="truncate text-sm">{member.name}</p><p className="truncate text-xs text-muted-foreground">{member.email || member.operator}</p></div><span className="ml-auto text-xs text-muted-foreground">{member.role === "admin" ? "Admin" : member.role === "observer" ? "Observador" : "Membro"}</span></div>)}</div></section>
           <section className="rounded-lg border p-4"><div className="flex items-center justify-between gap-3"><div><h3 className="text-sm">Compartilhar este quadro com um link</h3><p className="text-xs text-muted-foreground">O link expira em 7 dias e pode ser revogado a qualquer momento.</p></div><Button variant="outline" className="cursor-pointer" disabled={busy} onClick={() => void createLink()}><Link2 className="mr-2 h-4 w-4" />Criar link</Button></div>{activeLinks.map((item) => <div key={item.id} className="mt-3 flex items-center gap-2 rounded-md bg-muted p-2"><code className="min-w-0 flex-1 truncate text-xs">{`${appOrigin}/kanban/convite/${item.token}`}</code><Button size="icon" variant="ghost" className="cursor-pointer" onClick={() => void copyLink(item.token)}><Copy className="h-4 w-4" /></Button><Button size="icon" variant="ghost" className="cursor-pointer text-destructive" onClick={() => void revoke(item.id)}><Trash2 className="h-4 w-4" /></Button></div>)}</section>
         </TabsContent>

@@ -203,7 +203,7 @@ export function WorkspaceModal({
                     <LayoutGrid className="h-4 w-4 shrink-0 text-slate-500" />
                     <div className="min-w-0 flex-1"><p className="text-sm">{title}</p><p className="text-xs text-slate-500">{detail}</p></div>
                     <Select value={settings[key]} onValueChange={(value) => setSettings((current) => ({ ...current, [key]: value }))}>
-                      <SelectTrigger className="w-full cursor-pointer sm:w-48"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-full min-w-0 cursor-pointer gap-1 px-2 text-xs sm:w-48 [&>span]:min-w-0 [&>span]:truncate"><SelectValue /></SelectTrigger>
                       <SelectContent><SelectItem value="admins" className="cursor-pointer">Somente administradores</SelectItem><SelectItem value="members" className="cursor-pointer">Todos os membros</SelectItem></SelectContent>
                     </Select>
                   </div>
