@@ -53,7 +53,6 @@ import {
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
-import { ProcionLogo } from "@/components/portal/ProcionLogo";
 import { kanbanStore, moveCardInList, useKanbanCards } from "@/lib/kanban-store";
 import { usePortalAuth } from "@/lib/portal-auth";
 import {
@@ -1023,7 +1022,6 @@ function KanbanPage() {
           )}
         >
           <div className="flex min-w-0 shrink-0 items-center gap-3 lg:max-w-[360px]">
-            <ProcionLogo className="h-9 w-[130px] text-primary" />
             <div className="min-w-0">
             <Link
               to="/kanban"

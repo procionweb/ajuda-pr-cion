@@ -62,6 +62,7 @@ export function findGuestConflicts({
     if (
       event.date !== date ||
       event.status === "Cancelado" ||
+      event.status === "Concluído" ||
       String(event.id) === String(ignoreEventId ?? "") ||
       startTime >= eventEnd ||
       endTime <= event.time

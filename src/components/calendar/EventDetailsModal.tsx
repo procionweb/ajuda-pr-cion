@@ -174,8 +174,16 @@ export function EventDetailsModal({
   const Icon = TYPE_ICON[event.type];
 
   const vehicle = getVehicleById(usage?.vehicleId ?? reservation?.vehicleId ?? event.vehicleId);
-  const departureRef = usage?.departureAt ?? usage?.scheduledStartAt ?? reservation?.startAt;
-  const returnRef = usage?.returnedAt ?? usage?.expectedReturnAt ?? reservation?.endAt;
+  const departureRef =
+    usage?.departureAt ??
+    usage?.scheduledStartAt ??
+    reservation?.startAt ??
+    `${event.date}T${event.time}:00`;
+  const returnRef =
+    usage?.returnedAt ??
+    usage?.expectedReturnAt ??
+    reservation?.endAt ??
+    `${event.date}T${event.end}:00`;
   const guestLabels =
     event.guestList?.map((guest) =>
       guest.acronym ? `${guest.acronym} · ${guest.name}` : guest.name,

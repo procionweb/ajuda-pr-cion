@@ -147,8 +147,10 @@ export function updateLocalEvent(
     console.error("[calendar] Nao foi possivel atualizar o agendamento no Supabase.", error);
     toast.error("Nao foi possivel atualizar o agendamento no banco.");
   });
-  removeFleetRecordsForAppointments([id]);
-  syncFleetReservation(updated);
+  if (updated.status !== "Concluído") {
+    removeFleetRecordsForAppointments([id]);
+    syncFleetReservation(updated);
+  }
   return updated;
 }
 

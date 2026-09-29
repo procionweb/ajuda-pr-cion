@@ -25,6 +25,7 @@ import {
   Building2,
 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
+import { ProcionLogo } from "@/components/portal/ProcionLogo";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -369,11 +370,13 @@ function BoardListPage() {
                 >
                   <div
                     className={cn(
-                      "h-16 w-full bg-gradient-to-r",
+                      "flex h-16 w-full items-center bg-gradient-to-r px-4",
                       coverClass(board.color),
                     )}
                     style={board.cover ? { backgroundImage: `url(${board.cover})`, backgroundSize: "cover" } : undefined}
-                  />
+                  >
+                    <ProcionLogo className="h-7 w-[112px] text-white drop-shadow-sm" />
+                  </div>
                   <div className="p-4">
                     <div className="mb-1 flex items-start justify-between gap-2">
                       <h3 className="line-clamp-1 text-sm font-semibold text-slate-900 dark:text-white">

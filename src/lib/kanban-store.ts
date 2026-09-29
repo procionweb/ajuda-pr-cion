@@ -50,7 +50,7 @@ export function moveCardInList(
 export const persistKanbanCard = (card: KanbanCard) =>
   saveKanbanCard({
     data: {
-      id: card.id || undefined,
+      id: /^[0-9a-f-]{36}$/i.test(card.id) ? card.id : undefined,
       columnId: card.columnId,
       title: card.title,
       description: card.description ?? card.summary,

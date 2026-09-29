@@ -485,6 +485,7 @@ export function TicketDetailSheet({
 
   const isMine = ticket.owner === currentUser.operator || ticket.lockedBy === currentUser.operator;
   const isFinalized = ticket.status === "Finalizado";
+  const attendanceStarted = Boolean(ticket.attendanceStartedAt);
   const createAnotherTicket = () => {
     onOpenChange(false);
     void navigate({
@@ -678,6 +679,8 @@ export function TicketDetailSheet({
                     label="Adicionar chamado"
                     collapsed={navCollapsed}
                     active={activeAction === "novo"}
+                    disabled={!attendanceStarted || isFinalized}
+                    title={!attendanceStarted ? "Inicie o atendimento para liberar esta ação" : undefined}
                     onClick={() => {
                       setActiveAction("novo");
                       createAnotherTicket();
@@ -688,8 +691,8 @@ export function TicketDetailSheet({
                     label="Finalizar"
                     collapsed={navCollapsed}
                     active={activeAction === "encerrar"}
-                    disabled={isFinalized}
-                    title={isFinalized ? "Chamado finalizado" : undefined}
+                    disabled={isFinalized || !attendanceStarted}
+                    title={!attendanceStarted ? "Inicie o atendimento para finalizar" : isFinalized ? "Chamado finalizado" : undefined}
                     onClick={() => {
                       setActiveAction("encerrar");
                       setCloseOpen(true);
@@ -712,8 +715,8 @@ export function TicketDetailSheet({
                     label="Agendar evento"
                     collapsed={navCollapsed}
                     active={activeAction === "agendar"}
-                    disabled={isFinalized}
-                    title={isFinalized ? "Chamado finalizado" : undefined}
+                    disabled={isFinalized || !attendanceStarted}
+                    title={!attendanceStarted ? "Inicie o atendimento para agendar" : isFinalized ? "Chamado finalizado" : undefined}
                     onClick={() => {
                       setActiveAction("agendar");
                       setScheduleOpen(true);
@@ -725,8 +728,8 @@ export function TicketDetailSheet({
                     nowrap
                     collapsed={navCollapsed}
                     active={activeAction === "encaminhar"}
-                    disabled={isFinalized}
-                    title={isFinalized ? "Chamado finalizado" : undefined}
+                    disabled={isFinalized || !attendanceStarted}
+                    title={!attendanceStarted ? "Inicie o atendimento para encaminhar" : isFinalized ? "Chamado finalizado" : undefined}
                     onClick={() => {
                       setActiveAction("encaminhar");
                       setForwardOpen(true);
@@ -776,13 +779,14 @@ export function TicketDetailSheet({
                   icon={Plus}
                   label="Adicionar chamado"
                   onClick={createAnotherTicket}
+                  disabled={!attendanceStarted || isFinalized}
                   highlight
                 />
                 <MobileAction
                   icon={TicketCloseIcon}
                   label="Finalizar"
-                  disabled={isFinalized}
-                  title={isFinalized ? "Chamado finalizado" : undefined}
+                  disabled={isFinalized || !attendanceStarted}
+                  title={!attendanceStarted ? "Inicie o atendimento para finalizar" : isFinalized ? "Chamado finalizado" : undefined}
                   onClick={() => setCloseOpen(true)}
                 />
                 <MobileAction
@@ -795,15 +799,15 @@ export function TicketDetailSheet({
                 <MobileAction
                   icon={TicketScheduleIcon}
                   label="Agendar"
-                  disabled={isFinalized}
-                  title={isFinalized ? "Chamado finalizado" : undefined}
+                  disabled={isFinalized || !attendanceStarted}
+                  title={!attendanceStarted ? "Inicie o atendimento para agendar" : isFinalized ? "Chamado finalizado" : undefined}
                   onClick={() => setScheduleOpen(true)}
                 />
                 <MobileAction
                   icon={TicketForwardIcon}
                   label="Enviar a especialista"
-                  disabled={isFinalized}
-                  title={isFinalized ? "Chamado finalizado" : undefined}
+                  disabled={isFinalized || !attendanceStarted}
+                  title={!attendanceStarted ? "Inicie o atendimento para encaminhar" : isFinalized ? "Chamado finalizado" : undefined}
                   onClick={() => setForwardOpen(true)}
                 />
                 <MobileAction
@@ -823,6 +827,7 @@ export function TicketDetailSheet({
                 <MobileAction
                   icon={TicketTimelineIcon}
                   label="Timeline"
+                  disabled={!attendanceStarted}
                   onClick={() => setTimelineOpen(true)}
                 />
               </div>

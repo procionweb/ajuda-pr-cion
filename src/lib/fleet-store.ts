@@ -1012,13 +1012,18 @@ export function registerDeparture(
   );
   vehicles = vehicles.map((v) =>
     v.id === data.vehicleId
-      ? {
-          ...v,
-          status: "em_uso",
-          currentMileage: Math.max(v.currentMileage, data.departureMileage),
-          fuelLevel: data.fuelAtDeparture,
-          lastDriverId: data.operatorId ?? usage.operatorId,
-        }
+      ? (() => {
+          const normalized = normalizeVehicleSpecs(v);
+          const capacity = normalized.tankCapacity ?? 50;
+          return {
+            ...normalized,
+            status: "em_uso" as const,
+            currentMileage: Math.max(v.currentMileage, data.departureMileage),
+            fuelLiters: capacity * fuelFraction(data.fuelAtDeparture),
+            fuelLevel: data.fuelAtDeparture,
+            lastDriverId: data.operatorId ?? usage.operatorId,
+          };
+        })()
       : v,
   );
   reservations = reservations.map((reservation) =>
@@ -1035,7 +1040,7 @@ export function registerReturn(
   usageId: string,
   data: {
     returnMileage: number;
-    fuelAtReturn: string;
+    fuelAtReturn?: string;
     returnedAt?: string;
     returnNotes?: string;
     returnPhotos?: string[];
@@ -1047,12 +1052,22 @@ export function registerReturn(
     usage.departureMileage !== undefined
       ? Math.max(0, data.returnMileage - usage.departureMileage)
       : undefined;
+  const vehicle = usage.vehicleId ? getVehicleById(usage.vehicleId) : undefined;
+  const normalizedVehicle = vehicle ? normalizeVehicleSpecs(vehicle) : undefined;
+  const capacity = normalizedVehicle?.tankCapacity ?? 50;
+  const consumption = normalizedVehicle?.averageConsumptionKmPerLiter ?? 10;
+  const estimatedLiters = Math.max(
+    0,
+    (normalizedVehicle?.fuelLiters ?? capacity * fuelFraction(usage.fuelAtDeparture)) -
+      (distance ?? 0) / consumption,
+  );
+  const resolvedFuelAtReturn = data.fuelAtReturn ?? fuelLabel(estimatedLiters, capacity);
   usages = usages.map((u) =>
     u.id === usageId
       ? {
           ...u,
           returnMileage: data.returnMileage,
-          fuelAtReturn: data.fuelAtReturn,
+          fuelAtReturn: resolvedFuelAtReturn,
           returnedAt: data.returnedAt ?? nowISO(),
           returnNotes: data.returnNotes,
           returnPhotos: data.returnPhotos,
@@ -1067,21 +1082,14 @@ export function registerReturn(
       v.id === usage.vehicleId
         ? (() => {
             const normalized = normalizeVehicleSpecs(v);
-            const capacity = normalized.tankCapacity ?? 50;
-            const consumption = normalized.averageConsumptionKmPerLiter ?? 10;
-            const estimatedLiters = Math.max(
-              0,
-              (normalized.fuelLiters ?? capacity * fuelFraction(usage.fuelAtDeparture)) -
-                (distance ?? 0) / consumption,
-            );
-            const reportedLiters = capacity * fuelFraction(data.fuelAtReturn);
-            const fuelLiters = Math.min(estimatedLiters, reportedLiters);
+            const vehicleCapacity = normalized.tankCapacity ?? 50;
+            const fuelLiters = Math.min(estimatedLiters, vehicleCapacity);
             return {
               ...normalized,
               status: "disponivel" as const,
               currentMileage: data.returnMileage,
               fuelLiters,
-              fuelLevel: fuelLabel(fuelLiters, capacity),
+              fuelLevel: fuelLabel(fuelLiters, vehicleCapacity),
               lastDriverId: usage.operatorId || normalized.lastDriverId,
             };
           })()
