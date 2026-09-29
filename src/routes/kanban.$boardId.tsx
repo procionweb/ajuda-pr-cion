@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import {
   DndContext,
   DragOverlay,
-  useDroppable,
   PointerSensor,
   useSensor,
   useSensors,
@@ -25,7 +24,7 @@ import {
   type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { Columns3, Trash2 as TrashIcon, Archive as ArchiveIcon } from "lucide-react";
+import { Columns3 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { Input } from "@/components/ui/input";
@@ -157,9 +156,6 @@ function daysBetween(iso: string) {
 const FOLLOWED_COLUMNS_STORAGE_KEY = "procion-kanban-followed-columns";
 
 const kanbanCollisionDetection: CollisionDetection = (args) => {
-  const actions = args.droppableContainers.filter((container) => container.data.current?.type === "action");
-  const actionCollision = pointerWithin({ ...args, droppableContainers: actions });
-  if (actionCollision.length) return actionCollision;
   const columnContainers = args.droppableContainers.filter(
     (container) => container.data.current?.type === "column",
   );
@@ -214,31 +210,6 @@ function useStableHandler<Args extends unknown[], Result>(handler: (...args: Arg
     handlerRef.current = handler;
   });
   return useCallback((...args: Args) => handlerRef.current(...args), []);
-}
-
-function KanbanDropTarget({ action, label, icon: Icon }: {
-  action: "archive" | "delete";
-  label: string;
-  icon: typeof ArchiveIcon;
-}) {
-  const { isOver, setNodeRef } = useDroppable({
-    id: `kanban-action-${action}`,
-    data: { type: "action", action },
-  });
-  return (
-    <div
-      ref={setNodeRef}
-      role="status"
-      aria-label={label}
-      className={cn(
-        "flex h-14 min-w-36 items-center justify-center gap-2 rounded-lg border-2 border-dashed bg-white px-4 text-sm font-semibold shadow-xl transition-[background-color,border-color,transform] dark:bg-[#22252a]",
-        action === "delete" ? "border-rose-400 text-rose-600 dark:text-rose-300" : "border-sky-400 text-sky-700 dark:text-sky-300",
-        isOver && "scale-105 bg-sky-100 dark:bg-slate-700",
-      )}
-    >
-      <Icon className="h-5 w-5" /> {label}
-    </div>
-  );
 }
 
 type DrawerRequest = {
@@ -621,14 +592,6 @@ function KanbanPage() {
     setActiveCard(null);
     setDragTarget(null);
     document.body.classList.remove("kanban-card-dragging");
-    if (over?.data.current?.type === "action") {
-      const card = kanbanStore.getSnapshot().find((item) => item.id === active.id);
-      dragStartCardsRef.current = null;
-      dragPlacementRef.current = null;
-      if (card && over.data.current.action === "archive") handleArchiveCard(card);
-      if (card && over.data.current.action === "delete" && canDeleteCard) setCardDeleteTarget(card);
-      return;
-    }
     const currentCards = kanbanStore.getSnapshot();
     const targetColumn = resolveOverColumn(over, currentCards);
     const overCardId =
@@ -1457,13 +1420,6 @@ function KanbanPage() {
                   <Plus className="h-3.5 w-3.5" />
                   Adicionar outra lista
                 </button>
-              </div>
-            )}
-
-            {activeCard && (
-              <div className="fixed bottom-20 left-1/2 z-[1001] flex -translate-x-1/2 gap-3 pointer-events-auto">
-                <KanbanDropTarget action="archive" label="Arquivar" icon={ArchiveIcon} />
-                {canDeleteCard && <KanbanDropTarget action="delete" label="Excluir" icon={TrashIcon} />}
               </div>
             )}
 
