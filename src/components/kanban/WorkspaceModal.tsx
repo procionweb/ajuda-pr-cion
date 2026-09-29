@@ -93,7 +93,7 @@ export function WorkspaceModal({
     return available.filter((member) => {
       if (ids.has(member.id)) return false;
       return !normalized || `${member.name} ${member.operator ?? ""} ${member.email ?? ""}`.toLowerCase().includes(normalized);
-    }).slice(0, 6);
+    });
   }, [available, members, query]);
 
   const save = async () => {
@@ -216,7 +216,8 @@ export function WorkspaceModal({
           {workspace && (
             <TabsContent value="members" className="mt-4 space-y-4">
               <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar pessoa para adicionar" className="pl-9" /></div>
-              {query && candidates.length > 0 && <div className="rounded-md border p-2">{candidates.map((member) => <button key={member.id} type="button" onClick={() => void addMember(member)} className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-white/5"><span><span className="block text-sm">{member.name}</span><span className="text-xs text-slate-500">{member.operator ?? member.email}</span></span><UserPlus className="h-4 w-4 text-primary" /></button>)}</div>}
+              {candidates.length > 0 && <div className="max-h-64 overflow-y-auto rounded-md border p-2">{candidates.map((member) => <button key={member.id} type="button" onClick={() => void addMember(member)} className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-white/5"><span className="min-w-0"><span className="block truncate text-sm">{member.name}</span><span className="block truncate text-xs text-slate-500">{member.operator ?? member.email}</span></span><UserPlus className="ml-3 h-4 w-4 shrink-0 text-primary" /></button>)}</div>}
+              {candidates.length === 0 && <p className="rounded-md border border-dashed p-4 text-center text-sm text-slate-500">Nenhuma pessoa disponível.</p>}
               <div className="space-y-2">
                 {members.length === 0 && <p className="rounded-md border border-dashed p-5 text-center text-sm text-slate-500">Nenhum membro adicionado.</p>}
                 {members.map((member) => (
@@ -224,7 +225,7 @@ export function WorkspaceModal({
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xs text-primary">{member.avatarUrl ? <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" /> : member.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>
                     <div className="min-w-0 flex-1"><p className="truncate text-sm">{member.name}{member.id === workspace.ownerId && <span className="ml-2 text-xs text-primary">Criador</span>}</p><p className="truncate text-xs text-slate-500">{member.operator ?? member.email}</p></div>
                     <Select disabled={member.id === workspace.ownerId} value={member.role ?? "member"} onValueChange={async (role) => { await updateWorkspaceMemberRole({ data: { workspaceId: workspace.id, profileId: member.id, role: role as "admin" | "member" | "guest" } }); setMembers((current) => current.map((item) => item.id === member.id ? { ...item, role } : item)); onChanged(); }}>
-                      <SelectTrigger className="w-36 cursor-pointer"><ShieldCheck className="mr-1 h-4 w-4" /><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-48 shrink-0 cursor-pointer"><ShieldCheck className="mr-1 h-4 w-4 shrink-0" /><SelectValue /></SelectTrigger>
                       <SelectContent>{Object.entries(roleLabel).map(([value, label]) => <SelectItem key={value} value={value} className="cursor-pointer">{label}</SelectItem>)}</SelectContent>
                     </Select>
                     <Button variant="ghost" size="icon" disabled={member.id === workspace.ownerId} className="cursor-pointer" onClick={async () => { await removeWorkspaceMember({ data: { workspaceId: workspace.id, profileId: member.id } }); setMembers((current) => current.filter((item) => item.id !== member.id)); onChanged(); }}><Trash2 className="h-4 w-4" /></Button>

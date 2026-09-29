@@ -100,7 +100,11 @@ async function boardIdFor(action: string, data: any): Promise<string | null> {
 }
 
 async function authorizeAction(action: string, data: any, actor: Actor) {
-  if (["listBoards", "listWorkspaces", "listAvailableMembers", "createWorkspace", "uploadProfileAvatar", "getBoardInviteInfo", "acceptBoardInvite"].includes(action)) return;
+  if (["listBoards", "listWorkspaces", "listAvailableMembers", "uploadProfileAvatar", "getBoardInviteInfo", "acceptBoardInvite"].includes(action)) return;
+  if (action === "createWorkspace") {
+    if (!actor.generalAdmin) throw new Error("forbidden");
+    return;
+  }
   if (action === "createBoard") {
     if (data?.workspaceId ? !await workspaceAccess(actor, data.workspaceId, true) : !actor.generalAdmin) throw new Error("forbidden");
     return;
@@ -998,6 +1002,27 @@ async function listBoardMembers(payload: any) {
 }
 
 async function addBoardMember(payload: any) {
+  const { data: board, error: boardError } = await admin
+    .from("kanban_boards")
+    .select("name, workspace_id")
+    .eq("id", payload.boardId)
+    .maybeSingle();
+  if (boardError) throw boardError;
+  if (!board) throw new Error("board_not_found");
+
+  if (board.workspace_id) {
+    const [{ data: workspace }, { data: workspaceMember }] = await Promise.all([
+      admin.from("kanban_workspaces").select("owner_id").eq("id", board.workspace_id).maybeSingle(),
+      admin.from("kanban_workspace_members").select("profile_id")
+        .eq("workspace_id", board.workspace_id)
+        .eq("profile_id", payload.profileId)
+        .maybeSingle(),
+    ]);
+    if (workspace?.owner_id !== payload.profileId && !workspaceMember) {
+      throw new Error("profile_not_in_workspace");
+    }
+  }
+
   const { error } = await admin
     .from("kanban_board_members")
     .upsert(
@@ -1005,7 +1030,6 @@ async function addBoardMember(payload: any) {
       { onConflict: "board_id,profile_id" },
     );
   if (error) throw error;
-  const { data: board } = await admin.from("kanban_boards").select("name").eq("id", payload.boardId).maybeSingle();
   await admin.from("notifications").insert({ profile_id: payload.profileId,
     title: "Você foi adicionado a um quadro", body: board?.name ?? "Quadro",
     link: `/kanban/${payload.boardId}` });

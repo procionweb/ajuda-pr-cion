@@ -22,6 +22,7 @@ import {
   addBoardMember,
   listAvailableMembers,
   listBoardMembers,
+  listWorkspaceMembers,
   removeBoardMember,
   updateBoardMemberRole,
   type BoardMember,
@@ -46,12 +47,14 @@ function initials(name: string) {
 export function ManageMembersModal({
   boardId,
   boardName,
+  workspaceId,
   open,
   onOpenChange,
   onChanged,
 }: {
   boardId: string;
   boardName: string;
+  workspaceId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onChanged?: () => void;
@@ -65,7 +68,9 @@ export function ManageMembersModal({
     setLoading(true);
     try {
       const [avail, curr] = await Promise.all([
-        listAvailableMembers({ data: { query } }),
+        workspaceId
+          ? listWorkspaceMembers({ data: { workspaceId } })
+          : listAvailableMembers({ data: { query } }),
         listBoardMembers({ data: { boardId } }),
       ]);
       setAvailable(avail.members);
@@ -81,7 +86,7 @@ export function ManageMembersModal({
     if (!open) return;
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, boardId]);
+  }, [open, boardId, workspaceId]);
 
   useEffect(() => {
     if (!open) return;
@@ -91,7 +96,11 @@ export function ManageMembersModal({
   }, [query]);
 
   const memberIds = useMemo(() => new Set(members.map((m) => m.id)), [members]);
-  const filteredAvailable = available.filter((m) => !memberIds.has(m.id));
+  const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
+  const filteredAvailable = available.filter((m) =>
+    !memberIds.has(m.id)
+    && (!normalizedQuery || `${m.name} ${m.email ?? ""} ${m.operator ?? ""}`.toLocaleLowerCase("pt-BR").includes(normalizedQuery)),
+  );
 
   const add = async (m: BoardMember) => {
     try {

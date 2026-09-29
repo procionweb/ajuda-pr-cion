@@ -269,14 +269,14 @@ function BoardListPage() {
                 className="h-11 pl-10"
               />
             </div>
-            <Button
+            {isGeneralAdmin && <Button
               variant="outline"
               onClick={() => setCreateWorkspaceOpen(true)}
               className="h-11 cursor-pointer gap-2 rounded-lg"
             >
               <Building2 className="h-4 w-4" />
               Criar área
-            </Button>
+            </Button>}
             {(isGeneralAdmin || workspaces.some((workspace) => workspace.membershipRole === "admin")) && <Button
               onClick={() => {
                 const workspace = workspaces.find((item) => isGeneralAdmin || item.membershipRole === "admin");
@@ -330,7 +330,7 @@ function BoardListPage() {
                 ? "Você ainda não possui quadros. Crie o primeiro."
                 : "Nenhum quadro encontrado para os filtros atuais."}
             </p>
-            {boards.length === 0 && (
+            {boards.length === 0 && (isGeneralAdmin || workspaces.some((workspace) => workspace.membershipRole === "admin")) && (
               <Button className="cursor-pointer gap-2" onClick={() => setCreateOpen(true)}>
                 <Plus className="h-4 w-4" />
                 Criar quadro
@@ -566,6 +566,7 @@ function BoardListPage() {
         <ManageMembersModal
           boardId={membersFor.id}
           boardName={membersFor.name}
+          workspaceId={membersFor.workspaceId}
           open={!!membersFor}
           onOpenChange={(v) => !v && setMembersFor(null)}
           onChanged={() => setReloadKey((k) => k + 1)}
