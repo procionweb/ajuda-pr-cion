@@ -360,6 +360,21 @@ function KanbanPage() {
       window.removeEventListener("procion:avatar-updated", loadMembers);
     };
   }, [boardId, reloadKey]);
+  const headerMembers = useMemo(() => {
+    const members = new Map(boardMembers.map((member) => [member.id, member]));
+    const directory = new Map<string, BoardMember>();
+    for (const member of cardMembers) {
+      directory.set(member.id, member);
+      if (member.operator) directory.set(member.operator, member);
+    }
+    for (const card of cards) {
+      for (const id of [card.assigneeId, ...(card.participants ?? [])]) {
+        const member = directory.get(id);
+        if (member) members.set(member.id, member);
+      }
+    }
+    return [...members.values()];
+  }, [boardMembers, cardMembers, cards]);
   const activeFilterCount =
     Object.values(filters).filter((v) => v !== "all").length + (onlyMine ? 1 : 0);
 
@@ -1114,9 +1129,9 @@ function KanbanPage() {
               />
             </div>
 
-            {boardMembers.length > 0 && (
-              <div className="flex shrink-0 items-center -space-x-2" aria-label="Membros do quadro">
-                {boardMembers.slice(0, 4).map((member) => (
+            {headerMembers.length > 0 && (
+              <div className="flex shrink-0 items-center -space-x-2" aria-label="Pessoas no quadro">
+                {headerMembers.slice(0, 4).map((member) => (
                   <Avatar key={member.id} title={member.name} className="h-7 w-7 border-2 border-white dark:border-[#1e2530]">
                     <AvatarImage src={member.avatarUrl ?? undefined} alt={member.name} />
                     <AvatarFallback className="bg-primary/15 text-[9px] font-semibold text-primary">
@@ -1124,7 +1139,7 @@ function KanbanPage() {
                     </AvatarFallback>
                   </Avatar>
                 ))}
-                {boardMembers.length > 4 && <span className="grid h-7 min-w-7 place-items-center rounded-full border-2 border-white bg-muted px-1 text-[9px] font-semibold dark:border-[#1e2530]">+{boardMembers.length - 4}</span>}
+                {headerMembers.length > 4 && <span className="grid h-7 min-w-7 place-items-center rounded-full border-2 border-white bg-muted px-1 text-[9px] font-semibold dark:border-[#1e2530]">+{headerMembers.length - 4}</span>}
               </div>
             )}
             <button
