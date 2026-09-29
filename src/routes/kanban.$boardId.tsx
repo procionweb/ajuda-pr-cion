@@ -68,6 +68,7 @@ import {
   type BoardMember,
   type KanbanColumnSortMode,
   listBoardMembers,
+  listAvailableMembers,
 } from "@/lib/kanban-api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -332,13 +333,25 @@ function KanbanPage() {
   useEffect(() => {
     if (!boardId) return;
     let active = true;
-    void listBoardMembers({ boardId })
-      .then(({ members }) => {
-        if (active) setBoardMembers(members);
-      })
-      .catch(() => {});
+    const loadMembers = () => {
+      void Promise.all([listBoardMembers({ boardId }), listAvailableMembers()])
+        .then(([board, available]) => {
+          if (!active) return;
+          const members = new Map(available.members.map((member) => [member.id, member]));
+          board.members.forEach((member) => members.set(member.id, member));
+          setBoardMembers([...members.values()]);
+        })
+        .catch(() => {
+          void listBoardMembers({ boardId }).then(({ members }) => {
+            if (active) setBoardMembers(members);
+          }).catch(() => {});
+        });
+    };
+    loadMembers();
+    window.addEventListener("procion:avatar-updated", loadMembers);
     return () => {
       active = false;
+      window.removeEventListener("procion:avatar-updated", loadMembers);
     };
   }, [boardId, reloadKey]);
   const activeFilterCount =

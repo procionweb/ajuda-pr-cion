@@ -33,6 +33,7 @@ export function KanbanMembershipNotifications() {
           "Você foi removido de uma área",
           "Você foi adicionado a um quadro",
           "Você foi removido de um quadro",
+          "Você foi adicionado a um cartão",
         ])
         .order("created_at", { ascending: false })
         .limit(30);

@@ -104,7 +104,7 @@ const KanbanCardContent = memo(function KanbanCardContent({
   );
   const members = memberIds
     .map((id) => {
-      const member = boardMembers.find((item) => item.id === id);
+      const member = boardMembers.find((item) => item.id === id || item.operator === id);
       if (member)
         return {
           ...member,
