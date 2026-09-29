@@ -28,6 +28,7 @@ import { AppShell } from "@/components/portal/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -399,13 +400,16 @@ function BoardListPage() {
                     <div className="mt-3 flex items-center justify-between">
                       <div className="flex -space-x-2">
                         {board.members.slice(0, 4).map((m) => (
-                          <div
+                          <Avatar
                             key={m.id}
                             title={m.name}
-                            className="flex h-6 w-6 items-center justify-center rounded-full border border-white bg-primary/15 text-[10px] font-semibold text-primary dark:border-[#101827]"
+                            className="h-6 w-6 border border-white dark:border-[#101827]"
                           >
-                            {m.name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
-                          </div>
+                            <AvatarImage src={m.avatarUrl ?? undefined} alt={m.name} />
+                            <AvatarFallback className="bg-primary/15 text-[10px] font-semibold text-primary">
+                              {m.name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                         ))}
                         {board.members.length > 4 && (
                           <div className="flex h-6 w-6 items-center justify-center rounded-full border border-white bg-slate-200 text-[10px] font-semibold text-slate-600 dark:border-[#101827] dark:bg-white/10 dark:text-slate-300">
