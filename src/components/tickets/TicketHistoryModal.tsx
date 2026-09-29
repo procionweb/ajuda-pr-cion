@@ -62,7 +62,6 @@ export function TicketHistoryModal({
           icon={Clock}
           title={ticket.clientName || "Cliente não vinculado"}
           protocol={ticket.protocol}
-          onClose={() => onOpenChange(false)}
           chips={
             <Badge
               className={cn(

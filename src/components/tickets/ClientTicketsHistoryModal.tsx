@@ -57,7 +57,6 @@ export function ClientTicketsHistoryModal({
         <DetailModalHeader
           icon={History}
           title={client.razaoSocial || client.fantasia || client.acronym}
-          onClose={() => onOpenChange(false)}
           chips={
             client.status ? (
               <Badge className="shrink-0 rounded-md border border-emerald-500/20 bg-emerald-500/12 px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">

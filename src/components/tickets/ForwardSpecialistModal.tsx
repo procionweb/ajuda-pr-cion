@@ -223,6 +223,10 @@ function ForwardSpecialistModalContent({
       toast.error("Selecione módulo e submódulo.");
       return;
     }
+    if (!type || type === "Não definido") {
+      toast.error("Selecione o tipo do chamado.");
+      return;
+    }
     if (!reason.trim()) {
       toast.error("Informe a mensagem para o especialista.");
       return;
@@ -274,7 +278,7 @@ function ForwardSpecialistModalContent({
         />
         <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-5 py-3 md:px-6">
           <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="Tipo">
+            <Field label="Tipo" required>
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger className="h-9 w-full cursor-pointer text-[13px]">
                   <SelectValue />

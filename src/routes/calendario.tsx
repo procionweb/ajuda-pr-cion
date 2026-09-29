@@ -1161,19 +1161,21 @@ function AgendaItem({
 
           {needsFleet && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              {(!usage || usage.status === "aguardando_retirada") && (
-                <Button
-                  size="sm"
-                  className="h-8 cursor-pointer bg-blue-600 text-white hover:bg-blue-700"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openPickup();
-                  }}
-                >
-                  <KeyRound className="mr-1.5 h-3.5 w-3.5" />
-                  Retirar veículo
-                </Button>
-              )}
+              {tone !== "done" &&
+                !event.report?.completed &&
+                (!usage || usage.status === "aguardando_retirada") && (
+                  <Button
+                    size="sm"
+                    className="h-8 cursor-pointer bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openPickup();
+                    }}
+                  >
+                    <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                    Retirar veículo
+                  </Button>
+                )}
               {usage?.status === "em_deslocamento" && (
                 <Button
                   size="sm"

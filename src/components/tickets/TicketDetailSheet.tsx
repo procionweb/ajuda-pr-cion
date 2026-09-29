@@ -123,8 +123,7 @@ const statusTone: Record<TicketStatus, string> = {
 
 const priorityTone: Record<TicketPriority, string> = {
   Alta: "bg-destructive/12 text-destructive border-destructive/20",
-  Media:
-    "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30",
+  Media: "border-warning/70 bg-warning/20 text-warning-foreground dark:bg-warning/25",
   Baixa:
     "bg-[#eaf4ff] text-[#246cb5] border-[#bfdcff] dark:bg-[#17314e] dark:text-[#9dcaff] dark:border-[#24527d]",
 };
@@ -552,7 +551,6 @@ export function TicketDetailSheet({
               icon={getModuleIcon(ticket.module, ticket.source, ticket.subject)}
               title={ticket.clientName || "Cliente não vinculado"}
               protocol={ticket.protocol}
-              onClose={() => onOpenChange(false)}
               chips={
                 <>
                   <Badge
@@ -1023,11 +1021,13 @@ export function TicketDetailSheet({
               </div>
             </div>
             {/* fim body wrapper */}
-            <DialogFooter className="border-t border-border py-4 pl-5 pr-20 sm:pr-5">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Fechar
-              </Button>
-            </DialogFooter>
+            {!selectedHistory && (
+              <DialogFooter className="border-t border-border py-4 pl-5 pr-20 sm:pr-5">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Fechar
+                </Button>
+              </DialogFooter>
+            )}
           </div>
           {/* fim painel esquerdo */}
 
@@ -1155,7 +1155,7 @@ function CloseTicketDialog({
 }) {
   const [solution, setSolution] = useState("");
   const [hadronOption, setHadronOption] = useState("");
-  const [permission, setPermission] = useState<"" | ClosurePayload["permission"]>("");
+  const [permission, setPermission] = useState<"" | ClosurePayload["permission"]>("Clientes");
   const [type, setType] = useState<ClosurePayload["type"]>("Não definido");
   const [articleQuery, setArticleQuery] = useState("");
   const [formQuery, setFormQuery] = useState("");
@@ -1193,7 +1193,7 @@ function CloseTicketDialog({
   const reset = () => {
     setSolution("");
     setHadronOption("");
-    setPermission("");
+    setPermission("Clientes");
     setType("Não definido");
     setArticleQuery("");
     setFormQuery("");
@@ -1206,6 +1206,10 @@ function CloseTicketDialog({
   const handleSubmit = () => {
     if (!permission) {
       toast.error("Selecione uma permissão válida.");
+      return;
+    }
+    if (!type || type === "Não definido") {
+      toast.error("Selecione o tipo do chamado.");
       return;
     }
     if (!solutionPlain) {
@@ -1353,7 +1357,7 @@ function CloseTicketDialog({
             />
           </div>
 
-          <Field label="Tipo">
+          <Field label="Tipo" required>
             <Select
               value={type}
               onValueChange={(value) => setType(value as ClosurePayload["type"])}
@@ -1424,10 +1428,21 @@ function CloseTicketDialog({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <Label className="mb-1.5 block text-[12.5px] font-medium text-foreground">{label}</Label>
+      <Label className="mb-1.5 block text-[12.5px] font-medium text-foreground">
+        {label}
+        {required && <span className="text-destructive"> *</span>}
+      </Label>
       {children}
     </div>
   );

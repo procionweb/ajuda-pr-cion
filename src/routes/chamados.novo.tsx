@@ -331,6 +331,7 @@ function NewTicketPage() {
 
   const requiredMissing =
     !form.clientId ||
+    form.type === "Não definido" ||
     (companies.length > 0 && !form.companyId) ||
     !form.contactName.trim() ||
     !form.emailValue.trim() ||
@@ -779,7 +780,7 @@ function NewTicketPage() {
               </div>
 
               <div className="space-y-3">
-                <Field label="Tipo">
+                <Field label="Tipo" required>
                   <Select
                     value={form.type}
                     onValueChange={(v: ClosurePayload["type"]) =>

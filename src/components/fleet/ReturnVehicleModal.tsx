@@ -53,7 +53,6 @@ export function ReturnVehicleModal({ usageId }: { usageId: string }) {
           icon={Undo2}
           title="Registrar devolução"
           protocol={`${vehicle.model} · ${vehicle.plate}`}
-          onClose={() => fleetActions.close()}
         />
 
         <div className="flex-1 space-y-3 overflow-y-auto p-5">
@@ -107,9 +106,6 @@ export function ReturnVehicleModal({ usageId }: { usageId: string }) {
         </div>
 
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border bg-card px-4 py-2.5">
-          <Button variant="outline" onClick={() => fleetActions.close()} className="cursor-pointer">
-            Cancelar
-          </Button>
           <Button
             onClick={submit}
             className="cursor-pointer bg-blue-600 text-white hover:bg-blue-700"

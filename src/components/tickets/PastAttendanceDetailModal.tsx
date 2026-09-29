@@ -296,7 +296,6 @@ export function PastAttendanceDetailModal({
             )
           }
           protocol={attendance.protocol}
-          onClose={() => onOpenChange(false)}
           chips={
             <>
               <Badge className="rounded-md border border-success/25 bg-success/12 px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wide text-success">

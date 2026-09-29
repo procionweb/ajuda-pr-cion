@@ -173,8 +173,7 @@ const statusBorderTone: Record<TicketStatus, string> = {
 // Soft/translucent priority badges. Baixa uses slate — NOT green.
 const priorityTone: Record<TicketPriority, string> = {
   Alta: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30",
-  Media:
-    "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30",
+  Media: "border-warning/70 bg-warning/20 text-warning-foreground dark:bg-warning/25",
   Baixa:
     "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/15 dark:text-slate-300 dark:border-slate-500/30",
 };

@@ -7,6 +7,7 @@ import {
   type SetStateAction,
 } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   CalendarDays,
   Car,
@@ -34,7 +35,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { cn } from "@/lib/utils";
-import { erpVersions, formatVersionDate } from "@/lib/erp-versions";
+import { erpVersions, formatVersionDate, latestErpVersion } from "@/lib/erp-versions";
 import {
   EVENT_TONE_LABEL,
   EVENT_TONE_STYLES,
@@ -47,6 +48,9 @@ import { formatFleetDateTime, getVehicleById, useUsages, useReservations } from 
 import { useTickets } from "@/lib/tickets-store";
 
 const preventOutsideClose = (event: Event) => event.preventDefault();
+const latestVersionLabel = latestErpVersion
+  ? `${latestErpVersion.versao}-${formatVersionDate(latestErpVersion.data_versao)}`
+  : "";
 
 function protocolFromTitle(title: string): string | undefined {
   const match = title.match(/(PRC-\d+)/i);
@@ -109,7 +113,7 @@ export function EventDetailsModal({
     permission: "Clientes" as "Público" | "Clientes" | "Empresa",
     priority: "Baixa" as "Baixa" | "Média" | "Alta",
     option: "",
-    version: "",
+    version: latestVersionLabel,
     startedAt: "",
     endedAt: "",
     contact: "",
@@ -136,7 +140,7 @@ export function EventDetailsModal({
       permission: event.report?.permission ?? "Clientes",
       priority: event.report?.priority ?? "Baixa",
       option: event.report?.option ?? "",
-      version: event.report?.version ?? "",
+      version: event.report?.version || latestVersionLabel,
       startedAt: event.report?.startedAt ?? event.time,
       endedAt: event.report?.endedAt ?? event.end,
       contact: event.report?.contact ?? "",
@@ -183,9 +187,15 @@ export function EventDetailsModal({
     Boolean(vehicle) &&
     Boolean(onPickupVehicle) &&
     (!usage || usage.status === "aguardando_retirada") &&
-    tone !== "cancelled";
+    tone !== "cancelled" &&
+    tone !== "done" &&
+    !event.report?.completed;
 
   const submitReport = (completed: boolean) => {
+    if (!report.notes.trim()) {
+      toast.error("Informe a descrição do atendimento.");
+      return;
+    }
     onSaveReport?.(
       {
         ...event,
@@ -596,7 +606,9 @@ function EventReportDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="calendar-report-notes">Observação</Label>
+            <Label htmlFor="calendar-report-notes">
+              Descrição <span className="text-destructive">*</span>
+            </Label>
             <Textarea
               id="calendar-report-notes"
               value={report.notes}
