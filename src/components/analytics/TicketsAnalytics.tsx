@@ -14,6 +14,10 @@ import {
 
 import {
   AlertTriangle,
+  Download,
+  Table2,
+  ChartColumn,
+  ChartLine,
   Building2,
   BookOpenText,
   CalendarClock,
@@ -31,14 +35,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { FlipPanel } from "./FlipPanel";
 import { cn } from "@/lib/utils";
 import { ticketStatuses, type SupportTicket, type TicketStatus } from "@/lib/support-tickets-data";
 import { useTickets } from "@/lib/tickets-store";
@@ -348,6 +345,8 @@ function ticketCompany(ticket: SupportTicket) {
 
 function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
   const [showAll, setShowAll] = useState(false);
+  const [agentQuery, setAgentQuery] = useState("");
+  const [agentSort, setAgentSort] = useState("handled");
   const allAgents = useMemo(() => {
     const map = new Map<string, AgentPerformance>();
     tickets.forEach((ticket) => {
@@ -371,102 +370,108 @@ function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
   const agents = allAgents.slice(0, 4);
 
   return (
-    <Card className="rounded-md border border-border/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:bg-card">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-base font-bold tracking-tight text-foreground">
-          Performance dos Operadores
-        </h3>
-        <Button
-          type="button"
-          variant="ghost"
-          className="h-9 cursor-pointer px-3 text-xs font-semibold"
-          onClick={() => setShowAll(true)}
-        >
-          Ver todos
-        </Button>
-      </div>
-
-      <div className="space-y-3">
-        {agents.map((agent) => {
-          const resolutionRate = agent.handled
-            ? Math.round((agent.finished / agent.handled) * 100)
-            : 0;
-          const activeDots = Math.round((resolutionRate / 100) * 18);
-          const avgResolutionTime = formatElapsedTime(
-            agent.handled ? agent.seconds / agent.handled : 0,
-          );
-          const initial = agent.operator.charAt(0).toLocaleUpperCase("pt-BR") || "?";
-
-          return (
-            <div
-              key={agent.operator}
-              className="flex flex-col gap-3 rounded-md border border-border/80 bg-white px-4 py-3 dark:bg-background/30 lg:flex-row lg:items-center lg:gap-5"
+    <FlipPanel
+      flipped={showAll}
+      onBack={() => setShowAll(false)}
+      title="Performance dos operadores"
+      className="rounded-md border border-border/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:bg-card"
+      front={
+        <>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-bold tracking-tight text-foreground">
+              Performance dos Operadores
+            </h3>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 cursor-pointer px-3 text-xs font-semibold"
+              onClick={() => setShowAll(true)}
             >
-              <div className="flex min-w-0 items-center gap-3 lg:w-[200px]">
-                <span
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
-                  aria-hidden="true"
+              Ver todos
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {agents.map((agent) => {
+              const resolutionRate = agent.handled
+                ? Math.round((agent.finished / agent.handled) * 100)
+                : 0;
+              const activeDots = Math.round((resolutionRate / 100) * 18);
+              const avgResolutionTime = formatElapsedTime(
+                agent.handled ? agent.seconds / agent.handled : 0,
+              );
+              const initial = agent.operator.charAt(0).toLocaleUpperCase("pt-BR") || "?";
+
+              return (
+                <div
+                  key={agent.operator}
+                  className="flex flex-col gap-3 rounded-md border border-border/80 bg-white px-4 py-3 dark:bg-background/30 lg:flex-row lg:items-center lg:gap-5"
                 >
-                  {initial}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-foreground">
-                    {agent.operator}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {agent.finished} finalizado{agent.finished === 1 ? "" : "s"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="min-w-0 lg:w-[130px]">
-                <p className="text-[11px] text-muted-foreground">Tempo médio</p>
-                <p className="mt-0.5 text-[14px] font-bold text-foreground">{avgResolutionTime}</p>
-              </div>
-
-              <div className="min-w-0 lg:w-[120px]">
-                <p className="text-[11px] text-muted-foreground">Atendimentos</p>
-                <p className="mt-0.5 text-[14px] font-bold text-foreground">{agent.handled}</p>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="mb-1.5 flex items-center justify-between gap-3">
-                  <p className="text-[11px] text-muted-foreground">Taxa de resolução</p>
-                  <p className="text-[13px] font-semibold text-foreground">{resolutionRate}%</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-1">
-                  {Array.from({ length: 18 }).map((_, dotIndex) => (
+                  <div className="flex min-w-0 items-center gap-3 lg:w-[200px]">
                     <span
-                      key={dotIndex}
-                      className={cn(
-                        "h-2.5 w-2.5 rounded-full",
-                        dotIndex < activeDots ? "bg-[#f26322]" : "bg-[#dfe3e8] dark:bg-muted",
-                      )}
-                    />
-                  ))}
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
+                      aria-hidden="true"
+                    >
+                      {initial}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold text-foreground">
+                        {agent.operator}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        {agent.finished} finalizado{agent.finished === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 lg:w-[130px]">
+                    <p className="text-[11px] text-muted-foreground">Tempo médio</p>
+                    <p className="mt-0.5 text-[14px] font-bold text-foreground">
+                      {avgResolutionTime}
+                    </p>
+                  </div>
+
+                  <div className="min-w-0 lg:w-[120px]">
+                    <p className="text-[11px] text-muted-foreground">Atendimentos</p>
+                    <p className="mt-0.5 text-[14px] font-bold text-foreground">{agent.handled}</p>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1.5 flex items-center justify-between gap-3">
+                      <p className="text-[11px] text-muted-foreground">Taxa de resolução</p>
+                      <p className="text-[13px] font-semibold text-foreground">{resolutionRate}%</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      {Array.from({ length: 18 }).map((_, dotIndex) => (
+                        <span
+                          key={dotIndex}
+                          className={cn(
+                            "h-2.5 w-2.5 rounded-full",
+                            dotIndex < activeDots ? "bg-[#f26322]" : "bg-[#dfe3e8] dark:bg-muted",
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <Dialog open={showAll} onOpenChange={setShowAll}>
-        <DialogContent className="flex max-h-[86vh] max-w-4xl flex-col gap-0 overflow-hidden border border-border p-0 shadow-2xl sm:max-w-4xl sm:p-0">
-          <DialogHeader className="border-b border-border bg-muted/30 px-6 py-5 sm:px-7">
+              );
+            })}
+          </div>
+        </>
+      }
+      back={
+        <>
+          <div className="border-b border-border bg-muted/30 px-6 py-5 sm:px-7">
             <div className="flex items-center gap-3">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
                 <UsersRound className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <DialogTitle className="text-lg text-foreground">
-                  Performance dos operadores
-                </DialogTitle>
-                <DialogDescription className="mt-1 text-xs">
-                  Comparativo de atendimentos e taxa de resolução
-                </DialogDescription>
+                <h4 className="text-lg text-foreground">Performance dos operadores</h4>
+                <p className="mt-1 text-xs">Comparativo de atendimentos e taxa de resolução</p>
               </div>
             </div>
-          </DialogHeader>
+          </div>
           <div className="grid grid-cols-2 gap-3 border-b bg-muted/25 px-6 py-4 sm:grid-cols-3 sm:px-7">
             <div>
               <p className="text-[11px] text-muted-foreground">Operadores</p>
@@ -486,68 +491,95 @@ function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto bg-muted/10 px-6 py-5 sm:px-7">
-            <div className="grid gap-3 lg:grid-cols-2">
-              {allAgents.map((agent) => {
-                const resolutionRate = agent.handled
-                  ? Math.round((agent.finished / agent.handled) * 100)
-                  : 0;
-                const topCompanies = Array.from(agent.companies.entries())
-                  .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))
-                  .slice(0, 3);
-                return (
-                  <article
-                    key={agent.operator}
-                    className="overflow-hidden rounded-md border bg-background shadow-sm"
-                  >
-                    <div className="flex items-center justify-between gap-4 border-b bg-muted/25 px-4 py-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground shadow-sm">
-                          {agent.operator.charAt(0).toLocaleUpperCase("pt-BR") || "?"}
+            <div className="grid gap-3">
+              <div className="col-span-full flex flex-wrap gap-2">
+                <input
+                  aria-label="Buscar operador"
+                  placeholder="Buscar operador..."
+                  value={agentQuery}
+                  onChange={(event) => setAgentQuery(event.target.value)}
+                  className="min-w-0 flex-1 rounded-md border bg-background p-2 text-sm"
+                />
+                <select
+                  aria-label="Ordenar operadores"
+                  value={agentSort}
+                  onChange={(event) => setAgentSort(event.target.value)}
+                  className="rounded-md border bg-background p-2 text-sm"
+                >
+                  <option value="handled">Mais atendimentos</option>
+                  <option value="finished">Mais finalizados</option>
+                  <option value="name">Nome</option>
+                </select>
+              </div>
+              {!allAgents.some((agent) =>
+                agent.operator.toLowerCase().includes(agentQuery.toLowerCase()),
+              ) && <p className="text-sm text-muted-foreground">Nenhum operador encontrado.</p>}
+              {allAgents
+                .filter((agent) => agent.operator.toLowerCase().includes(agentQuery.toLowerCase()))
+                .sort((a, b) =>
+                  agentSort === "name"
+                    ? a.operator.localeCompare(b.operator)
+                    : agentSort === "finished"
+                      ? b.finished - a.finished
+                      : b.handled - a.handled,
+                )
+                .map((agent) => {
+                  const resolutionRate = agent.handled
+                    ? Math.round((agent.finished / agent.handled) * 100)
+                    : 0;
+                  const topCompanies = Array.from(agent.companies.entries())
+                    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))
+                    .slice(0, 3);
+                  return (
+                    <article
+                      key={agent.operator}
+                      className="overflow-hidden rounded-md border bg-background shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-4 border-b bg-muted/25 px-4 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground shadow-sm">
+                            {agent.operator.charAt(0).toLocaleUpperCase("pt-BR") || "?"}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold">{agent.operator}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {agent.finished} finalizados de {agent.handled} atendimentos
+                            </p>
+                          </div>
+                        </div>
+                        <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                          {resolutionRate}%
                         </span>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold">{agent.operator}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {agent.finished} finalizados de {agent.handled} atendimentos
-                          </p>
+                      </div>
+                      <div className="px-4 py-3">
+                        <p className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">
+                          Empresas mais atendidas
+                        </p>
+                        <div className="space-y-2">
+                          {topCompanies.map(([company, total], index) => (
+                            <div key={company} className="flex items-center gap-2 text-xs">
+                              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                                {index + 1}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate font-medium" title={company}>
+                                {company}
+                              </span>
+                              <span className="shrink-0 font-bold tabular-nums">{total}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
-                        {resolutionRate}%
-                      </span>
-                    </div>
-                    <div className="px-4 py-3">
-                      <p className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">
-                        Empresas mais atendidas
-                      </p>
-                      <div className="space-y-2">
-                        {topCompanies.map(([company, total], index) => (
-                          <div key={company} className="flex items-center gap-2 text-xs">
-                            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-                              {index + 1}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate font-medium" title={company}>
-                              {company}
-                            </span>
-                            <span className="shrink-0 font-bold tabular-nums">{total}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
+                    </article>
+                  );
+                })}
             </div>
           </div>
-          <DialogFooter className="border-t px-6 py-4 sm:px-7">
-            <Button type="button" variant="outline" onClick={() => setShowAll(false)}>
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+        </>
+      }
+    />
   );
 }
+
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
@@ -596,6 +628,8 @@ function StatisticsCard({
   const daysScrollRef = useRef<HTMLDivElement>(null);
   const scrollTimerRef = useRef<number | null>(null);
   const [daySelection, setDaySelection] = useState<string | null>(null);
+  const [chartMode, setChartMode] = useState<"bar" | "line" | "table">("bar");
+  const [compare, setCompare] = useState(true);
   const parsedRangeEnd = rangeEnd ? new Date(`${rangeEnd}T12:00:00`) : new Date();
   const today = startOfDay(Number.isFinite(parsedRangeEnd.getTime()) ? parsedRangeEnd : new Date());
   const parsedRangeStart = rangeStart ? new Date(`${rangeStart}T12:00:00`) : null;
@@ -724,80 +758,175 @@ function StatisticsCard({
         </button>
       </div>
 
-      <div className="h-[300px] w-full min-w-0 overflow-hidden">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={hourlyStats} margin={{ top: 12, right: 24, left: 0, bottom: 8 }}>
-            <defs>
-              <linearGradient id="statsPurple" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#b082cf" stopOpacity={0.95} />
-                <stop offset="100%" stopColor="#8e62aa" stopOpacity={0.95} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} stroke="rgba(139,145,173,0.28)" />
-            <XAxis
-              dataKey="time"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 12, fill: "#66708a" }}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              domain={[0, yMax]}
-              allowDecimals={false}
-              tick={{ fontSize: 12, fill: "#66708a" }}
-              width={42}
-            />
-            <Tooltip
-              contentStyle={{
-                border: "0",
-                borderRadius: 12,
-                backgroundColor: "#182f4d",
-                color: "#fff",
-                boxShadow: "0 14px 30px rgba(0,0,0,0.24)",
-                fontSize: 12,
-              }}
-              labelStyle={{ color: "#fff" }}
-              itemStyle={{ color: "#fff" }}
-            />
-            <Bar
-              dataKey="thisWeek"
-              name={
-                selectedDay
-                  ? "Dia selecionado"
-                  : periodStart
-                    ? "Período selecionado"
-                    : "Últimos 30 dias úteis"
-              }
-              fill="url(#statsPurple)"
-              radius={[5, 5, 0, 0]}
-              maxBarSize={36}
-            />
-            <Line
-              type="monotone"
-              dataKey="lastWeek"
-              name={selectedDay ? "Dia útil anterior" : "Período anterior"}
-              stroke="#89c2b7"
-              strokeWidth={2.5}
-              dot={{ r: 4, strokeWidth: 3, stroke: "#89c2b7", fill: "#ffffff" }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="flex gap-1" role="group" aria-label="Visualização das estatísticas">
+          {(
+            [
+              { value: "bar", icon: ChartColumn, label: "Barras" },
+              { value: "line", icon: ChartLine, label: "Linhas" },
+              { value: "table", icon: Table2, label: "Tabela" },
+            ] as const
+          ).map(({ value, icon: Icon, label }) => (
+            <Button
+              key={value}
+              size="icon"
+              variant={chartMode === value ? "secondary" : "ghost"}
+              title={label}
+              aria-label={label}
+              aria-pressed={chartMode === value}
+              onClick={() => setChartMode(value)}
+            >
+              <Icon className="h-4 w-4" />
+            </Button>
+          ))}
+        </div>
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={compare}
+            onChange={(event) => setCompare(event.target.checked)}
+          />
+          Comparar período anterior
+        </label>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="ml-auto"
+          title="Exportar CSV"
+          aria-label="Exportar CSV"
+          onClick={() => {
+            const rows = [
+              ["Horário", "Período selecionado", "Período anterior"],
+              ...hourlyStats.map((item) => [item.time, item.thisWeek, item.lastWeek]),
+            ];
+            const url = URL.createObjectURL(
+              new Blob(["\uFEFF" + rows.map((row) => row.join(";")).join("\r\n")], {
+                type: "text/csv;charset=utf-8",
+              }),
+            );
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = "estatisticas-chamados.csv";
+            anchor.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          }}
+        >
+          <Download className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="h-[300px] w-full min-w-0 overflow-auto">
+        {chartMode === "table" ? (
+          <table className="analytics-data-table">
+            <thead>
+              <tr>
+                <th>Horário</th>
+                <th>Atual</th>
+                {compare && <th>Anterior</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {hourlyStats.map((item) => (
+                <tr key={item.time}>
+                  <td>{item.time}</td>
+                  <td>{item.thisWeek}</td>
+                  {compare && <td>{item.lastWeek}</td>}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={hourlyStats} margin={{ top: 12, right: 24, left: 0, bottom: 8 }}>
+              <defs>
+                <linearGradient id="statsPurple" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#b082cf" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#8e62aa" stopOpacity={0.95} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} stroke="rgba(139,145,173,0.28)" />
+              <XAxis
+                dataKey="time"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "#66708a" }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                domain={[0, yMax]}
+                allowDecimals={false}
+                tick={{ fontSize: 12, fill: "#66708a" }}
+                width={42}
+              />
+              <Tooltip
+                contentStyle={{
+                  border: "0",
+                  borderRadius: 12,
+                  backgroundColor: "#182f4d",
+                  color: "#fff",
+                  boxShadow: "0 14px 30px rgba(0,0,0,0.24)",
+                  fontSize: 12,
+                }}
+                labelStyle={{ color: "#fff" }}
+                itemStyle={{ color: "#fff" }}
+              />
+              {chartMode === "bar" ? (
+                <Bar
+                  dataKey="thisWeek"
+                  name={
+                    selectedDay
+                      ? "Dia selecionado"
+                      : periodStart
+                        ? "Período selecionado"
+                        : "Últimos 30 dias úteis"
+                  }
+                  fill="url(#statsPurple)"
+                  radius={[5, 5, 0, 0]}
+                  maxBarSize={36}
+                />
+              ) : (
+                <Line
+                  dataKey="thisWeek"
+                  name="Período selecionado"
+                  stroke="#009bbf"
+                  strokeWidth={3}
+                  dot={{ r: 3 }}
+                />
+              )}
+              {compare && (
+                <Line
+                  type="monotone"
+                  dataKey="lastWeek"
+                  name={selectedDay ? "Dia útil anterior" : "Período anterior"}
+                  stroke="#89c2b7"
+                  strokeWidth={2.5}
+                  strokeDasharray="5 4"
+                  dot={{ r: 4, strokeWidth: 3, stroke: "#89c2b7", fill: "#ffffff" }}
+                />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       <div className="mt-2 flex flex-wrap justify-end gap-8 text-xs font-semibold text-muted-foreground">
         <span className="inline-flex items-center gap-2">
-          <span className="h-3 w-3 rounded-sm bg-[#a779c7]" />{" "}
+          <span
+            className="h-3 w-3 rounded-sm"
+            style={{ background: chartMode === "line" ? "#009bbf" : "#a779c7" }}
+          />{" "}
           {selectedDay
             ? "Dia selecionado"
             : periodStart
               ? "Período selecionado"
               : "Últimos 30 dias úteis"}
         </span>
-        <span className="inline-flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full border-2 border-[#89c2b7]" />{" "}
-          {selectedDay ? "Dia útil anterior" : "Período anterior"}
-        </span>
+        {compare && (
+          <span className="inline-flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full border-2 border-[#89c2b7]" />{" "}
+            {selectedDay ? "Dia útil anterior" : "Período anterior"}
+          </span>
+        )}
       </div>
     </Card>
   );
@@ -871,84 +1000,102 @@ function WeeklyBacklogCard({
   const weeklyTopCompanies = weeklyCompanies.slice(0, 6);
 
   return (
-    <Card className="rounded-[14px] border-0 bg-white dark:bg-[#20263d] p-6 shadow-[0_10px_26px_rgba(25,29,51,0.06)]">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h3 className="text-base font-bold text-foreground">
-            Empresas que mais ligaram {filtered ? "no período" : "na última semana registrada"}
-          </h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {filtered
-              ? "Volume de chamados por empresa e tipo de problema."
-              : `Sete dias encerrados em ${weekLabel}.`}
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          className="h-9 cursor-pointer px-3 text-xs font-semibold"
-          onClick={() => setShowCompanies(true)}
-        >
-          Ver 30 empresas
-        </Button>
-      </div>
-      <div className="h-[220px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={weeklyTopCompanies} margin={{ top: 16, right: 16, left: 8, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(139,145,173,0.18)" />
-            <XAxis
-              dataKey="company"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 11, fontWeight: 600, fill: "#8b91ad" }}
-            />
-            <YAxis
-              allowDecimals={false}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 11, fill: "#8b91ad" }}
-              width={40}
-            />
-            <Tooltip
-              formatter={(value, name) => [
-                `${value} chamado${Number(value) === 1 ? "" : "s"}`,
-                name,
-              ]}
-              contentStyle={{
-                border: "0",
-                borderRadius: 12,
-                boxShadow: "0 14px 30px rgba(25,29,51,0.12)",
-                fontSize: 12,
-              }}
-            />
-            <Bar dataKey="nfe" name="NF-e" fill="#8d6bd8" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="basic" name="Básico / Terceiros" fill="#ff9f68" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="others" name="Demais módulos" fill="#ff5fc8" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-5 text-xs font-semibold text-muted-foreground">
-        <LegendDot color="#8d6bd8" label="NF-e" />
-        <LegendDot color="#ff9f68" label="Básico / Terceiros" />
-        <LegendDot color="#ff5fc8" label="Demais módulos" />
-      </div>
-      <Dialog open={showCompanies} onOpenChange={setShowCompanies}>
-        <DialogContent className="flex max-h-[86vh] max-w-4xl flex-col gap-0 overflow-hidden border border-border p-0 shadow-2xl sm:max-w-4xl sm:p-0">
-          <DialogHeader className="border-b border-border bg-muted/30 px-6 py-5 sm:px-7">
+    <FlipPanel
+      flipped={showCompanies}
+      onBack={() => setShowCompanies(false)}
+      title="Chamados por empresa"
+      className="rounded-[14px] border-0 bg-white dark:bg-[#20263d] p-6 shadow-[0_10px_26px_rgba(25,29,51,0.06)]"
+      front={
+        <>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-foreground">
+                Empresas que mais ligaram {filtered ? "no período" : "na última semana registrada"}
+              </h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {filtered
+                  ? "Volume de chamados por empresa e tipo de problema."
+                  : `Sete dias encerrados em ${weekLabel}.`}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 cursor-pointer px-3 text-xs font-semibold"
+              onClick={() => setShowCompanies(true)}
+            >
+              Ver 30 empresas
+            </Button>
+          </div>
+          <div className="h-[220px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={weeklyTopCompanies}
+                margin={{ top: 16, right: 16, left: 8, bottom: 8 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="rgba(139,145,173,0.18)"
+                />
+                <XAxis
+                  dataKey="company"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fontWeight: 600, fill: "#8b91ad" }}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#8b91ad" }}
+                  width={40}
+                />
+                <Tooltip
+                  formatter={(value, name) => [
+                    `${value} chamado${Number(value) === 1 ? "" : "s"}`,
+                    name,
+                  ]}
+                  contentStyle={{
+                    border: "0",
+                    borderRadius: 12,
+                    boxShadow: "0 14px 30px rgba(25,29,51,0.12)",
+                    fontSize: 12,
+                  }}
+                />
+                <Bar dataKey="nfe" name="NF-e" fill="#8d6bd8" radius={[6, 6, 0, 0]} />
+                <Bar
+                  dataKey="basic"
+                  name="Básico / Terceiros"
+                  fill="#ff9f68"
+                  radius={[6, 6, 0, 0]}
+                />
+                <Bar dataKey="others" name="Demais módulos" fill="#ff5fc8" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-5 text-xs font-semibold text-muted-foreground">
+            <LegendDot color="#8d6bd8" label="NF-e" />
+            <LegendDot color="#ff9f68" label="Básico / Terceiros" />
+            <LegendDot color="#ff5fc8" label="Demais módulos" />
+          </div>
+        </>
+      }
+      back={
+        <>
+          <div className="border-b border-border bg-muted/30 px-6 py-5 sm:px-7">
             <div className="flex items-center gap-3">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
                 <Building2 className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <DialogTitle className="text-lg text-foreground">
-                  Empresas que mais ligaram
-                </DialogTitle>
-                <DialogDescription className="mt-1 text-xs">
+                <h4 className="text-lg text-foreground">Empresas que mais ligaram</h4>
+                <p className="mt-1 text-xs">
                   As 30 empresas com maior volume de chamados e seu módulo principal
-                </DialogDescription>
+                </p>
               </div>
             </div>
-          </DialogHeader>
+          </div>
           <div className="flex flex-wrap gap-x-8 gap-y-2 border-b bg-muted/20 px-6 py-4 text-sm sm:px-7">
             <span>
               <strong className="mr-1 text-lg text-foreground">
@@ -1005,14 +1152,9 @@ function WeeklyBacklogCard({
               </p>
             )}
           </div>
-          <DialogFooter className="border-t px-6 py-4 sm:px-7">
-            <Button type="button" variant="outline" onClick={() => setShowCompanies(false)}>
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+        </>
+      }
+    />
   );
 }
 
@@ -1327,8 +1469,15 @@ function polarAreaPath(
   ].join(" ");
 }
 
-function StatusCategoriesCard({ data }: { data: { status: TicketStatus; total: number }[] }) {
-  const [activeStatus, setActiveStatus] = useState<TicketStatus | null>(null);
+function StatusCategoriesCard({
+  data,
+  activeStatus,
+  onSelect,
+}: {
+  data: { status: TicketStatus; total: number }[];
+  activeStatus: string | null;
+  onSelect: (status: string) => void;
+}) {
   const max = Math.max(1, ...data.map((item) => item.total));
   const totalAll = data.reduce((acc, item) => acc + item.total, 0) || 1;
   const cx = 140;
@@ -1339,8 +1488,10 @@ function StatusCategoriesCard({ data }: { data: { status: TicketStatus; total: n
   const gap = 1.5;
   const rotation = 0;
 
-  const toggle = (status: TicketStatus) =>
-    setActiveStatus((prev) => (prev === status ? null : status));
+  const toggle = (status: TicketStatus) => {
+    const next = activeStatus === status ? null : status;
+    onSelect(next ?? "");
+  };
 
   return (
     <Card className="rounded-[14px] border-0 bg-white dark:bg-[#20263d] p-6 shadow-[0_10px_26px_rgba(25,29,51,0.06)]">
@@ -1495,103 +1646,109 @@ function SourceModuleCard({
       .sort((a, b) => b.total - a.total);
   }, [tickets]);
   return (
-    <Card className="rounded-[14px] border-0 bg-white dark:bg-[#20263d] p-6 shadow-[0_10px_26px_rgba(25,29,51,0.06)]">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-base font-bold text-foreground">Origem & Módulo</h3>
-          <p className="mt-1 text-xs text-muted-foreground">Canais e áreas mais acionadas.</p>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          className="h-9 cursor-pointer gap-2 px-3 text-xs font-semibold"
-          onClick={() => setShowTopics(true)}
-        >
-          <MessageSquarePlus className="h-4 w-4" />
-          Ver assuntos
-        </Button>
-      </div>
-
-      <div className="mt-4">
-        <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          <PhoneCall className="h-3 w-3" /> Origem
-        </p>
-        <div className="space-y-2">
-          {sources.map((item) => (
-            <BarRow
-              key={item.source}
-              label={item.label}
-              value={item.total}
-              max={sourceMax}
-              color="#0b97c4"
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-5">
-        <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          <Layers className="h-3 w-3" /> Módulo
-        </p>
-        <div className="space-y-2">
-          {modules.map((item) => (
-            <BarRow
-              key={item.label}
-              label={item.label}
-              value={item.total}
-              max={moduleMax}
-              color="#8d6bd8"
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-5 border-t border-border/60 pt-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Resumo do período
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 divide-border/60 sm:grid-cols-4 sm:divide-x">
-          {[
-            { icon: PhoneCall, label: "Canal principal", value: topSource?.label ?? "—" },
-            { icon: Layers, label: "Módulo mais acionado", value: topModule?.label ?? "—" },
-            { icon: MessageSquarePlus, label: "Chamados", value: String(tickets.length) },
-            {
-              icon: CalendarClock,
-              label: "Horário de pico",
-              value: peakHour === undefined ? "—" : `${peakHour}h–${peakHour + 1}h`,
-            },
-          ].map(({ icon: Icon, label, value }, i) => (
-            <div key={label} className={cn("flex flex-col gap-0.5", i > 0 && "sm:pl-3")}>
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Icon className="h-3 w-3" />
-                {label}
-              </span>
-              <span className="text-sm font-bold text-foreground">{value}</span>
+    <FlipPanel
+      flipped={showTopics}
+      onBack={() => setShowTopics(false)}
+      title="Principais assuntos por módulo"
+      className="rounded-[14px] border-0 bg-white dark:bg-[#20263d] p-6 shadow-[0_10px_26px_rgba(25,29,51,0.06)]"
+      front={
+        <>
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-base font-bold text-foreground">Origem & Módulo</h3>
+              <p className="mt-1 text-xs text-muted-foreground">Canais e áreas mais acionadas.</p>
             </div>
-          ))}
-        </div>
-        <p className="mt-3 rounded-lg bg-muted/40 dark:bg-white/[0.03] px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
-          {topSource?.label ?? "Nenhum canal"} concentra {sourcePct}% dos chamados e{" "}
-          {topModule?.label ?? "nenhum módulo"} representa {modulePct}% das solicitações.
-        </p>
-      </div>
-      <Dialog open={showTopics} onOpenChange={setShowTopics}>
-        <DialogContent className="flex max-h-[86vh] max-w-4xl flex-col gap-0 overflow-hidden border border-border p-0 shadow-2xl sm:max-w-4xl sm:p-0">
-          <DialogHeader className="border-b border-border bg-muted/30 px-6 py-5 sm:px-7">
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-9 cursor-pointer gap-2 px-3 text-xs font-semibold"
+              onClick={() => setShowTopics(true)}
+            >
+              <MessageSquarePlus className="h-4 w-4" />
+              Ver assuntos
+            </Button>
+          </div>
+
+          <div className="mt-4">
+            <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <PhoneCall className="h-3 w-3" /> Origem
+            </p>
+            <div className="space-y-2">
+              {sources.map((item) => (
+                <BarRow
+                  key={item.source}
+                  label={item.label}
+                  value={item.total}
+                  max={sourceMax}
+                  color="#0b97c4"
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <Layers className="h-3 w-3" /> Módulo
+            </p>
+            <div className="space-y-2">
+              {modules.map((item) => (
+                <BarRow
+                  key={item.label}
+                  label={item.label}
+                  value={item.total}
+                  max={moduleMax}
+                  color="#8d6bd8"
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 border-t border-border/60 pt-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Resumo do período
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 divide-border/60 sm:grid-cols-4 sm:divide-x">
+              {[
+                { icon: PhoneCall, label: "Canal principal", value: topSource?.label ?? "—" },
+                { icon: Layers, label: "Módulo mais acionado", value: topModule?.label ?? "—" },
+                { icon: MessageSquarePlus, label: "Chamados", value: String(tickets.length) },
+                {
+                  icon: CalendarClock,
+                  label: "Horário de pico",
+                  value: peakHour === undefined ? "—" : `${peakHour}h–${peakHour + 1}h`,
+                },
+              ].map(({ icon: Icon, label, value }, i) => (
+                <div key={label} className={cn("flex flex-col gap-0.5", i > 0 && "sm:pl-3")}>
+                  <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <Icon className="h-3 w-3" />
+                    {label}
+                  </span>
+                  <span className="text-sm font-bold text-foreground">{value}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 rounded-lg bg-muted/40 dark:bg-white/[0.03] px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+              {topSource?.label ?? "Nenhum canal"} concentra {sourcePct}% dos chamados e{" "}
+              {topModule?.label ?? "nenhum módulo"} representa {modulePct}% das solicitações.
+            </p>
+          </div>
+        </>
+      }
+      back={
+        <>
+          <div className="border-b border-border bg-muted/30 px-6 py-5 sm:px-7">
             <div className="flex items-center gap-3">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
                 <BookOpenText className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <DialogTitle className="text-lg text-foreground">
-                  Principais assuntos por módulo
-                </DialogTitle>
-                <DialogDescription className="mt-1 text-xs">
+                <h4 className="text-lg text-foreground">Principais assuntos por módulo</h4>
+                <p className="mt-1 text-xs">
                   Os três problemas mais registrados em cada módulo no período selecionado
-                </DialogDescription>
+                </p>
               </div>
             </div>
-          </DialogHeader>
+          </div>
           <div className="flex-1 overflow-y-auto bg-muted/10 px-6 py-5 sm:px-7">
             <div className="grid gap-3 md:grid-cols-2">
               {moduleTopics.map((item) => (
@@ -1624,14 +1781,9 @@ function SourceModuleCard({
               ))}
             </div>
           </div>
-          <DialogFooter className="border-t px-6 py-4 sm:px-7">
-            <Button type="button" variant="outline" onClick={() => setShowTopics(false)}>
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+        </>
+      }
+    />
   );
 }
 
@@ -1665,6 +1817,30 @@ function BarRow({
 
 export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string; to?: string }) {
   const allTickets = useTickets();
+  const [operatorFilter, setOperatorFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const operators = useMemo(
+    () =>
+      [
+        ...new Set(
+          allTickets.map(
+            (ticket) => ticket.owner?.trim() || ticket.attendant?.trim() || "Não informado",
+          ),
+        ),
+      ].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [allTickets],
+  );
+  const scopedTickets = useMemo(
+    () =>
+      allTickets.filter(
+        (ticket) =>
+          (!operatorFilter ||
+            (ticket.owner?.trim() || ticket.attendant?.trim() || "Não informado") ===
+              operatorFilter) &&
+          (!statusFilter || ticket.status === statusFilter),
+      ),
+    [allTickets, operatorFilter, statusFilter],
+  );
   const currentMonthStart = new Date();
   currentMonthStart.setDate(1);
   currentMonthStart.setHours(0, 0, 0, 0);
@@ -1680,12 +1856,12 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
       ? new Date(`${effectiveTo}T23:59:59.999`).getTime()
       : Number.POSITIVE_INFINITY;
     if (from && to && start > end) [start, end] = [end, start];
-    return allTickets.filter((ticket) => {
+    return scopedTickets.filter((ticket) => {
       const opened = new Date(ticket.openedAt).getTime();
       return Number.isFinite(opened) && opened >= start && opened <= end;
     });
-  }, [allTickets, from, to, defaultFrom, defaultTo]);
-  const hasDateFilter = Boolean(from || to);
+  }, [scopedTickets, from, to, defaultFrom, defaultTo]);
+  const hasDateFilter = Boolean(from || to || operatorFilter || statusFilter);
 
   const statusDistribution = ticketStatuses
     .filter((status) => status !== "Atrasado" && status !== "Cancelado")
@@ -1715,6 +1891,49 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
 
   return (
     <section className="space-y-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-xs">
+          Operador
+          <select
+            value={operatorFilter}
+            onChange={(event) => setOperatorFilter(event.target.value)}
+            className="h-9 max-w-full rounded-md border bg-background px-2 text-sm"
+          >
+            <option value="">Todos</option>
+            {operators.map((operator) => (
+              <option key={operator}>{operator}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-2 text-xs">
+          Status
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="h-9 rounded-md border bg-background px-2 text-sm"
+          >
+            <option value="">Todos</option>
+            {ticketStatuses.map((status) => (
+              <option key={status}>{status}</option>
+            ))}
+          </select>
+        </label>
+        {(operatorFilter || statusFilter) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setOperatorFilter("");
+              setStatusFilter("");
+            }}
+          >
+            Limpar filtros
+          </Button>
+        )}
+        <span className="text-xs text-muted-foreground">
+          {supportTickets.length} chamados no período
+        </span>
+      </div>
       <TicketsIndicatorCards
         tickets={hasDateFilter ? supportTickets : allTickets}
         filtered={hasDateFilter}
@@ -1736,7 +1955,7 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
       >
         <TopAgentsCard tickets={supportTickets} />
         <StatisticsCard
-          tickets={allTickets}
+          tickets={scopedTickets}
           rangeStart={from || (!to ? defaultFrom : "")}
           rangeEnd={to || (!from ? defaultTo : "")}
         />
@@ -1748,7 +1967,11 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <StatusCategoriesCard data={statusDistribution} />
+        <StatusCategoriesCard
+          data={statusDistribution}
+          activeStatus={statusFilter || null}
+          onSelect={setStatusFilter}
+        />
         <SourceModuleCard
           sources={sourceDistribution}
           modules={moduleDistribution}

@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { Activity, BarChart3 } from "lucide-react";
 import { AppShell } from "@/components/portal/AppShell";
+import { ProcionLogo } from "@/components/portal/ProcionLogo";
 import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -147,6 +148,7 @@ function AnalyticsPage() {
 
         <div className="analytics-cockpit__content">
           <div className="analytics-heading">
+            <ProcionLogo className="mb-4 h-10 w-40 text-primary" />
             <div>
               <Breadcrumbs items={[{ label: "Analytics" }]} />
               <div className="flex items-center gap-3">
