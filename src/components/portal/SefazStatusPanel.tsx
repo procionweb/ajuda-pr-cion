@@ -329,6 +329,12 @@ function ExternalReportsView({
   }
 
   const peak = Math.max(0, ...data.chartPoints.map((point) => point.reports));
+  const timeTicks = data.chartPoints
+    .map((point) => point.time)
+    .filter((time) => {
+      const [hour, minute] = time.split(":").map(Number);
+      return minute === 0 && hour % 3 === 0;
+    });
   const collectedAt = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
@@ -371,7 +377,8 @@ function ExternalReportsView({
                 dataKey="time"
                 axisLine={false}
                 tickLine={false}
-                minTickGap={30}
+                ticks={timeTicks}
+                interval={0}
                 tick={{ fill: isDark ? "#999ba6" : "#6b7280", fontSize: 10 }}
               />
               <YAxis
