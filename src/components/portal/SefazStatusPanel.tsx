@@ -10,17 +10,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { getSefazMonitor, type FiscalDocument, type SefazMonitorResponse } from "@/lib/sefaz-api";
+import { getSefazMonitor, type SefazMonitorResponse } from "@/lib/sefaz-api";
 import { getLatestDowndetectorSnapshot, type DowndetectorSnapshot } from "@/lib/downdetector-api";
 import { useTheme } from "@/lib/theme-store";
 import { NfeConsultDialog } from "@/components/portal/NfeConsultDialog";
-
-const documentLabels: Record<FiscalDocument, string> = {
-  nfe: "NF-e",
-  nfce: "NFC-e",
-  cte: "CT-e",
-  mdfe: "MDF-e",
-};
 
 const DOWNDETECTOR_SEFAZ_URL = "https://downdetector.com.br/fora-do-ar/sefaz/";
 
@@ -71,7 +64,6 @@ export function SefazStatusPanel() {
   const theme = useTheme();
   const isDark = theme === "dark";
   const [data, setData] = useState<SefazMonitorResponse>();
-  const [selectedDocument, setSelectedDocument] = useState<FiscalDocument>("nfe");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [view, setView] = useState<"technical" | "external">("technical");
@@ -122,12 +114,12 @@ export function SefazStatusPanel() {
     }
   }, [externalData, externalLoading, loadExternalReports, view]);
 
-  const selected = data?.documents.find((item) => item.document === selectedDocument);
-  const availableDocuments =
-    data?.documents.map((item) => item.document) ??
-    (Object.keys(documentLabels) as FiscalDocument[]);
+  const selected = data?.documents.find((item) => item.document === "nfe");
   const chartData = useMemo(
-    () => selected?.states.map((state) => ({ ...state, normalLimit: 2 })) ?? [],
+    () =>
+      selected?.states
+        .filter((state) => state.uf.toLocaleUpperCase("pt-BR") === "SP")
+        .map((state) => ({ ...state, normalLimit: 2 })) ?? [],
     [selected],
   );
   const maxResponse = Math.max(10, ...chartData.map((state) => state.responseTime));
@@ -143,10 +135,6 @@ export function SefazStatusPanel() {
   const headerBg = isDark ? "bg-[#42434b] text-white" : "bg-card text-card-foreground";
   const cardBorder = isDark ? "" : "border border-border";
   const subtitle = isDark ? "text-[#b9bbc5]" : "text-muted-foreground";
-  const tabsWrap = isDark ? "border-[#5a5b63] bg-[#34353b]" : "border-border bg-background";
-  const tabInactive = isDark
-    ? "text-[#c7c8cf] hover:bg-white/10"
-    : "text-muted-foreground hover:bg-muted";
   const refreshBtn = isDark
     ? "border-[#5a5b63] bg-[#34353b] text-[#d9dae0] hover:bg-[#505159]"
     : "border-border bg-background text-muted-foreground hover:bg-muted";
@@ -159,7 +147,7 @@ export function SefazStatusPanel() {
         <div className="min-w-0">
           <h2 className="text-[17px] font-semibold leading-tight">
             {view === "technical"
-              ? "Disponibilidade dos autorizadores SEFAZ"
+              ? "Disponibilidade da NF-e em São Paulo"
               : "Relatos externos da SEFAZ"}
           </h2>
           <p className={`mt-1 text-[11px] ${subtitle}`}>
@@ -199,24 +187,6 @@ export function SefazStatusPanel() {
             >
               Conferir fonte <ExternalLink className="h-3.5 w-3.5" />
             </a>
-          )}
-          {view === "technical" && (
-            <div
-              className={`col-span-2 grid grid-cols-4 rounded-md border p-0.5 sm:flex ${tabsWrap}`}
-            >
-              {availableDocuments.map((document) => (
-                <button
-                  key={document}
-                  type="button"
-                  onClick={() => setSelectedDocument(document)}
-                  className={`min-w-0 cursor-pointer rounded px-2 py-1.5 text-xs transition-colors sm:px-3 ${
-                    selectedDocument === document ? "bg-[#11a6b2] text-white" : tabInactive
-                  }`}
-                >
-                  {documentLabels[document]}
-                </button>
-              ))}
-            </div>
           )}
           <button
             type="button"
