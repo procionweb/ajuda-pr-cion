@@ -374,7 +374,7 @@ function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
       flipped={showAll}
       onBack={() => setShowAll(false)}
       title="Performance dos operadores"
-      className="rounded-md border border-border/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:bg-card"
+      className="analytics-operators rounded-md border border-border/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.08)] dark:bg-card"
       front={
         <>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -391,7 +391,7 @@ function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
             </Button>
           </div>
 
-          <div className="space-y-3">
+          <div className="analytics-operators__list space-y-3">
             {agents.map((agent) => {
               const resolutionRate = agent.handled
                 ? Math.round((agent.finished / agent.handled) * 100)
@@ -405,7 +405,7 @@ function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
               return (
                 <div
                   key={agent.operator}
-                  className="flex flex-col gap-3 rounded-md border border-border/80 bg-white px-4 py-3 dark:bg-background/30 lg:flex-row lg:items-center lg:gap-5"
+                  className="analytics-operators__row rounded-md border border-border/80 bg-white px-4 py-3 dark:bg-background/30"
                 >
                   <div className="flex min-w-0 items-center gap-3 lg:w-[200px]">
                     <span
