@@ -14,6 +14,7 @@ function extractSnapshot() {
     /falhas mais relatadas|problemas mais relatados/i.test(text(element)),
   );
   const failureRoot =
+    document.querySelector('[aria-label*="reported problems" i]') ??
     failureHeading?.parentElement?.querySelector('[aria-label*="reported problems" i]') ??
     failureHeading?.nextElementSibling ??
     failureHeading;
