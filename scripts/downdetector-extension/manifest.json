@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Prócion - Relatos SEFAZ",
+  "version": "1.0.0",
+  "description": "Compartilha no CRM apenas o gráfico e as falhas agregadas da SEFAZ.",
+  "permissions": ["alarms", "tabs"],
+  "host_permissions": [
+    "https://downdetector.com.br/fora-do-ar/sefaz/*",
+    "https://vbkbbfeujqmvgmmhmeao.supabase.co/functions/v1/downdetector-snapshot"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://downdetector.com.br/fora-do-ar/sefaz/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Prócion - Relatos SEFAZ"
+  }
+}

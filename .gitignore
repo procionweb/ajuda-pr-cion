@@ -17,6 +17,7 @@ dist-ssr
 *.local
 supabase/.temp/
 .cache/
+scripts/downdetector-extension/collector-config.local.js
 
 # Wrangler / Cloudflare
 .wrangler/
