@@ -4,7 +4,13 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { type KanbanCard as CardType, type KanbanColumn, isPriorityLabel, kanbanLabelColor, priorityMeta } from "@/lib/kanban-data";
+import {
+  type KanbanCard as CardType,
+  type KanbanColumn,
+  isPriorityLabel,
+  kanbanLabelColor,
+  priorityMeta,
+} from "@/lib/kanban-data";
 import { kanbanStore } from "@/lib/kanban-store";
 import { KanbanCardMenu } from "./KanbanCardMenu";
 import type { BoardMember } from "@/lib/kanban-api";
@@ -108,23 +114,33 @@ const KanbanCardContent = memo(function KanbanCardContent({
   onDelete,
   canDelete,
 }: KanbanCardItemProps) {
-  const memberIds = Array.from(new Set([...(card.participants ?? []), card.assigneeId])).filter(
-    Boolean,
-  );
-  const members = memberIds
-    .map((id) => {
-      const member = boardMembers.find((item) => item.id === id || item.operator === id);
-      if (member)
-        return {
-          ...member,
-          initials: member.operator?.toUpperCase().startsWith("PRC")
-            ? "PRC"
-            : member.name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase(),
-          color: "bg-primary/15 text-primary",
-        };
-      return undefined;
-    })
-    .filter((member): member is NonNullable<typeof member> => Boolean(member));
+  const memberIds = Array.from(
+    new Set([...(card.participants ?? []), card.assigneeId, card.createdBy]),
+  ).filter(Boolean);
+  const members = [
+    ...new Map(
+      memberIds
+        .map((id) => {
+          const member = boardMembers.find((item) => item.id === id || item.operator === id);
+          if (member)
+            return {
+              ...member,
+              initials: member.operator?.toUpperCase().startsWith("PRC")
+                ? "PRC"
+                : member.name
+                    .split(" ")
+                    .map((part) => part[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase(),
+              color: "bg-primary/15 text-primary",
+            };
+          return undefined;
+        })
+        .filter((member): member is NonNullable<typeof member> => Boolean(member))
+        .map((member) => [member.id, member]),
+    ).values(),
+  ];
   const priority = getPriorityMeta(card.priority);
   const total = card.checklist?.length ?? 0;
   const done = card.checklist?.filter((item) => item.done).length ?? 0;
@@ -138,14 +154,17 @@ const KanbanCardContent = memo(function KanbanCardContent({
           className="h-1.5 w-10 rounded-full"
           style={{ backgroundColor: priority.color }}
         />
-        {card.tags?.filter((tag) => !isPriorityLabel(tag)).slice(0, 6).map((t) => (
-          <span
-            key={t}
-            title={t}
-            className="h-1.5 w-10 rounded-full opacity-90"
-            style={{ backgroundColor: kanbanLabelColor(t, kanbanStore.getSnapshot()) }}
-          />
-        ))}
+        {card.tags
+          ?.filter((tag) => !isPriorityLabel(tag))
+          .slice(0, 6)
+          .map((t) => (
+            <span
+              key={t}
+              title={t}
+              className="h-1.5 w-10 rounded-full opacity-90"
+              style={{ backgroundColor: kanbanLabelColor(t, kanbanStore.getSnapshot()) }}
+            />
+          ))}
       </div>
 
       <div className="mb-2 flex items-start justify-between gap-2">
@@ -235,13 +254,16 @@ export function KanbanCardPreview({ card }: { card: CardType }) {
     >
       <div className="mb-1.5 flex flex-wrap gap-1">
         <span className="h-1.5 w-10 rounded-full" style={{ backgroundColor: priority.color }} />
-        {card.tags?.filter((tag) => !isPriorityLabel(tag)).slice(0, 6).map((tag) => (
-          <span
-            key={tag}
-            className="h-1.5 w-10 rounded-full"
-            style={{ backgroundColor: kanbanLabelColor(tag, kanbanStore.getSnapshot()) }}
-          />
-        ))}
+        {card.tags
+          ?.filter((tag) => !isPriorityLabel(tag))
+          .slice(0, 6)
+          .map((tag) => (
+            <span
+              key={tag}
+              className="h-1.5 w-10 rounded-full"
+              style={{ backgroundColor: kanbanLabelColor(tag, kanbanStore.getSnapshot()) }}
+            />
+          ))}
       </div>
       <p className="line-clamp-3 text-[12px] font-medium leading-[1.35]">{card.title}</p>
       <p className="mt-1 line-clamp-1 text-[10px] text-slate-500 dark:text-slate-400">

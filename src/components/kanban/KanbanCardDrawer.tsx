@@ -43,11 +43,7 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   type KanbanCard,
   type ColumnId,
@@ -91,7 +87,6 @@ type Props = {
   onSave: (card: KanbanCard) => void;
   onDelete?: (id: string) => void;
 };
-
 
 const emptyDraft = (columnId: ColumnId): KanbanCard => ({
   id: "",
@@ -176,7 +171,12 @@ function memberById(id: string | undefined, boardMembers: BoardMember[]) {
       name,
       initials: member.operator?.toUpperCase().startsWith("PRC")
         ? "PRC"
-        : name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase(),
+        : name
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((part) => part[0])
+            .join("")
+            .toUpperCase(),
       color: "bg-primary/15 text-primary",
     };
   }
@@ -202,8 +202,11 @@ export function KanbanCardDrawer({
   );
   const { session, operator } = usePortalAuth();
   const actorId = session?.user.id;
-  const canEditMembers = mode === "create" || canManageMembers || Boolean(card?.createdBy && card.createdBy === actorId);
-  const actorName = String(session?.user.user_metadata?.full_name || operator || session?.user.email || "Usuário");
+  const canEditMembers =
+    mode === "create" || canManageMembers || Boolean(card?.createdBy && card.createdBy === actorId);
+  const actorName = String(
+    session?.user.user_metadata?.full_name || operator || session?.user.email || "Usuário",
+  );
   const actorOperator = operator || String(session?.user.user_metadata?.operator || "");
   const [tagsInput, setTagsInput] = useState("");
   const [systemMembers, setSystemMembers] = useState<BoardMember[]>([]);
@@ -235,7 +238,9 @@ export function KanbanCardDrawer({
       .finally(() => {
         if (active) setMembersLoading(false);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -262,7 +267,9 @@ export function KanbanCardDrawer({
     [clients, clientQuery],
   );
   const memberDirectory = useMemo(() => {
-    const listed = [...new Map([...systemMembers, ...boardMembers].map((member) => [member.id, member])).values()];
+    const listed = [
+      ...new Map([...systemMembers, ...boardMembers].map((member) => [member.id, member])).values(),
+    ];
     if (!actorId || listed.some((member) => member.id === actorId)) return listed;
     return [...listed, { id: actorId, name: actorName, operator: actorOperator }];
   }, [boardMembers, systemMembers, actorId, actorName, actorOperator]);
@@ -278,24 +285,22 @@ export function KanbanCardDrawer({
   useEffect(() => {
     if (!open || memberDirectory.length === 0) return;
     setDraft((current) => {
-      const resolvedParticipants = (current.participants ?? [])
-        .map((id) => findMemberByIdentifier(id, memberDirectory)?.id)
-        .filter((id): id is string => Boolean(id));
+      const resolvedParticipants = (current.participants ?? []).map(
+        (id) => findMemberByIdentifier(id, memberDirectory)?.id ?? id,
+      );
       const creator = findMemberByIdentifier(
         card?.createdBy || (mode === "create" ? actorId : undefined),
         memberDirectory,
       );
-      const participants = [...new Set([
-        ...resolvedParticipants,
-        ...(creator ? [creator.id] : []),
-      ])];
+      const participants = [...new Set(resolvedParticipants)];
       const assignee = findMemberByIdentifier(current.assigneeId, memberDirectory);
       const assigneeId = assignee?.id ?? creator?.id ?? participants[0] ?? "";
       if (
-        assigneeId === current.assigneeId
-        && participants.length === (current.participants ?? []).length
-        && participants.every((id, index) => id === current.participants?.[index])
-      ) return current;
+        assigneeId === current.assigneeId &&
+        participants.length === (current.participants ?? []).length &&
+        participants.every((id, index) => id === current.participants?.[index])
+      )
+        return current;
       return { ...current, assigneeId, participants };
     });
   }, [open, mode, card?.createdBy, actorId, memberDirectory]);
@@ -317,7 +322,7 @@ export function KanbanCardDrawer({
 
   useEffect(() => {
     if (mode !== "create" || !actorId) return;
-    setDraft((current) => current.assigneeId ? current : { ...current, assigneeId: actorId });
+    setDraft((current) => (current.assigneeId ? current : { ...current, assigneeId: actorId }));
   }, [mode, actorId]);
 
   const update = <K extends keyof KanbanCard>(key: K, value: KanbanCard[K]) => {
@@ -373,9 +378,7 @@ export function KanbanCardDrawer({
   const toggleChecklist = (id: string) => {
     setDraft((d) => ({
       ...d,
-      checklist: (d.checklist ?? []).map((it) =>
-        it.id === id ? { ...it, done: !it.done } : it,
-      ),
+      checklist: (d.checklist ?? []).map((it) => (it.id === id ? { ...it, done: !it.done } : it)),
     }));
   };
 
@@ -432,10 +435,7 @@ export function KanbanCardDrawer({
     );
     setDraft((d) => ({
       ...d,
-      attachmentsList: [
-        ...(d.attachmentsList ?? []),
-        ...attachments,
-      ],
+      attachmentsList: [...(d.attachmentsList ?? []), ...attachments],
       attachments: (d.attachmentsList?.length ?? d.attachments ?? 0) + list.length,
     }));
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -473,7 +473,10 @@ export function KanbanCardDrawer({
   };
 
   const addTags = () => {
-    const incoming = tagsInput.split(",").map((tag) => tag.trim().replace(/^#/, "")).filter(Boolean);
+    const incoming = tagsInput
+      .split(",")
+      .map((tag) => tag.trim().replace(/^#/, ""))
+      .filter(Boolean);
     if (!incoming.length) return;
     setDraft((current) => ({
       ...current,
@@ -513,10 +516,15 @@ export function KanbanCardDrawer({
       toast.error("Informe o título do cartão");
       return;
     }
-    const tags = [...new Set([
-      ...(draft.tags ?? []),
-      ...tagsInput.split(",").map((tag) => tag.trim().replace(/^#/, "")).filter(Boolean),
-    ])];
+    const tags = [
+      ...new Set([
+        ...(draft.tags ?? []),
+        ...tagsInput
+          .split(",")
+          .map((tag) => tag.trim().replace(/^#/, ""))
+          .filter(Boolean),
+      ]),
+    ];
     let final: KanbanCard = {
       ...draft,
       title,
@@ -529,14 +537,15 @@ export function KanbanCardDrawer({
         ...final,
         createdBy: actorId,
         assigneeId: final.assigneeId || actorId,
-        participants: [...new Set([...(final.participants ?? []), actorId])],
       };
     }
     const changes: string[] = [];
     const before = card ? withDefaults(card) : null;
     const changed = (label: string, previous: unknown, next: unknown) => {
       if (String(previous ?? "") !== String(next ?? "")) {
-        changes.push(`${label} alterado de "${String(previous || "vazio")}" para "${String(next || "vazio")}"`);
+        changes.push(
+          `${label} alterado de "${String(previous || "vazio")}" para "${String(next || "vazio")}"`,
+        );
       }
     };
 
@@ -553,7 +562,8 @@ export function KanbanCardDrawer({
       changed("Prazo", before.dueDate, final.dueDate);
 
       if (before.columnId !== final.columnId) {
-        const from = columns.find((column) => column.id === before.columnId)?.title ?? before.columnId;
+        const from =
+          columns.find((column) => column.id === before.columnId)?.title ?? before.columnId;
         const to = columns.find((column) => column.id === final.columnId)?.title ?? final.columnId;
         changes.push(`Movido de "${from}" para "${to}"`);
       }
@@ -563,16 +573,22 @@ export function KanbanCardDrawer({
         changes.push(`Responsável alterado de "${from}" para "${to}"`);
       }
       const sorted = (values: string[]) => [...values].sort().join("|");
-      if (sorted(before.participants ?? []) !== sorted(final.participants ?? [])) changes.push("Participantes atualizados");
-      if (sorted(before.tags ?? []) !== sorted(final.tags ?? [])) changes.push("Etiquetas atualizadas");
+      if (sorted(before.participants ?? []) !== sorted(final.participants ?? []))
+        changes.push("Participantes atualizados");
+      if (sorted(before.tags ?? []) !== sorted(final.tags ?? []))
+        changes.push("Etiquetas atualizadas");
 
       const oldChecklist = new Map((before.checklist ?? []).map((item) => [item.id, item]));
       const newChecklist = new Map((final.checklist ?? []).map((item) => [item.id, item]));
       for (const item of final.checklist ?? []) {
         const old = oldChecklist.get(item.id);
         if (!old) changes.push(`Item de checklist adicionado: "${item.text}"`);
-        else if (old.done !== item.done) changes.push(`Checklist "${item.text}" marcado como ${item.done ? "concluído" : "pendente"}`);
-        else if (old.text !== item.text) changes.push(`Item de checklist renomeado para "${item.text}"`);
+        else if (old.done !== item.done)
+          changes.push(
+            `Checklist "${item.text}" marcado como ${item.done ? "concluído" : "pendente"}`,
+          );
+        else if (old.text !== item.text)
+          changes.push(`Item de checklist renomeado para "${item.text}"`);
       }
       for (const item of before.checklist ?? []) {
         if (!newChecklist.has(item.id)) changes.push(`Item de checklist removido: "${item.text}"`);
@@ -586,12 +602,31 @@ export function KanbanCardDrawer({
       ) => {
         const oldIds = new Set(previous.map((item) => item.id));
         const newIds = new Set(next.map((item) => item.id));
-        next.filter((item) => !oldIds.has(item.id)).forEach((item) => changes.push(`${label} adicionado: "${display(item)}"`));
-        previous.filter((item) => !newIds.has(item.id)).forEach((item) => changes.push(`${label} removido: "${display(item)}"`));
+        next
+          .filter((item) => !oldIds.has(item.id))
+          .forEach((item) => changes.push(`${label} adicionado: "${display(item)}"`));
+        previous
+          .filter((item) => !newIds.has(item.id))
+          .forEach((item) => changes.push(`${label} removido: "${display(item)}"`));
       };
-      auditRelations(before.relatedArticles ?? [], final.relatedArticles ?? [], "Artigo", (item) => item.title);
-      auditRelations(before.relatedVersions ?? [], final.relatedVersions ?? [], "Versão", (item) => item.version);
-      auditRelations(before.attachmentsList ?? [], final.attachmentsList ?? [], "Anexo", (item) => item.name);
+      auditRelations(
+        before.relatedArticles ?? [],
+        final.relatedArticles ?? [],
+        "Artigo",
+        (item) => item.title,
+      );
+      auditRelations(
+        before.relatedVersions ?? [],
+        final.relatedVersions ?? [],
+        "Versão",
+        (item) => item.version,
+      );
+      auditRelations(
+        before.attachmentsList ?? [],
+        final.attachmentsList ?? [],
+        "Anexo",
+        (item) => item.name,
+      );
 
       const oldComments = new Set((before.commentsList ?? []).map((item) => item.id));
       const addedComments = (final.commentsList ?? []).filter((item) => !oldComments.has(item.id));
@@ -639,16 +674,12 @@ export function KanbanCardDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        className="w-full sm:max-w-3xl lg:max-w-5xl h-full max-h-screen p-0 flex flex-col gap-0 data-[state=open]:duration-200 data-[state=closed]:duration-150"
-      >
+      <SheetContent className="w-full sm:max-w-3xl lg:max-w-5xl h-full max-h-screen p-0 flex flex-col gap-0 data-[state=open]:duration-200 data-[state=closed]:duration-150">
         {/* Header */}
         <div className="px-5 sm:px-6 pt-5 pb-4 border-b border-border bg-background">
           <SheetHeader className="space-y-2">
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
-              {mode === "edit" && draft.id && (
-                <span className="font-mono">{draft.id}</span>
-              )}
+              {mode === "edit" && draft.id && <span className="font-mono">{draft.id}</span>}
               {mode === "edit" && draft.id && <span>·</span>}
               <Badge className={cn("text-[10px]", currentPriorityMeta.badge)}>
                 {isCritical && "🚨 "}
@@ -675,7 +706,10 @@ export function KanbanCardDrawer({
                 : "Edite as informações e clique em salvar."}
             </SheetDescription>
             <div className="space-y-1.5 pt-1">
-              <Label htmlFor="kanban-card-title" className="text-[11px] uppercase text-muted-foreground">
+              <Label
+                htmlFor="kanban-card-title"
+                className="text-[11px] uppercase text-muted-foreground"
+              >
                 Título do cartão <span className="text-destructive">*</span>
               </Label>
               <Input
@@ -735,7 +769,10 @@ export function KanbanCardDrawer({
                     const completed = items.filter((item) => item.done).length;
                     const progress = Math.round((completed / items.length) * 100);
                     return (
-                      <div key={title} className="rounded-lg border border-border bg-card p-3 space-y-2">
+                      <div
+                        key={title}
+                        className="rounded-lg border border-border bg-card p-3 space-y-2"
+                      >
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <p className="text-sm font-medium">{title}</p>
@@ -764,9 +801,7 @@ export function KanbanCardDrawer({
                     );
                   })}
                   {checklistGroups.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic">
-                      Nenhum item adicionado.
-                    </p>
+                    <p className="text-xs text-muted-foreground italic">Nenhum item adicionado.</p>
                   )}
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-[180px_minmax(0,1fr)_auto]">
@@ -789,7 +824,12 @@ export function KanbanCardDrawer({
                     placeholder="Adicionar item ao checklist..."
                     className="h-9 text-sm"
                   />
-                  <Button size="sm" variant="secondary" onClick={addChecklistItem} className="cursor-pointer">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={addChecklistItem}
+                    className="cursor-pointer"
+                  >
                     <Plus className="h-4 w-4 mr-1" /> Adicionar
                   </Button>
                 </div>
@@ -854,9 +894,7 @@ export function KanbanCardDrawer({
                     </div>
                   ))}
                   {(draft.attachmentsList ?? []).length === 0 && (
-                    <p className="text-xs text-muted-foreground italic">
-                      Nenhum anexo.
-                    </p>
+                    <p className="text-xs text-muted-foreground italic">Nenhum anexo.</p>
                   )}
                 </div>
                 <div>
@@ -874,63 +912,68 @@ export function KanbanCardDrawer({
                   >
                     <Paperclip className="mx-auto mb-1.5 h-5 w-5" />
                     <span className="block font-medium">Clique para anexar arquivos</span>
-                    <span className="block text-[11px]">Você pode selecionar um ou mais arquivos do computador</span>
+                    <span className="block text-[11px]">
+                      Você pode selecionar um ou mais arquivos do computador
+                    </span>
                   </button>
                 </div>
               </section>
 
               {/* Sugestões automáticas para Bug/Suporte */}
-              {(draft.type === "Bug" || draft.type === "Suporte") && (() => {
-                const suggestions = suggestArticlesForCard({
-                  type: draft.type,
-                  module: draft.module,
-                  tags: draft.tags,
-                }).filter(
-                  (a) => !(draft.relatedArticles ?? []).some((x) => x.id === a.id),
-                );
-                if (suggestions.length === 0) return null;
-                return (
-                  <section className="space-y-3">
-                    <SectionHeader icon={BookOpen} title="Sugestões da base" count={suggestions.length} />
-                    <p className="text-xs text-muted-foreground">
-                      Artigos de Erros e Correções que podem ajudar neste card.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {suggestions.map((a) => (
-                        <div
-                          key={a.id}
-                          className="flex items-start justify-between gap-2 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3"
-                        >
-                          <div className="min-w-0">
-                            <Link
-                              to="/base-de-conhecimento/$slug"
-                              params={{ slug: a.slug }}
-                              className="cursor-pointer text-sm font-medium hover:underline block truncate"
-                            >
-                              {a.title}
-                            </Link>
-                            <p className="text-[11px] text-muted-foreground truncate">
-                              {a.id} · {getCategory(a.category).name} · {a.module}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() =>
-                              toggleArticle({
-                                id: a.id,
-                                title: a.title,
-                                category: getCategory(a.category).name,
-                              })
-                            }
-                            className="cursor-pointer shrink-0 inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+              {(draft.type === "Bug" || draft.type === "Suporte") &&
+                (() => {
+                  const suggestions = suggestArticlesForCard({
+                    type: draft.type,
+                    module: draft.module,
+                    tags: draft.tags,
+                  }).filter((a) => !(draft.relatedArticles ?? []).some((x) => x.id === a.id));
+                  if (suggestions.length === 0) return null;
+                  return (
+                    <section className="space-y-3">
+                      <SectionHeader
+                        icon={BookOpen}
+                        title="Sugestões da base"
+                        count={suggestions.length}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Artigos de Erros e Correções que podem ajudar neste card.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {suggestions.map((a) => (
+                          <div
+                            key={a.id}
+                            className="flex items-start justify-between gap-2 rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3"
                           >
-                            <Plus className="h-3 w-3" /> Vincular
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                );
-              })()}
+                            <div className="min-w-0">
+                              <Link
+                                to="/base-de-conhecimento/$slug"
+                                params={{ slug: a.slug }}
+                                className="cursor-pointer text-sm font-medium hover:underline block truncate"
+                              >
+                                {a.title}
+                              </Link>
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {a.id} · {getCategory(a.category).name} · {a.module}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() =>
+                                toggleArticle({
+                                  id: a.id,
+                                  title: a.title,
+                                  category: getCategory(a.category).name,
+                                })
+                              }
+                              className="cursor-pointer shrink-0 inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                            >
+                              <Plus className="h-3 w-3" /> Vincular
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })()}
 
               {/* Relacionados */}
               <section className="space-y-3">
@@ -957,9 +1000,7 @@ export function KanbanCardDrawer({
                           id: a.id,
                           label: a.title,
                           hint: a.category,
-                          selected: (draft.relatedArticles ?? []).some(
-                            (x) => x.id === a.id,
-                          ),
+                          selected: (draft.relatedArticles ?? []).some((x) => x.id === a.id),
                           onToggle: () => toggleArticle(a),
                         }))}
                       />
@@ -982,9 +1023,7 @@ export function KanbanCardDrawer({
                           id: v.id,
                           label: `v${v.version}`,
                           hint: v.note,
-                          selected: (draft.relatedVersions ?? []).some(
-                            (x) => x.id === v.id,
-                          ),
+                          selected: (draft.relatedVersions ?? []).some((x) => x.id === v.id),
                           onToggle: () => toggleVersion(v),
                         }))}
                       />
@@ -992,7 +1031,6 @@ export function KanbanCardDrawer({
                   />
                 </div>
               </section>
-
 
               {/* Comentários */}
               <section className="space-y-3">
@@ -1010,22 +1048,15 @@ export function KanbanCardDrawer({
                         <div key={c.id} className="flex gap-3">
                           <Avatar className="h-8 w-8 shrink-0">
                             <AvatarFallback
-                              className={cn(
-                                "text-[10px] font-medium",
-                                author?.color,
-                              )}
+                              className={cn("text-[10px] font-medium", author?.color)}
                             >
                               {author?.initials ?? "?"}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 text-xs">
-                              <span className="font-semibold">
-                                {author?.name ?? "Usuário"}
-                              </span>
-                              <span className="text-muted-foreground">
-                                {formatWhen(c.at)}
-                              </span>
+                              <span className="font-semibold">{author?.name ?? "Usuário"}</span>
+                              <span className="text-muted-foreground">{formatWhen(c.at)}</span>
                             </div>
                             <p className="mt-1 text-sm leading-relaxed whitespace-pre-wrap">
                               {c.text}
@@ -1035,9 +1066,7 @@ export function KanbanCardDrawer({
                       );
                     })}
                   {(draft.commentsList ?? []).length === 0 && (
-                    <p className="text-xs text-muted-foreground italic">
-                      Nenhum comentário ainda.
-                    </p>
+                    <p className="text-xs text-muted-foreground italic">Nenhum comentário ainda.</p>
                   )}
                 </div>
                 <div className="flex gap-2 items-start pt-2 border-t border-border">
@@ -1085,7 +1114,12 @@ export function KanbanCardDrawer({
                           <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
                           <p className="text-sm">{e.text}</p>
                           <p className="text-[11px] text-muted-foreground">
-                            {e.authorName || (author?.name === "Membro anterior" ? "Autor não registrado" : author?.name) || "Autor não registrado"} · {e.authorOperator && `${e.authorOperator} · `}
+                            {e.authorName ||
+                              (author?.name === "Membro anterior"
+                                ? "Autor não registrado"
+                                : author?.name) ||
+                              "Autor não registrado"}{" "}
+                            · {e.authorOperator && `${e.authorOperator} · `}
                             {formatWhen(e.at)}
                           </p>
                         </li>
@@ -1103,18 +1137,28 @@ export function KanbanCardDrawer({
             {/* SIDEBAR (props operacionais) */}
             <aside className="border-t lg:border-t-0 lg:border-l border-border bg-muted/30 px-5 sm:px-6 py-5 space-y-5">
               <SidebarField icon={Boxes} label="Status">
-                <Select value={draft.columnId} onValueChange={(v) => handleChangeStatus(v as ColumnId)}>
-                  <SelectTrigger className="h-9 cursor-pointer"><SelectValue /></SelectTrigger>
+                <Select
+                  value={draft.columnId}
+                  onValueChange={(v) => handleChangeStatus(v as ColumnId)}
+                >
+                  <SelectTrigger className="h-9 cursor-pointer">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {columns.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.title}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </SidebarField>
 
               <SidebarField icon={Tag} label="Prioridade">
-                <Select value={draft.priority} onValueChange={(v) => handleChangePriority(v as KanbanCard["priority"])}>
+                <Select
+                  value={draft.priority}
+                  onValueChange={(v) => handleChangePriority(v as KanbanCard["priority"])}
+                >
                   <SelectTrigger className="h-10 cursor-pointer">
                     <SelectValue />
                   </SelectTrigger>
@@ -1122,7 +1166,10 @@ export function KanbanCardDrawer({
                     {priorities.map((p) => (
                       <SelectItem key={p} value={p}>
                         <span className="inline-flex items-center gap-2.5">
-                          <span className="h-2 w-14 rounded-full" style={{ backgroundColor: priorityMeta[p].color }} />
+                          <span
+                            className="h-2 w-14 rounded-full"
+                            style={{ backgroundColor: priorityMeta[p].color }}
+                          />
                           {p}
                         </span>
                       </SelectItem>
@@ -1132,18 +1179,56 @@ export function KanbanCardDrawer({
               </SidebarField>
 
               <SidebarField icon={Tag} label="Tipo">
-                <Select value={draft.type} onValueChange={(v) => update("type", v as KanbanCard["type"])}>
-                  <SelectTrigger className="h-9 cursor-pointer"><SelectValue /></SelectTrigger>
+                <Select
+                  value={draft.type}
+                  onValueChange={(v) => update("type", v as KanbanCard["type"])}
+                >
+                  <SelectTrigger className="h-9 cursor-pointer">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {cardTypes.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </SidebarField>
 
+              {mode === "edit" &&
+                card?.createdBy &&
+                memberById(card.createdBy, memberDirectory) && (
+                  <SidebarField icon={Users} label="Criado por">
+                    {(() => {
+                      const creator = memberById(card.createdBy, memberDirectory)!;
+                      return (
+                        <div className="flex h-9 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm">
+                          <Avatar className="h-5 w-5">
+                            <AvatarFallback
+                              className={cn("text-[9px] font-semibold", creator.color)}
+                            >
+                              {creator.initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="truncate">{creator.name}</span>
+                          {creator.operator && (
+                            <span className="ml-auto text-[10px] text-muted-foreground">
+                              {creator.operator}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </SidebarField>
+                )}
+
               <SidebarField icon={Users} label="Responsável">
-                <Select value={draft.assigneeId || undefined} onValueChange={handleChangeAssignee} disabled={!canEditMembers}>
+                <Select
+                  value={draft.assigneeId || undefined}
+                  onValueChange={handleChangeAssignee}
+                  disabled={!canEditMembers}
+                >
                   <SelectTrigger className="h-9 cursor-pointer">
                     <SelectValue placeholder="Selecionar membro" />
                   </SelectTrigger>
@@ -1153,7 +1238,9 @@ export function KanbanCardDrawer({
                         <SelectItem value={draft.assigneeId}>Membro anterior</SelectItem>
                       )}
                     {membersLoading && availableMembers.length === 0 && (
-                      <div className="px-2 py-2 text-sm text-muted-foreground">Carregando membros...</div>
+                      <div className="px-2 py-2 text-sm text-muted-foreground">
+                        Carregando membros...
+                      </div>
                     )}
                     {availableMembers.map((member) => {
                       const m = memberById(member.id, memberDirectory)!;
@@ -1169,7 +1256,11 @@ export function KanbanCardDrawer({
                               {m.initials}
                             </span>
                             <span>{m.name}</span>
-                            {m.operator && <span className="text-[10px] text-muted-foreground">{m.operator}</span>}
+                            {m.operator && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {m.operator}
+                              </span>
+                            )}
                           </span>
                         </SelectItem>
                       );
@@ -1186,7 +1277,9 @@ export function KanbanCardDrawer({
                     return (
                       <button
                         key={pid}
-                        onClick={() => { if (canEditMembers) toggleParticipant(pid); }}
+                        onClick={() => {
+                          if (canEditMembers) toggleParticipant(pid);
+                        }}
                         className="group inline-flex items-center gap-1 pl-0.5 pr-1.5 py-0.5 rounded-full bg-background border border-border text-[11px]"
                       >
                         <Avatar className="h-5 w-5">
@@ -1195,48 +1288,63 @@ export function KanbanCardDrawer({
                           </AvatarFallback>
                         </Avatar>
                         <span>{p.name.split(" ")[0]}</span>
-                        {canEditMembers && <X className="h-3 w-3 text-muted-foreground group-hover:text-destructive" />}
+                        {canEditMembers && (
+                          <X className="h-3 w-3 text-muted-foreground group-hover:text-destructive" />
+                        )}
                       </button>
                     );
                   })}
-                  {canEditMembers && <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="inline-flex cursor-pointer items-center gap-1 h-6 px-2 rounded-full border border-dashed border-border text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/40">
-                        <Plus className="h-3 w-3" /> Adicionar
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-64 p-2" align="end">
-                      <div className="space-y-0.5 max-h-64 overflow-y-auto">
-                        {availableMembers.map((member) => {
-                          const m = memberById(member.id, memberDirectory)!;
-                          const selected = (draft.participants ?? []).includes(m.id);
-                          return (
-                            <button
-                              key={m.id}
-                              onClick={() => toggleParticipant(m.id)}
-                              className={cn(
-                                "w-full cursor-pointer flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted",
-                                selected && "bg-muted",
-                              )}
-                            >
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className={cn("text-[10px] font-medium", m.color)}>
-                                  {m.initials}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="flex-1 text-left">{m.name}{m.operator && <span className="ml-1 text-[10px] text-muted-foreground">{m.operator}</span>}</span>
-                              {selected && <CheckSquare className="h-3.5 w-3.5 text-primary" />}
-                            </button>
-                          );
-                        })}
-                        {availableMembers.length === 0 && (
-                          <p className="px-2 py-3 text-sm text-muted-foreground">
-                            {membersLoading ? "Carregando membros..." : "Nenhum membro ativo encontrado."}
-                          </p>
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>}
+                  {canEditMembers && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="inline-flex cursor-pointer items-center gap-1 h-6 px-2 rounded-full border border-dashed border-border text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/40">
+                          <Plus className="h-3 w-3" /> Adicionar
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-2" align="end">
+                        <div className="space-y-0.5 max-h-64 overflow-y-auto">
+                          {availableMembers.map((member) => {
+                            const m = memberById(member.id, memberDirectory)!;
+                            const selected = (draft.participants ?? []).includes(m.id);
+                            return (
+                              <button
+                                key={m.id}
+                                onClick={() => toggleParticipant(m.id)}
+                                className={cn(
+                                  "w-full cursor-pointer flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted",
+                                  selected && "bg-muted",
+                                )}
+                              >
+                                <Avatar className="h-6 w-6">
+                                  <AvatarFallback
+                                    className={cn("text-[10px] font-medium", m.color)}
+                                  >
+                                    {m.initials}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="flex-1 text-left">
+                                  {m.name}
+                                  {m.operator && (
+                                    <span className="ml-1 text-[10px] text-muted-foreground">
+                                      {m.operator}
+                                    </span>
+                                  )}
+                                </span>
+                                {selected && <CheckSquare className="h-3.5 w-3.5 text-primary" />}
+                              </button>
+                            );
+                          })}
+                          {availableMembers.length === 0 && (
+                            <p className="px-2 py-3 text-sm text-muted-foreground">
+                              {membersLoading
+                                ? "Carregando membros..."
+                                : "Nenhum membro ativo encontrado."}
+                            </p>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
               </SidebarField>
 
@@ -1296,13 +1404,16 @@ export function KanbanCardDrawer({
                           >
                             <span className="block truncate text-sm">{label}</span>
                             <span className="block truncate text-xs text-muted-foreground">
-                              {client.acronym}{client.cnpj ? ` · ${client.cnpj}` : ""}
+                              {client.acronym}
+                              {client.cnpj ? ` · ${client.cnpj}` : ""}
                             </span>
                           </button>
                         );
                       })}
                       {clientsLoading && (
-                        <p className="px-2 py-3 text-sm text-muted-foreground">Carregando clientes...</p>
+                        <p className="px-2 py-3 text-sm text-muted-foreground">
+                          Carregando clientes...
+                        </p>
                       )}
                       {clientsError && (
                         <p className="px-2 py-3 text-sm text-destructive">
@@ -1320,17 +1431,32 @@ export function KanbanCardDrawer({
               </SidebarField>
 
               <SidebarField icon={Boxes} label="Módulo do sistema">
-                <Select value={draft.module || undefined} onValueChange={(v) => update("module", v)}>
-                  <SelectTrigger className="h-9 cursor-pointer"><SelectValue placeholder="Selecionar módulo" /></SelectTrigger>
+                <Select
+                  value={draft.module || undefined}
+                  onValueChange={(v) => update("module", v)}
+                >
+                  <SelectTrigger className="h-9 cursor-pointer">
+                    <SelectValue placeholder="Selecionar módulo" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {draft.module && !moduleOptions.includes(draft.module) && <SelectItem value={draft.module}>{draft.module} (módulo anterior)</SelectItem>}
+                    {draft.module && !moduleOptions.includes(draft.module) && (
+                      <SelectItem value={draft.module}>{draft.module} (módulo anterior)</SelectItem>
+                    )}
                     {moduleOptions.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
                     ))}
-                    {modulesLoading && <p className="px-2 py-3 text-sm text-muted-foreground">Carregando módulos...</p>}
+                    {modulesLoading && (
+                      <p className="px-2 py-3 text-sm text-muted-foreground">
+                        Carregando módulos...
+                      </p>
+                    )}
                   </SelectContent>
                 </Select>
-                {moduleError && <p className="text-xs text-destructive">Não foi possível carregar os módulos.</p>}
+                {moduleError && (
+                  <p className="text-xs text-destructive">Não foi possível carregar os módulos.</p>
+                )}
               </SidebarField>
 
               <SidebarField icon={Calendar} label="Prazo">
@@ -1346,12 +1472,20 @@ export function KanbanCardDrawer({
                 {(draft.tags ?? []).length > 0 && (
                   <div className="mb-2 flex flex-wrap gap-1">
                     {draft.tags.map((tag) => (
-                      <span key={tag} className="inline-flex items-center gap-1 rounded bg-muted px-2 py-1 text-xs">
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 rounded bg-muted px-2 py-1 text-xs"
+                      >
                         {tag}
                         <button
                           type="button"
                           aria-label={`Remover tag ${tag}`}
-                          onClick={() => update("tags", draft.tags.filter((item) => item !== tag))}
+                          onClick={() =>
+                            update(
+                              "tags",
+                              draft.tags.filter((item) => item !== tag),
+                            )
+                          }
                           className="cursor-pointer text-muted-foreground hover:text-destructive"
                         >
                           <X className="h-3 w-3" />
@@ -1384,7 +1518,10 @@ export function KanbanCardDrawer({
                 <div className="flex flex-col gap-1.5">
                   {(() => {
                     const idx = kanbanColumnsDef.findIndex((c) => c.id === draft.columnId);
-                    const next = idx >= 0 && idx < kanbanColumnsDef.length - 1 ? kanbanColumnsDef[idx + 1] : null;
+                    const next =
+                      idx >= 0 && idx < kanbanColumnsDef.length - 1
+                        ? kanbanColumnsDef[idx + 1]
+                        : null;
                     if (!next) return null;
                     return (
                       <Button
@@ -1397,7 +1534,12 @@ export function KanbanCardDrawer({
                       </Button>
                     );
                   })()}
-                  <Button variant="outline" size="sm" className="cursor-pointer justify-start" onClick={handleArchive}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cursor-pointer justify-start"
+                    onClick={handleArchive}
+                  >
                     <Archive className="h-4 w-4 mr-2" /> Arquivar card
                   </Button>
                   {mode === "edit" && onDelete && draft.id && (
@@ -1415,7 +1557,6 @@ export function KanbanCardDrawer({
                   )}
                 </div>
               </div>
-
             </aside>
           </div>
         </div>
@@ -1493,12 +1634,7 @@ function ChecklistRow({
   return (
     <div className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/60">
       <Checkbox checked={item.done} onCheckedChange={onToggle} />
-      <span
-        className={cn(
-          "flex-1 text-sm",
-          item.done && "line-through text-muted-foreground",
-        )}
-      >
+      <span className={cn("flex-1 text-sm", item.done && "line-through text-muted-foreground")}>
         {item.text}
       </span>
       <button
@@ -1535,9 +1671,7 @@ function RelatedBlock({
         {picker}
       </div>
       <div className="space-y-1.5">
-        {items.length === 0 && (
-          <p className="text-xs text-muted-foreground italic">{emptyLabel}</p>
-        )}
+        {items.length === 0 && <p className="text-xs text-muted-foreground italic">{emptyLabel}</p>}
         {items.map((it) => (
           <div key={it.key} className="flex items-start justify-between gap-2 text-sm">
             <div className="min-w-0">
@@ -1582,9 +1716,7 @@ function RelationPicker({
   const [open, setOpen] = useState(false);
   const sortedOptions = useMemo(
     () =>
-      [...options].sort((a, b) =>
-        a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" }),
-      ),
+      [...options].sort((a, b) => a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" })),
     [options],
   );
   return (
@@ -1616,9 +1748,7 @@ function RelationPicker({
               />
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{o.label}</p>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  {o.hint}
-                </p>
+                <p className="text-[11px] text-muted-foreground truncate">{o.hint}</p>
               </div>
             </button>
           ))}
@@ -1627,4 +1757,3 @@ function RelationPicker({
     </Popover>
   );
 }
-

@@ -44,7 +44,20 @@
 }
 .analytics-cockpit .analytics-heading {
   margin-bottom: 18px;
+  display: flex;
   align-items: center;
+}
+.analytics-heading__brand {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 18px;
+}
+.analytics-heading__divider {
+  width: 1px;
+  height: 52px;
+  flex: 0 0 auto;
+  background: var(--analytics-grid);
 }
 .analytics-cockpit .analytics-heading h1 {
   font-size: 26px;
@@ -54,6 +67,11 @@
   display: none;
 }
 .analytics-cockpit .analytics-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -604,6 +622,20 @@
   }
   .analytics-cockpit .analytics-heading h1 {
     font-size: 22px;
+  }
+  .analytics-heading__brand {
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .analytics-heading__brand > svg {
+    width: 108px;
+  }
+  .analytics-heading__divider {
+    display: none;
+  }
+  .analytics-cockpit .analytics-toolbar {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 @media (prefers-reduced-motion: reduce) {

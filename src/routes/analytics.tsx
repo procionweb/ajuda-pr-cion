@@ -148,20 +148,23 @@ function AnalyticsPage() {
 
         <div className="analytics-cockpit__content">
           <div className="analytics-heading">
-            <ProcionLogo className="mb-4 h-10 w-40 text-primary" />
-            <div>
-              <Breadcrumbs items={[{ label: "Analytics" }]} />
-              <div className="flex items-center gap-3">
-                <span className="analytics-heading__icon" aria-hidden="true">
-                  <Activity className="h-5 w-5" />
-                </span>
-                <div>
-                  <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                    Olá, {firstName}!
-                  </h1>
-                  <p className="mt-1 max-w-2xl text-xs text-muted-foreground sm:text-sm">
-                    Indicadores consolidados de atendimento e produtividade do time.
-                  </p>
+            <div className="analytics-heading__brand">
+              <ProcionLogo className="h-9 w-36 shrink-0 text-primary" />
+              <div className="analytics-heading__divider" aria-hidden="true" />
+              <div>
+                <Breadcrumbs items={[{ label: "Analytics" }]} />
+                <div className="flex items-center gap-3">
+                  <span className="analytics-heading__icon" aria-hidden="true">
+                    <Activity className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                      Olá, {firstName}!
+                    </h1>
+                    <p className="mt-1 max-w-2xl text-xs text-muted-foreground sm:text-sm">
+                      Indicadores consolidados de atendimento e produtividade do time.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
