@@ -8,8 +8,7 @@ import nodemailer from "npm:nodemailer@^9";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -55,8 +54,17 @@ async function getActor(req: Request): Promise<Actor> {
 async function workspaceAccess(actor: Actor, workspaceId: string, adminOnly = false) {
   if (actor.generalAdmin) return true;
   const [{ data: workspace, error }, { data: member }] = await Promise.all([
-    admin.from("kanban_workspaces").select("owner_id, visibility").eq("id", workspaceId).maybeSingle(),
-    admin.from("kanban_workspace_members").select("role").eq("workspace_id", workspaceId).eq("profile_id", actor.id).maybeSingle(),
+    admin
+      .from("kanban_workspaces")
+      .select("owner_id, visibility")
+      .eq("id", workspaceId)
+      .maybeSingle(),
+    admin
+      .from("kanban_workspace_members")
+      .select("role")
+      .eq("workspace_id", workspaceId)
+      .eq("profile_id", actor.id)
+      .maybeSingle(),
   ]);
   if (error || !workspace) return false;
   if (workspace.owner_id === actor.id || member?.role === "admin") return true;
@@ -66,88 +74,172 @@ async function workspaceAccess(actor: Actor, workspaceId: string, adminOnly = fa
 async function boardAccess(actor: Actor, boardId: string, adminOnly = false) {
   if (actor.generalAdmin) return true;
   const [{ data: board, error }, { data: member }] = await Promise.all([
-    admin.from("kanban_boards").select("owner_id, workspace_id, visibility").eq("id", boardId).maybeSingle(),
-    admin.from("kanban_board_members").select("role").eq("board_id", boardId).eq("profile_id", actor.id).maybeSingle(),
+    admin
+      .from("kanban_boards")
+      .select("owner_id, workspace_id, visibility")
+      .eq("id", boardId)
+      .maybeSingle(),
+    admin
+      .from("kanban_board_members")
+      .select("role")
+      .eq("board_id", boardId)
+      .eq("profile_id", actor.id)
+      .maybeSingle(),
   ]);
   if (error || !board) return false;
   if (board.owner_id === actor.id || member?.role === "admin") return true;
-  if (adminOnly) return Boolean(board.workspace_id && await workspaceAccess(actor, board.workspace_id, true));
-  if (board.workspace_id && !await workspaceAccess(actor, board.workspace_id)) return false;
+  if (adminOnly)
+    return Boolean(board.workspace_id && (await workspaceAccess(actor, board.workspace_id, true)));
+  if (board.workspace_id && !(await workspaceAccess(actor, board.workspace_id))) return false;
   return Boolean(member) || board.visibility !== "private";
 }
 
 async function boardIdFor(action: string, data: any): Promise<string | null> {
   if (data?.boardId) return data.boardId;
   if (action === "revokeBoardInvite") {
-    const { data: invite } = await admin.from("kanban_board_invites").select("board_id").eq("id", data?.id).maybeSingle();
+    const { data: invite } = await admin
+      .from("kanban_board_invites")
+      .select("board_id")
+      .eq("id", data?.id)
+      .maybeSingle();
     return invite?.board_id ?? null;
   }
   if (action === "reorderColumns") {
-    const { data: column } = await admin.from("kanban_columns").select("board_id").eq("id", data?.columnIds?.[0]).maybeSingle();
+    const { data: column } = await admin
+      .from("kanban_columns")
+      .select("board_id")
+      .eq("id", data?.columnIds?.[0])
+      .maybeSingle();
     return column?.board_id ?? null;
   }
-  if (["updateBoard", "duplicateBoard", "archiveBoard", "deleteBoard"].includes(action)) return data?.id ?? null;
+  if (["updateBoard", "duplicateBoard", "archiveBoard", "deleteBoard"].includes(action))
+    return data?.id ?? null;
   if (data?.columnId || ["deleteColumn", "copyColumn", "archiveColumnCards"].includes(action)) {
     const columnId = data?.columnId ?? data?.id;
-    const { data: column } = await admin.from("kanban_columns").select("board_id").eq("id", columnId).maybeSingle();
+    const { data: column } = await admin
+      .from("kanban_columns")
+      .select("board_id")
+      .eq("id", columnId)
+      .maybeSingle();
     return column?.board_id ?? null;
   }
   if (data?.cardId || ["archiveCard", "deleteCard"].includes(action)) {
-    const { data: card } = await admin.from("kanban_cards").select("kanban_columns!inner(board_id)").eq("id", data?.cardId ?? data?.id).maybeSingle();
+    const { data: card } = await admin
+      .from("kanban_cards")
+      .select("kanban_columns!inner(board_id)")
+      .eq("id", data?.cardId ?? data?.id)
+      .maybeSingle();
     return (card?.kanban_columns as any)?.board_id ?? null;
   }
   return null;
 }
 
 async function authorizeAction(action: string, data: any, actor: Actor) {
-  if (["listBoards", "listWorkspaces", "listAvailableMembers", "uploadProfileAvatar", "getBoardInviteInfo", "acceptBoardInvite"].includes(action)) return;
+  if (
+    [
+      "listBoards",
+      "listWorkspaces",
+      "listAvailableMembers",
+      "uploadProfileAvatar",
+      "getBoardInviteInfo",
+      "acceptBoardInvite",
+    ].includes(action)
+  )
+    return;
   if (action === "createWorkspace") {
     if (!actor.generalAdmin) throw new Error("forbidden");
     return;
   }
   if (action === "createBoard") {
-    if (data?.workspaceId ? !await workspaceAccess(actor, data.workspaceId, true) : !actor.generalAdmin) throw new Error("forbidden");
+    if (
+      data?.workspaceId
+        ? !(await workspaceAccess(actor, data.workspaceId, true))
+        : !actor.generalAdmin
+    )
+      throw new Error("forbidden");
     return;
   }
-  if (["updateWorkspace", "deleteWorkspace", "addWorkspaceMember", "updateWorkspaceMemberRole", "removeWorkspaceMember"].includes(action)) {
-    if (!await workspaceAccess(actor, data?.workspaceId ?? data?.id, true)) throw new Error("forbidden");
+  if (
+    [
+      "updateWorkspace",
+      "deleteWorkspace",
+      "addWorkspaceMember",
+      "updateWorkspaceMemberRole",
+      "removeWorkspaceMember",
+    ].includes(action)
+  ) {
+    if (!(await workspaceAccess(actor, data?.workspaceId ?? data?.id, true)))
+      throw new Error("forbidden");
     return;
   }
   if (action === "listWorkspaceMembers") {
-    if (!await workspaceAccess(actor, data?.workspaceId)) throw new Error("forbidden");
+    if (!(await workspaceAccess(actor, data?.workspaceId))) throw new Error("forbidden");
     return;
   }
   const boardId = await boardIdFor(action, data);
   if (!boardId) throw new Error("board_not_found");
-  const adminOnly = ["updateBoard", "duplicateBoard", "archiveBoard", "deleteBoard", "addBoardMember", "updateBoardMemberRole", "removeBoardMember", "createBoardInvite", "revokeBoardInvite", "uploadBoardBackground", "deleteCard"].includes(action);
-  if (!await boardAccess(actor, boardId, adminOnly)) throw new Error("forbidden");
+  const adminOnly = [
+    "updateBoard",
+    "duplicateBoard",
+    "archiveBoard",
+    "deleteBoard",
+    "addBoardMember",
+    "updateBoardMemberRole",
+    "removeBoardMember",
+    "createBoardInvite",
+    "revokeBoardInvite",
+    "uploadBoardBackground",
+    "deleteCard",
+  ].includes(action);
+  if (!(await boardAccess(actor, boardId, adminOnly))) throw new Error("forbidden");
   if (action === "moveCard" || action === "updateCard") {
-    const { data: card } = await admin.from("kanban_cards")
+    const { data: card } = await admin
+      .from("kanban_cards")
       .select("created_by, member_legacy_ids, kanban_columns!inner(board_id)")
-      .eq("id", data?.cardId ?? data?.id).maybeSingle();
+      .eq("id", data?.cardId ?? data?.id)
+      .maybeSingle();
     const sourceBoardId = (card?.kanban_columns as any)?.board_id;
-    if (sourceBoardId && !await boardAccess(actor, sourceBoardId)) throw new Error("forbidden");
-    if (action === "updateCard" && card && !await boardAccess(actor, boardId, true) && card.created_by !== actor.id) {
+    if (sourceBoardId && !(await boardAccess(actor, sourceBoardId))) throw new Error("forbidden");
+    if (
+      action === "updateCard" &&
+      card &&
+      !(await boardAccess(actor, boardId, true)) &&
+      card.created_by !== actor.id
+    ) {
       const before = new Set((card.member_legacy_ids ?? []) as string[]);
       const after = new Set((data?.memberIds ?? []) as string[]);
-      if (before.size !== after.size || [...before].some((id) => !after.has(id))) throw new Error("forbidden");
+      if (before.size !== after.size || [...before].some((id) => !after.has(id)))
+        throw new Error("forbidden");
     }
   }
   if (action === "reorderColumns") {
-    const { data: columns } = await admin.from("kanban_columns").select("board_id").in("id", data.columnIds);
-    if (!columns?.length || columns.some((column: any) => column.board_id !== boardId)) throw new Error("forbidden");
+    const { data: columns } = await admin
+      .from("kanban_columns")
+      .select("board_id")
+      .in("id", data.columnIds);
+    if (!columns?.length || columns.some((column: any) => column.board_id !== boardId))
+      throw new Error("forbidden");
   }
 }
 
 async function listBoards(actor: Actor) {
   const { data: boards, error } = await admin
     .from("kanban_boards")
-    .select("id, workspace_id, name, description, color, cover, visibility, is_favorite, updated_at, created_at")
+    .select(
+      "id, workspace_id, name, description, color, cover, visibility, is_favorite, updated_at, created_at",
+    )
     .eq("archived", false)
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  const allowedBoards = actor.generalAdmin ? boards ?? [] : (await Promise.all((boards ?? []).map(async (board: any) =>
-    await boardAccess(actor, board.id) ? board : null))).filter(Boolean);
+  const allowedBoards = actor.generalAdmin
+    ? (boards ?? [])
+    : (
+        await Promise.all(
+          (boards ?? []).map(async (board: any) =>
+            (await boardAccess(actor, board.id)) ? board : null,
+          ),
+        )
+      ).filter(Boolean);
   const ids = allowedBoards.map((b: any) => b.id);
   if (!ids.length) return { boards: [] };
 
@@ -171,9 +263,12 @@ async function listBoards(actor: Actor) {
   const cardsRes = cardsResult.status === "fulfilled" ? cardsResult.value : { data: [] };
   const membersRes = membersResult.status === "fulfilled" ? membersResult.value : { data: [] };
 
-  if ("error" in colsRes && colsRes.error) console.error("[kanban-api:listBoards:columns]", colsRes.error);
-  if ("error" in cardsRes && cardsRes.error) console.error("[kanban-api:listBoards:cards]", cardsRes.error);
-  if ("error" in membersRes && membersRes.error) console.error("[kanban-api:listBoards:members]", membersRes.error);
+  if ("error" in colsRes && colsRes.error)
+    console.error("[kanban-api:listBoards:columns]", colsRes.error);
+  if ("error" in cardsRes && cardsRes.error)
+    console.error("[kanban-api:listBoards:cards]", cardsRes.error);
+  if ("error" in membersRes && membersRes.error)
+    console.error("[kanban-api:listBoards:members]", membersRes.error);
 
   const colsByBoard = groupBy(colsRes.data ?? [], (r: any) => r.board_id);
   const cardsByBoard: Record<string, number> = {};
@@ -197,13 +292,15 @@ async function listBoards(actor: Actor) {
       createdAt: b.created_at,
       columnsCount: (colsByBoard[b.id] ?? []).length,
       cardsCount: cardsByBoard[b.id] ?? 0,
-      members: (membersByBoard[b.id] ?? []).map((m: any) => ({
-        id: m.profiles?.id,
-        name: m.profiles?.full_name ?? "",
-        avatarUrl: m.profiles?.avatar_url ?? null,
-        operator: m.profiles?.operator_code ?? null,
-        role: m.role,
-      })).filter((m: any) => m.id),
+      members: (membersByBoard[b.id] ?? [])
+        .map((m: any) => ({
+          id: m.profiles?.id,
+          name: m.profiles?.full_name ?? "",
+          avatarUrl: m.profiles?.avatar_url ?? null,
+          operator: m.profiles?.operator_code ?? null,
+          role: m.role,
+        }))
+        .filter((m: any) => m.id),
     })),
   };
 }
@@ -211,55 +308,79 @@ async function listBoards(actor: Actor) {
 async function actorId(req: Request) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) throw new Error("unauthorized");
-  const { data: { user }, error } = await admin.auth.getUser(token);
+  const {
+    data: { user },
+    error,
+  } = await admin.auth.getUser(token);
   if (error || !user) throw new Error("unauthorized");
   return user.id;
 }
 
 async function listWorkspaces(actor: Actor) {
   const currentId = actor.id;
-  const [{ data: workspaces, error }, boardsResult, membersResult, allBoardsResult] = await Promise.all([
-    admin
-      .from("kanban_workspaces")
-      .select("id, name, slug, description, website, logo_url, visibility, settings, owner_id, created_at")
-      .order("created_at", { ascending: true }),
-    listBoards(actor),
-    admin
-      .from("kanban_workspace_members")
-      .select("workspace_id, role, profiles:profile_id(id, full_name, operator_code, avatar_url)"),
-    admin.from("kanban_boards").select("workspace_id"),
-  ]);
+  const [{ data: workspaces, error }, boardsResult, membersResult, allBoardsResult] =
+    await Promise.all([
+      admin
+        .from("kanban_workspaces")
+        .select(
+          "id, name, slug, description, website, logo_url, visibility, settings, owner_id, created_at",
+        )
+        .order("created_at", { ascending: true }),
+      listBoards(actor),
+      admin
+        .from("kanban_workspace_members")
+        .select(
+          "workspace_id, role, profiles:profile_id(id, full_name, operator_code, avatar_url)",
+        ),
+      admin.from("kanban_boards").select("workspace_id"),
+    ]);
   if (error) throw error;
   if (allBoardsResult.error) throw allBoardsResult.error;
 
-  const boardsByWorkspace = groupBy(boardsResult.boards ?? [], (b: any) => b.workspaceId ?? "unassigned");
+  const boardsByWorkspace = groupBy(
+    boardsResult.boards ?? [],
+    (b: any) => b.workspaceId ?? "unassigned",
+  );
   const membersByWorkspace = groupBy(membersResult.data ?? [], (m: any) => m.workspace_id);
 
   return {
-    workspaces: (workspaces ?? []).filter((workspace: any) =>
-      actor.generalAdmin || workspace.owner_id === currentId || workspace.visibility === "company" ||
-      (membersByWorkspace[workspace.id] ?? []).some((member: any) => member.profiles?.id === currentId),
-    ).map((workspace: any) => ({
-      id: workspace.id,
-      name: workspace.name,
-      slug: workspace.slug ?? "",
-      description: workspace.description ?? "",
-      website: workspace.website ?? "",
-      logoUrl: workspace.logo_url ?? null,
-      visibility: workspace.visibility ?? "private",
-      settings: workspace.settings ?? {
-        memberRestriction: "admins",
-        boardCreation: "members",
-        boardDeletion: "admins",
-        guestSharing: "admins",
-      },
-      ownerId: workspace.owner_id,
-      membershipRole: workspace.owner_id === currentId ? "admin" :
-        (membersByWorkspace[workspace.id] ?? []).find((member: any) => member.profiles?.id === currentId)?.role ?? "member",
-      membersCount: (membersByWorkspace[workspace.id] ?? []).length,
-      boardsCount: (allBoardsResult.data ?? []).filter((board: any) => board.workspace_id === workspace.id).length,
-      boards: boardsByWorkspace[workspace.id] ?? [],
-    })),
+    workspaces: (workspaces ?? [])
+      .filter(
+        (workspace: any) =>
+          actor.generalAdmin ||
+          workspace.owner_id === currentId ||
+          workspace.visibility === "company" ||
+          (membersByWorkspace[workspace.id] ?? []).some(
+            (member: any) => member.profiles?.id === currentId,
+          ),
+      )
+      .map((workspace: any) => ({
+        id: workspace.id,
+        name: workspace.name,
+        slug: workspace.slug ?? "",
+        description: workspace.description ?? "",
+        website: workspace.website ?? "",
+        logoUrl: workspace.logo_url ?? null,
+        visibility: workspace.visibility ?? "private",
+        settings: workspace.settings ?? {
+          memberRestriction: "admins",
+          boardCreation: "members",
+          boardDeletion: "admins",
+          guestSharing: "admins",
+        },
+        ownerId: workspace.owner_id,
+        membershipRole:
+          workspace.owner_id === currentId
+            ? "admin"
+            : ((membersByWorkspace[workspace.id] ?? []).find(
+                (member: any) => member.profiles?.id === currentId,
+              )?.role ?? "member"),
+        membersCount: (membersByWorkspace[workspace.id] ?? []).length,
+        boardsCount: (allBoardsResult.data ?? []).filter(
+          (board: any) => board.workspace_id === workspace.id,
+        ).length,
+        boards: boardsByWorkspace[workspace.id] ?? [],
+      })),
   };
 }
 
@@ -279,23 +400,38 @@ async function createWorkspace(payload: any, req: Request) {
     .select("id")
     .single();
   if (error) throw error;
-  const { error: memberError } = await admin.from("kanban_workspace_members").upsert({
-    workspace_id: data.id, profile_id: ownerId, role: "admin",
-  }, { onConflict: "workspace_id,profile_id" });
+  const { error: memberError } = await admin.from("kanban_workspace_members").upsert(
+    {
+      workspace_id: data.id,
+      profile_id: ownerId,
+      role: "admin",
+    },
+    { onConflict: "workspace_id,profile_id" },
+  );
   if (memberError) throw memberError;
   return { id: data.id };
 }
 
 async function deleteWorkspace(payload: any, req: Request) {
   const currentId = await actorId(req);
-  const { data: workspace, error: workspaceError } = await admin.from("kanban_workspaces")
-    .select("owner_id").eq("id", payload.workspaceId).single();
+  const { data: workspace, error: workspaceError } = await admin
+    .from("kanban_workspaces")
+    .select("owner_id")
+    .eq("id", payload.workspaceId)
+    .single();
   if (workspaceError) throw workspaceError;
-  const { data: membership } = await admin.from("kanban_workspace_members")
-    .select("role").eq("workspace_id", payload.workspaceId).eq("profile_id", currentId).maybeSingle();
-  if (workspace.owner_id !== currentId && membership?.role !== "admin") throw new Error("forbidden");
-  const { count, error: countError } = await admin.from("kanban_boards")
-    .select("id", { count: "exact", head: true }).eq("workspace_id", payload.workspaceId);
+  const { data: membership } = await admin
+    .from("kanban_workspace_members")
+    .select("role")
+    .eq("workspace_id", payload.workspaceId)
+    .eq("profile_id", currentId)
+    .maybeSingle();
+  if (workspace.owner_id !== currentId && membership?.role !== "admin")
+    throw new Error("forbidden");
+  const { count, error: countError } = await admin
+    .from("kanban_boards")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", payload.workspaceId);
   if (countError) throw countError;
   if (count) throw new Error("workspace_has_boards");
   const { error } = await admin.from("kanban_workspaces").delete().eq("id", payload.workspaceId);
@@ -329,12 +465,17 @@ async function updateWorkspace(payload: any) {
 }
 
 async function listWorkspaceMembers(payload: any) {
-  const [{ data, error }, ownerResult] = await Promise.all([admin
-    .from("kanban_workspace_members")
-    .select("role, profiles:profile_id(id, full_name, email, operator_code, avatar_url)")
-    .eq("workspace_id", payload.workspaceId),
-    admin.from("kanban_workspaces").select("owner_id, owner:owner_id(id, full_name, email, operator_code, avatar_url)")
-      .eq("id", payload.workspaceId).maybeSingle()]);
+  const [{ data, error }, ownerResult] = await Promise.all([
+    admin
+      .from("kanban_workspace_members")
+      .select("role, profiles:profile_id(id, full_name, email, operator_code, avatar_url)")
+      .eq("workspace_id", payload.workspaceId),
+    admin
+      .from("kanban_workspaces")
+      .select("owner_id, owner:owner_id(id, full_name, email, operator_code, avatar_url)")
+      .eq("id", payload.workspaceId)
+      .maybeSingle(),
+  ]);
   if (error) throw error;
   const owner = (ownerResult.data as any)?.owner;
   const rows = [...(data ?? [])];
@@ -342,33 +483,50 @@ async function listWorkspaceMembers(payload: any) {
     rows.unshift({ role: "admin", profiles: owner } as any);
   }
   return {
-    members: rows.map((item: any) => ({
-      id: item.profiles?.id,
-      name: item.profiles?.full_name ?? "",
-      email: item.profiles?.email ?? null,
-      operator: item.profiles?.operator_code ?? null,
-      avatarUrl: item.profiles?.avatar_url ?? null,
-      role: item.profiles?.id === (ownerResult.data as any)?.owner_id ? "admin" : item.role,
-    })).filter((item: any) => item.id),
+    members: rows
+      .map((item: any) => ({
+        id: item.profiles?.id,
+        name: item.profiles?.full_name ?? "",
+        email: item.profiles?.email ?? null,
+        operator: item.profiles?.operator_code ?? null,
+        avatarUrl: item.profiles?.avatar_url ?? null,
+        role: item.profiles?.id === (ownerResult.data as any)?.owner_id ? "admin" : item.role,
+      }))
+      .filter((item: any) => item.id),
   };
 }
 
 async function addWorkspaceMember(payload: any) {
-  const { error } = await admin.from("kanban_workspace_members").upsert([{
-    workspace_id: payload.workspaceId,
-    profile_id: payload.profileId,
-    role: payload.role ?? "member",
-  }], { onConflict: "workspace_id,profile_id" });
+  const { error } = await admin.from("kanban_workspace_members").upsert(
+    [
+      {
+        workspace_id: payload.workspaceId,
+        profile_id: payload.profileId,
+        role: payload.role ?? "member",
+      },
+    ],
+    { onConflict: "workspace_id,profile_id" },
+  );
   if (error) throw error;
-  const { data: workspace } = await admin.from("kanban_workspaces").select("name").eq("id", payload.workspaceId).maybeSingle();
-  await admin.from("notifications").insert({ profile_id: payload.profileId,
-    title: "Você foi adicionado a uma área", body: workspace?.name ?? "Área de trabalho",
-    link: "/kanban" });
+  const { data: workspace } = await admin
+    .from("kanban_workspaces")
+    .select("name")
+    .eq("id", payload.workspaceId)
+    .maybeSingle();
+  await admin
+    .from("notifications")
+    .insert({
+      profile_id: payload.profileId,
+      title: "Você foi adicionado a uma área",
+      body: workspace?.name ?? "Área de trabalho",
+      link: "/kanban",
+    });
   return { ok: true };
 }
 
 async function updateWorkspaceMemberRole(payload: any) {
-  const { error } = await admin.from("kanban_workspace_members")
+  const { error } = await admin
+    .from("kanban_workspace_members")
     .update({ role: payload.role })
     .eq("workspace_id", payload.workspaceId)
     .eq("profile_id", payload.profileId);
@@ -377,7 +535,8 @@ async function updateWorkspaceMemberRole(payload: any) {
 }
 
 async function removeWorkspaceMember(payload: any) {
-  const { error } = await admin.from("kanban_workspace_members")
+  const { error } = await admin
+    .from("kanban_workspace_members")
     .delete()
     .eq("workspace_id", payload.workspaceId)
     .eq("profile_id", payload.profileId);
@@ -388,7 +547,9 @@ async function removeWorkspaceMember(payload: any) {
 async function getBoard(payload: any, actor: Actor) {
   const { data, error } = await admin
     .from("kanban_boards")
-    .select("id, name, description, color, cover, visibility, is_favorite, background_type, background_value, background_mode, background_text_theme")
+    .select(
+      "id, name, description, color, cover, visibility, is_favorite, background_type, background_value, background_mode, background_text_theme",
+    )
     .eq("id", payload.boardId)
     .maybeSingle();
   if (error) throw error;
@@ -478,9 +639,7 @@ async function loadBoard(payload: any) {
     v === "high" ? "Alta" : v === "low" ? "Baixa" : "Média";
   const labelNames = (labels: unknown): string[] => {
     if (!Array.isArray(labels)) return [];
-    return labels
-      .map((l: any) => String(l?.name || l?.color || "").trim())
-      .filter(Boolean);
+    return labels.map((l: any) => String(l?.name || l?.color || "").trim()).filter(Boolean);
   };
 
   const cards = (cardsRes.data ?? []).map((row: any) => {
@@ -580,6 +739,27 @@ async function touchBoardOfColumn(columnId: string) {
 
 async function saveCard(payload: any) {
   const isUuid = payload.id && /^[0-9a-f-]{36}$/i.test(payload.id);
+  const requestedMemberIds = [
+    ...new Set(
+      (Array.isArray(payload.memberIds) ? payload.memberIds : []).filter(
+        (id: unknown): id is string => typeof id === "string" && Boolean(id),
+      ),
+    ),
+  ];
+  const { data: column, error: columnError } = await admin
+    .from("kanban_columns")
+    .select("board_id")
+    .eq("id", payload.columnId)
+    .single();
+  if (columnError) throw columnError;
+  const { data: allowedMembers, error: membersError } = await admin
+    .from("kanban_board_members")
+    .select("profile_id")
+    .eq("board_id", column.board_id)
+    .in("profile_id", requestedMemberIds.length ? requestedMemberIds : [crypto.randomUUID()]);
+  if (membersError) throw membersError;
+  const allowedMemberIds = new Set((allowedMembers ?? []).map((member: any) => member.profile_id));
+  const memberIds = requestedMemberIds.filter((id) => allowedMemberIds.has(id));
   const row: any = {
     column_id: payload.columnId,
     title: payload.title,
@@ -588,7 +768,7 @@ async function saveCard(payload: any) {
     due_at: payload.dueDate || null,
     archived: Boolean(payload.archived),
     labels: (payload.tags ?? []).map((name: string) => ({ name })),
-    member_legacy_ids: payload.memberIds ?? [],
+    member_legacy_ids: memberIds,
     source_payload: {
       client: payload.client ?? "Interno",
       module: payload.module ?? "Trello",
@@ -615,11 +795,7 @@ async function saveCard(payload: any) {
     cardId = data.id;
   } else {
     row.position = await nextCardPosition(payload.columnId);
-    const { data, error } = await admin
-      .from("kanban_cards")
-      .insert(row)
-      .select("id")
-      .single();
+    const { data, error } = await admin.from("kanban_cards").insert(row).select("id").single();
     if (error) throw error;
     cardId = data.id;
   }
@@ -771,7 +947,9 @@ async function copyColumn(payload: any) {
 
   const { data: sourceCards, error: cardsError } = await admin
     .from("kanban_cards")
-    .select("title, description, priority, due_at, position, archived, labels, member_legacy_ids, source_payload")
+    .select(
+      "title, description, priority, due_at, position, archived, labels, member_legacy_ids, source_payload",
+    )
     .eq("column_id", payload.id)
     .eq("archived", false)
     .order("position");
@@ -782,7 +960,9 @@ async function copyColumn(payload: any) {
     const { data, error } = await admin
       .from("kanban_cards")
       .insert(sourceCards.map((card: any) => ({ ...card, column_id: created.id })))
-      .select("id, column_id, title, description, priority, due_at, archived, labels, member_legacy_ids, source_payload");
+      .select(
+        "id, column_id, title, description, priority, due_at, archived, labels, member_legacy_ids, source_payload",
+      );
     if (error) throw error;
     copiedCards = data ?? [];
   }
@@ -849,10 +1029,9 @@ async function createBoard(payload: any, req: Request) {
   if (ownerId) {
     await admin
       .from("kanban_board_members")
-      .upsert(
-        [{ board_id: board.id, profile_id: ownerId, role: "admin" }],
-        { onConflict: "board_id,profile_id" },
-      );
+      .upsert([{ board_id: board.id, profile_id: ownerId, role: "admin" }], {
+        onConflict: "board_id,profile_id",
+      });
   }
   return { id: board.id };
 }
@@ -868,7 +1047,8 @@ async function updateBoard(payload: any) {
   if (payload.backgroundType !== undefined) patch.background_type = payload.backgroundType;
   if (payload.backgroundValue !== undefined) patch.background_value = payload.backgroundValue;
   if (payload.backgroundMode !== undefined) patch.background_mode = payload.backgroundMode;
-  if (payload.backgroundTextTheme !== undefined) patch.background_text_theme = payload.backgroundTextTheme;
+  if (payload.backgroundTextTheme !== undefined)
+    patch.background_text_theme = payload.backgroundTextTheme;
   const { error } = await admin.from("kanban_boards").update(patch).eq("id", payload.id);
   if (error) throw error;
   return { ok: true };
@@ -964,9 +1144,7 @@ async function listAvailableMembers(payload: any) {
     .order("full_name", { ascending: true })
     .limit(500);
   if (q) {
-    query = query.or(
-      `full_name.ilike.%${q}%,email.ilike.%${q}%,operator_code.ilike.%${q}%`,
-    );
+    query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%,operator_code.ilike.%${q}%`);
   }
   const { data, error } = await query;
   if (error) throw error;
@@ -1013,7 +1191,9 @@ async function addBoardMember(payload: any) {
   if (board.workspace_id) {
     const [{ data: workspace }, { data: workspaceMember }] = await Promise.all([
       admin.from("kanban_workspaces").select("owner_id").eq("id", board.workspace_id).maybeSingle(),
-      admin.from("kanban_workspace_members").select("profile_id")
+      admin
+        .from("kanban_workspace_members")
+        .select("profile_id")
         .eq("workspace_id", board.workspace_id)
         .eq("profile_id", payload.profileId)
         .maybeSingle(),
@@ -1026,13 +1206,24 @@ async function addBoardMember(payload: any) {
   const { error } = await admin
     .from("kanban_board_members")
     .upsert(
-      [{ board_id: payload.boardId, profile_id: payload.profileId, role: payload.role ?? "member" }],
+      [
+        {
+          board_id: payload.boardId,
+          profile_id: payload.profileId,
+          role: payload.role ?? "member",
+        },
+      ],
       { onConflict: "board_id,profile_id" },
     );
   if (error) throw error;
-  await admin.from("notifications").insert({ profile_id: payload.profileId,
-    title: "Você foi adicionado a um quadro", body: board?.name ?? "Quadro",
-    link: `/kanban/${payload.boardId}` });
+  await admin
+    .from("notifications")
+    .insert({
+      profile_id: payload.profileId,
+      title: "Você foi adicionado a um quadro",
+      body: board?.name ?? "Quadro",
+      link: `/kanban/${payload.boardId}`,
+    });
   return { ok: true };
 }
 
@@ -1057,14 +1248,27 @@ async function removeBoardMember(payload: any) {
 }
 
 function mapInvite(row: any) {
-  return { id: row.id, type: row.invite_type, email: row.email, role: row.role, token: row.token,
-    status: row.status, expiresAt: row.expires_at, maxUses: row.max_uses, usesCount: row.uses_count,
-    createdAt: row.created_at };
+  return {
+    id: row.id,
+    type: row.invite_type,
+    email: row.email,
+    role: row.role,
+    token: row.token,
+    status: row.status,
+    expiresAt: row.expires_at,
+    maxUses: row.max_uses,
+    usesCount: row.uses_count,
+    createdAt: row.created_at,
+  };
 }
 
 async function listBoardInvites(payload: any) {
-  const { data, error } = await admin.from("kanban_board_invites").select("*")
-    .eq("board_id", payload.boardId).neq("status", "revoked").order("created_at", { ascending: false });
+  const { data, error } = await admin
+    .from("kanban_board_invites")
+    .select("*")
+    .eq("board_id", payload.boardId)
+    .neq("status", "revoked")
+    .order("created_at", { ascending: false });
   if (error) throw error;
   return { invites: (data ?? []).map(mapInvite) };
 }
@@ -1072,20 +1276,33 @@ async function listBoardInvites(payload: any) {
 async function requireBoardInviter(req: Request, boardId: string, invitedRole: string) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) throw new Error("unauthorized");
-  const { data: { user }, error } = await admin.auth.getUser(token);
+  const {
+    data: { user },
+    error,
+  } = await admin.auth.getUser(token);
   if (error || !user) throw new Error("unauthorized");
-  const { data: board, error: boardError } = await admin.from("kanban_boards")
-    .select("owner_id").eq("id", boardId).single();
+  const { data: board, error: boardError } = await admin
+    .from("kanban_boards")
+    .select("owner_id")
+    .eq("id", boardId)
+    .single();
   if (boardError || !board) throw new Error("board_not_found");
   if (board.owner_id === user.id) return;
-  const { data: member } = await admin.from("kanban_board_members")
-    .select("role").eq("board_id", boardId).eq("profile_id", user.id).maybeSingle();
+  const { data: member } = await admin
+    .from("kanban_board_members")
+    .select("role")
+    .eq("board_id", boardId)
+    .eq("profile_id", user.id)
+    .maybeSingle();
   if (member?.role === "observer") throw new Error("forbidden");
   if (member?.role === "admin") return;
   if (invitedRole === "admin") throw new Error("forbidden");
   if (member?.role === "member") return;
-  const { data: profile } = await admin.from("profiles")
-    .select("role, active").eq("id", user.id).maybeSingle();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("role, active")
+    .eq("id", user.id)
+    .maybeSingle();
   if (!profile?.active || !["admin", "support", "specialist"].includes(profile.role)) {
     throw new Error("forbidden");
   }
@@ -1097,11 +1314,18 @@ async function sendBoardInvite(email: string, boardName: string, link: string) {
   const pass = Deno.env.get("SMTP_PASSWORD");
   const from = Deno.env.get("SMTP_FROM");
   const port = Number(Deno.env.get("SMTP_PORT"));
-  if (!host || !user || !pass || !from || !Number.isInteger(port)) throw new Error("smtp_not_configured");
-  const transport = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
+  if (!host || !user || !pass || !from || !Number.isInteger(port))
+    throw new Error("smtp_not_configured");
+  const transport = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
   try {
     await transport.sendMail({
-      from: { name: "Prócion CRM", address: from }, to: email,
+      from: { name: "Prócion CRM", address: from },
+      to: email,
       subject: "Convite para acessar um quadro da Prócion",
       text: `Olá,\n\nVocê recebeu um convite para acessar o quadro "${boardName}" no CRM Prócion.\n\nAbra o link abaixo e entre com este mesmo endereço de email para aceitar:\n${link}\n\nSe você ainda não possui uma conta no CRM, solicite a criação do seu acesso antes de abrir o link.\n\nEste convite foi enviado pela equipe Prócion. Se não o esperava, ignore esta mensagem.`,
       html: `<p>Olá,</p><p>Você recebeu um convite para acessar o quadro <strong>${escapeHtml(boardName)}</strong> no CRM Prócion.</p><p><a href="${escapeHtml(link)}">Abrir convite</a></p><p>Entre com este mesmo endereço de email. Se ainda não possui uma conta no CRM, solicite a criação do seu acesso antes de abrir o link.</p><p>Se não esperava este convite, ignore esta mensagem.</p>`,
@@ -1112,28 +1336,52 @@ async function sendBoardInvite(email: string, boardName: string, link: string) {
 }
 
 function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
+  return value.replace(
+    /[&<>"']/g,
+    (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!,
+  );
 }
 
 async function createBoardInvite(payload: any, req: Request) {
-  if (!['email', 'link'].includes(payload.type) || !['admin', 'member', 'observer'].includes(payload.role ?? 'member')) throw new Error('invalid_invite');
+  if (
+    !["email", "link"].includes(payload.type) ||
+    !["admin", "member", "observer"].includes(payload.role ?? "member")
+  )
+    throw new Error("invalid_invite");
   await requireBoardInviter(req, payload.boardId, payload.role ?? "member");
   const email = payload.email?.trim().toLowerCase() || null;
-  if (payload.type === "email" && (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) throw new Error("invalid_email");
+  if (payload.type === "email" && (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))
+    throw new Error("invalid_email");
   let joinedExistingMember = false;
   let existingProfileId: string | null = null;
   if (payload.type === "email" && email) {
-    const { data: profile } = await admin.from("profiles").select("id").ilike("email", email).maybeSingle();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("id")
+      .ilike("email", email)
+      .maybeSingle();
     existingProfileId = profile?.id ?? null;
   }
-  const { data, error } = await admin.from("kanban_board_invites").insert({
-    board_id: payload.boardId, invite_type: payload.type, email, role: payload.role ?? "member",
-    status: "pending", expires_at: payload.expiresAt ?? null,
-    max_uses: payload.maxUses ?? null,
-  }).select("*").single();
+  const { data, error } = await admin
+    .from("kanban_board_invites")
+    .insert({
+      board_id: payload.boardId,
+      invite_type: payload.type,
+      email,
+      role: payload.role ?? "member",
+      status: "pending",
+      expires_at: payload.expiresAt ?? null,
+      max_uses: payload.maxUses ?? null,
+    })
+    .select("*")
+    .single();
   if (error) throw error;
   if (payload.type === "email" && email) {
-    const { data: board } = await admin.from("kanban_boards").select("name").eq("id", payload.boardId).single();
+    const { data: board } = await admin
+      .from("kanban_boards")
+      .select("name")
+      .eq("id", payload.boardId)
+      .single();
     const link = existingProfileId
       ? `https://ajuda-pr-cion.vercel.app/kanban/${payload.boardId}`
       : `https://ajuda-pr-cion.vercel.app/kanban/convite/${data.token}`;
@@ -1144,11 +1392,19 @@ async function createBoardInvite(payload: any, req: Request) {
       throw sendError;
     }
     if (existingProfileId) {
-      const { error: memberError } = await admin.from("kanban_board_members").upsert({
-        board_id: payload.boardId, profile_id: existingProfileId, role: payload.role ?? "member",
-      }, { onConflict: "board_id,profile_id" });
+      const { error: memberError } = await admin.from("kanban_board_members").upsert(
+        {
+          board_id: payload.boardId,
+          profile_id: existingProfileId,
+          role: payload.role ?? "member",
+        },
+        { onConflict: "board_id,profile_id" },
+      );
       if (memberError) throw memberError;
-      const { error: acceptError } = await admin.from("kanban_board_invites").update({ status: "accepted" }).eq("id", data.id);
+      const { error: acceptError } = await admin
+        .from("kanban_board_invites")
+        .update({ status: "accepted" })
+        .eq("id", data.id);
       if (acceptError) throw acceptError;
       joinedExistingMember = true;
     }
@@ -1159,56 +1415,92 @@ async function createBoardInvite(payload: any, req: Request) {
 async function acceptBoardInvite(payload: any, req: Request) {
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) throw new Error("unauthorized");
-  const { data: { user }, error: authError } = await admin.auth.getUser(token);
+  const {
+    data: { user },
+    error: authError,
+  } = await admin.auth.getUser(token);
   if (authError || !user) throw new Error("unauthorized");
-  const { data: invite, error } = await admin.from("kanban_board_invites")
-    .select("*").eq("token", payload.token).single();
-  if (error || !invite || !["pending", "accepted"].includes(invite.status) ||
-      (invite.expires_at && Date.parse(invite.expires_at) <= Date.now()) ||
-      (invite.invite_type === "email" && invite.email?.toLowerCase() !== user.email?.toLowerCase())) {
+  const { data: invite, error } = await admin
+    .from("kanban_board_invites")
+    .select("*")
+    .eq("token", payload.token)
+    .single();
+  if (
+    error ||
+    !invite ||
+    !["pending", "accepted"].includes(invite.status) ||
+    (invite.expires_at && Date.parse(invite.expires_at) <= Date.now()) ||
+    (invite.invite_type === "email" && invite.email?.toLowerCase() !== user.email?.toLowerCase())
+  ) {
     throw new Error("invalid_invite");
   }
   if (invite.status === "accepted") {
-    const { data: member } = await admin.from("kanban_board_members")
-      .select("profile_id").eq("board_id", invite.board_id).eq("profile_id", user.id).maybeSingle();
+    const { data: member } = await admin
+      .from("kanban_board_members")
+      .select("profile_id")
+      .eq("board_id", invite.board_id)
+      .eq("profile_id", user.id)
+      .maybeSingle();
     if (!member) throw new Error("invalid_invite");
     return { boardId: invite.board_id };
   }
   if (invite.max_uses && invite.uses_count >= invite.max_uses) throw new Error("invalid_invite");
-  const { error: memberError } = await admin.from("kanban_board_members").upsert({
-    board_id: invite.board_id, profile_id: user.id, role: invite.role,
-  }, { onConflict: "board_id,profile_id" });
+  const { error: memberError } = await admin.from("kanban_board_members").upsert(
+    {
+      board_id: invite.board_id,
+      profile_id: user.id,
+      role: invite.role,
+    },
+    { onConflict: "board_id,profile_id" },
+  );
   if (memberError) throw memberError;
-  await admin.from("kanban_board_invites").update({
-    status: "accepted", uses_count: invite.uses_count + 1, updated_at: new Date().toISOString(),
-  }).eq("id", invite.id);
+  await admin
+    .from("kanban_board_invites")
+    .update({
+      status: "accepted",
+      uses_count: invite.uses_count + 1,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", invite.id);
   return { boardId: invite.board_id };
 }
 
 async function getBoardInviteInfo(payload: any, req: Request) {
-  const { data: invite, error } = await admin.from("kanban_board_invites")
-    .select("board_id, invite_type, email, status, expires_at").eq("token", payload.token).single();
+  const { data: invite, error } = await admin
+    .from("kanban_board_invites")
+    .select("board_id, invite_type, email, status, expires_at")
+    .eq("token", payload.token)
+    .single();
   if (error || !invite) throw new Error("invalid_invite");
-  const { data: board } = await admin.from("kanban_boards").select("name").eq("id", invite.board_id).single();
+  const { data: board } = await admin
+    .from("kanban_boards")
+    .select("name")
+    .eq("id", invite.board_id)
+    .single();
   const email = invite.email?.toLowerCase() ?? null;
   const { data: profile } = email
     ? await admin.from("profiles").select("id").ilike("email", email).maybeSingle()
     : { data: null };
   const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  const { data: { user } } = token ? await admin.auth.getUser(token) : { data: { user: null } };
+  const {
+    data: { user },
+  } = token ? await admin.auth.getUser(token) : { data: { user: null } };
   return {
     boardName: board?.name ?? "Quadro",
     status: invite.status,
     expired: Boolean(invite.expires_at && Date.parse(invite.expires_at) <= Date.now()),
     recipient: email ? email.replace(/^(.).*(?=@)/, "$1***") : null,
     accountExists: Boolean(profile),
-    recipientMatches: user ? (!email || user.email?.toLowerCase() === email) : null,
+    recipientMatches: user ? !email || user.email?.toLowerCase() === email : null,
     signedInEmail: user?.email ?? null,
   };
 }
 
 async function revokeBoardInvite(payload: any) {
-  const { error } = await admin.from("kanban_board_invites").update({ status: "revoked", updated_at: new Date().toISOString() }).eq("id", payload.id);
+  const { error } = await admin
+    .from("kanban_board_invites")
+    .update({ status: "revoked", updated_at: new Date().toISOString() })
+    .eq("id", payload.id);
   if (error) throw error;
   return { ok: true };
 }
@@ -1217,28 +1509,47 @@ async function uploadBoardBackground(payload: any) {
   const match = String(payload.dataUrl ?? "").match(/^data:(.+);base64,(.+)$/);
   if (!match) throw new Error("invalid_file");
   const bytes = Uint8Array.from(atob(match[2]), (char) => char.charCodeAt(0));
-  const extension = String(payload.fileName ?? "image.jpg").split(".").pop()?.replace(/[^a-z0-9]/gi, "") || "jpg";
+  const extension =
+    String(payload.fileName ?? "image.jpg")
+      .split(".")
+      .pop()
+      ?.replace(/[^a-z0-9]/gi, "") || "jpg";
   const path = `${payload.boardId}/${crypto.randomUUID()}.${extension}`;
-  const { error } = await admin.storage.from("kanban-backgrounds").upload(path, bytes, { contentType: match[1], upsert: false });
+  const { error } = await admin.storage
+    .from("kanban-backgrounds")
+    .upload(path, bytes, { contentType: match[1], upsert: false });
   if (error) throw error;
   const { data } = admin.storage.from("kanban-backgrounds").getPublicUrl(path);
-  await admin.from("kanban_boards").update({ background_type: "custom", background_value: data.publicUrl, updated_at: new Date().toISOString() }).eq("id", payload.boardId);
+  await admin
+    .from("kanban_boards")
+    .update({
+      background_type: "custom",
+      background_value: data.publicUrl,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", payload.boardId);
   return { url: data.publicUrl };
 }
 
 async function uploadProfileAvatar(payload: any, req: Request) {
   const userId = await actorId(req);
-  const match = String(payload.dataUrl ?? "").match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+  const match = String(payload.dataUrl ?? "").match(
+    /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/,
+  );
   if (!match) throw new Error("invalid_avatar");
   const bytes = Uint8Array.from(atob(match[2]), (char) => char.charCodeAt(0));
   if (bytes.length > 2 * 1024 * 1024) throw new Error("avatar_too_large");
   const extension = match[1] === "image/jpeg" ? "jpg" : match[1].split("/")[1];
   const path = `${userId}/${crypto.randomUUID()}.${extension}`;
-  const { error: uploadError } = await admin.storage.from("profile-avatars")
+  const { error: uploadError } = await admin.storage
+    .from("profile-avatars")
     .upload(path, bytes, { contentType: match[1], upsert: false });
   if (uploadError) throw uploadError;
   const { data } = admin.storage.from("profile-avatars").getPublicUrl(path);
-  const { error } = await admin.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", userId);
+  const { error } = await admin
+    .from("profiles")
+    .update({ avatar_url: data.publicUrl })
+    .eq("id", userId);
   if (error) throw error;
   return { url: data.publicUrl };
 }

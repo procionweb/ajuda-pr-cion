@@ -66,7 +66,7 @@ import { cn } from "@/lib/utils";
 import { SmartTextarea } from "@/components/ui/smart-text";
 import { matchClient, useClients } from "@/lib/clients-store";
 import { loadHadronModules } from "@/lib/hadron-modules-api";
-import { listAvailableMembers, type BoardMember } from "@/lib/kanban-api";
+import type { BoardMember } from "@/lib/kanban-api";
 import { usePortalAuth } from "@/lib/portal-auth";
 
 const kbArticles: RelatedArticle[] = kbArticlesFull.map((a) => ({
@@ -209,8 +209,6 @@ export function KanbanCardDrawer({
   );
   const actorOperator = operator || String(session?.user.user_metadata?.operator || "");
   const [tagsInput, setTagsInput] = useState("");
-  const [systemMembers, setSystemMembers] = useState<BoardMember[]>([]);
-  const [membersLoading, setMembersLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [newChecklistItem, setNewChecklistItem] = useState("");
   const [newChecklistTitle, setNewChecklistTitle] = useState(
@@ -224,24 +222,6 @@ export function KanbanCardDrawer({
   const [moduleOptions, setModuleOptions] = useState<string[]>([]);
   const [modulesLoading, setModulesLoading] = useState(true);
   const [moduleError, setModuleError] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    setMembersLoading(true);
-    listAvailableMembers()
-      .then(({ members }) => {
-        if (active) setSystemMembers(members);
-      })
-      .catch(() => {
-        if (active) toast.error("Não foi possível carregar os membros ativos");
-      })
-      .finally(() => {
-        if (active) setMembersLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -267,12 +247,8 @@ export function KanbanCardDrawer({
     [clients, clientQuery],
   );
   const memberDirectory = useMemo(() => {
-    const listed = [
-      ...new Map([...systemMembers, ...boardMembers].map((member) => [member.id, member])).values(),
-    ];
-    if (!actorId || listed.some((member) => member.id === actorId)) return listed;
-    return [...listed, { id: actorId, name: actorName, operator: actorOperator }];
-  }, [boardMembers, systemMembers, actorId, actorName, actorOperator]);
+    return [...new Map(boardMembers.map((member) => [member.id, member])).values()];
+  }, [boardMembers]);
   const availableMembers = useMemo(
     () => [
       ...new Map(
@@ -1237,11 +1213,6 @@ export function KanbanCardDrawer({
                       !availableMembers.some((member) => member.id === draft.assigneeId) && (
                         <SelectItem value={draft.assigneeId}>Membro anterior</SelectItem>
                       )}
-                    {membersLoading && availableMembers.length === 0 && (
-                      <div className="px-2 py-2 text-sm text-muted-foreground">
-                        Carregando membros...
-                      </div>
-                    )}
                     {availableMembers.map((member) => {
                       const m = memberById(member.id, memberDirectory)!;
                       return (
@@ -1336,9 +1307,7 @@ export function KanbanCardDrawer({
                           })}
                           {availableMembers.length === 0 && (
                             <p className="px-2 py-3 text-sm text-muted-foreground">
-                              {membersLoading
-                                ? "Carregando membros..."
-                                : "Nenhum membro ativo encontrado."}
+                              Nenhum membro do quadro disponível.
                             </p>
                           )}
                         </div>

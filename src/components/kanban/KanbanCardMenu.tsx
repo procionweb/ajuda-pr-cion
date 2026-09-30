@@ -27,7 +27,6 @@ import { cn } from "@/lib/utils";
 import { kanbanStore, moveCardInList, persistKanbanCard, useKanbanCards } from "@/lib/kanban-store";
 import {
   listBoardMembers,
-  listAvailableMembers,
   listKanbanBoards,
   loadKanbanBoard,
   moveKanbanCard,
@@ -35,7 +34,12 @@ import {
   type BoardMember,
   type BoardSummary,
 } from "@/lib/kanban-api";
-import { type KanbanCard, type KanbanColumn, priorityLabels, kanbanLabelColor } from "@/lib/kanban-data";
+import {
+  type KanbanCard,
+  type KanbanColumn,
+  priorityLabels,
+  kanbanLabelColor,
+} from "@/lib/kanban-data";
 import { usePortalAuth } from "@/lib/portal-auth";
 
 type Props = {
@@ -48,7 +52,15 @@ type Props = {
   canDelete?: boolean;
 };
 
-export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive, onDelete, canDelete }: Props) {
+export function KanbanCardMenu({
+  card,
+  boardId,
+  columns,
+  onOpen,
+  onArchive,
+  onDelete,
+  canDelete,
+}: Props) {
   const { session } = usePortalAuth();
   const canManageMembers = Boolean(canDelete || card.createdBy === session?.user.id);
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -115,13 +127,35 @@ export function KanbanCardMenu({ card, boardId, columns, onOpen, onArchive, onDe
       },
     },
     { key: "tags", label: "Editar etiquetas", icon: Tag, onClick: () => openDialog("tags") },
-    ...(canManageMembers ? [{ key: "members", label: "Alterar membros", icon: Users, onClick: () => openDialog("members") }] : []),
+    ...(canManageMembers
+      ? [
+          {
+            key: "members",
+            label: "Alterar membros",
+            icon: Users,
+            onClick: () => openDialog("members"),
+          },
+        ]
+      : []),
     { key: "date", label: "Editar datas", icon: CalendarIcon, onClick: () => openDialog("date") },
     { key: "move", label: "Mover", icon: ArrowRightLeft, onClick: () => openDialog("move") },
     { key: "copy", label: "Copiar cartão", icon: Copy, onClick: () => openDialog("copy") },
     { key: "link", label: "Copiar link", icon: Link2, onClick: handleCopyLink },
     { key: "archive", label: "Arquivar", icon: Archive, onClick: handleArchive, danger: true },
-    ...(canDelete && onDelete ? [{ key: "delete", label: "Excluir", icon: Trash2, onClick: () => { setMenuOpen(false); onDelete(card); }, danger: true }] : []),
+    ...(canDelete && onDelete
+      ? [
+          {
+            key: "delete",
+            label: "Excluir",
+            icon: Trash2,
+            onClick: () => {
+              setMenuOpen(false);
+              onDelete(card);
+            },
+            danger: true,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -269,15 +303,20 @@ function TagsDialog({
   const currentCard = allCards.find((item) => item.id === card.id) ?? card;
   const priorityKeys = new Set([
     ...priorityLabels.map((item) => labelKey(item.name)),
-    ...["Prioridade Normal", "Prioridade Média", "Prioridade Alta", "Prioridade Crítica"].map(labelKey),
+    ...["Prioridade Normal", "Prioridade Média", "Prioridade Alta", "Prioridade Crítica"].map(
+      labelKey,
+    ),
   ]);
-  const labels = [...priorityLabels.map((item) => item.name), ...Array.from(
-    new Map(
-      Array.from(
-        new Set([...allCards.flatMap((item) => item.tags ?? []), ...(card.tags ?? [])]),
-      ).filter((label) => !priorityKeys.has(labelKey(label))).map((label) => [labelKey(label), label]),
-    ).values(),
-  )];
+  const labels = [
+    ...priorityLabels.map((item) => item.name),
+    ...Array.from(
+      new Map(
+        Array.from(new Set([...allCards.flatMap((item) => item.tags ?? []), ...(card.tags ?? [])]))
+          .filter((label) => !priorityKeys.has(labelKey(label)))
+          .map((label) => [labelKey(label), label]),
+      ).values(),
+    ),
+  ];
   const visible = labels.filter((label) =>
     label.toLocaleLowerCase("pt-BR").includes(search.toLocaleLowerCase("pt-BR")),
   );
@@ -291,7 +330,8 @@ function TagsDialog({
     ]);
     return priorityLabels.find((item) => item.name === label || item.name === legacy.get(key));
   };
-  const labelColor = (label: string) => priorityFor(label)?.color ?? kanbanLabelColor(label, allCards);
+  const labelColor = (label: string) =>
+    priorityFor(label)?.color ?? kanbanLabelColor(label, allCards);
   const isSelected = (label: string) => {
     const priority = priorityFor(label);
     return priority
@@ -327,7 +367,8 @@ function TagsDialog({
   const saveLabel = () => {
     const clean = name.trim();
     if (!clean) return;
-    if (priorityKeys.has(labelKey(clean))) return toast.error("Use o campo Prioridade para essa etiqueta");
+    if (priorityKeys.has(labelKey(clean)))
+      return toast.error("Use o campo Prioridade para essa etiqueta");
     if (editing && editing !== clean && labels.includes(clean))
       return toast.error("Já existe uma etiqueta com esse nome");
     const affected = kanbanStore.getSnapshot().filter((item) => item.tags.includes(editing ?? ""));
@@ -382,19 +423,21 @@ function TagsDialog({
               >
                 {label}
               </button>
-              {!priorityFor(label) && <button
-                type="button"
-                aria-label={`Editar ${label}`}
-                title={`Editar ${label}`}
-                className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setEditing(label);
-                  setName(label);
-                  setColor(labelColor(label));
-                }}
-              >
-                <SquarePen className="h-4 w-4" strokeWidth={1.8} />
-              </button>}
+              {!priorityFor(label) && (
+                <button
+                  type="button"
+                  aria-label={`Editar ${label}`}
+                  title={`Editar ${label}`}
+                  className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setEditing(label);
+                    setName(label);
+                    setColor(labelColor(label));
+                  }}
+                >
+                  <SquarePen className="h-4 w-4" strokeWidth={1.8} />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -481,7 +524,7 @@ function MembersDialog({
     let active = true;
     setLoading(true);
     setSearch("");
-    listAvailableMembers()
+    listBoardMembers({ boardId })
       .then(({ members: result }) => {
         if (active) setMembers(result);
       })
@@ -975,17 +1018,25 @@ function MoveDialog({
         beforeCardId,
       });
       const from = columns.find((column) => column.id === card.columnId)?.title ?? card.columnId;
-      const to = destination.targetColumns.find((column) => column.id === targetColumnId)?.title ?? targetColumnId;
-      const activity = [...(card.activity ?? []), {
-        id: crypto.randomUUID(),
-        at: new Date().toISOString(),
-        text: targetColumnId === card.columnId && sameBoard
-          ? `Posição alterada em "${to}"`
-          : `Movido de "${from}" para "${to}"`,
-        authorId: session?.user.id,
-        authorName: String(session?.user.user_metadata?.full_name || operator || session?.user.email || "Usuário"),
-        authorOperator: operator || undefined,
-      }];
+      const to =
+        destination.targetColumns.find((column) => column.id === targetColumnId)?.title ??
+        targetColumnId;
+      const activity = [
+        ...(card.activity ?? []),
+        {
+          id: crypto.randomUUID(),
+          at: new Date().toISOString(),
+          text:
+            targetColumnId === card.columnId && sameBoard
+              ? `Posição alterada em "${to}"`
+              : `Movido de "${from}" para "${to}"`,
+          authorId: session?.user.id,
+          authorName: String(
+            session?.user.user_metadata?.full_name || operator || session?.user.email || "Usuário",
+          ),
+          authorOperator: operator || undefined,
+        },
+      ];
       if (sameBoard) {
         const moved = kanbanStore.getSnapshot().find((item) => item.id === card.id);
         if (moved) {

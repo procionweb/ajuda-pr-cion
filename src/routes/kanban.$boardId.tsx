@@ -71,7 +71,6 @@ import {
   type BoardMember,
   type KanbanColumnSortMode,
   listBoardMembers,
-  listAvailableMembers,
 } from "@/lib/kanban-api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -104,7 +103,6 @@ import {
   priorities,
   cardTypes,
 } from "@/lib/kanban-data";
-
 
 export const Route = createFileRoute("/kanban/$boardId")({
   head: () => ({
@@ -232,7 +230,10 @@ const CardDrawerHost = forwardRef<
     canDelete: boolean;
     canManageMembers: boolean;
   }
->(function CardDrawerHost({ columns, boardMembers, onSave, onDelete, canDelete, canManageMembers }, ref) {
+>(function CardDrawerHost(
+  { columns, boardMembers, onSave, onDelete, canDelete, canManageMembers },
+  ref,
+) {
   const [request, setRequest] = useState<DrawerRequest | null>(null);
   useImperativeHandle(ref, () => ({ open: setRequest }), []);
   if (!request) return null;
@@ -258,7 +259,9 @@ function KanbanPage() {
   const { boardId: boardIdParam } = Route.useParams();
   const { session, operator, role } = usePortalAuth();
   const actorId = session?.user.id;
-  const actorName = String(session?.user.user_metadata?.full_name || operator || session?.user.email || "Usuário");
+  const actorName = String(
+    session?.user.user_metadata?.full_name || operator || session?.user.email || "Usuário",
+  );
   const cards = useKanbanCards();
   const setCards = kanbanStore.setCards;
   const [columns, setColumns] = useState<KanbanColumn[]>(getInitialColumns);
@@ -266,10 +269,13 @@ function KanbanPage() {
   const [boardName, setBoardName] = useState<string>("");
   const [boardSummary, setBoardSummary] = useState<BoardSummary | null>(null);
   const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
-  const canDeleteCard = Boolean(boardSummary?.canManage) || role === "admin" || role === "s_admin" || boardMembers.some((member) => member.id === actorId && member.role === "admin");
+  const canDeleteCard =
+    Boolean(boardSummary?.canManage) ||
+    role === "admin" ||
+    role === "s_admin" ||
+    boardMembers.some((member) => member.id === actorId && member.role === "admin");
   const [cardDeleteTarget, setCardDeleteTarget] = useState<KanbanCard | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
-  const [cardMembers, setCardMembers] = useState<BoardMember[]>([]);
   const [loadingBoard, setLoadingBoard] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -291,10 +297,13 @@ function KanbanPage() {
   const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
   const dragScrollFrameRef = useRef<number | null>(null);
   const dragPlacementRef = useRef<{ columnId: ColumnId; beforeCardId?: string } | null>(null);
-  useEffect(() => () => {
-    document.body.classList.remove("kanban-card-dragging");
-    if (dragScrollFrameRef.current !== null) cancelAnimationFrame(dragScrollFrameRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      document.body.classList.remove("kanban-card-dragging");
+      if (dragScrollFrameRef.current !== null) cancelAnimationFrame(dragScrollFrameRef.current);
+    },
+    [],
+  );
   const drawerRef = useRef<DrawerHandle>(null);
   const defaultColumnIdRef = useRef<ColumnId>("a-fazer");
   const [mobileColumn, setMobileColumn] = useState<ColumnId>("a-fazer");
@@ -305,7 +314,8 @@ function KanbanPage() {
     if (!main) return;
     const previousOverflow = root.style.overflowY;
     const updateOverflow = () => {
-      const fits = window.matchMedia("(min-width: 1280px)").matches &&
+      const fits =
+        window.matchMedia("(min-width: 1280px)").matches &&
         main.getBoundingClientRect().bottom <= window.innerHeight;
       root.style.overflowY = fits ? "hidden" : previousOverflow;
     };
@@ -351,22 +361,12 @@ function KanbanPage() {
     if (!boardId) return;
     let active = true;
     const loadMembers = () => {
-      void Promise.all([listBoardMembers({ boardId }), listAvailableMembers()])
-        .then(([board, available]) => {
+      void listBoardMembers({ boardId })
+        .then(({ members }) => {
           if (!active) return;
-          const members = new Map(available.members.map((member) => [member.id, member]));
-          board.members.forEach((member) => members.set(member.id, member));
-          setBoardMembers(board.members);
-          setCardMembers([...members.values()]);
+          setBoardMembers(members);
         })
-        .catch(() => {
-          void listBoardMembers({ boardId }).then(({ members }) => {
-            if (active) {
-              setBoardMembers(members);
-              setCardMembers(members);
-            }
-          }).catch(() => {});
-        });
+        .catch(() => {});
     };
     loadMembers();
     window.addEventListener("procion:avatar-updated", loadMembers);
@@ -375,21 +375,7 @@ function KanbanPage() {
       window.removeEventListener("procion:avatar-updated", loadMembers);
     };
   }, [boardId, reloadKey]);
-  const headerMembers = useMemo(() => {
-    const members = new Map(boardMembers.map((member) => [member.id, member]));
-    const directory = new Map<string, BoardMember>();
-    for (const member of cardMembers) {
-      directory.set(member.id, member);
-      if (member.operator) directory.set(member.operator, member);
-    }
-    for (const card of cards) {
-      for (const id of [card.assigneeId, ...(card.participants ?? [])]) {
-        const member = directory.get(id);
-        if (member) members.set(member.id, member);
-      }
-    }
-    return [...members.values()];
-  }, [boardMembers, cardMembers, cards]);
+  const headerMembers = boardMembers;
   const activeFilterCount =
     Object.values(filters).filter((v) => v !== "all").length + (onlyMine ? 1 : 0);
 
@@ -399,7 +385,10 @@ function KanbanPage() {
     return Array.from(set).sort();
   }, [cards]);
   const clientOptions = useMemo(
-    () => [...new Set(cards.map((card) => card.client).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    () =>
+      [...new Set(cards.map((card) => card.client).filter(Boolean))].sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      ),
     [cards],
   );
 
@@ -459,8 +448,7 @@ function KanbanPage() {
       if (filters.completion !== "all") {
         const column = columns.find((item) => item.id === c.columnId);
         const isCompleted =
-          c.columnId === "arquivado" ||
-          /conclu|finaliz|arquivad/i.test(column?.title ?? "");
+          c.columnId === "arquivado" || /conclu|finaliz|arquivad/i.test(column?.title ?? "");
         if (filters.completion === "completed" && !isCompleted) return false;
         if (filters.completion === "open" && isCompleted) return false;
       }
@@ -629,31 +617,38 @@ function KanbanPage() {
           beforeCardId:
             beforeCardId && /^[0-9a-f-]{36}$/i.test(beforeCardId) ? beforeCardId : undefined,
         },
-      }).then(() => {
-        if (!previousColumnId) return;
-        const moved = kanbanStore.getSnapshot().find((card) => card.id === active.id);
-        if (!moved) return;
-        const from = columns.find((column) => column.id === previousColumnId)?.title ?? previousColumnId;
-        const to = columns.find((column) => column.id === targetColumn)?.title ?? targetColumn;
-        kanbanStore.updateCard({
-          ...moved,
-          activity: [...(moved.activity ?? []), {
-            id: crypto.randomUUID(),
-            at: new Date().toISOString(),
-            text: previousColumnId === targetColumn
-              ? `Posição alterada em "${to}"`
-              : `Movido de "${from}" para "${to}"`,
-            authorId: actorId,
-            authorName: actorName,
-            authorOperator: operator || undefined,
-          }],
+      })
+        .then(() => {
+          if (!previousColumnId) return;
+          const moved = kanbanStore.getSnapshot().find((card) => card.id === active.id);
+          if (!moved) return;
+          const from =
+            columns.find((column) => column.id === previousColumnId)?.title ?? previousColumnId;
+          const to = columns.find((column) => column.id === targetColumn)?.title ?? targetColumn;
+          kanbanStore.updateCard({
+            ...moved,
+            activity: [
+              ...(moved.activity ?? []),
+              {
+                id: crypto.randomUUID(),
+                at: new Date().toISOString(),
+                text:
+                  previousColumnId === targetColumn
+                    ? `Posição alterada em "${to}"`
+                    : `Movido de "${from}" para "${to}"`,
+                authorId: actorId,
+                authorName: actorName,
+                authorOperator: operator || undefined,
+              },
+            ],
+          });
+        })
+        .catch(() => {
+          toast.error("Não foi possível salvar a movimentação");
+          void loadKanbanBoard({ data: { boardId: boardIdParam } }).then((result) =>
+            kanbanStore.hydrate(result.cards as KanbanCard[]),
+          );
         });
-      }).catch(() => {
-        toast.error("Não foi possível salvar a movimentação");
-        void loadKanbanBoard({ data: { boardId: boardIdParam } }).then((result) =>
-          kanbanStore.hydrate(result.cards as KanbanCard[]),
-        );
-      });
     }
   };
 
@@ -727,14 +722,17 @@ function KanbanPage() {
       const to = columns.find((column) => column.id === columnId)?.title ?? columnId;
       kanbanStore.updateCard({
         ...moved,
-        activity: [...(moved.activity ?? []), {
-          id: crypto.randomUUID(),
-          at: new Date().toISOString(),
-          text: `Movido de "${from}" para "${to}"`,
-          authorId: actorId,
-          authorName: actorName,
-          authorOperator: operator || undefined,
-        }],
+        activity: [
+          ...(moved.activity ?? []),
+          {
+            id: crypto.randomUUID(),
+            at: new Date().toISOString(),
+            text: `Movido de "${from}" para "${to}"`,
+            authorId: actorId,
+            authorName: actorName,
+            authorOperator: operator || undefined,
+          },
+        ],
       });
     } catch {
       toast.error("Não foi possível mover o cartão");
@@ -986,16 +984,16 @@ function KanbanPage() {
         >
           <div className="flex min-w-0 shrink-0 items-center gap-3 lg:max-w-[360px]">
             <div className="min-w-0">
-            <Link
-              to="/kanban"
-              className="mb-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Meus quadros
-            </Link>
-            <h1 className="truncate text-base font-semibold text-slate-900 dark:text-white">
-              {boardName || "Kanban Prócion"}
-            </h1>
+              <Link
+                to="/kanban"
+                className="mb-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Meus quadros
+              </Link>
+              <h1 className="truncate text-base font-semibold text-slate-900 dark:text-white">
+                {boardName || "Kanban Prócion"}
+              </h1>
             </div>
           </div>
 
@@ -1099,7 +1097,9 @@ function KanbanPage() {
                       { value: "all", label: "Todos" },
                       ...boardMembers.map((member) => ({
                         value: member.id,
-                        label: member.operator ? `${member.name} (${member.operator})` : member.name,
+                        label: member.operator
+                          ? `${member.name} (${member.operator})`
+                          : member.name,
                       })),
                     ]}
                   />
@@ -1208,38 +1208,55 @@ function KanbanPage() {
             {headerMembers.length > 0 && (
               <div className="flex shrink-0 items-center -space-x-2" aria-label="Pessoas no quadro">
                 {headerMembers.slice(0, 4).map((member) => (
-                  <Avatar key={member.id} title={member.name} className="h-7 w-7 border-2 border-white dark:border-[#1e2530]">
+                  <Avatar
+                    key={member.id}
+                    title={member.name}
+                    className="h-7 w-7 border-2 border-white dark:border-[#1e2530]"
+                  >
                     <AvatarImage src={member.avatarUrl ?? undefined} alt={member.name} />
                     <AvatarFallback className="bg-primary/15 text-[9px] font-semibold text-primary">
-                      {member.name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
+                      {member.name
+                        .split(" ")
+                        .map((part) => part[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 ))}
-                {headerMembers.length > 4 && <span className="grid h-7 min-w-7 place-items-center rounded-full border-2 border-white bg-muted px-1 text-[9px] font-semibold dark:border-[#1e2530]">+{headerMembers.length - 4}</span>}
+                {headerMembers.length > 4 && (
+                  <span className="grid h-7 min-w-7 place-items-center rounded-full border-2 border-white bg-muted px-1 text-[9px] font-semibold dark:border-[#1e2530]">
+                    +{headerMembers.length - 4}
+                  </span>
+                )}
               </div>
             )}
-            {canDeleteCard && <button
-              onClick={() => {
-                setCollaborationTab("share");
-                setCollaborationOpen(true);
-              }}
-              className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.08] dark:text-slate-200 dark:hover:bg-white/15"
-              aria-label="Compartilhar quadro"
-              title="Compartilhar"
-            >
-              <Users className="h-4 w-4" />
-            </button>}
-            {canDeleteCard && <button
-              onClick={() => {
-                setCollaborationTab("background");
-                setCollaborationOpen(true);
-              }}
-              className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.08] dark:text-slate-200 dark:hover:bg-white/15"
-              aria-label="Alterar fundo do quadro"
-              title="Alterar fundo"
-            >
-              <Palette className="h-4 w-4" />
-            </button>}
+            {canDeleteCard && (
+              <button
+                onClick={() => {
+                  setCollaborationTab("share");
+                  setCollaborationOpen(true);
+                }}
+                className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.08] dark:text-slate-200 dark:hover:bg-white/15"
+                aria-label="Compartilhar quadro"
+                title="Compartilhar"
+              >
+                <Users className="h-4 w-4" />
+              </button>
+            )}
+            {canDeleteCard && (
+              <button
+                onClick={() => {
+                  setCollaborationTab("background");
+                  setCollaborationOpen(true);
+                }}
+                className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/8 dark:bg-white/[0.08] dark:text-slate-200 dark:hover:bg-white/15"
+                aria-label="Alterar fundo do quadro"
+                title="Alterar fundo"
+              >
+                <Palette className="h-4 w-4" />
+              </button>
+            )}
             <button
               onClick={() => {
                 setBoardMenuTab("archive");
@@ -1285,12 +1302,17 @@ function KanbanPage() {
             </div>
           </div>
         ) : viewMode === "list" ? (
-          <KanbanListView cards={filteredCards} columns={columns} boardMembers={cardMembers} onOpenCard={openCard} />
+          <KanbanListView
+            cards={filteredCards}
+            columns={columns}
+            boardMembers={boardMembers}
+            onOpenCard={openCard}
+          />
         ) : viewMode === "inbox" ? (
           <KanbanInboxView
             cards={filteredCards}
             columns={columns}
-            boardMembers={cardMembers}
+            boardMembers={boardMembers}
             onOpenCard={openCard}
             onMoveCard={handleQuickMove}
             onCreateCard={() => handleNewCard(columns[0]?.id ?? "a-fazer")}
@@ -1323,7 +1345,7 @@ function KanbanPage() {
                       <KanbanColumnView
                         key={col.id}
                         boardId={boardId ?? undefined}
-                        boardMembers={cardMembers}
+                        boardMembers={boardMembers}
                         column={col}
                         columns={columns}
                         cards={cardsByColumn[col.id]}
@@ -1385,7 +1407,7 @@ function KanbanPage() {
                       <KanbanColumnView
                         key={col.id}
                         boardId={boardId ?? undefined}
-                        boardMembers={cardMembers}
+                        boardMembers={boardMembers}
                         column={col}
                         columns={columns}
                         cards={cardsByColumn[col.id]}
@@ -1444,16 +1466,31 @@ function KanbanPage() {
         )}
         {!loadingBoard && !loadError && (
           <div className="mx-auto mt-3 flex w-fit max-w-full flex-wrap items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white/90 p-1 dark:border-white/10 dark:bg-[#171a20]/95">
-            {([
+            {[
               { mode: "inbox" as const, label: "Caixa de entrada", icon: Inbox },
               { mode: "planner" as const, label: "Planejador", icon: CalendarDays },
               { mode: "kanban" as const, label: "Quadro", icon: Columns3 },
-            ]).map(({ mode, label, icon: Icon }) => (
-              <button key={mode} type="button" onClick={() => setViewMode(mode)} aria-pressed={viewMode === mode} className={cn("flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-medium transition", viewMode === mode ? "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-200" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10")}>
+            ].map(({ mode, label, icon: Icon }) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setViewMode(mode)}
+                aria-pressed={viewMode === mode}
+                className={cn(
+                  "flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-medium transition",
+                  viewMode === mode
+                    ? "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-200"
+                    : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10",
+                )}
+              >
                 <Icon className="h-4 w-4" /> {label}
               </button>
             ))}
-            <button type="button" onClick={() => setBoardSwitcherOpen(true)} className="flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10">
+            <button
+              type="button"
+              onClick={() => setBoardSwitcherOpen(true)}
+              className="flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10"
+            >
               <LayoutGrid className="h-4 w-4" /> Mudar de quadros
             </button>
           </div>
@@ -1469,7 +1506,11 @@ function KanbanPage() {
         canDelete={canDeleteCard}
         canManageMembers={canDeleteCard}
       />
-      <BoardSwitcherDialog open={boardSwitcherOpen} onOpenChange={setBoardSwitcherOpen} currentBoardId={boardId} />
+      <BoardSwitcherDialog
+        open={boardSwitcherOpen}
+        onOpenChange={setBoardSwitcherOpen}
+        currentBoardId={boardId}
+      />
 
       {boardMenuOpen && (
         <KanbanBoardMenu
@@ -1644,14 +1685,29 @@ function KanbanPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!cardDeleteTarget} onOpenChange={(open) => !open && !deleteBusy && setCardDeleteTarget(null)}>
+      <Dialog
+        open={!!cardDeleteTarget}
+        onOpenChange={(open) => !open && !deleteBusy && setCardDeleteTarget(null)}
+      >
         <DialogContent className="sm:max-w-[420px] [&>button]:hidden">
           <DialogTitle className="text-base">Excluir cartão?</DialogTitle>
           <p className="text-sm text-muted-foreground">{cardDeleteTarget?.title}</p>
           <p className="text-sm text-muted-foreground">Essa ação não pode ser desfeita.</p>
           <DialogFooter showClose={false} className="mt-3">
-            <Button variant="outline" disabled={deleteBusy} onClick={() => setCardDeleteTarget(null)}>Cancelar</Button>
-            <Button variant="destructive" disabled={deleteBusy} onClick={() => void confirmDeleteCard()}>Excluir cartão</Button>
+            <Button
+              variant="outline"
+              disabled={deleteBusy}
+              onClick={() => setCardDeleteTarget(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteBusy}
+              onClick={() => void confirmDeleteCard()}
+            >
+              Excluir cartão
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1757,16 +1813,26 @@ function KanbanInboxView({
                   key={card.id}
                   className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-slate-300 dark:border-slate-700 dark:bg-[#263244] dark:hover:border-slate-500"
                 >
-                  <button type="button" onClick={() => onOpenCard(card)} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left">
+                  <button
+                    type="button"
+                    onClick={() => onOpenCard(card)}
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
+                  >
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300">
                       <Inbox className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">{card.title}</span>
-                      <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">{card.client} · {card.module}</span>
+                      <span className="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {card.title}
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">
+                        {card.client} · {card.module}
+                      </span>
                     </span>
                   </button>
-                  <span className="hidden rounded bg-white px-2 py-1 text-[10px] text-slate-700 dark:bg-slate-700 dark:text-slate-200 sm:inline-flex">{card.priority}</span>
+                  <span className="hidden rounded bg-white px-2 py-1 text-[10px] text-slate-700 dark:bg-slate-700 dark:text-slate-200 sm:inline-flex">
+                    {card.priority}
+                  </span>
                   <span
                     className={cn(
                       "grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-semibold",
@@ -1774,18 +1840,29 @@ function KanbanInboxView({
                     )}
                     title={member?.operator || member?.name || "Sem responsável"}
                   >
-                    {member?.operator?.startsWith("PRC") ? "PRC" : member?.name?.slice(0, 2).toUpperCase() ?? "--"}
+                    {member?.operator?.startsWith("PRC")
+                      ? "PRC"
+                      : (member?.name?.slice(0, 2).toUpperCase() ?? "--")}
                   </span>
-                  {columns.length > 1 && <Select onValueChange={(columnId) => onMoveCard(card, columnId)}>
-                    <SelectTrigger aria-label={`Mover ${card.title}`} className="h-8 w-28 shrink-0 cursor-pointer text-xs">
-                      <SelectValue placeholder="Mover" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {columns.filter((column) => column.id !== card.columnId).map((column) => (
-                        <SelectItem key={column.id} value={column.id}>{column.title}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>}
+                  {columns.length > 1 && (
+                    <Select onValueChange={(columnId) => onMoveCard(card, columnId)}>
+                      <SelectTrigger
+                        aria-label={`Mover ${card.title}`}
+                        className="h-8 w-28 shrink-0 cursor-pointer text-xs"
+                      >
+                        <SelectValue placeholder="Mover" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {columns
+                          .filter((column) => column.id !== card.columnId)
+                          .map((column) => (
+                            <SelectItem key={column.id} value={column.id}>
+                              {column.title}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               );
             })
@@ -1810,7 +1887,10 @@ function KanbanInboxView({
           <div className="flex items-center justify-between rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
             <span className="text-slate-600 dark:text-slate-300">Alta prioridade</span>
             <strong className="text-rose-500">
-              {inboxCards.filter((card) => card.priority === "Alta" || card.priority === "Crítica").length}
+              {
+                inboxCards.filter((card) => card.priority === "Alta" || card.priority === "Crítica")
+                  .length
+              }
             </strong>
           </div>
         </div>
@@ -1899,7 +1979,10 @@ function KanbanPlannerView({
           ))}
           <div className="app-scrollbar max-h-[calc(100dvh-330px)] space-y-2 overflow-y-auto border-r p-2 dark:border-white/8">
             {unscheduled.map((card) => (
-              <div key={card.id} className="space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-[#263244]">
+              <div
+                key={card.id}
+                className="space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-[#263244]"
+              >
                 <PlannerCard card={card} onOpen={() => onOpenCard(card)} />
                 <input
                   type="date"
@@ -1968,14 +2051,18 @@ function KanbanListView({
   boardMembers: BoardMember[];
   onOpenCard: (card: KanbanCard) => void;
 }) {
-  const [sortBy, setSortBy] = useState<"title" | "column" | "assignee" | "priority" | "due">("title");
+  const [sortBy, setSortBy] = useState<"title" | "column" | "assignee" | "priority" | "due">(
+    "title",
+  );
   const [descending, setDescending] = useState(false);
   const columnNames = new Map(columns.map((column) => [column.id, column.title]));
   const sortedCards = [...cards].sort((left, right) => {
     const value = (card: KanbanCard) => {
       if (sortBy === "column") return columnNames.get(card.columnId) ?? card.columnId;
-      if (sortBy === "assignee") return boardMembers.find((member) => member.id === card.assigneeId)?.name ?? "";
-      if (sortBy === "priority") return String(["Baixa", "Média", "Alta", "Crítica"].indexOf(card.priority));
+      if (sortBy === "assignee")
+        return boardMembers.find((member) => member.id === card.assigneeId)?.name ?? "";
+      if (sortBy === "priority")
+        return String(["Baixa", "Média", "Alta", "Crítica"].indexOf(card.priority));
       if (sortBy === "due") return card.dueDate || "9999-12-31";
       return card.title;
     };
@@ -1984,7 +2071,10 @@ function KanbanListView({
   });
   const changeSort = (field: typeof sortBy) => {
     if (sortBy === field) setDescending((value) => !value);
-    else { setSortBy(field); setDescending(false); }
+    else {
+      setSortBy(field);
+      setDescending(false);
+    }
   };
   const priorityTone: Record<Priority, string> = {
     Alta: "bg-rose-500/12 text-rose-600 dark:text-rose-300",
@@ -2001,9 +2091,24 @@ function KanbanListView({
       <div className="app-scrollbar max-h-[calc(100dvh-240px)] overflow-auto">
         <div className="min-w-[820px]">
           <div className="grid grid-cols-[minmax(260px,2fr)_1fr_1fr_120px_130px] gap-4 border-b bg-slate-100 px-5 py-3 text-[10px] font-semibold uppercase text-slate-600 dark:border-slate-700 dark:bg-[#263244] dark:text-slate-300">
-            {([ ["title", "Cartão"], ["column", "Lista"], ["assignee", "Responsável"], ["priority", "Prioridade"], ["due", "Prazo"] ] as const).map(([field, label]) => (
-              <button key={field} type="button" onClick={() => changeSort(field)} className="inline-flex cursor-pointer items-center gap-1 text-left hover:text-primary" aria-label={`Ordenar por ${label}`}>
-                {label}<ArrowUpDown className="h-3 w-3" />
+            {(
+              [
+                ["title", "Cartão"],
+                ["column", "Lista"],
+                ["assignee", "Responsável"],
+                ["priority", "Prioridade"],
+                ["due", "Prazo"],
+              ] as const
+            ).map(([field, label]) => (
+              <button
+                key={field}
+                type="button"
+                onClick={() => changeSort(field)}
+                className="inline-flex cursor-pointer items-center gap-1 text-left hover:text-primary"
+                aria-label={`Ordenar por ${label}`}
+              >
+                {label}
+                <ArrowUpDown className="h-3 w-3" />
               </button>
             ))}
           </div>
@@ -2034,9 +2139,13 @@ function KanbanListView({
                       "bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-100",
                     )}
                   >
-                    {member?.operator?.startsWith("PRC") ? "PRC" : member?.name?.slice(0, 2).toUpperCase() ?? "--"}
+                    {member?.operator?.startsWith("PRC")
+                      ? "PRC"
+                      : (member?.name?.slice(0, 2).toUpperCase() ?? "--")}
                   </span>
-                  <span className="truncate">{member?.operator || member?.name || "Sem responsável"}</span>
+                  <span className="truncate">
+                    {member?.operator || member?.name || "Sem responsável"}
+                  </span>
                 </span>
                 <span>
                   <span
