@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { COLLECTOR_PUBLIC_KEY } from "./collector-public-key.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-service-slug",
+    "authorization, x-client-info, apikey, content-type, x-service-slug, x-collector-timestamp, x-collector-signature",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
@@ -17,6 +18,34 @@ const respond = (body: unknown, status = 200) =>
 type ChartPoint = { time: string; reports: number };
 type ReportedFailure = { label: string; percent: number; reports?: number };
 const BUCKET = "crm-monitoring";
+
+function decodeBase64(value: string) {
+  return Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
+}
+
+async function verifyCollector(request: Request, body: string) {
+  const timestamp = request.headers.get("x-collector-timestamp");
+  const signature = request.headers.get("x-collector-signature");
+  if (!timestamp || !signature || Math.abs(Date.now() - Number(timestamp)) > 5 * 60_000)
+    return false;
+  try {
+    const key = await crypto.subtle.importKey(
+      "spki",
+      decodeBase64(COLLECTOR_PUBLIC_KEY),
+      { name: "Ed25519" },
+      false,
+      ["verify"],
+    );
+    return await crypto.subtle.verify(
+      { name: "Ed25519" },
+      key,
+      decodeBase64(signature),
+      new TextEncoder().encode(`${timestamp}.${body}`),
+    );
+  } catch {
+    return false;
+  }
+}
 
 function validChartPoint(value: unknown): value is ChartPoint {
   if (!value || typeof value !== "object") return false;
@@ -54,17 +83,22 @@ serve(async (request) => {
     return respond({ error: "Método não permitido." }, 405);
   }
 
-  const authorization = request.headers.get("authorization");
-  if (!authorization?.startsWith("Bearer ")) return respond({ error: "Não autenticado." }, 401);
-
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const token = authorization.slice("Bearer ".length);
-  const { data: authData, error: authError } = await admin.auth.getUser(token);
-  if (authError || !authData.user) return respond({ error: "Sessão inválida." }, 401);
+  const requestBody = request.method === "POST" ? await request.text() : "";
+  const isCollector = request.method === "POST" && (await verifyCollector(request, requestBody));
+  let userId: string | undefined;
+  if (!isCollector) {
+    const authorization = request.headers.get("authorization");
+    if (!authorization?.startsWith("Bearer ")) return respond({ error: "Não autenticado." }, 401);
+    const token = authorization.slice("Bearer ".length);
+    const { data: authData, error: authError } = await admin.auth.getUser(token);
+    if (authError || !authData.user) return respond({ error: "Sessão inválida." }, 401);
+    userId = authData.user.id;
+  }
 
   if (request.method === "GET") {
     const serviceSlug = request.headers.get("x-service-slug") ?? "sefaz";
@@ -79,18 +113,20 @@ serve(async (request) => {
     return respond({ snapshot: JSON.parse(await data.text()) });
   }
 
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("role,active")
-    .eq("id", authData.user.id)
-    .maybeSingle();
-  if (!profile?.active || !["admin", "support", "specialist"].includes(profile.role)) {
-    return respond({ error: "Apenas a equipe pode enviar coletas." }, 403);
+  if (!isCollector) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("role,active")
+      .eq("id", userId!)
+      .maybeSingle();
+    if (!profile?.active || !["admin", "support", "specialist"].includes(profile.role)) {
+      return respond({ error: "Apenas a equipe pode enviar coletas." }, 403);
+    }
   }
 
   let body: Record<string, unknown>;
   try {
-    body = await request.json();
+    body = JSON.parse(requestBody);
   } catch {
     return respond({ error: "JSON inválido." }, 400);
   }
