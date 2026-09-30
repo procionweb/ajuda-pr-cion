@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Bar,
   BarChart,
+  LabelList,
   CartesianGrid,
   ComposedChart,
   Line,
@@ -696,7 +697,7 @@ function StatisticsCard({
     }, 90);
   };
   return (
-    <Card className="w-full max-w-full min-w-0 overflow-hidden rounded-[14px] border border-border/60 bg-white p-4 shadow-[0_10px_26px_rgba(25,29,51,0.06)] dark:bg-[#20263d] sm:p-5">
+    <Card className="analytics-statistics w-full max-w-full min-w-0 overflow-hidden rounded-[14px] border border-border/60 bg-white p-4 shadow-[0_10px_26px_rgba(25,29,51,0.06)] dark:bg-[#20263d] sm:p-5">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <h3 className="text-base font-bold tracking-tight text-foreground">Estatísticas</h3>
         <span className="inline-flex h-9 items-center gap-2 rounded-md bg-muted/60 px-4 text-sm font-semibold text-foreground">
@@ -814,7 +815,7 @@ function StatisticsCard({
           <Download className="h-4 w-4" />
         </Button>
       </div>
-      <div className="h-[300px] w-full min-w-0 overflow-auto">
+      <div className="analytics-statistics__chart h-[300px] w-full min-w-0 overflow-auto">
         {chartMode === "table" ? (
           <table className="analytics-data-table">
             <thead>
@@ -1027,57 +1028,77 @@ function WeeklyBacklogCard({
               Ver 30 empresas
             </Button>
           </div>
-          <div className="h-[220px]">
+          <div className="h-[310px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
+                layout="vertical"
                 data={weeklyTopCompanies}
-                margin={{ top: 16, right: 16, left: 8, bottom: 8 }}
+                margin={{ top: 8, right: 32, left: 0, bottom: 0 }}
+                barSize={22}
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="rgba(139,145,173,0.18)"
+                  horizontal={false}
+                  stroke="var(--analytics-grid)"
                 />
                 <XAxis
-                  dataKey="company"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fontWeight: 600, fill: "#8b91ad" }}
-                />
-                <YAxis
+                  type="number"
                   allowDecimals={false}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: "#8b91ad" }}
-                  width={40}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="company"
+                  interval={0}
+                  tickFormatter={(value: string) =>
+                    value.length > 14 ? `${value.slice(0, 13)}…` : value
+                  }
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fontWeight: 600, fill: "var(--foreground)" }}
+                  width={100}
                 />
                 <Tooltip
+                  cursor={{ fill: "var(--analytics-grid)" }}
                   formatter={(value, name) => [
                     `${value} chamado${Number(value) === 1 ? "" : "s"}`,
                     name,
                   ]}
                   contentStyle={{
-                    border: "0",
-                    borderRadius: 12,
+                    background: "var(--card)",
+                    color: "var(--foreground)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
                     boxShadow: "0 14px 30px rgba(25,29,51,0.12)",
                     fontSize: 12,
                   }}
                 />
-                <Bar dataKey="nfe" name="NF-e" fill="#8d6bd8" radius={[6, 6, 0, 0]} />
+                <Bar stackId="total" dataKey="nfe" name="NF-e" fill="#24b9d1" />
+                <Bar stackId="total" dataKey="basic" name="Básico / Terceiros" fill="#efb45b" />
                 <Bar
-                  dataKey="basic"
-                  name="Básico / Terceiros"
-                  fill="#ff9f68"
-                  radius={[6, 6, 0, 0]}
-                />
-                <Bar dataKey="others" name="Demais módulos" fill="#ff5fc8" radius={[6, 6, 0, 0]} />
+                  stackId="total"
+                  dataKey="others"
+                  name="Demais módulos"
+                  fill="#7994ee"
+                  radius={[0, 4, 4, 0]}
+                >
+                  <LabelList
+                    dataKey="total"
+                    position="right"
+                    fill="var(--foreground)"
+                    fontSize={12}
+                    fontWeight={600}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-5 text-xs font-semibold text-muted-foreground">
-            <LegendDot color="#8d6bd8" label="NF-e" />
-            <LegendDot color="#ff9f68" label="Básico / Terceiros" />
-            <LegendDot color="#ff5fc8" label="Demais módulos" />
+            <LegendDot color="#24b9d1" label="NF-e" />
+            <LegendDot color="#efb45b" label="Básico / Terceiros" />
+            <LegendDot color="#7994ee" label="Demais módulos" />
           </div>
         </>
       }

@@ -161,6 +161,10 @@ export function AnalyticsOverview({
     };
   }, [tickets, rangeEnd]);
   const maxOffset = Math.max(0, data.days.length - 20);
+  const heatTotal = data.heat.flat().reduce((sum, value) => sum + value, 0);
+  const peak = data.heat
+    .flatMap((row, day) => row.map((value, hour) => ({ day, hour, value })))
+    .reduce((best, cell) => (cell.value > best.value ? cell : best), { day: 0, hour: 0, value: 0 });
   const offset = Math.min(dayOffset, maxOffset);
   const visibleDays = data.days.slice(data.days.length - 20 - offset, data.days.length - offset);
   useEffect(() => {
@@ -466,6 +470,22 @@ export function AnalyticsOverview({
             />
           ))}
           <span>Mais</span>
+        </div>
+        <div className="analytics-heat-summary">
+          <div>
+            <span>Maior movimento</span>
+            <strong>
+              {peak.value
+                ? `${["Seg", "Ter", "Qua", "Qui", "Sex"][peak.day]} · ${peak.hour + 7}h`
+                : "Sem atividade"}
+            </strong>
+            <small>{peak.value} chamados</small>
+          </div>
+          <div>
+            <span>Aberturas no mapa</span>
+            <strong>{number.format(heatTotal)}</strong>
+            <small>7h às 19h · dias úteis</small>
+          </div>
         </div>
       </Panel>
     </div>

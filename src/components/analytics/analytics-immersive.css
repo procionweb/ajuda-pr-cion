@@ -185,6 +185,8 @@
 .analytics-heatmap {
   grid-column: 3;
   grid-row: 2;
+  display: flex;
+  flex-direction: column;
 }
 .analytics-daily-chart {
   grid-column: 1 / -1;
@@ -348,10 +350,15 @@
 .analytics-recent-row {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 10px;
   min-height: 62px;
-  padding: 4px 0;
+  padding: 9px 4px;
   border-bottom: 1px solid var(--analytics-grid);
+}
+.analytics-recent-row:hover,
+.analytics-recent-row:focus-visible {
+  background: var(--analytics-grid);
+  border-radius: 6px;
 }
 .analytics-recent-row > svg {
   flex: 0 0 auto;
@@ -367,7 +374,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
-  font-weight: 400;
+  font-weight: 600;
 }
 .analytics-recent-row p {
   overflow: hidden;
@@ -420,23 +427,77 @@
 }
 .analytics-heat-grid {
   margin-top: 20px;
+  flex: 1;
+  min-height: 210px;
+  display: grid;
+  grid-template-rows: repeat(5, minmax(30px, 1fr)) 20px;
 }
 .analytics-heat-grid > div {
   display: grid;
   grid-template-columns: 24px repeat(12, minmax(0, 1fr));
   gap: 3px;
   margin-bottom: 3px;
-  align-items: center;
+  align-items: stretch;
 }
 .analytics-heat-grid > div > span:first-child {
   font-size: 12px;
   color: var(--muted-foreground);
 }
 .analytics-heat-cell {
-  aspect-ratio: 1;
-  border-radius: 3px;
+  border-radius: 4px;
   min-width: 0;
-  max-height: 24px;
+  border: 1px solid rgb(255 255 255 / 6%);
+}
+.analytics-heat-grid > div > span:first-child {
+  align-self: center;
+}
+.analytics-heat-cell:hover {
+  outline: 1px solid var(--foreground);
+  outline-offset: -1px;
+}
+.analytics-heat-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  border-top: 1px solid var(--analytics-grid);
+  margin-top: 18px;
+  padding-top: 14px;
+}
+.analytics-heat-summary span,
+.analytics-heat-summary small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.analytics-heat-summary strong {
+  display: block;
+  font-size: 18px;
+  margin: 4px 0;
+}
+@media (min-width: 1280px) {
+  #analytics-detalhado {
+    height: 560px;
+  }
+  #analytics-detalhado > .analytics-flip {
+    min-height: 0;
+  }
+  #analytics-detalhado .analytics-flip__rotor,
+  #analytics-detalhado .analytics-operators {
+    height: 100%;
+  }
+  #analytics-detalhado .analytics-statistics {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  #analytics-detalhado .analytics-statistics > div {
+    flex-shrink: 0;
+  }
+  #analytics-detalhado .analytics-statistics > .analytics-statistics__chart {
+    flex: 1;
+    min-height: 120px;
+    height: auto;
+  }
 }
 .analytics-heat-cell:focus-visible {
   outline: 2px solid var(--primary);
