@@ -78,7 +78,16 @@ async function collectWhenReady() {
   for (let attempt = 0; attempt < 24; attempt += 1) {
     const snapshot = extractSnapshot();
     if (snapshot) {
-      await chrome.runtime.sendMessage({ type: "downdetector-snapshot", snapshot });
+      try {
+        const response = await chrome.runtime.sendMessage({
+          type: "downdetector-snapshot",
+          snapshot,
+        });
+        if (!response?.ok) throw new Error(response?.error ?? "Envio não confirmado");
+        console.info("[Prócion] Relatos da SEFAZ enviados ao CRM.");
+      } catch (error) {
+        console.error("[Prócion] Não foi possível enviar os relatos da SEFAZ:", error);
+      }
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, 5_000));

@@ -40,7 +40,14 @@ async function sendSnapshot(snapshot) {
     },
     body,
   });
-  if (!response.ok) throw new Error(`CRM respondeu ${response.status}`);
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 300);
+    throw new Error(`CRM respondeu ${response.status}${detail ? `: ${detail}` : ""}`);
+  }
+}
+
+async function saveStatus(status) {
+  await chrome.storage.local.set({ collectorStatus: { ...status, checkedAt: new Date().toISOString() } });
 }
 
 async function refreshSource() {
@@ -62,11 +69,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   sendSnapshot(message.snapshot)
     .then(() => {
       setBadge("OK", "#0f9f6e");
+      void saveStatus({ ok: true, collectedAt: message.snapshot.collectedAt });
       sendResponse({ ok: true });
     })
     .catch((error) => {
+      const detail = error instanceof Error ? error.message : String(error);
       setBadge("!", "#dc3545");
-      sendResponse({ ok: false, error: error instanceof Error ? error.message : String(error) });
+      void saveStatus({ ok: false, error: detail });
+      sendResponse({ ok: false, error: detail });
     });
   return true;
 });
@@ -83,5 +93,3 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) void refreshSource();
 });
-
-chrome.action.onClicked.addListener(() => void refreshSource());
