@@ -83,6 +83,7 @@ import { PastAttendanceDetailModal } from "./PastAttendanceDetailModal";
 import type { PastAttendance } from "@/lib/tickets-store";
 import { TicketNotesModal } from "./TicketNotesModal";
 import { useTicketSummary } from "@/lib/ticket-summary";
+import { TicketAiDiagnosis } from "./TicketAiDiagnosis";
 import { TicketTimelineModal } from "./TicketTimelineModal";
 import { TicketTimelineList } from "./TicketTimelineList";
 import { TicketFloatingChat } from "./TicketFloatingChat";
@@ -124,8 +125,7 @@ const statusTone: Record<TicketStatus, string> = {
 const priorityTone: Record<TicketPriority, string> = {
   Alta: "bg-destructive/12 text-destructive border-destructive/20",
   Media: "border-warning/70 bg-warning/20 text-warning-foreground dark:bg-warning/25",
-  Baixa:
-    "border-success/30 bg-success/12 text-success dark:border-success/40 dark:bg-success/20",
+  Baixa: "border-success/30 bg-success/12 text-success dark:border-success/40 dark:bg-success/20",
 };
 
 const sourceLabels: Record<SupportTicket["source"], string> = {
@@ -680,7 +680,9 @@ export function TicketDetailSheet({
                     collapsed={navCollapsed}
                     active={activeAction === "novo"}
                     disabled={!attendanceStarted || isFinalized}
-                    title={!attendanceStarted ? "Inicie o atendimento para liberar esta ação" : undefined}
+                    title={
+                      !attendanceStarted ? "Inicie o atendimento para liberar esta ação" : undefined
+                    }
                     onClick={() => {
                       setActiveAction("novo");
                       createAnotherTicket();
@@ -692,7 +694,13 @@ export function TicketDetailSheet({
                     collapsed={navCollapsed}
                     active={activeAction === "encerrar"}
                     disabled={isFinalized || !attendanceStarted}
-                    title={!attendanceStarted ? "Inicie o atendimento para finalizar" : isFinalized ? "Chamado finalizado" : undefined}
+                    title={
+                      !attendanceStarted
+                        ? "Inicie o atendimento para finalizar"
+                        : isFinalized
+                          ? "Chamado finalizado"
+                          : undefined
+                    }
                     onClick={() => {
                       setActiveAction("encerrar");
                       setCloseOpen(true);
@@ -716,7 +724,13 @@ export function TicketDetailSheet({
                     collapsed={navCollapsed}
                     active={activeAction === "agendar"}
                     disabled={isFinalized || !attendanceStarted}
-                    title={!attendanceStarted ? "Inicie o atendimento para agendar" : isFinalized ? "Chamado finalizado" : undefined}
+                    title={
+                      !attendanceStarted
+                        ? "Inicie o atendimento para agendar"
+                        : isFinalized
+                          ? "Chamado finalizado"
+                          : undefined
+                    }
                     onClick={() => {
                       setActiveAction("agendar");
                       setScheduleOpen(true);
@@ -729,7 +743,13 @@ export function TicketDetailSheet({
                     collapsed={navCollapsed}
                     active={activeAction === "encaminhar"}
                     disabled={isFinalized || !attendanceStarted}
-                    title={!attendanceStarted ? "Inicie o atendimento para encaminhar" : isFinalized ? "Chamado finalizado" : undefined}
+                    title={
+                      !attendanceStarted
+                        ? "Inicie o atendimento para encaminhar"
+                        : isFinalized
+                          ? "Chamado finalizado"
+                          : undefined
+                    }
                     onClick={() => {
                       setActiveAction("encaminhar");
                       setForwardOpen(true);
@@ -786,7 +806,13 @@ export function TicketDetailSheet({
                   icon={TicketCloseIcon}
                   label="Finalizar"
                   disabled={isFinalized || !attendanceStarted}
-                  title={!attendanceStarted ? "Inicie o atendimento para finalizar" : isFinalized ? "Chamado finalizado" : undefined}
+                  title={
+                    !attendanceStarted
+                      ? "Inicie o atendimento para finalizar"
+                      : isFinalized
+                        ? "Chamado finalizado"
+                        : undefined
+                  }
                   onClick={() => setCloseOpen(true)}
                 />
                 <MobileAction
@@ -800,14 +826,26 @@ export function TicketDetailSheet({
                   icon={TicketScheduleIcon}
                   label="Agendar"
                   disabled={isFinalized || !attendanceStarted}
-                  title={!attendanceStarted ? "Inicie o atendimento para agendar" : isFinalized ? "Chamado finalizado" : undefined}
+                  title={
+                    !attendanceStarted
+                      ? "Inicie o atendimento para agendar"
+                      : isFinalized
+                        ? "Chamado finalizado"
+                        : undefined
+                  }
                   onClick={() => setScheduleOpen(true)}
                 />
                 <MobileAction
                   icon={TicketForwardIcon}
                   label="Enviar a especialista"
                   disabled={isFinalized || !attendanceStarted}
-                  title={!attendanceStarted ? "Inicie o atendimento para encaminhar" : isFinalized ? "Chamado finalizado" : undefined}
+                  title={
+                    !attendanceStarted
+                      ? "Inicie o atendimento para encaminhar"
+                      : isFinalized
+                        ? "Chamado finalizado"
+                        : undefined
+                  }
                   onClick={() => setForwardOpen(true)}
                 />
                 <MobileAction
@@ -880,6 +918,17 @@ export function TicketDetailSheet({
                       >
                         Ver descrição original
                       </button>
+                      <TicketAiDiagnosis
+                        input={{
+                          ticketId: ticket.id,
+                          protocol: ticket.protocol,
+                          subject: ticket.subject,
+                          description: ticketDescription,
+                          module: ticket.module,
+                          clientName: ticket.clientName,
+                          status: ticket.status,
+                        }}
+                      />
                     </div>
                   ) : (
                     <p className="text-[13px] leading-relaxed text-muted-foreground">
