@@ -43,21 +43,9 @@
   padding: 24px;
 }
 .analytics-cockpit .analytics-heading {
-  margin-bottom: 18px;
+  margin-bottom: 24px;
   display: flex;
   align-items: center;
-}
-.analytics-heading__brand {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 18px;
-}
-.analytics-heading__divider {
-  width: 1px;
-  height: 52px;
-  flex: 0 0 auto;
-  background: var(--analytics-grid);
 }
 .analytics-cockpit .analytics-heading h1 {
   font-size: 26px;
@@ -622,16 +610,6 @@
   }
   .analytics-cockpit .analytics-heading h1 {
     font-size: 22px;
-  }
-  .analytics-heading__brand {
-    align-items: flex-start;
-    gap: 12px;
-  }
-  .analytics-heading__brand > svg {
-    width: 108px;
-  }
-  .analytics-heading__divider {
-    display: none;
   }
   .analytics-cockpit .analytics-toolbar {
     align-items: stretch;

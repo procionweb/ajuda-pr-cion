@@ -1838,29 +1838,10 @@ function BarRow({
 
 export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string; to?: string }) {
   const allTickets = useTickets();
-  const [operatorFilter, setOperatorFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const operators = useMemo(
-    () =>
-      [
-        ...new Set(
-          allTickets.map(
-            (ticket) => ticket.owner?.trim() || ticket.attendant?.trim() || "Não informado",
-          ),
-        ),
-      ].sort((a, b) => a.localeCompare(b, "pt-BR")),
-    [allTickets],
-  );
   const scopedTickets = useMemo(
-    () =>
-      allTickets.filter(
-        (ticket) =>
-          (!operatorFilter ||
-            (ticket.owner?.trim() || ticket.attendant?.trim() || "Não informado") ===
-              operatorFilter) &&
-          (!statusFilter || ticket.status === statusFilter),
-      ),
-    [allTickets, operatorFilter, statusFilter],
+    () => allTickets.filter((ticket) => !statusFilter || ticket.status === statusFilter),
+    [allTickets, statusFilter],
   );
   const currentMonthStart = new Date();
   currentMonthStart.setDate(1);
@@ -1882,7 +1863,7 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
       return Number.isFinite(opened) && opened >= start && opened <= end;
     });
   }, [scopedTickets, from, to, defaultFrom, defaultTo]);
-  const hasDateFilter = Boolean(from || to || operatorFilter || statusFilter);
+  const hasDateFilter = Boolean(from || to || statusFilter);
 
   const statusDistribution = ticketStatuses
     .filter((status) => status !== "Atrasado" && status !== "Cancelado")
@@ -1912,49 +1893,6 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
 
   return (
     <section className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-xs">
-          Operador
-          <select
-            value={operatorFilter}
-            onChange={(event) => setOperatorFilter(event.target.value)}
-            className="h-9 max-w-full rounded-md border bg-background px-2 text-sm"
-          >
-            <option value="">Todos</option>
-            {operators.map((operator) => (
-              <option key={operator}>{operator}</option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2 text-xs">
-          Status
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-9 rounded-md border bg-background px-2 text-sm"
-          >
-            <option value="">Todos</option>
-            {ticketStatuses.map((status) => (
-              <option key={status}>{status}</option>
-            ))}
-          </select>
-        </label>
-        {(operatorFilter || statusFilter) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setOperatorFilter("");
-              setStatusFilter("");
-            }}
-          >
-            Limpar filtros
-          </Button>
-        )}
-        <span className="text-xs text-muted-foreground">
-          {supportTickets.length} chamados no período
-        </span>
-      </div>
       <TicketsIndicatorCards
         tickets={hasDateFilter ? supportTickets : allTickets}
         filtered={hasDateFilter}
