@@ -25,6 +25,11 @@ import {
 type Props = { input: TicketDiagnosisInput };
 
 const confidenceLabels = { baixa: "Baixa", media: "Média", alta: "Alta" } as const;
+const basisLabels = {
+  base_interna: "Base interna",
+  conhecimento_geral: "Conhecimento técnico",
+  mista: "Base + conhecimento técnico",
+} as const;
 
 export function TicketAiDiagnosis({ input }: Props) {
   const [open, setOpen] = useState(false);
@@ -62,7 +67,7 @@ export function TicketAiDiagnosis({ input }: Props) {
             Assistente de diagnóstico
           </p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            Consulta a base de conhecimento e atendimentos finalizados.
+            Combina a base interna, chamados resolvidos e conhecimento técnico.
           </p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -124,19 +129,22 @@ function DiagnosisResult({ diagnosis }: { diagnosis: TicketDiagnosis }) {
           </p>
           <p className="mt-1 text-[13px] leading-relaxed text-foreground">{diagnosis.assessment}</p>
         </div>
-        <Badge
-          variant="outline"
-          className={cn(
-            "shrink-0",
-            diagnosis.confidence === "alta" && "border-success/40 bg-success/10 text-success",
-            diagnosis.confidence === "media" &&
-              "border-warning/40 bg-warning/10 text-warning-foreground",
-            diagnosis.confidence === "baixa" && "border-muted-foreground/30 text-muted-foreground",
-          )}
-          title={diagnosis.confidenceReason}
-        >
-          Confiança {confidenceLabels[diagnosis.confidence]}
-        </Badge>
+        <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+          <Badge variant="secondary">{basisLabels[diagnosis.answerBasis]}</Badge>
+          <Badge
+            variant="outline"
+            className={cn(
+              diagnosis.confidence === "alta" && "border-success/40 bg-success/10 text-success",
+              diagnosis.confidence === "media" &&
+                "border-warning/40 bg-warning/10 text-warning-foreground",
+              diagnosis.confidence === "baixa" &&
+                "border-muted-foreground/30 text-muted-foreground",
+            )}
+            title={diagnosis.confidenceReason}
+          >
+            Confiança {confidenceLabels[diagnosis.confidence]}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-4 p-4 lg:grid-cols-2">

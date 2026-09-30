@@ -21,6 +21,7 @@ export type TicketDiagnosis = {
   shouldEscalate: boolean;
   escalationReason: string;
   warning: string;
+  answerBasis: "base_interna" | "conhecimento_geral" | "mista";
   sources: TicketDiagnosisSource[];
 };
 
