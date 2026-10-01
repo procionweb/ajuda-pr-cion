@@ -66,7 +66,7 @@ export function SefazStatusPanel() {
   const [data, setData] = useState<SefazMonitorResponse>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
-  const [view, setView] = useState<"technical" | "external">("external");
+  const [view] = useState<"technical" | "external">("external");
   const [externalData, setExternalData] = useState<DowndetectorSnapshot>();
   const [externalLoading, setExternalLoading] = useState(false);
   const [externalError, setExternalError] = useState<string>();
@@ -109,10 +109,13 @@ export function SefazStatusPanel() {
   }, [loadStatus]);
 
   useEffect(() => {
-    if (view === "external" && !externalData && !externalLoading) {
+    void loadExternalReports();
+    const refreshInterval = window.setInterval(() => {
       void loadExternalReports();
-    }
-  }, [externalData, externalLoading, loadExternalReports, view]);
+    }, 60_000);
+
+    return () => window.clearInterval(refreshInterval);
+  }, [loadExternalReports]);
 
   const selected = data?.documents.find((item) => item.document === "nfe");
   const chartData = useMemo(
@@ -165,17 +168,6 @@ export function SefazStatusPanel() {
         </div>
 
         <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:items-center">
-          <button
-            type="button"
-            onClick={() =>
-              setView((current) => (current === "technical" ? "external" : "technical"))
-            }
-            title={view === "technical" ? "Ver relatos externos" : "Voltar ao status técnico"}
-            className={`inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-md border px-3 text-xs transition ${refreshBtn}`}
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            {view === "technical" ? "Relatos externos" : "Status técnico"}
-          </button>
           {view === "technical" ? (
             <NfeConsultDialog />
           ) : (

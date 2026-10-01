@@ -56,21 +56,27 @@ export function BrazilNewsCard() {
 
   useEffect(() => {
     let active = true;
-    getBrazilFiscalNews()
-      .then((result) => {
-        if (!active) return;
-        setArticles(result);
-        setError(null);
-      })
-      .catch((reason: unknown) => {
-        if (!active) return;
-        setError(reason instanceof Error ? reason.message : "Falha ao carregar notícias.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    const loadNews = () => {
+      getBrazilFiscalNews()
+        .then((result) => {
+          if (!active) return;
+          setArticles(result);
+          setError(null);
+        })
+        .catch((reason: unknown) => {
+          if (!active) return;
+          setError(reason instanceof Error ? reason.message : "Falha ao carregar notícias.");
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    };
+
+    loadNews();
+    const refreshInterval = window.setInterval(loadNews, 15 * 60_000);
     return () => {
       active = false;
+      window.clearInterval(refreshInterval);
     };
   }, []);
 

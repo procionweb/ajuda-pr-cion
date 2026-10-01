@@ -525,11 +525,10 @@ serve(async (request) => {
       return json({ data: await collectAll() });
     }
 
-    let articles = await listNews(Number(body.limit) || 12, body.category);
-    if (!articles.length) {
+    if (!(await collectionIsFresh())) {
       await collectAll();
-      articles = await listNews(Number(body.limit) || 12, body.category);
     }
+    const articles = await listNews(Number(body.limit) || 12, body.category);
     return json({ articles });
   } catch (error) {
     console.error("[fiscal-news]", error);
