@@ -334,7 +334,7 @@ function ApplicationsSettingsPage() {
               return (
                 <li
                   key={application.id}
-                  className="flex min-h-28 items-center gap-4 px-4 py-4 transition-colors hover:bg-muted/20 sm:gap-5 sm:px-6"
+                  className="flex min-h-28 items-center gap-4 px-4 py-4 text-[13px] text-foreground transition-colors hover:bg-muted/20 sm:gap-5 sm:px-6"
                 >
                   <div
                     className={cn(
@@ -355,7 +355,7 @@ function ApplicationsSettingsPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-base font-semibold text-foreground sm:text-lg">
+                      <h2 className="text-sm font-semibold text-foreground">
                         {application.name || "Aplicativo sem nome"}
                       </h2>
                       {application.app_type && (
@@ -364,7 +364,7 @@ function ApplicationsSettingsPage() {
                         </span>
                       )}
                     </div>
-                    <dl className="mt-2 grid gap-1 text-sm text-muted-foreground sm:grid-cols-2 sm:gap-x-8">
+                    <dl className="mt-2 grid gap-1 text-[13px] text-muted-foreground sm:grid-cols-2 sm:gap-x-8">
                       <div className="flex gap-1.5">
                         <dt>Build:</dt>
                         <dd className="font-medium text-foreground">

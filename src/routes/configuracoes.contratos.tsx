@@ -101,8 +101,8 @@ function ContractsSettingsPage() {
       </div>
       <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1250px] text-left text-sm">
-            <thead className="border-b bg-muted/35 text-muted-foreground">
+          <table className="w-full min-w-[1250px] text-left text-[13px] text-foreground">
+            <thead className="border-b bg-muted/35 text-xs uppercase text-muted-foreground">
               <tr>
                 {[
                   "Sigla",

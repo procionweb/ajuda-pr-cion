@@ -175,7 +175,7 @@ function ConfigurationLogsPage() {
 
         <div className="overflow-hidden rounded-md border bg-card">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1280px] text-sm">
+            <table className="w-full min-w-[1280px] text-[13px] text-foreground">
               <thead className="border-b bg-muted/35 text-left text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3"><button type="button" onClick={() => toggleSort("operator")} className="inline-flex cursor-pointer items-center gap-1">Operador / IP<ArrowUpDown className="size-3" /></button></th>
@@ -191,10 +191,10 @@ function ConfigurationLogsPage() {
                 {rows.map((row) => (
                   <tr key={row.id} className="align-top hover:bg-muted/20">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-primary">{row.operator || "—"}</div>
+                      <div className="font-medium text-foreground">{row.operator || "—"}</div>
                       <div className="text-muted-foreground">{row.ipAddress || "—"}</div>
                     </td>
-                    <td className="px-4 py-3 font-medium text-primary">
+                    <td className="px-4 py-3 font-medium text-foreground">
                       {row.clientAcronym || "—"}
                     </td>
                     <td className="px-4 py-3">

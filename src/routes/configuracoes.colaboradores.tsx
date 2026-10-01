@@ -240,7 +240,7 @@ function CollaboratorsSettingsPage() {
 
       <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1120px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[1120px] table-fixed text-left text-[13px] text-foreground">
             <colgroup>
               <col className="w-[12%]" />
               <col className="w-[8%]" />

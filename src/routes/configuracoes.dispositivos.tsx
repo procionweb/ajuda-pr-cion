@@ -195,8 +195,8 @@ function DevicesSettingsPage() {
 
       <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1500px] text-left text-xs">
-            <thead className="border-b bg-muted/35 uppercase text-muted-foreground">
+          <table className="w-full min-w-[1500px] text-left text-[13px] text-foreground">
+            <thead className="border-b bg-muted/35 text-xs uppercase text-muted-foreground">
               <tr>
                 {[
                   "Sigla / Chave",

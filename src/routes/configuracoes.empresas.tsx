@@ -152,7 +152,7 @@ function CompaniesSettingsPage() {
 
       <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1180px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[1180px] table-fixed text-left text-[13px] text-foreground">
             <colgroup>
               <col className="w-[15%]" />
               <col className="w-[23%]" />
