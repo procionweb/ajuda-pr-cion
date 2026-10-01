@@ -1,6 +1,6 @@
 create table if not exists public.ticket_diagnosis_runs (
   id uuid primary key default gen_random_uuid(),
-  ticket_id uuid not null references public.tickets(id) on delete cascade,
+  ticket_id text not null,
   user_id uuid not null references auth.users(id) on delete cascade,
   protocol text,
   subject text not null default '',
