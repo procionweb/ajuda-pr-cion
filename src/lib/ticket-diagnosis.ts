@@ -11,6 +11,7 @@ export type TicketDiagnosisSource = {
 };
 
 export type TicketDiagnosis = {
+  diagnosisId: string;
   assessment: string;
   probableCauses: string[];
   missingQuestions: string[];
@@ -24,6 +25,8 @@ export type TicketDiagnosis = {
   answerBasis: "base_interna" | "conhecimento_geral" | "mista";
   sources: TicketDiagnosisSource[];
 };
+
+export type TicketDiagnosisFeedback = "resolved" | "not_resolved";
 
 export type TicketDiagnosisInput = {
   ticketId: string;
@@ -46,4 +49,17 @@ export async function analyzeTicket(input: TicketDiagnosisInput): Promise<Ticket
   }
 
   return (data as { diagnosis: TicketDiagnosis }).diagnosis;
+}
+
+export async function submitTicketDiagnosisFeedback(
+  diagnosisId: string,
+  feedback: TicketDiagnosisFeedback,
+) {
+  const { data, error } = await supabase.functions.invoke("ticket-diagnosis", {
+    body: { action: "feedback", diagnosisId, feedback },
+  });
+  if (error) throw error;
+  if (!data || typeof data !== "object" || !("ok" in data)) {
+    throw new Error("O feedback não foi confirmado.");
+  }
 }

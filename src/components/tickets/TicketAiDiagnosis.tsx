@@ -12,12 +12,16 @@ import {
   RefreshCw,
   Route,
   ShieldAlert,
+  ThumbsDown,
+  ThumbsUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   analyzeTicket,
+  submitTicketDiagnosisFeedback,
+  type TicketDiagnosisFeedback,
   type TicketDiagnosis,
   type TicketDiagnosisInput,
 } from "@/lib/ticket-diagnosis";
@@ -116,9 +120,27 @@ export function TicketAiDiagnosis({ input }: Props) {
 }
 
 function DiagnosisResult({ diagnosis }: { diagnosis: TicketDiagnosis }) {
+  const [feedback, setFeedback] = useState<TicketDiagnosisFeedback | null>(null);
+  const [savingFeedback, setSavingFeedback] = useState(false);
+  const [feedbackError, setFeedbackError] = useState(false);
   const referencedSources = diagnosis.sources.filter((source) =>
     diagnosis.sourceRefs.includes(source.id),
   );
+
+  const sendFeedback = async (value: TicketDiagnosisFeedback) => {
+    if (savingFeedback || feedback === value) return;
+    setSavingFeedback(true);
+    setFeedbackError(false);
+    try {
+      await submitTicketDiagnosisFeedback(diagnosis.diagnosisId, value);
+      setFeedback(value);
+    } catch (error) {
+      console.error("[ticket-diagnosis] Falha ao registrar feedback.", error);
+      setFeedbackError(true);
+    } finally {
+      setSavingFeedback(false);
+    }
+  };
 
   return (
     <div className="divide-y divide-border">
@@ -219,6 +241,40 @@ function DiagnosisResult({ diagnosis }: { diagnosis: TicketDiagnosis }) {
       <div className="flex items-start gap-2 bg-muted/20 px-4 py-3 text-[10.5px] leading-relaxed text-muted-foreground">
         <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         {diagnosis.warning}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-card px-4 py-3">
+        <p className="text-[11px] text-muted-foreground">
+          {feedback === "resolved"
+            ? "Solução confirmada. Este resultado ajudará em chamados futuros."
+            : feedback === "not_resolved"
+              ? "Registrado. O bot evitará tratar este diagnóstico como solução confirmada."
+              : "Este diagnóstico ajudou a resolver o chamado?"}
+        </p>
+        <div className="flex items-center gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant={feedback === "resolved" ? "default" : "outline"}
+            disabled={savingFeedback}
+            onClick={() => void sendFeedback("resolved")}
+          >
+            <ThumbsUp className="h-3.5 w-3.5" /> Resolveu
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={feedback === "not_resolved" ? "destructive" : "outline"}
+            disabled={savingFeedback}
+            onClick={() => void sendFeedback("not_resolved")}
+          >
+            <ThumbsDown className="h-3.5 w-3.5" /> Não resolveu
+          </Button>
+        </div>
+        {feedbackError && (
+          <p className="w-full text-right text-[10.5px] text-destructive">
+            Não foi possível registrar agora. Tente novamente.
+          </p>
+        )}
       </div>
     </div>
   );

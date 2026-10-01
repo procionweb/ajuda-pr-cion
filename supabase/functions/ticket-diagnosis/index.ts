@@ -20,6 +20,9 @@ const admin = createClient(
 );
 
 type RequestBody = {
+  action?: "analyze" | "feedback";
+  diagnosisId?: string;
+  feedback?: "resolved" | "not_resolved";
   ticketId?: string;
   protocol?: string;
   subject?: string;
@@ -97,6 +100,38 @@ async function retrieveSources(body: RequestBody): Promise<Source[]> {
   const searchText = `${body.subject ?? ""} ${body.module ?? ""} ${body.description ?? ""}`;
   const terms = termsFrom(searchText);
   const sources: Source[] = [];
+
+  const { data: confirmed, error: confirmedError } = await admin
+    .from("ticket_diagnosis_runs")
+    .select("id,ticket_id,protocol,subject,description,module,diagnosis,feedback_at")
+    .eq("feedback", "resolved")
+    .order("feedback_at", { ascending: false })
+    .limit(200);
+  if (confirmedError) console.warn("[ticket-diagnosis] feedback search", confirmedError.message);
+  const learned = (confirmed ?? [])
+    .filter((item) => item.ticket_id !== body.ticketId)
+    .map((item) => ({
+      ...item,
+      score: lexicalScore(`${item.subject} ${item.module} ${item.description}`, terms),
+    }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+  for (const [index, item] of learned.entries()) {
+    const diagnosis = item.diagnosis as Record<string, unknown>;
+    const steps = Array.isArray(diagnosis.suggestedSteps)
+      ? diagnosis.suggestedSteps.filter((step): step is string => typeof step === "string")
+      : [];
+    sources.push({
+      id: `FB-${index + 1}`,
+      kind: "ticket",
+      title: `${item.protocol || "Chamado"} · ${item.subject}`,
+      detail: "Diagnóstico confirmado por um operador como solução.",
+      evidence: redactSecrets(
+        [`Relato: ${item.description}`, `Solução confirmada: ${steps.join("; ")}`].join("\n"),
+      ),
+    });
+  }
 
   if (terms.length) {
     const searchQuery = terms.slice(0, 7).join(" OR ");
@@ -307,6 +342,21 @@ serve(async (req) => {
     if (authError || !authData.user) return json({ error: "UNAUTHORIZED" }, 401);
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;
+    if (body.action === "feedback") {
+      if (!body.diagnosisId || !["resolved", "not_resolved"].includes(body.feedback || "")) {
+        return json({ error: "INVALID_FEEDBACK" }, 400);
+      }
+      const { data, error } = await admin
+        .from("ticket_diagnosis_runs")
+        .update({ feedback: body.feedback, feedback_at: new Date().toISOString() })
+        .eq("id", body.diagnosisId)
+        .eq("user_id", authData.user.id)
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return json({ error: "DIAGNOSIS_NOT_FOUND" }, 404);
+      return json({ ok: true });
+    }
     if (!body.ticketId || !body.description?.trim()) {
       return json({ error: "TICKET_CONTEXT_REQUIRED" }, 400);
     }
@@ -318,9 +368,26 @@ serve(async (req) => {
       ? generated.sourceRefs.filter((ref: unknown) => typeof ref === "string" && validRefs.has(ref))
       : [];
 
+    const { data: run, error: runError } = await admin
+      .from("ticket_diagnosis_runs")
+      .insert({
+        ticket_id: body.ticketId,
+        user_id: authData.user.id,
+        protocol: body.protocol || null,
+        subject: body.subject || "",
+        description: redactSecrets(body.description || ""),
+        module: body.module || "",
+        diagnosis: generated,
+        confidence: generated.confidence,
+      })
+      .select("id")
+      .single();
+    if (runError) throw runError;
+
     return json({
       diagnosis: {
         ...generated,
+        diagnosisId: run.id,
         sources: sources.map(({ evidence: _evidence, ...source }) => source),
       },
     });
