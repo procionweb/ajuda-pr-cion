@@ -43,7 +43,7 @@ const SOURCES: Source[] = [
     id: "receita-federal",
     name: "Receita Federal",
     baseUrl: "https://www.gov.br",
-    listingUrl: "https://www.gov.br/receitafederal/pt-br/assuntos/noticias/ultimas-noticias",
+    listingUrl: "https://www.gov.br/receitafederal/pt-br/assuntos/noticias",
     linkPattern: /\/receitafederal\/pt-br\/assuntos\/noticias\//,
   },
   {
@@ -446,7 +446,6 @@ async function collectSource(source: Source) {
       listing_url: source.listingUrl,
       rss_url: source.rssUrl || null,
       enabled: true,
-      last_collected_at: startedAt,
       last_error: message.slice(0, 500),
       updated_at: startedAt,
     });
@@ -488,17 +487,14 @@ async function listNews(limit = 12, category?: string) {
 }
 
 async function collectionIsFresh() {
-  const { data, error } = await admin
+  const freshnessLimit = new Date(Date.now() - 165 * 60 * 1000).toISOString();
+  const { count, error } = await admin
     .from("fiscal_news_sources")
-    .select("last_collected_at")
-    .not("last_collected_at", "is", null)
-    .order("last_collected_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .select("id", { count: "exact", head: true })
+    .is("last_error", null)
+    .gte("last_collected_at", freshnessLimit);
   if (error) throw error;
-  if (!data?.last_collected_at) return false;
-  const age = Date.now() - new Date(data.last_collected_at).getTime();
-  return age < 165 * 60 * 1000;
+  return (count || 0) >= Math.ceil(SOURCES.length / 2);
 }
 
 serve(async (request) => {
