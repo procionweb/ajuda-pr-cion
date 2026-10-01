@@ -36,8 +36,8 @@ export type DiagnosisLearning = {
   module: string;
   confidence: DiagnosisConfidence;
   diagnosis: TicketDiagnosis;
-  actualSolution: string;
-  reviewStatus: "pending" | "approved" | "rejected";
+  actualSolution: string | null;
+  reviewStatus: "awaiting_finalization" | "pending" | "approved" | "rejected";
   reviewedSolution: string | null;
   finalizedAt: string | null;
   createdAt: string;

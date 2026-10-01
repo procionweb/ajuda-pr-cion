@@ -348,12 +348,14 @@ serve(async (req) => {
       if (!isAdmin) return json({ error: "FORBIDDEN" }, 403);
       const { data, error } = await admin
         .from("ticket_diagnosis_runs")
-        .select("id,ticket_id,protocol,subject,module,confidence,diagnosis,actual_solution,review_status,reviewed_solution,finalized_at,created_at")
-        .not("actual_solution", "is", null)
-        .order("finalized_at", { ascending: false });
+        .select("id,ticket_id,protocol,subject,module,confidence,diagnosis,feedback,actual_solution,review_status,reviewed_solution,finalized_at,created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
       if (error) throw error;
       return json({
-        reviews: (data ?? []).map((item) => ({
+        reviews: (data ?? [])
+          .filter((item) => Boolean(item.actual_solution) || item.feedback === "resolved")
+          .map((item) => ({
           id: item.id,
           ticketId: item.ticket_id,
           protocol: item.protocol,
@@ -366,7 +368,7 @@ serve(async (req) => {
           reviewedSolution: item.reviewed_solution,
           finalizedAt: item.finalized_at,
           createdAt: item.created_at,
-        })),
+          })),
       });
     }
     if (body.action === "review") {

@@ -26,7 +26,12 @@ export const Route = createFileRoute("/configuracoes/aprendizado-ia")({
   component: DiagnosisLearningPage,
 });
 
-const statusLabel = { pending: "Pendente", approved: "Aprovado", rejected: "Rejeitado" };
+const statusLabel = {
+  awaiting_finalization: "Aguardando finalização",
+  pending: "Pendente",
+  approved: "Aprovado",
+  rejected: "Rejeitado",
+};
 
 function plainText(value: string) {
   const document = new DOMParser().parseFromString(value, "text/html");
@@ -37,7 +42,7 @@ function DiagnosisLearningPage() {
   const [rows, setRows] = useState<DiagnosisLearning[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"all" | DiagnosisLearning["reviewStatus"]>("pending");
+  const [status, setStatus] = useState<"all" | DiagnosisLearning["reviewStatus"]>("all");
   const [selected, setSelected] = useState<DiagnosisLearning | null>(null);
   const [solution, setSolution] = useState("");
   const [saving, setSaving] = useState(false);
@@ -65,7 +70,7 @@ function DiagnosisLearningPage() {
 
   const openReview = (row: DiagnosisLearning) => {
     setSelected(row);
-    setSolution(row.reviewedSolution || plainText(row.actualSolution));
+    setSolution(row.reviewedSolution || plainText(row.actualSolution || ""));
   };
 
   const save = async (reviewStatus: "approved" | "rejected") => {
@@ -102,6 +107,7 @@ function DiagnosisLearningPage() {
         </div>
         <select value={status} onChange={(event) => setStatus(event.target.value as typeof status)} className="h-9 rounded-lg border border-input bg-background px-3 text-sm">
           <option value="pending">Pendentes</option>
+          <option value="awaiting_finalization">Aguardando finalização</option>
           <option value="approved">Aprovados</option>
           <option value="rejected">Rejeitados</option>
           <option value="all">Todos</option>
@@ -122,7 +128,13 @@ function DiagnosisLearningPage() {
                   <td className="px-4 py-3 capitalize">{row.confidence}</td>
                   <td className="px-4 py-3 text-muted-foreground">{row.finalizedAt ? new Date(row.finalizedAt).toLocaleString("pt-BR") : "—"}</td>
                   <td className="px-4 py-3"><Badge variant="outline">{statusLabel[row.reviewStatus]}</Badge></td>
-                  <td className="px-4 py-3 text-right"><Button size="sm" variant="outline" onClick={() => openReview(row)}>{row.reviewStatus === "pending" ? "Revisar" : "Ver revisão"}</Button></td>
+                  <td className="px-4 py-3 text-right">
+                    {row.reviewStatus === "awaiting_finalization" ? (
+                      <span className="text-xs text-muted-foreground">Finalize o chamado</span>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => openReview(row)}>{row.reviewStatus === "pending" ? "Revisar" : "Ver revisão"}</Button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
