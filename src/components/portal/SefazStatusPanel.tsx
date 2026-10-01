@@ -66,7 +66,7 @@ export function SefazStatusPanel() {
   const [data, setData] = useState<SefazMonitorResponse>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
-  const [view, setView] = useState<"technical" | "external">("technical");
+  const [view, setView] = useState<"technical" | "external">("external");
   const [externalData, setExternalData] = useState<DowndetectorSnapshot>();
   const [externalLoading, setExternalLoading] = useState(false);
   const [externalError, setExternalError] = useState<string>();
