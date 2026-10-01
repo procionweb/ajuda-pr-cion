@@ -43,7 +43,7 @@ const SOURCES: Source[] = [
     id: "receita-federal",
     name: "Receita Federal",
     baseUrl: "https://www.gov.br",
-    listingUrl: "https://www.gov.br/receitafederal/pt-br/assuntos/noticias",
+    listingUrl: "https://www.gov.br/receitafederal/pt-br/assuntos/noticias?b_start:int=0",
     linkPattern: /\/receitafederal\/pt-br\/assuntos\/noticias\//,
   },
   {
@@ -217,6 +217,13 @@ const discoverRss = (html: string, baseUrl: string) =>
 
 const isoDate = (value?: string) => {
   if (!value) return null;
+  const brazilian = value.match(
+    /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{1,2})h(\d{2}))?/,
+  );
+  if (brazilian) {
+    const [, day, month, year, hour = "00", minute = "00"] = brazilian;
+    return new Date(`${year}-${month}-${day}T${hour.padStart(2, "0")}:${minute}:00-03:00`).toISOString();
+  }
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 };
@@ -329,7 +336,15 @@ async function hydrate(candidate: Candidate) {
         candidate.url,
       ),
       publishedAt:
-        meta(html, "article:published_time") || meta(html, "date") || candidate.publishedAt || "",
+        meta(html, "article:published_time") ||
+        meta(html, "date") ||
+        stripHtml(
+          html.match(
+            /<span>Publicado em<\/span>[\s\S]{0,500}?<span[^>]*class=["']value["'][^>]*>([^<]+)/i,
+          )?.[1] || "",
+        ) ||
+        candidate.publishedAt ||
+        "",
     };
   } catch {
     return candidate;
