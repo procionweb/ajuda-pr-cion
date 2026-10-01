@@ -1,4 +1,13 @@
 const SOURCE_URL = "https://downdetector.com.br/fora-do-ar/sefaz/";
+const COLLECTION_INTERVAL_MS = 10 * 60_000;
+const EXTRACTION_RETRY_MS = 5_000;
+const MAX_EXTRACTION_ATTEMPTS = 120;
+
+function requestNextRefresh(delay = COLLECTION_INTERVAL_MS) {
+  window.setTimeout(() => {
+    void chrome.runtime.sendMessage({ type: "downdetector-refresh-request" });
+  }, delay);
+}
 
 function extractSnapshot() {
   const text = (element) => element?.textContent?.replace(/\s+/g, " ").trim() ?? "";
@@ -75,7 +84,7 @@ function extractSnapshot() {
 }
 
 async function collectWhenReady() {
-  for (let attempt = 0; attempt < 24; attempt += 1) {
+  for (let attempt = 0; attempt < MAX_EXTRACTION_ATTEMPTS; attempt += 1) {
     const snapshot = extractSnapshot();
     if (snapshot) {
       try {
@@ -85,13 +94,24 @@ async function collectWhenReady() {
         });
         if (!response?.ok) throw new Error(response?.error ?? "Envio não confirmado");
         console.info("[Prócion] Relatos da SEFAZ enviados ao CRM.");
+        requestNextRefresh();
       } catch (error) {
         console.error("[Prócion] Não foi possível enviar os relatos da SEFAZ:", error);
+        requestNextRefresh(60_000);
       }
       return;
     }
-    await new Promise((resolve) => setTimeout(resolve, 5_000));
+    await new Promise((resolve) => setTimeout(resolve, EXTRACTION_RETRY_MS));
   }
+
+  const challengeActive = /verifica[cç][aã]o de seguran[cç]a|just a moment/i.test(
+    `${document.title} ${document.body?.innerText ?? ""}`,
+  );
+  const error = challengeActive
+    ? "A verificação de segurança do Downdetector não foi concluída. Nova tentativa agendada."
+    : "O Downdetector não liberou o gráfico ou as falhas relatadas. Nova tentativa agendada.";
+  await chrome.runtime.sendMessage({ type: "downdetector-collector-diagnostic", error });
+  requestNextRefresh(60_000);
 }
 
 void collectWhenReady();

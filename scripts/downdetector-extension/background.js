@@ -5,6 +5,13 @@ const FUNCTION_URL =
   "https://vbkbbfeujqmvgmmhmeao.supabase.co/functions/v1/downdetector-snapshot";
 const ALARM_NAME = "collect-sefaz-reports";
 
+async function ensureAlarm() {
+  const alarm = await chrome.alarms.get(ALARM_NAME);
+  if (!alarm) {
+    chrome.alarms.create(ALARM_NAME, { delayInMinutes: 0.1, periodInMinutes: 10 });
+  }
+}
+
 function decodeBase64(value) {
   const binary = atob(value);
   return Uint8Array.from(binary, (character) => character.charCodeAt(0));
@@ -65,7 +72,21 @@ function setBadge(text, color) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message?.type !== "downdetector-snapshot" || !sender.url?.startsWith(SOURCE_URL)) return;
+  if (!sender.url?.startsWith(SOURCE_URL)) return;
+
+  if (message?.type === "downdetector-refresh-request") {
+    if (sender.tab?.id) void chrome.tabs.reload(sender.tab.id);
+    return;
+  }
+
+  if (message?.type === "downdetector-collector-diagnostic") {
+    const detail = String(message.error ?? "A página não liberou os dados para coleta.");
+    setBadge("!", "#dc3545");
+    void saveStatus({ ok: false, error: detail });
+    return;
+  }
+
+  if (message?.type !== "downdetector-snapshot") return;
   sendSnapshot(message.snapshot)
     .then(() => {
       setBadge("OK", "#0f9f6e");
@@ -82,14 +103,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.alarms.create(ALARM_NAME, { delayInMinutes: 0.1, periodInMinutes: 10 });
+  void ensureAlarm();
   void refreshSource();
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  chrome.alarms.create(ALARM_NAME, { delayInMinutes: 0.1, periodInMinutes: 10 });
+  void ensureAlarm();
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) void refreshSource();
 });
+
+// Recria o alarme caso o Chrome tenha removido o agendamento ao suspender ou
+// atualizar o service worker da extensão.
+void ensureAlarm();
