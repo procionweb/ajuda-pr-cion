@@ -343,7 +343,7 @@ function ExternalReportsView({
 
   return (
     <div className="grid h-full min-h-0 grid-cols-1 gap-5 px-5 pb-5 pt-3 md:grid-cols-[minmax(0,1fr)_220px]">
-      <div className="flex min-h-0 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-col">
         <div className="mb-2 flex items-end justify-between gap-3">
           <div>
             <p className="text-sm font-semibold">Relatos nas últimas 24 horas</p>
@@ -356,8 +356,14 @@ function ExternalReportsView({
             <p className={`text-[10px] ${subtitleClass}`}>pico de relatos</p>
           </div>
         </div>
-        <div className="min-h-0 flex-1">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[240px] min-h-[220px] min-w-0 flex-1">
+          <ResponsiveContainer
+            key={data.collectedAt}
+            width="100%"
+            height="100%"
+            minWidth={1}
+            minHeight={220}
+          >
             <ComposedChart
               data={data.chartPoints}
               margin={{ top: 8, right: 8, left: -22, bottom: 0 }}
