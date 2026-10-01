@@ -665,6 +665,16 @@ export const ticketsStore = {
       actor: op,
       actorType: "suporte",
       description: `Chamado finalizado por ${op} — ${payload.type}. ${payload.solution}`.trim(),
+      metadata: {
+        finalization: {
+          closingType: payload.type,
+          solutionHtml: payload.solution,
+          visibility: payload.permission,
+          hadronOption: payload.hadronOption,
+          relatedArticles: payload.relatedArticles,
+          relatedForms: payload.relatedForms,
+        },
+      },
     });
   },
 

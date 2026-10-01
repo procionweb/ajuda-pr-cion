@@ -13,6 +13,7 @@ import {
   Smartphone,
   Settings,
   ScrollText,
+  BrainCircuit,
   Target,
   Users,
   X,
@@ -108,6 +109,7 @@ const nav: NavItem[] = [
       { to: "/configuracoes/dispositivos", label: "Dispositivos", icon: Smartphone },
       { to: "/configuracoes/contratos", label: "Contratos", icon: FileKey2 },
       { to: "/configuracoes/logs", label: "Logs", icon: ScrollText },
+      { to: "/configuracoes/aprendizado-ia", label: "Aprendizado da IA", icon: BrainCircuit },
     ],
   },
 ];

@@ -20,9 +20,11 @@ const admin = createClient(
 );
 
 type RequestBody = {
-  action?: "analyze" | "feedback";
+  action?: "analyze" | "feedback" | "list_reviews" | "review";
   diagnosisId?: string;
   feedback?: "resolved" | "not_resolved";
+  reviewStatus?: "approved" | "rejected";
+  reviewedSolution?: string;
   ticketId?: string;
   protocol?: string;
   subject?: string;
@@ -103,9 +105,9 @@ async function retrieveSources(body: RequestBody): Promise<Source[]> {
 
   const { data: confirmed, error: confirmedError } = await admin
     .from("ticket_diagnosis_runs")
-    .select("id,ticket_id,protocol,subject,description,module,diagnosis,feedback_at")
-    .eq("feedback", "resolved")
-    .order("feedback_at", { ascending: false })
+    .select("id,ticket_id,protocol,subject,description,module,diagnosis,feedback_at,actual_solution,reviewed_solution,reviewed_at")
+    .eq("review_status", "approved")
+    .order("reviewed_at", { ascending: false })
     .limit(200);
   if (confirmedError) console.warn("[ticket-diagnosis] feedback search", confirmedError.message);
   const learned = (confirmed ?? [])
@@ -119,16 +121,14 @@ async function retrieveSources(body: RequestBody): Promise<Source[]> {
     .slice(0, 3);
   for (const [index, item] of learned.entries()) {
     const diagnosis = item.diagnosis as Record<string, unknown>;
-    const steps = Array.isArray(diagnosis.suggestedSteps)
-      ? diagnosis.suggestedSteps.filter((step): step is string => typeof step === "string")
-      : [];
+    const solution = item.reviewed_solution || item.actual_solution || "";
     sources.push({
       id: `FB-${index + 1}`,
       kind: "ticket",
       title: `${item.protocol || "Chamado"} · ${item.subject}`,
-      detail: "Diagnóstico confirmado por um operador como solução.",
+      detail: "Solução real revisada e aprovada pela equipe.",
       evidence: redactSecrets(
-        [`Relato: ${item.description}`, `Solução confirmada: ${steps.join("; ")}`].join("\n"),
+        [`Relato: ${item.description}`, `Solução validada: ${solution}`].join("\n"),
       ),
     });
   }
@@ -342,6 +342,55 @@ serve(async (req) => {
     if (authError || !authData.user) return json({ error: "UNAUTHORIZED" }, 401);
 
     const body = (await req.json().catch(() => ({}))) as RequestBody;
+    const role = String(authData.user.app_metadata?.perfil || "");
+    const isAdmin = role === "s_admin" || role === "admin";
+    if (body.action === "list_reviews") {
+      if (!isAdmin) return json({ error: "FORBIDDEN" }, 403);
+      const { data, error } = await admin
+        .from("ticket_diagnosis_runs")
+        .select("id,ticket_id,protocol,subject,module,confidence,diagnosis,actual_solution,review_status,reviewed_solution,finalized_at,created_at")
+        .not("actual_solution", "is", null)
+        .order("finalized_at", { ascending: false });
+      if (error) throw error;
+      return json({
+        reviews: (data ?? []).map((item) => ({
+          id: item.id,
+          ticketId: item.ticket_id,
+          protocol: item.protocol,
+          subject: item.subject,
+          module: item.module,
+          confidence: item.confidence,
+          diagnosis: item.diagnosis,
+          actualSolution: item.actual_solution,
+          reviewStatus: item.review_status,
+          reviewedSolution: item.reviewed_solution,
+          finalizedAt: item.finalized_at,
+          createdAt: item.created_at,
+        })),
+      });
+    }
+    if (body.action === "review") {
+      if (!isAdmin) return json({ error: "FORBIDDEN" }, 403);
+      if (!body.diagnosisId || !["approved", "rejected"].includes(body.reviewStatus || "")) {
+        return json({ error: "INVALID_REVIEW" }, 400);
+      }
+      const solution = redactSecrets(body.reviewedSolution?.trim() || "");
+      if (body.reviewStatus === "approved" && !solution) {
+        return json({ error: "SOLUTION_REQUIRED" }, 400);
+      }
+      const { error } = await admin
+        .from("ticket_diagnosis_runs")
+        .update({
+          review_status: body.reviewStatus,
+          reviewed_solution: solution || null,
+          reviewed_by: authData.user.id,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", body.diagnosisId)
+        .not("actual_solution", "is", null);
+      if (error) throw error;
+      return json({ ok: true });
+    }
     if (body.action === "feedback") {
       if (!body.diagnosisId || !["resolved", "not_resolved"].includes(body.feedback || "")) {
         return json({ error: "INVALID_FEEDBACK" }, 400);

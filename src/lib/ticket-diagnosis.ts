@@ -28,6 +28,21 @@ export type TicketDiagnosis = {
 
 export type TicketDiagnosisFeedback = "resolved" | "not_resolved";
 
+export type DiagnosisLearning = {
+  id: string;
+  ticketId: string;
+  protocol: string | null;
+  subject: string;
+  module: string;
+  confidence: DiagnosisConfidence;
+  diagnosis: TicketDiagnosis;
+  actualSolution: string;
+  reviewStatus: "pending" | "approved" | "rejected";
+  reviewedSolution: string | null;
+  finalizedAt: string | null;
+  createdAt: string;
+};
+
 export type TicketDiagnosisInput = {
   ticketId: string;
   protocol: string;
@@ -62,4 +77,24 @@ export async function submitTicketDiagnosisFeedback(
   if (!data || typeof data !== "object" || !("ok" in data)) {
     throw new Error("O feedback não foi confirmado.");
   }
+}
+
+export async function listDiagnosisLearnings(): Promise<DiagnosisLearning[]> {
+  const { data, error } = await supabase.functions.invoke("ticket-diagnosis", {
+    body: { action: "list_reviews" },
+  });
+  if (error) throw error;
+  return ((data as { reviews?: DiagnosisLearning[] } | null)?.reviews ?? []);
+}
+
+export async function reviewDiagnosisLearning(
+  diagnosisId: string,
+  reviewStatus: "approved" | "rejected",
+  reviewedSolution: string,
+) {
+  const { data, error } = await supabase.functions.invoke("ticket-diagnosis", {
+    body: { action: "review", diagnosisId, reviewStatus, reviewedSolution },
+  });
+  if (error) throw error;
+  if (!(data as { ok?: boolean } | null)?.ok) throw new Error("A revisão não foi salva.");
 }

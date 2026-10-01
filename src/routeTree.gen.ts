@@ -34,6 +34,7 @@ import { Route as ConfiguracoesEmpresasRouteImport } from './routes/configuracoe
 import { Route as ConfiguracoesDispositivosRouteImport } from './routes/configuracoes.dispositivos'
 import { Route as ConfiguracoesContratosRouteImport } from './routes/configuracoes.contratos'
 import { Route as ConfiguracoesColaboradoresRouteImport } from './routes/configuracoes.colaboradores'
+import { Route as ConfiguracoesAprendizadoIaRouteImport } from './routes/configuracoes.aprendizado-ia'
 import { Route as ConfiguracoesAplicativosRouteImport } from './routes/configuracoes.aplicativos'
 import { Route as ComercialProspeccaoRouteImport } from './routes/comercial.prospeccao'
 import { Route as ComercialContatosRouteImport } from './routes/comercial.contatos'
@@ -174,6 +175,12 @@ const ConfiguracoesColaboradoresRoute =
     path: '/configuracoes/colaboradores',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ConfiguracoesAprendizadoIaRoute =
+  ConfiguracoesAprendizadoIaRouteImport.update({
+    id: '/configuracoes/aprendizado-ia',
+    path: '/configuracoes/aprendizado-ia',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ConfiguracoesAplicativosRoute =
   ConfiguracoesAplicativosRouteImport.update({
     id: '/configuracoes/aplicativos',
@@ -259,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/comercial/contatos': typeof ComercialContatosRouteWithChildren
   '/comercial/prospeccao': typeof ComercialProspeccaoRoute
   '/configuracoes/aplicativos': typeof ConfiguracoesAplicativosRoute
+  '/configuracoes/aprendizado-ia': typeof ConfiguracoesAprendizadoIaRoute
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
@@ -296,6 +304,7 @@ export interface FileRoutesByTo {
   '/comercial/contatos': typeof ComercialContatosRouteWithChildren
   '/comercial/prospeccao': typeof ComercialProspeccaoRoute
   '/configuracoes/aplicativos': typeof ConfiguracoesAplicativosRoute
+  '/configuracoes/aprendizado-ia': typeof ConfiguracoesAprendizadoIaRoute
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
@@ -336,6 +345,7 @@ export interface FileRoutesById {
   '/comercial/contatos': typeof ComercialContatosRouteWithChildren
   '/comercial/prospeccao': typeof ComercialProspeccaoRoute
   '/configuracoes/aplicativos': typeof ConfiguracoesAplicativosRoute
+  '/configuracoes/aprendizado-ia': typeof ConfiguracoesAprendizadoIaRoute
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
@@ -377,6 +387,7 @@ export interface FileRouteTypes {
     | '/comercial/contatos'
     | '/comercial/prospeccao'
     | '/configuracoes/aplicativos'
+    | '/configuracoes/aprendizado-ia'
     | '/configuracoes/colaboradores'
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
@@ -414,6 +425,7 @@ export interface FileRouteTypes {
     | '/comercial/contatos'
     | '/comercial/prospeccao'
     | '/configuracoes/aplicativos'
+    | '/configuracoes/aprendizado-ia'
     | '/configuracoes/colaboradores'
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
@@ -453,6 +465,7 @@ export interface FileRouteTypes {
     | '/comercial/contatos'
     | '/comercial/prospeccao'
     | '/configuracoes/aplicativos'
+    | '/configuracoes/aprendizado-ia'
     | '/configuracoes/colaboradores'
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
@@ -491,6 +504,7 @@ export interface RootRouteChildren {
   ComercialContatosRoute: typeof ComercialContatosRouteWithChildren
   ComercialProspeccaoRoute: typeof ComercialProspeccaoRoute
   ConfiguracoesAplicativosRoute: typeof ConfiguracoesAplicativosRoute
+  ConfiguracoesAprendizadoIaRoute: typeof ConfiguracoesAprendizadoIaRoute
   ConfiguracoesColaboradoresRoute: typeof ConfiguracoesColaboradoresRoute
   ConfiguracoesContratosRoute: typeof ConfiguracoesContratosRoute
   ConfiguracoesDispositivosRoute: typeof ConfiguracoesDispositivosRoute
@@ -679,6 +693,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesColaboradoresRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/configuracoes/aprendizado-ia': {
+      id: '/configuracoes/aprendizado-ia'
+      path: '/configuracoes/aprendizado-ia'
+      fullPath: '/configuracoes/aprendizado-ia'
+      preLoaderRoute: typeof ConfiguracoesAprendizadoIaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/configuracoes/aplicativos': {
       id: '/configuracoes/aplicativos'
       path: '/configuracoes/aplicativos'
@@ -848,6 +869,7 @@ const rootRouteChildren: RootRouteChildren = {
   ComercialContatosRoute: ComercialContatosRouteWithChildren,
   ComercialProspeccaoRoute: ComercialProspeccaoRoute,
   ConfiguracoesAplicativosRoute: ConfiguracoesAplicativosRoute,
+  ConfiguracoesAprendizadoIaRoute: ConfiguracoesAprendizadoIaRoute,
   ConfiguracoesColaboradoresRoute: ConfiguracoesColaboradoresRoute,
   ConfiguracoesContratosRoute: ConfiguracoesContratosRoute,
   ConfiguracoesDispositivosRoute: ConfiguracoesDispositivosRoute,
