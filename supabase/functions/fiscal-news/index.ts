@@ -488,13 +488,21 @@ async function listNews(limit = 12, category?: string) {
 
 async function collectionIsFresh() {
   const freshnessLimit = new Date(Date.now() - 165 * 60 * 1000).toISOString();
-  const { count, error } = await admin
+  const [{ count, error }, { data: storedSources, error: sourcesError }] = await Promise.all([
+    admin
     .from("fiscal_news_sources")
     .select("id", { count: "exact", head: true })
     .is("last_error", null)
-    .gte("last_collected_at", freshnessLimit);
+    .gte("last_collected_at", freshnessLimit),
+    admin.from("fiscal_news_sources").select("id,listing_url"),
+  ]);
   if (error) throw error;
-  return (count || 0) >= Math.ceil(SOURCES.length / 2);
+  if (sourcesError) throw sourcesError;
+  const configuredUrls = new Map(SOURCES.map((source) => [source.id, source.listingUrl]));
+  const configurationMatches = (storedSources || []).every(
+    (source) => configuredUrls.get(source.id) === source.listing_url,
+  );
+  return configurationMatches && (count || 0) >= Math.ceil(SOURCES.length / 2);
 }
 
 serve(async (request) => {
