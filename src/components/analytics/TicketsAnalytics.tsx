@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { ticketStatuses, type SupportTicket, type TicketStatus } from "@/lib/support-tickets-data";
 import { useTickets } from "@/lib/tickets-store";
 import { AnalyticsOverview } from "./AnalyticsOverview";
+import { ConnectedAnalysis } from "./ConnectedAnalysis";
 import { computeAttendanceTime, computeSla, formatElapsedTime } from "@/lib/ticket-sla";
 import {
   addMonths,
@@ -1902,6 +1903,8 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
         tickets={supportTickets}
         rangeEnd={to || (!from ? defaultTo : undefined)}
       />
+
+      <ConnectedAnalysis tickets={supportTickets} />
 
       <div className="analytics-detail-heading">
         <h2>Análise detalhada</h2>

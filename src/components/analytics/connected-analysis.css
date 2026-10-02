@@ -1,0 +1,220 @@
+.connected-analysis {
+  border: 1px solid #245166;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #071923;
+  color: #e5f6fc;
+}
+.connected-analysis__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid #244252;
+  background: #102936;
+}
+.connected-analysis__toolbar h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.connected-analysis__toolbar p {
+  font-size: 12px;
+  color: #a3c3d1;
+  margin-top: 5px;
+}
+.connected-analysis button {
+  cursor: pointer;
+}
+.connected-analysis button:focus-visible,
+.connected-analysis select:focus-visible,
+.connected-analysis__viewport:focus-visible {
+  outline: 2px solid #70e9fa;
+  outline-offset: 3px;
+}
+.connected-analysis__toolbar button {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid #3a6577;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.connected-analysis__viewport {
+  overflow: auto;
+  max-height: 760px;
+}
+.connected-analysis__canvas {
+  position: relative;
+  background: radial-gradient(ellipse at 25% 30%, #123443 0%, #071923 65%);
+  transition: background-color 0.3s;
+}
+.connected-analysis__canvas.is-exploring {
+  background: #06141d;
+}
+.connected-analysis__wires {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  fill: none;
+}
+.connected-analysis__wire {
+  stroke-dasharray: 1;
+  animation: connection-draw 0.55s ease-out both;
+}
+.connected-analysis__node {
+  position: absolute;
+  width: 300px;
+  height: 370px;
+  border: 1px solid #3b7a90;
+  border-radius: 6px;
+  background: linear-gradient(145deg, #14394b, #102733);
+  box-shadow:
+    0 0 16px #32c7f027,
+    0 12px 32px #0006,
+    inset 0 1px #a0ecff24;
+  animation: connection-open 0.25s ease-out both;
+  display: flex;
+  flex-direction: column;
+}
+.connected-analysis__node-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 12px;
+  border-bottom: 1px solid #386074;
+}
+.connected-analysis__node-header h3 {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e5f6fc;
+}
+.connected-analysis__grip {
+  touch-action: none;
+  cursor: grab !important;
+  color: #79cce1;
+}
+.connected-analysis__summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 15px 8px;
+}
+.connected-analysis__summary strong {
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+}
+.connected-analysis__summary span,
+.connected-analysis__dimension {
+  font-size: 11px;
+  color: #a6c8d7;
+}
+.connected-analysis__dimension {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 0 15px 10px;
+}
+.connected-analysis__dimension select {
+  background: #0a202d;
+  color: #dbf5ff;
+  border: 1px solid #365a6b;
+  border-radius: 4px;
+  padding: 4px 7px;
+  max-width: 170px;
+}
+.connected-analysis__rows {
+  overflow: auto;
+  flex: 1;
+  padding: 2px 14px;
+}
+.connected-analysis__rows > button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  width: 100%;
+  text-align: left;
+  column-gap: 8px;
+  padding: 7px 3px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+.connected-analysis__rows > button:hover {
+  background: #3ca1bf20;
+}
+.connected-analysis__rows > button:disabled {
+  cursor: default;
+}
+.connected-analysis__row-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.connected-analysis__track {
+  grid-column: 1 / -1;
+  height: 4px;
+  margin-top: 5px;
+  background: #24414f;
+}
+.connected-analysis__track > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #267da5, #53daf4);
+  box-shadow: 0 0 7px #38bff066;
+}
+.connected-analysis__rows > p {
+  font-size: 12px;
+  color: #b2cdd8;
+  padding: 12px 0;
+}
+.connected-analysis__node footer {
+  padding: 9px 15px;
+  font-size: 10px;
+  color: #96b8c8;
+  border-top: 1px solid #26495a;
+}
+@keyframes connection-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes connection-open {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (max-width: 640px) {
+  .connected-analysis__toolbar {
+    padding: 15px;
+  }
+  .connected-analysis__viewport {
+    max-height: 520px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .connected-analysis__node,
+  .connected-analysis__wire {
+    animation: none;
+  }
+  .connected-analysis__canvas {
+    transition: none;
+  }
+}
