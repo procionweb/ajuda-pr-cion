@@ -55,9 +55,24 @@ function parseFailures(value: unknown): DowndetectorFailure[] {
 export async function getLatestDowndetectorSnapshot(
   serviceSlug = "sefaz",
 ): Promise<DowndetectorSnapshot | undefined> {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw new Error(`Não foi possível validar a sessão: ${sessionError.message}`);
+  }
+  if (!session) {
+    throw new Error("Faça login novamente para carregar os relatos externos.");
+  }
+
   const { data, error } = await supabase.functions.invoke("downdetector-snapshot", {
     method: "GET",
-    headers: { "x-service-slug": serviceSlug },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "x-service-slug": serviceSlug,
+    },
   });
 
   if (error) throw new Error(`Não foi possível carregar os relatos externos: ${error.message}`);
