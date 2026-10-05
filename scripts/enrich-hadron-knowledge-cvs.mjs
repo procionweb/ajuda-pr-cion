@@ -7,9 +7,10 @@ const catalogPath = process.argv[2] ?? 'work/hadron-knowledge-all.json'
 if (!url || !serviceKey) throw new Error('Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.')
 
 const stripHtml = (value = '') => value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
-const releases = JSON.parse(fs.readFileSync('src/data/cvs-releases.json', 'utf8'))
+const releasesFile = JSON.parse(fs.readFileSync('src/data/cvs-releases.json', 'utf8'))
 const parametersFile = JSON.parse(fs.readFileSync('src/data/cvs-parameters.json', 'utf8'))
-const parameters = Array.isArray(parametersFile) ? parametersFile : parametersFile.data ?? []
+const releases = releasesFile?.[2]?.data ?? releasesFile.data ?? releasesFile
+const parameters = parametersFile?.[2]?.data ?? parametersFile.data ?? parametersFile
 const byOption = new Map()
 for (const item of [...releases, ...parameters]) {
   const option = String(item.opcao ?? item.formulario ?? item.cvs_options_opcao ?? '').trim()
