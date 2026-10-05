@@ -36,7 +36,7 @@ type RequestBody = {
 
 type Source = {
   id: string;
-  kind: "knowledge" | "ticket";
+  kind: "knowledge" | "ticket" | "hadron";
   title: string;
   detail: string;
   url?: string | null;
@@ -130,6 +130,41 @@ async function retrieveSources(body: RequestBody): Promise<Source[]> {
       evidence: redactSecrets(
         [`Relato: ${item.description}`, `Solução validada: ${solution}`].join("\n"),
       ),
+    });
+  }
+
+  const { data: hadronOptions, error: hadronError } = await admin
+    .from("hadron_knowledge_options")
+    .select("id,option_number,option_name,module,purpose,fields,procedures,common_errors,source_file")
+    .eq("review_status", "approved")
+    .limit(500);
+  if (hadronError) console.warn("[ticket-diagnosis] Hadron knowledge search", hadronError.message);
+  const hadronMatches = (hadronOptions ?? [])
+    .map((item) => ({
+      ...item,
+      score: lexicalScore(
+        `${item.option_number} ${item.option_name ?? ""} ${item.module ?? ""} ${item.purpose ?? ""} ${(item.fields ?? []).join(" ")} ${(item.procedures ?? []).join(" ")} ${(item.common_errors ?? []).join(" ")}`,
+        terms,
+      ) + (searchText.includes(item.option_number) ? 5 : 0),
+    }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+  for (const [index, item] of hadronMatches.entries()) {
+    sources.push({
+      id: `HD-${index + 1}`,
+      kind: "hadron",
+      title: `Opção ${item.option_number} · ${item.option_name ?? "Hádron"}`,
+      detail: `${item.module ?? "Módulo não informado"} · Fonte: ${item.source_file}`,
+      evidence: redactSecrets([
+        `Opção Hádron: ${item.option_number}`,
+        `Nome: ${item.option_name ?? "não informado"}`,
+        `Módulo: ${item.module ?? "não informado"}`,
+        `Finalidade: ${item.purpose ?? "não validada"}`,
+        `Campos: ${(item.fields ?? []).join(" | ")}`,
+        `Procedimentos: ${(item.procedures ?? []).join(" | ")}`,
+        `Erros comuns: ${(item.common_errors ?? []).join(" | ")}`,
+      ].join("\n")),
     });
   }
 
