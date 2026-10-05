@@ -21,6 +21,7 @@ const rows = (catalog.records ?? []).map((record) => ({
   source_file: record.source_file,
   source_path: record.source_path,
   raw_strings: record.strings ?? [],
+  review_status: autoApprove && record.option_number && (record.fields?.length ?? 0) >= 3 ? 'approved' : 'pending',
   ...(autoApprove && record.option_number && (record.fields?.length ?? 0) >= 3
     ? { review_status: 'approved', reviewed_at: new Date().toISOString(), validation_notes: 'Aprovado automaticamente por possuir número de opção e campos estruturados extraídos da DLL.' }
     : {}),
