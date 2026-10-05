@@ -1,4 +1,4 @@
 import { supabase } from './supabase'
-export type Accountant = { id: string; name: string; office: string | null; document: string | null; phone: string | null; email: string | null; notes: string | null }
-export async function listAccountants() { const { data, error } = await supabase.from('crm_accountants').select('*').order('name'); if (error) throw error; return (data ?? []) as Accountant[] }
+export type Accountant = { id: string; name: string; office: string | null; document: string | null; phone: string | null; email: string | null; notes: string | null; clientCount?: number }
+export async function listAccountants() { const { data, error } = await supabase.from('crm_accountants').select('*,crm_accountant_clients(client_company_id)').order('name'); if (error) throw error; return (data ?? []).map((row) => ({ ...row, clientCount: Array.isArray(row.crm_accountant_clients) ? row.crm_accountant_clients.length : 0 })) as Accountant[] }
 export async function createAccountant(input: Omit<Accountant, 'id'>) { const { data, error } = await supabase.from('crm_accountants').insert(input).select('*').single(); if (error) throw error; return data as Accountant }
