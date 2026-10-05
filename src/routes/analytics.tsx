@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { BarChart3 } from "lucide-react";
+
 import { AppShell } from "@/components/portal/AppShell";
 import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TicketsAnalyticsSection } from "@/components/analytics/TicketsAnalytics";
+import { KanbanAnalyticsSection } from "@/components/analytics/KanbanAnalytics";
 import { usePortalAuth } from "@/lib/portal-auth";
 import "@/components/analytics/analytics-immersive.css";
 
@@ -212,7 +213,7 @@ function AnalyticsPage() {
             </TabsContent>
 
             <TabsContent value="kanban" className="mt-0">
-              <KanbanAnalyticsEmpty />
+              <KanbanAnalyticsSection />
             </TabsContent>
           </Tabs>
         </div>
@@ -221,18 +222,4 @@ function AnalyticsPage() {
   );
 }
 
-function KanbanAnalyticsEmpty() {
-  return (
-    <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[14px] border border-dashed border-border/70 bg-white p-10 text-center dark:bg-[#20263d]">
-      <div className="grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
-        <BarChart3 className="h-5 w-5" />
-      </div>
-      <p className="mt-4 text-sm font-medium text-foreground">
-        Os indicadores do Kanban serão exibidos aqui
-      </p>
-      <p className="mt-1 max-w-md text-xs text-muted-foreground">
-        Assim que os dados analíticos do Kanban estiverem disponíveis, eles aparecerão nesta aba.
-      </p>
-    </div>
-  );
-}
+
