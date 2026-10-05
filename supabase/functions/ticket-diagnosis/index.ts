@@ -152,7 +152,7 @@ async function retrieveSources(body: RequestBody): Promise<Source[]> {
 
   const { data: hadronOptions, error: hadronError } = await admin
     .from("hadron_knowledge_options")
-    .select("id,option_number,option_name,module,purpose,fields,procedures,common_errors,source_file")
+    .select("id,option_number,option_name,module,purpose,fields,procedures,common_errors,source_file,raw_strings")
     .eq("review_status", "approved")
     .limit(500);
   if (hadronError) console.warn("[ticket-diagnosis] Hadron knowledge search", hadronError.message);
@@ -181,6 +181,10 @@ async function retrieveSources(body: RequestBody): Promise<Source[]> {
         `Campos: ${(item.fields ?? []).join(" | ")}`,
         `Procedimentos: ${(item.procedures ?? []).join(" | ")}`,
         `Erros comuns: ${(item.common_errors ?? []).join(" | ")}`,
+        `Referências da tela: ${(item.raw_strings ?? [])
+          .filter((value: string) => /pedido|fatur|nota|cliente|produto|transmi|sefaz|incluir|alterar|consultar|excluir/i.test(value))
+          .slice(0, 80)
+          .join(" | ")}`,
       ].join("\n")),
     });
   }
