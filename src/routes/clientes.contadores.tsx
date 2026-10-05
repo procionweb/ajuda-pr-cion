@@ -338,31 +338,31 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
       />
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <section className="rounded-xl border bg-card p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
-              <UsersRound className="size-6" />
+              <div className="mb-4 flex items-center gap-3">
+                <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary">
+                  <UsersRound className="size-5" />
             </div>
             <div>
-              <h2 className="font-medium">{detail.name}</h2>
-              <p className="text-xs text-muted-foreground">Contador cadastrado</p>
+                    <h2 className="text-[12px] font-normal leading-[1.2]">{detail.name}</h2>
+                    <p className="mt-1 text-[11px] text-muted-foreground">Contador cadastrado</p>
             </div>
           </div>
-          <dl className="space-y-4 text-sm">
+              <dl className="space-y-3">
             <div>
-              <dt className="text-xs text-muted-foreground">Escritório</dt>
-              <dd className="mt-1">{detail.office || "Não informado"}</dd>
+                  <dt className="text-[11px] text-muted-foreground">Escritório</dt>
+                  <dd className="mt-1 text-[12px] font-normal">{detail.office || "Não informado"}</dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">E-mail</dt>
-              <dd className="mt-1">{detail.email || "Não informado"}</dd>
+                  <dt className="text-[11px] text-muted-foreground">E-mail</dt>
+                  <dd className="mt-1 break-all text-[12px] font-normal">{detail.email || "Não informado"}</dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Telefone</dt>
-              <dd className="mt-1">{detail.phone || "Não informado"}</dd>
+                  <dt className="text-[11px] text-muted-foreground">Telefone</dt>
+                  <dd className="mt-1 text-[12px] font-normal">{detail.phone || "Não informado"}</dd>
             </div>
             <div>
-              <dt className="text-xs text-muted-foreground">Documento</dt>
-              <dd className="mt-1">{detail.document || "Não informado"}</dd>
+                  <dt className="text-[11px] text-muted-foreground">Documento</dt>
+                  <dd className="mt-1 text-[12px] font-normal">{detail.document || "Não informado"}</dd>
             </div>
           </dl>
         </section>
