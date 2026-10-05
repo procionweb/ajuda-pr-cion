@@ -440,7 +440,7 @@ function countActive(f: Filters): number {
 // Cache de filtros preservado ao navegar entre lista e ficha detalhada.
 let lastFilters: Filters = { ...emptyFilters };
 
-const PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 50;
 
 function formatCep(v: string): string {
   const d = v.replace(/\D+/g, "");
@@ -644,6 +644,7 @@ function ClientsPage() {
   const [draft, setDraft] = useState<Filters>(() => filters);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" } | null>({
     key: "registered",
     dir: "desc",
@@ -849,13 +850,13 @@ function ClientsPage() {
   }, [filtered, sort]);
 
   const totalItems = sorted.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const currentPage = Math.min(page, totalPages);
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
-  const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
   const pageRows = sorted.slice(startIndex, endIndex);
 
   const removeChip = (key: keyof Filters) => {
@@ -1202,6 +1203,8 @@ function ClientsPage() {
                 end={endIndex}
                 total={totalItems}
                 onChange={setPage}
+                pageSize={pageSize}
+                onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
               />
             )}
           </Card>
@@ -4763,6 +4766,8 @@ function Pagination({
   end,
   total,
   onChange,
+  pageSize,
+  onPageSizeChange,
 }: {
   page: number;
   totalPages: number;
@@ -4770,6 +4775,8 @@ function Pagination({
   end: number;
   total: number;
   onChange: (p: number) => void;
+  pageSize: number;
+  onPageSizeChange: (size: number) => void;
 }) {
   const go = (p: number) => onChange(Math.max(1, Math.min(totalPages, p)));
   const showEdges = totalPages > 7;
@@ -4784,13 +4791,13 @@ function Pagination({
     "inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-border px-2 text-xs font-medium cursor-pointer transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
-    <div className="flex flex-col gap-2 border-t border-border bg-muted/20 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 text-[12px] text-muted-foreground shadow-[0_6px_16px_rgba(25,29,51,0.04)]">
       <p className="text-xs text-muted-foreground">
         Mostrando <span className="font-medium text-foreground">{start}</span> a{" "}
         <span className="font-medium text-foreground">{end}</span> de{" "}
         <span className="font-medium text-foreground">{total}</span> clientes
       </p>
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-2"><label htmlFor="clients-page-size">Itens por página</label><select id="clients-page-size" className="h-9 rounded-md border border-border bg-background px-2 text-xs" value={pageSize} onChange={(e) => onPageSizeChange(Number(e.target.value))}>{[25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}</select>
         {showEdges && (
           <button
             type="button"
