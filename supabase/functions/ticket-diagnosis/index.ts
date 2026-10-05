@@ -103,6 +103,23 @@ async function retrieveSources(body: RequestBody): Promise<Source[]> {
   const terms = termsFrom(searchText);
   const sources: Source[] = [];
 
+  if (/\bnota(s)?\b|nfe|nf-e|nfce|nfc-e/i.test(searchText)) {
+    sources.push({
+      id: "HD-GUIDE",
+      kind: "hadron",
+      title: "Caminhos documentados para emissão fiscal",
+      detail: "Referência do catálogo Hádron/CVS; confirme o tipo de documento antes de orientar o usuário.",
+      evidence: [
+        "Pergunta genérica sobre emissão de nota fiscal exige confirmar o documento.",
+        "2131: emissão de NF-e de venda a partir do fluxo de pedido/saída.",
+        "7512: emissão de NF-e de venda/faturamento.",
+        "75CF: emissão de NFC-e (Nota Fiscal de Consumidor).",
+        "PSCU: seleção de cupons ECF/SAT para emissão de NF-e de acobertamento.",
+        "Não indicar uma única opção sem saber se é NF-e, NFC-e ou acobertamento de Cupom/SAT.",
+      ].join("\n"),
+    });
+  }
+
   const { data: confirmed, error: confirmedError } = await admin
     .from("ticket_diagnosis_runs")
     .select("id,ticket_id,protocol,subject,description,module,diagnosis,feedback_at,actual_solution,reviewed_solution,reviewed_at")
