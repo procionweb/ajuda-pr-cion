@@ -97,8 +97,12 @@ const nav: NavItem[] = [
   { to: "/calendario", label: "Calendário", icon: CalendarIcon },
   { to: "/analytics", label: "Analytics", icon: AnalyticsIcon },
   { to: "/kanban", label: "Kanban", icon: KanbanIcon },
-  { to: "/clientes", label: "Clientes", icon: CustomersIcon },
-      { to: "/clientes/contadores", label: "Contadores", icon: Users },
+  {
+    to: "/clientes",
+    label: "Clientes",
+    icon: CustomersIcon,
+    children: [{ to: "/clientes/contadores", label: "Contadores", icon: Users }],
+  },
   {
     to: "/configuracoes/colaboradores",
     label: "Configurações",
