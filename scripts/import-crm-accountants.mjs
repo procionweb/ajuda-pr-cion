@@ -3,9 +3,9 @@ const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 if (!url || !key) throw new Error('Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.')
 const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
-const { data, error } = await supabase.rpc('list_crm_clients', { p_limit: 5000, p_offset: 0 })
+const { data, error } = await supabase.from('client_companies').select('id,accountant_name,accountant_phone,accountant_email,source_payload').not('accountant_name', 'is', null)
 if (error) throw error
-const companies = (data ?? []).flatMap((client) => client.companies ?? client.client_companies ?? [client])
+const companies = data ?? []
 const grouped = new Map()
 for (const company of companies) {
   let payload = company.source_payload
