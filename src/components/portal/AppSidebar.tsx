@@ -101,7 +101,10 @@ const nav: NavItem[] = [
     to: "/clientes",
     label: "Clientes",
     icon: CustomersIcon,
-    children: [{ to: "/clientes/contadores", label: "Contadores", icon: Users }],
+    children: [
+      { to: "/clientes", label: "Clientes", icon: CustomersIcon },
+      { to: "/clientes/contadores", label: "Contadores", icon: Users },
+    ],
   },
   {
     to: "/configuracoes/colaboradores",
