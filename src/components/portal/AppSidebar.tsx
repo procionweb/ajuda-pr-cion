@@ -370,7 +370,7 @@ export function AppSidebar() {
                             <Link
                               to={child.to}
                               className={cn(
-                                "flex h-9 items-center gap-2.5 rounded-md px-3 text-sm transition-colors",
+                                "flex h-9 items-center gap-2.5 rounded-md px-3 text-[13px] transition-colors",
                                 childActive
                                   ? "bg-sidebar-accent/70 font-semibold text-primary"
                                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground",
