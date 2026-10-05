@@ -328,6 +328,7 @@ async function generateDiagnosis(body: RequestBody, sources: Source[]) {
             "Em instalação de certificado, diferencie A1 de A3, confirme sistema operacional, validade, cadeia certificadora, repositório correto e necessidade de reiniciar o aplicativo, sem pedir ou expor senha do certificado.",
             "Não sugira comandos destrutivos, acesso remoto automático, alteração direta em banco ou desativação de segurança.",
             "Quando faltar contexto, faça poucas perguntas objetivas, mas inclua as verificações seguras que já podem ser realizadas.",
+            "Quando o usuário perguntar genericamente qual opção usar para emitir uma nota fiscal, não escolha uma opção única sem confirmar o documento. Diferencie NF-e de venda, NFC-e e nota de acobertamento de Cupom/SAT; apresente somente opções sustentadas pelas fontes e pergunte qual tipo de documento ele precisa.",
             "Use confiança baixa apenas quando não houver um caminho inicial seguro; conhecimento técnico geral consolidado pode ter confiança média.",
             "sourceRefs deve conter apenas IDs de fontes realmente usadas, como KB-1 ou CH-2.",
             "answerBasis deve ser base_interna quando a resposta depender apenas das fontes, conhecimento_geral quando não usar fontes e mista quando combinar ambos.",
