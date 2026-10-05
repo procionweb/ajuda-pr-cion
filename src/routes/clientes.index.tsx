@@ -4791,7 +4791,7 @@ function Pagination({
     "inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-border px-2 text-xs font-medium cursor-pointer transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 text-[12px] text-muted-foreground shadow-[0_6px_16px_rgba(25,29,51,0.04)]">
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 text-[12px] text-muted-foreground shadow-[0_6px_16px_rgba(25,29,51,0.04)]">
       <p className="text-xs text-muted-foreground">
         Mostrando <span className="font-medium text-foreground">{start}</span> a{" "}
         <span className="font-medium text-foreground">{end}</span> de{" "}
