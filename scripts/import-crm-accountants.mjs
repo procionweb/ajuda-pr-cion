@@ -5,14 +5,19 @@ if (!url || !key) throw new Error('Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_K
 const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 const { data, error } = await supabase.rpc('list_crm_clients', { p_limit: 5000, p_offset: 0 })
 if (error) throw error
-const companies = (data ?? []).flatMap((client) => client.companies ?? client.client_companies ?? [])
+const companies = (data ?? []).flatMap((client) => client.companies ?? client.client_companies ?? [client])
 const grouped = new Map()
 for (const company of companies) {
-  const name = String(company.accountantName ?? company.accountant_name ?? '').trim()
-  const office = String(company.accountantOffice ?? company.accountant_office ?? company.accountant_name ?? '').trim()
+  let payload = company.source_payload
+  if (typeof payload === 'string') { try { payload = JSON.parse(payload) } catch { payload = {} } }
+  const accountantPayload = payload?.tcl_contador ?? payload?.cli_contador ?? {}
+  const name = String(company.accountantName ?? company.accountant_name ?? accountantPayload.cli_ctd_res ?? accountantPayload.tcl_ctd_res ?? '').trim()
+  const office = String(company.accountantOffice ?? company.accountant_office ?? accountantPayload.cli_ctd_nome ?? accountantPayload.tcl_ctd_nome ?? '').trim()
   if (!name && !office) continue
   const keyName = `${name || office}|${office}`.toLowerCase()
   const current = grouped.get(keyName) ?? { name: name || office, office: office || null, phone: company.accountantPhone ?? company.accountant_phone ?? null, email: company.accountantEmail ?? company.accountant_email ?? null, clients: [] }
+  current.phone ||= accountantPayload.cli_ctd_tel ?? accountantPayload.tcl_ctd_tel ?? company.accountantPhone ?? company.accountant_phone ?? null
+  current.email ||= accountantPayload.cli_ctd_email ?? accountantPayload.tcl_ctd_email ?? company.accountantEmail ?? company.accountant_email ?? null
   current.clients.push(String(company.id ?? company.client_company_id ?? company.company_id))
   grouped.set(keyName, current)
 }
