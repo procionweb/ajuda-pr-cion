@@ -1059,8 +1059,9 @@ function ClientsPage() {
             </div>
           )}
 
-          <Card className="overflow-hidden p-0">
-            <div className="overflow-x-auto">
+          <div>
+            <div className="overflow-hidden rounded-md border bg-card">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/35 text-xs uppercase text-muted-foreground">
                   <tr>
@@ -1194,6 +1195,7 @@ function ClientsPage() {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
             {totalItems > 0 && (
               <Pagination
@@ -1207,7 +1209,7 @@ function ClientsPage() {
                 onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
               />
             )}
-          </Card>
+          </div>
 
           <FiltersPanel
             open={filtersOpen}
