@@ -1,4 +1,3 @@
-import { AnalyzeButton } from "./AnalyticsFocus";
 import { useEffect, useId, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import {
   Area,
@@ -62,7 +61,6 @@ function Panel({
       <header>
         <h3>{title}</h3>
         <p>{subtitle}</p>
-        <AnalyzeButton title={title} />
       </header>
       {children}
     </article>
