@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
+import { Sparkles } from "lucide-react";
 
 import { AppShell } from "@/components/portal/AppShell";
 import { Breadcrumbs } from "@/components/portal/Breadcrumbs";
@@ -98,6 +99,7 @@ function AnalyticsPage() {
   const navigate = useNavigate({ from: "/analytics" });
   const activeTab = view === "kanban" ? "kanban" : "chamados";
   const pageRef = useRef<HTMLDivElement>(null);
+  const [effectsEnabled, setEffectsEnabled] = useState(true);
 
   useEffect(() => {
     const page = pageRef.current;
@@ -137,7 +139,7 @@ function AnalyticsPage() {
     <AppShell fullWidth>
       <div
         ref={pageRef}
-        className="analytics-cockpit"
+        className={`analytics-cockpit ${effectsEnabled ? "analytics-effects-on" : ""}`}
         onPointerMove={moveBackdrop}
         onPointerLeave={(event) => {
           event.currentTarget.style.setProperty("--analytics-pointer-x", "0px");
@@ -175,7 +177,12 @@ function AnalyticsPage() {
                   Kanban
                 </TabsTrigger>
               </TabsList>
-              {activeTab === "chamados" && (
+              <div className="flex items-center gap-2">
+                <Button type="button" variant={effectsEnabled ? "default" : "outline"} className="h-9 cursor-pointer gap-2 text-xs" onClick={() => setEffectsEnabled((value) => !value)} aria-pressed={effectsEnabled}>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {effectsEnabled ? "Efeitos ativos" : "Ativar efeitos"}
+                </Button>
+                {activeTab === "chamados" && (
                 <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto sm:flex-nowrap">
                   {!from && !to && (
                     <span className="self-end pb-2 text-xs text-muted-foreground">Mês atual</span>
@@ -206,6 +213,7 @@ function AnalyticsPage() {
                   )}
                 </div>
               )}
+                </div>
             </div>
 
             <TabsContent value="chamados" className="mt-0">
@@ -221,5 +229,11 @@ function AnalyticsPage() {
     </AppShell>
   );
 }
+
+
+
+
+
+
 
 
