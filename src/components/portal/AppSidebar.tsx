@@ -124,7 +124,7 @@ const nav: NavItem[] = [
 ];
 
 function isActivePath(pathname: string, item: NavItem) {
-  if (item.children?.some((child) => pathname.startsWith(child.to))) return true;
+  if (item.children?.some((child) => pathname === child.to)) return true;
   if (item.to === "/kanban") return pathname === "/kanban";
   return item.exact ? pathname === item.to : pathname.startsWith(item.to);
 }
@@ -363,7 +363,7 @@ export function AppSidebar() {
                   {!displayCollapsed && item.children && expanded && (
                     <ul className="ml-7 mt-1 space-y-1 border-l border-sidebar-border pl-3">
                       {item.children.map((child) => {
-                        const childActive = pathname.startsWith(child.to);
+                        const childActive = pathname === child.to;
                         const ChildIcon = child.icon;
                         return (
                           <li key={child.to}>
@@ -407,7 +407,7 @@ export function AppSidebar() {
             <ul className="p-1.5">
               {collapsedFlyout.item.children.map((child) => {
                 const ChildIcon = child.icon;
-                const childActive = pathname.startsWith(child.to);
+                const childActive = pathname === child.to;
                 return (
                   <li key={child.to}>
                     <Link
