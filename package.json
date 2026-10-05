@@ -30,6 +30,7 @@
     "import:cvs-catalogs": "node scripts/import-cvs-catalogs.mjs",
     "import:hadron-knowledge": "node scripts/import-hadron-knowledge-supabase.mjs",
     "enrich:hadron-knowledge": "node scripts/enrich-hadron-knowledge-cvs.mjs",
+    "import:crm-accountants": "node scripts/import-crm-accountants.mjs",
     "import:trello": "node scripts/import-trello-board.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
