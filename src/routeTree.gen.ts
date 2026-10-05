@@ -9,103 +9,49 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as VersoesRouteImport } from './routes/versoes'
-import { Route as MinhaContaRouteImport } from './routes/minha-conta'
-import { Route as LogsRouteImport } from './routes/logs'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as KanbanDashboardRouteImport } from './routes/kanban-dashboard'
-import { Route as KanbanRouteImport } from './routes/kanban'
-import { Route as IniciarHadronRouteImport } from './routes/iniciar-hadron'
-import { Route as FrotaRouteImport } from './routes/frota'
-import { Route as ChamadosRouteImport } from './routes/chamados'
-import { Route as CalendarioRouteImport } from './routes/calendario'
-import { Route as BaseDeConhecimentoRouteImport } from './routes/base-de-conhecimento'
-import { Route as AtualizacoesRouteImport } from './routes/atualizacoes'
-import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as FrotaIndexRouteImport } from './routes/frota.index'
-import { Route as ClientesIndexRouteImport } from './routes/clientes.index'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AtualizacoesRouteImport } from './routes/atualizacoes'
+import { Route as BaseDeConhecimentoRouteImport } from './routes/base-de-conhecimento'
+import { Route as CalendarioRouteImport } from './routes/calendario'
+import { Route as ChamadosRouteImport } from './routes/chamados'
+import { Route as FrotaRouteImport } from './routes/frota'
+import { Route as IniciarHadronRouteImport } from './routes/iniciar-hadron'
+import { Route as KanbanRouteImport } from './routes/kanban'
+import { Route as KanbanDashboardRouteImport } from './routes/kanban-dashboard'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as LogsRouteImport } from './routes/logs'
+import { Route as MinhaContaRouteImport } from './routes/minha-conta'
+import { Route as VersoesRouteImport } from './routes/versoes'
 import { Route as BaseDeConhecimentoIndexRouteImport } from './routes/base-de-conhecimento.index'
-import { Route as SuporteAgendamentosRouteImport } from './routes/suporte.agendamentos'
-import { Route as KanbanBoardIdRouteImport } from './routes/kanban.$boardId'
-import { Route as FrotaVehicleIdRouteImport } from './routes/frota.$vehicleId'
-import { Route as ConfiguracoesLogsRouteImport } from './routes/configuracoes.logs'
-import { Route as ConfiguracoesEmpresasRouteImport } from './routes/configuracoes.empresas'
-import { Route as ConfiguracoesDispositivosRouteImport } from './routes/configuracoes.dispositivos'
-import { Route as ConfiguracoesContratosRouteImport } from './routes/configuracoes.contratos'
-import { Route as ConfiguracoesColaboradoresRouteImport } from './routes/configuracoes.colaboradores'
-import { Route as ConfiguracoesAprendizadoIaRouteImport } from './routes/configuracoes.aprendizado-ia'
-import { Route as ConfiguracoesAplicativosRouteImport } from './routes/configuracoes.aplicativos'
-import { Route as ComercialProspeccaoRouteImport } from './routes/comercial.prospeccao'
-import { Route as ComercialContatosRouteImport } from './routes/comercial.contatos'
-import { Route as ComercialAtividadesRouteImport } from './routes/comercial.atividades'
-import { Route as ComercialAgendamentosRouteImport } from './routes/comercial.agendamentos'
-import { Route as ClientesClienteIdRouteImport } from './routes/clientes.$clienteId'
-import { Route as ChamadosNovoRouteImport } from './routes/chamados.novo'
 import { Route as BaseDeConhecimentoSlugRouteImport } from './routes/base-de-conhecimento.$slug'
-import { Route as KanbanConviteTokenRouteImport } from './routes/kanban.convite.$token'
-import { Route as ComercialContatosLeadIdRouteImport } from './routes/comercial/contatos/$leadId'
-import { Route as ComercialContatoLeadIdRouteImport } from './routes/comercial.contato.$leadId'
+import { Route as ChamadosNovoRouteImport } from './routes/chamados.novo'
+import { Route as ClientesIndexRouteImport } from './routes/clientes.index'
+import { Route as ClientesClienteIdRouteImport } from './routes/clientes.$clienteId'
+import { Route as ComercialAgendamentosRouteImport } from './routes/comercial.agendamentos'
+import { Route as ComercialAtividadesRouteImport } from './routes/comercial.atividades'
+import { Route as ComercialContatosRouteImport } from './routes/comercial.contatos'
+import { Route as ComercialProspeccaoRouteImport } from './routes/comercial.prospeccao'
+import { Route as ConfiguracoesAplicativosRouteImport } from './routes/configuracoes.aplicativos'
+import { Route as ConfiguracoesAprendizadoIaRouteImport } from './routes/configuracoes.aprendizado-ia'
+import { Route as ConfiguracoesBaseHadronRouteImport } from './routes/configuracoes.base-hadron'
+import { Route as ConfiguracoesColaboradoresRouteImport } from './routes/configuracoes.colaboradores'
+import { Route as ConfiguracoesContratosRouteImport } from './routes/configuracoes.contratos'
+import { Route as ConfiguracoesDispositivosRouteImport } from './routes/configuracoes.dispositivos'
+import { Route as ConfiguracoesEmpresasRouteImport } from './routes/configuracoes.empresas'
+import { Route as ConfiguracoesLogsRouteImport } from './routes/configuracoes.logs'
+import { Route as FrotaIndexRouteImport } from './routes/frota.index'
+import { Route as FrotaVehicleIdRouteImport } from './routes/frota.$vehicleId'
+import { Route as KanbanBoardIdRouteImport } from './routes/kanban.$boardId'
+import { Route as SuporteAgendamentosRouteImport } from './routes/suporte.agendamentos'
 import { Route as ApiPublicTestPlacesRouteImport } from './routes/api/public/test-places'
+import { Route as ComercialContatoLeadIdRouteImport } from './routes/comercial.contato.$leadId'
+import { Route as ComercialContatosLeadIdRouteImport } from './routes/comercial/contatos/$leadId'
+import { Route as KanbanConviteTokenRouteImport } from './routes/kanban.convite.$token'
 
-const VersoesRoute = VersoesRouteImport.update({
-  id: '/versoes',
-  path: '/versoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MinhaContaRoute = MinhaContaRouteImport.update({
-  id: '/minha-conta',
-  path: '/minha-conta',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LogsRoute = LogsRouteImport.update({
-  id: '/logs',
-  path: '/logs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const KanbanDashboardRoute = KanbanDashboardRouteImport.update({
-  id: '/kanban-dashboard',
-  path: '/kanban-dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const KanbanRoute = KanbanRouteImport.update({
-  id: '/kanban',
-  path: '/kanban',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IniciarHadronRoute = IniciarHadronRouteImport.update({
-  id: '/iniciar-hadron',
-  path: '/iniciar-hadron',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FrotaRoute = FrotaRouteImport.update({
-  id: '/frota',
-  path: '/frota',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChamadosRoute = ChamadosRouteImport.update({
-  id: '/chamados',
-  path: '/chamados',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CalendarioRoute = CalendarioRouteImport.update({
-  id: '/calendario',
-  path: '/calendario',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BaseDeConhecimentoRoute = BaseDeConhecimentoRouteImport.update({
-  id: '/base-de-conhecimento',
-  path: '/base-de-conhecimento',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AtualizacoesRoute = AtualizacoesRouteImport.update({
-  id: '/atualizacoes',
-  path: '/atualizacoes',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -113,19 +59,64 @@ const AnalyticsRoute = AnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AtualizacoesRoute = AtualizacoesRouteImport.update({
+  id: '/atualizacoes',
+  path: '/atualizacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FrotaIndexRoute = FrotaIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => FrotaRoute,
+const BaseDeConhecimentoRoute = BaseDeConhecimentoRouteImport.update({
+  id: '/base-de-conhecimento',
+  path: '/base-de-conhecimento',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ClientesIndexRoute = ClientesIndexRouteImport.update({
-  id: '/clientes/',
-  path: '/clientes/',
+const CalendarioRoute = CalendarioRouteImport.update({
+  id: '/calendario',
+  path: '/calendario',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChamadosRoute = ChamadosRouteImport.update({
+  id: '/chamados',
+  path: '/chamados',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrotaRoute = FrotaRouteImport.update({
+  id: '/frota',
+  path: '/frota',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IniciarHadronRoute = IniciarHadronRouteImport.update({
+  id: '/iniciar-hadron',
+  path: '/iniciar-hadron',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KanbanRoute = KanbanRouteImport.update({
+  id: '/kanban',
+  path: '/kanban',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KanbanDashboardRoute = KanbanDashboardRouteImport.update({
+  id: '/kanban-dashboard',
+  path: '/kanban-dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogsRoute = LogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhaContaRoute = MinhaContaRouteImport.update({
+  id: '/minha-conta',
+  path: '/minha-conta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VersoesRoute = VersoesRouteImport.update({
+  id: '/versoes',
+  path: '/versoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BaseDeConhecimentoIndexRoute = BaseDeConhecimentoIndexRouteImport.update({
@@ -133,46 +124,50 @@ const BaseDeConhecimentoIndexRoute = BaseDeConhecimentoIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BaseDeConhecimentoRoute,
 } as any)
-const SuporteAgendamentosRoute = SuporteAgendamentosRouteImport.update({
-  id: '/suporte/agendamentos',
-  path: '/suporte/agendamentos',
+const BaseDeConhecimentoSlugRoute = BaseDeConhecimentoSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => BaseDeConhecimentoRoute,
+} as any)
+const ChamadosNovoRoute = ChamadosNovoRouteImport.update({
+  id: '/novo',
+  path: '/novo',
+  getParentRoute: () => ChamadosRoute,
+} as any)
+const ClientesIndexRoute = ClientesIndexRouteImport.update({
+  id: '/clientes/',
+  path: '/clientes/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const KanbanBoardIdRoute = KanbanBoardIdRouteImport.update({
-  id: '/$boardId',
-  path: '/$boardId',
-  getParentRoute: () => KanbanRoute,
-} as any)
-const FrotaVehicleIdRoute = FrotaVehicleIdRouteImport.update({
-  id: '/$vehicleId',
-  path: '/$vehicleId',
-  getParentRoute: () => FrotaRoute,
-} as any)
-const ConfiguracoesLogsRoute = ConfiguracoesLogsRouteImport.update({
-  id: '/configuracoes/logs',
-  path: '/configuracoes/logs',
+const ClientesClienteIdRoute = ClientesClienteIdRouteImport.update({
+  id: '/clientes/$clienteId',
+  path: '/clientes/$clienteId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ConfiguracoesEmpresasRoute = ConfiguracoesEmpresasRouteImport.update({
-  id: '/configuracoes/empresas',
-  path: '/configuracoes/empresas',
+const ComercialAgendamentosRoute = ComercialAgendamentosRouteImport.update({
+  id: '/comercial/agendamentos',
+  path: '/comercial/agendamentos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ConfiguracoesDispositivosRoute =
-  ConfiguracoesDispositivosRouteImport.update({
-    id: '/configuracoes/dispositivos',
-    path: '/configuracoes/dispositivos',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ConfiguracoesContratosRoute = ConfiguracoesContratosRouteImport.update({
-  id: '/configuracoes/contratos',
-  path: '/configuracoes/contratos',
+const ComercialAtividadesRoute = ComercialAtividadesRouteImport.update({
+  id: '/comercial/atividades',
+  path: '/comercial/atividades',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ConfiguracoesColaboradoresRoute =
-  ConfiguracoesColaboradoresRouteImport.update({
-    id: '/configuracoes/colaboradores',
-    path: '/configuracoes/colaboradores',
+const ComercialContatosRoute = ComercialContatosRouteImport.update({
+  id: '/comercial/contatos',
+  path: '/comercial/contatos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComercialProspeccaoRoute = ComercialProspeccaoRouteImport.update({
+  id: '/comercial/prospeccao',
+  path: '/comercial/prospeccao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesAplicativosRoute =
+  ConfiguracoesAplicativosRouteImport.update({
+    id: '/configuracoes/aplicativos',
+    path: '/configuracoes/aplicativos',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ConfiguracoesAprendizadoIaRoute =
@@ -181,66 +176,77 @@ const ConfiguracoesAprendizadoIaRoute =
     path: '/configuracoes/aprendizado-ia',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ConfiguracoesAplicativosRoute =
-  ConfiguracoesAplicativosRouteImport.update({
-    id: '/configuracoes/aplicativos',
-    path: '/configuracoes/aplicativos',
+const ConfiguracoesBaseHadronRoute = ConfiguracoesBaseHadronRouteImport.update({
+  id: '/configuracoes/base-hadron',
+  path: '/configuracoes/base-hadron',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesColaboradoresRoute =
+  ConfiguracoesColaboradoresRouteImport.update({
+    id: '/configuracoes/colaboradores',
+    path: '/configuracoes/colaboradores',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ComercialProspeccaoRoute = ComercialProspeccaoRouteImport.update({
-  id: '/comercial/prospeccao',
-  path: '/comercial/prospeccao',
+const ConfiguracoesContratosRoute = ConfiguracoesContratosRouteImport.update({
+  id: '/configuracoes/contratos',
+  path: '/configuracoes/contratos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ComercialContatosRoute = ComercialContatosRouteImport.update({
-  id: '/comercial/contatos',
-  path: '/comercial/contatos',
+const ConfiguracoesDispositivosRoute =
+  ConfiguracoesDispositivosRouteImport.update({
+    id: '/configuracoes/dispositivos',
+    path: '/configuracoes/dispositivos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ConfiguracoesEmpresasRoute = ConfiguracoesEmpresasRouteImport.update({
+  id: '/configuracoes/empresas',
+  path: '/configuracoes/empresas',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ComercialAtividadesRoute = ComercialAtividadesRouteImport.update({
-  id: '/comercial/atividades',
-  path: '/comercial/atividades',
+const ConfiguracoesLogsRoute = ConfiguracoesLogsRouteImport.update({
+  id: '/configuracoes/logs',
+  path: '/configuracoes/logs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ComercialAgendamentosRoute = ComercialAgendamentosRouteImport.update({
-  id: '/comercial/agendamentos',
-  path: '/comercial/agendamentos',
-  getParentRoute: () => rootRouteImport,
+const FrotaIndexRoute = FrotaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FrotaRoute,
 } as any)
-const ClientesClienteIdRoute = ClientesClienteIdRouteImport.update({
-  id: '/clientes/$clienteId',
-  path: '/clientes/$clienteId',
-  getParentRoute: () => rootRouteImport,
+const FrotaVehicleIdRoute = FrotaVehicleIdRouteImport.update({
+  id: '/$vehicleId',
+  path: '/$vehicleId',
+  getParentRoute: () => FrotaRoute,
 } as any)
-const ChamadosNovoRoute = ChamadosNovoRouteImport.update({
-  id: '/novo',
-  path: '/novo',
-  getParentRoute: () => ChamadosRoute,
-} as any)
-const BaseDeConhecimentoSlugRoute = BaseDeConhecimentoSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => BaseDeConhecimentoRoute,
-} as any)
-const KanbanConviteTokenRoute = KanbanConviteTokenRouteImport.update({
-  id: '/convite/$token',
-  path: '/convite/$token',
+const KanbanBoardIdRoute = KanbanBoardIdRouteImport.update({
+  id: '/$boardId',
+  path: '/$boardId',
   getParentRoute: () => KanbanRoute,
 } as any)
-const ComercialContatosLeadIdRoute = ComercialContatosLeadIdRouteImport.update({
-  id: '/$leadId',
-  path: '/$leadId',
-  getParentRoute: () => ComercialContatosRoute,
-} as any)
-const ComercialContatoLeadIdRoute = ComercialContatoLeadIdRouteImport.update({
-  id: '/comercial/contato/$leadId',
-  path: '/comercial/contato/$leadId',
+const SuporteAgendamentosRoute = SuporteAgendamentosRouteImport.update({
+  id: '/suporte/agendamentos',
+  path: '/suporte/agendamentos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicTestPlacesRoute = ApiPublicTestPlacesRouteImport.update({
   id: '/api/public/test-places',
   path: '/api/public/test-places',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ComercialContatoLeadIdRoute = ComercialContatoLeadIdRouteImport.update({
+  id: '/comercial/contato/$leadId',
+  path: '/comercial/contato/$leadId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComercialContatosLeadIdRoute = ComercialContatosLeadIdRouteImport.update({
+  id: '/$leadId',
+  path: '/$leadId',
+  getParentRoute: () => ComercialContatosRoute,
+} as any)
+const KanbanConviteTokenRoute = KanbanConviteTokenRouteImport.update({
+  id: '/convite/$token',
+  path: '/convite/$token',
+  getParentRoute: () => KanbanRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/comercial/prospeccao': typeof ComercialProspeccaoRoute
   '/configuracoes/aplicativos': typeof ConfiguracoesAplicativosRoute
   '/configuracoes/aprendizado-ia': typeof ConfiguracoesAprendizadoIaRoute
+  '/configuracoes/base-hadron': typeof ConfiguracoesBaseHadronRoute
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
@@ -305,6 +312,7 @@ export interface FileRoutesByTo {
   '/comercial/prospeccao': typeof ComercialProspeccaoRoute
   '/configuracoes/aplicativos': typeof ConfiguracoesAplicativosRoute
   '/configuracoes/aprendizado-ia': typeof ConfiguracoesAprendizadoIaRoute
+  '/configuracoes/base-hadron': typeof ConfiguracoesBaseHadronRoute
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
@@ -346,6 +354,7 @@ export interface FileRoutesById {
   '/comercial/prospeccao': typeof ComercialProspeccaoRoute
   '/configuracoes/aplicativos': typeof ConfiguracoesAplicativosRoute
   '/configuracoes/aprendizado-ia': typeof ConfiguracoesAprendizadoIaRoute
+  '/configuracoes/base-hadron': typeof ConfiguracoesBaseHadronRoute
   '/configuracoes/colaboradores': typeof ConfiguracoesColaboradoresRoute
   '/configuracoes/contratos': typeof ConfiguracoesContratosRoute
   '/configuracoes/dispositivos': typeof ConfiguracoesDispositivosRoute
@@ -388,6 +397,7 @@ export interface FileRouteTypes {
     | '/comercial/prospeccao'
     | '/configuracoes/aplicativos'
     | '/configuracoes/aprendizado-ia'
+    | '/configuracoes/base-hadron'
     | '/configuracoes/colaboradores'
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
@@ -426,6 +436,7 @@ export interface FileRouteTypes {
     | '/comercial/prospeccao'
     | '/configuracoes/aplicativos'
     | '/configuracoes/aprendizado-ia'
+    | '/configuracoes/base-hadron'
     | '/configuracoes/colaboradores'
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
@@ -466,6 +477,7 @@ export interface FileRouteTypes {
     | '/comercial/prospeccao'
     | '/configuracoes/aplicativos'
     | '/configuracoes/aprendizado-ia'
+    | '/configuracoes/base-hadron'
     | '/configuracoes/colaboradores'
     | '/configuracoes/contratos'
     | '/configuracoes/dispositivos'
@@ -505,6 +517,7 @@ export interface RootRouteChildren {
   ComercialProspeccaoRoute: typeof ComercialProspeccaoRoute
   ConfiguracoesAplicativosRoute: typeof ConfiguracoesAplicativosRoute
   ConfiguracoesAprendizadoIaRoute: typeof ConfiguracoesAprendizadoIaRoute
+  ConfiguracoesBaseHadronRoute: typeof ConfiguracoesBaseHadronRoute
   ConfiguracoesColaboradoresRoute: typeof ConfiguracoesColaboradoresRoute
   ConfiguracoesContratosRoute: typeof ConfiguracoesContratosRoute
   ConfiguracoesDispositivosRoute: typeof ConfiguracoesDispositivosRoute
@@ -518,88 +531,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/versoes': {
-      id: '/versoes'
-      path: '/versoes'
-      fullPath: '/versoes'
-      preLoaderRoute: typeof VersoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/minha-conta': {
-      id: '/minha-conta'
-      path: '/minha-conta'
-      fullPath: '/minha-conta'
-      preLoaderRoute: typeof MinhaContaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/logs': {
-      id: '/logs'
-      path: '/logs'
-      fullPath: '/logs'
-      preLoaderRoute: typeof LogsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/kanban-dashboard': {
-      id: '/kanban-dashboard'
-      path: '/kanban-dashboard'
-      fullPath: '/kanban-dashboard'
-      preLoaderRoute: typeof KanbanDashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/kanban': {
-      id: '/kanban'
-      path: '/kanban'
-      fullPath: '/kanban'
-      preLoaderRoute: typeof KanbanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/iniciar-hadron': {
-      id: '/iniciar-hadron'
-      path: '/iniciar-hadron'
-      fullPath: '/iniciar-hadron'
-      preLoaderRoute: typeof IniciarHadronRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/frota': {
-      id: '/frota'
-      path: '/frota'
-      fullPath: '/frota'
-      preLoaderRoute: typeof FrotaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/chamados': {
-      id: '/chamados'
-      path: '/chamados'
-      fullPath: '/chamados'
-      preLoaderRoute: typeof ChamadosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/calendario': {
-      id: '/calendario'
-      path: '/calendario'
-      fullPath: '/calendario'
-      preLoaderRoute: typeof CalendarioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/base-de-conhecimento': {
-      id: '/base-de-conhecimento'
-      path: '/base-de-conhecimento'
-      fullPath: '/base-de-conhecimento'
-      preLoaderRoute: typeof BaseDeConhecimentoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/atualizacoes': {
-      id: '/atualizacoes'
-      path: '/atualizacoes'
-      fullPath: '/atualizacoes'
-      preLoaderRoute: typeof AtualizacoesRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -609,25 +545,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/atualizacoes': {
+      id: '/atualizacoes'
+      path: '/atualizacoes'
+      fullPath: '/atualizacoes'
+      preLoaderRoute: typeof AtualizacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/frota/': {
-      id: '/frota/'
-      path: '/'
-      fullPath: '/frota/'
-      preLoaderRoute: typeof FrotaIndexRouteImport
-      parentRoute: typeof FrotaRoute
+    '/base-de-conhecimento': {
+      id: '/base-de-conhecimento'
+      path: '/base-de-conhecimento'
+      fullPath: '/base-de-conhecimento'
+      preLoaderRoute: typeof BaseDeConhecimentoRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/clientes/': {
-      id: '/clientes/'
-      path: '/clientes'
-      fullPath: '/clientes/'
-      preLoaderRoute: typeof ClientesIndexRouteImport
+    '/calendario': {
+      id: '/calendario'
+      path: '/calendario'
+      fullPath: '/calendario'
+      preLoaderRoute: typeof CalendarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chamados': {
+      id: '/chamados'
+      path: '/chamados'
+      fullPath: '/chamados'
+      preLoaderRoute: typeof ChamadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/frota': {
+      id: '/frota'
+      path: '/frota'
+      fullPath: '/frota'
+      preLoaderRoute: typeof FrotaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/iniciar-hadron': {
+      id: '/iniciar-hadron'
+      path: '/iniciar-hadron'
+      fullPath: '/iniciar-hadron'
+      preLoaderRoute: typeof IniciarHadronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kanban': {
+      id: '/kanban'
+      path: '/kanban'
+      fullPath: '/kanban'
+      preLoaderRoute: typeof KanbanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kanban-dashboard': {
+      id: '/kanban-dashboard'
+      path: '/kanban-dashboard'
+      fullPath: '/kanban-dashboard'
+      preLoaderRoute: typeof KanbanDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logs': {
+      id: '/logs'
+      path: '/logs'
+      fullPath: '/logs'
+      preLoaderRoute: typeof LogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minha-conta': {
+      id: '/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/minha-conta'
+      preLoaderRoute: typeof MinhaContaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/versoes': {
+      id: '/versoes'
+      path: '/versoes'
+      fullPath: '/versoes'
+      preLoaderRoute: typeof VersoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/base-de-conhecimento/': {
@@ -637,102 +636,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BaseDeConhecimentoIndexRouteImport
       parentRoute: typeof BaseDeConhecimentoRoute
     }
-    '/suporte/agendamentos': {
-      id: '/suporte/agendamentos'
-      path: '/suporte/agendamentos'
-      fullPath: '/suporte/agendamentos'
-      preLoaderRoute: typeof SuporteAgendamentosRouteImport
-      parentRoute: typeof rootRouteImport
+    '/base-de-conhecimento/$slug': {
+      id: '/base-de-conhecimento/$slug'
+      path: '/$slug'
+      fullPath: '/base-de-conhecimento/$slug'
+      preLoaderRoute: typeof BaseDeConhecimentoSlugRouteImport
+      parentRoute: typeof BaseDeConhecimentoRoute
     }
-    '/kanban/$boardId': {
-      id: '/kanban/$boardId'
-      path: '/$boardId'
-      fullPath: '/kanban/$boardId'
-      preLoaderRoute: typeof KanbanBoardIdRouteImport
-      parentRoute: typeof KanbanRoute
+    '/chamados/novo': {
+      id: '/chamados/novo'
+      path: '/novo'
+      fullPath: '/chamados/novo'
+      preLoaderRoute: typeof ChamadosNovoRouteImport
+      parentRoute: typeof ChamadosRoute
     }
-    '/frota/$vehicleId': {
-      id: '/frota/$vehicleId'
-      path: '/$vehicleId'
-      fullPath: '/frota/$vehicleId'
-      preLoaderRoute: typeof FrotaVehicleIdRouteImport
-      parentRoute: typeof FrotaRoute
-    }
-    '/configuracoes/logs': {
-      id: '/configuracoes/logs'
-      path: '/configuracoes/logs'
-      fullPath: '/configuracoes/logs'
-      preLoaderRoute: typeof ConfiguracoesLogsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/configuracoes/empresas': {
-      id: '/configuracoes/empresas'
-      path: '/configuracoes/empresas'
-      fullPath: '/configuracoes/empresas'
-      preLoaderRoute: typeof ConfiguracoesEmpresasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/configuracoes/dispositivos': {
-      id: '/configuracoes/dispositivos'
-      path: '/configuracoes/dispositivos'
-      fullPath: '/configuracoes/dispositivos'
-      preLoaderRoute: typeof ConfiguracoesDispositivosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/configuracoes/contratos': {
-      id: '/configuracoes/contratos'
-      path: '/configuracoes/contratos'
-      fullPath: '/configuracoes/contratos'
-      preLoaderRoute: typeof ConfiguracoesContratosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/configuracoes/colaboradores': {
-      id: '/configuracoes/colaboradores'
-      path: '/configuracoes/colaboradores'
-      fullPath: '/configuracoes/colaboradores'
-      preLoaderRoute: typeof ConfiguracoesColaboradoresRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/configuracoes/aprendizado-ia': {
-      id: '/configuracoes/aprendizado-ia'
-      path: '/configuracoes/aprendizado-ia'
-      fullPath: '/configuracoes/aprendizado-ia'
-      preLoaderRoute: typeof ConfiguracoesAprendizadoIaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/configuracoes/aplicativos': {
-      id: '/configuracoes/aplicativos'
-      path: '/configuracoes/aplicativos'
-      fullPath: '/configuracoes/aplicativos'
-      preLoaderRoute: typeof ConfiguracoesAplicativosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/comercial/prospeccao': {
-      id: '/comercial/prospeccao'
-      path: '/comercial/prospeccao'
-      fullPath: '/comercial/prospeccao'
-      preLoaderRoute: typeof ComercialProspeccaoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/comercial/contatos': {
-      id: '/comercial/contatos'
-      path: '/comercial/contatos'
-      fullPath: '/comercial/contatos'
-      preLoaderRoute: typeof ComercialContatosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/comercial/atividades': {
-      id: '/comercial/atividades'
-      path: '/comercial/atividades'
-      fullPath: '/comercial/atividades'
-      preLoaderRoute: typeof ComercialAtividadesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/comercial/agendamentos': {
-      id: '/comercial/agendamentos'
-      path: '/comercial/agendamentos'
-      fullPath: '/comercial/agendamentos'
-      preLoaderRoute: typeof ComercialAgendamentosRouteImport
+    '/clientes/': {
+      id: '/clientes/'
+      path: '/clientes'
+      fullPath: '/clientes/'
+      preLoaderRoute: typeof ClientesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clientes/$clienteId': {
@@ -742,39 +664,116 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientesClienteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/chamados/novo': {
-      id: '/chamados/novo'
-      path: '/novo'
-      fullPath: '/chamados/novo'
-      preLoaderRoute: typeof ChamadosNovoRouteImport
-      parentRoute: typeof ChamadosRoute
+    '/comercial/agendamentos': {
+      id: '/comercial/agendamentos'
+      path: '/comercial/agendamentos'
+      fullPath: '/comercial/agendamentos'
+      preLoaderRoute: typeof ComercialAgendamentosRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/base-de-conhecimento/$slug': {
-      id: '/base-de-conhecimento/$slug'
-      path: '/$slug'
-      fullPath: '/base-de-conhecimento/$slug'
-      preLoaderRoute: typeof BaseDeConhecimentoSlugRouteImport
-      parentRoute: typeof BaseDeConhecimentoRoute
+    '/comercial/atividades': {
+      id: '/comercial/atividades'
+      path: '/comercial/atividades'
+      fullPath: '/comercial/atividades'
+      preLoaderRoute: typeof ComercialAtividadesRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/kanban/convite/$token': {
-      id: '/kanban/convite/$token'
-      path: '/convite/$token'
-      fullPath: '/kanban/convite/$token'
-      preLoaderRoute: typeof KanbanConviteTokenRouteImport
+    '/comercial/contatos': {
+      id: '/comercial/contatos'
+      path: '/comercial/contatos'
+      fullPath: '/comercial/contatos'
+      preLoaderRoute: typeof ComercialContatosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comercial/prospeccao': {
+      id: '/comercial/prospeccao'
+      path: '/comercial/prospeccao'
+      fullPath: '/comercial/prospeccao'
+      preLoaderRoute: typeof ComercialProspeccaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes/aplicativos': {
+      id: '/configuracoes/aplicativos'
+      path: '/configuracoes/aplicativos'
+      fullPath: '/configuracoes/aplicativos'
+      preLoaderRoute: typeof ConfiguracoesAplicativosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes/aprendizado-ia': {
+      id: '/configuracoes/aprendizado-ia'
+      path: '/configuracoes/aprendizado-ia'
+      fullPath: '/configuracoes/aprendizado-ia'
+      preLoaderRoute: typeof ConfiguracoesAprendizadoIaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes/base-hadron': {
+      id: '/configuracoes/base-hadron'
+      path: '/configuracoes/base-hadron'
+      fullPath: '/configuracoes/base-hadron'
+      preLoaderRoute: typeof ConfiguracoesBaseHadronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes/colaboradores': {
+      id: '/configuracoes/colaboradores'
+      path: '/configuracoes/colaboradores'
+      fullPath: '/configuracoes/colaboradores'
+      preLoaderRoute: typeof ConfiguracoesColaboradoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes/contratos': {
+      id: '/configuracoes/contratos'
+      path: '/configuracoes/contratos'
+      fullPath: '/configuracoes/contratos'
+      preLoaderRoute: typeof ConfiguracoesContratosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes/dispositivos': {
+      id: '/configuracoes/dispositivos'
+      path: '/configuracoes/dispositivos'
+      fullPath: '/configuracoes/dispositivos'
+      preLoaderRoute: typeof ConfiguracoesDispositivosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes/empresas': {
+      id: '/configuracoes/empresas'
+      path: '/configuracoes/empresas'
+      fullPath: '/configuracoes/empresas'
+      preLoaderRoute: typeof ConfiguracoesEmpresasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes/logs': {
+      id: '/configuracoes/logs'
+      path: '/configuracoes/logs'
+      fullPath: '/configuracoes/logs'
+      preLoaderRoute: typeof ConfiguracoesLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/frota/': {
+      id: '/frota/'
+      path: '/'
+      fullPath: '/frota/'
+      preLoaderRoute: typeof FrotaIndexRouteImport
+      parentRoute: typeof FrotaRoute
+    }
+    '/frota/$vehicleId': {
+      id: '/frota/$vehicleId'
+      path: '/$vehicleId'
+      fullPath: '/frota/$vehicleId'
+      preLoaderRoute: typeof FrotaVehicleIdRouteImport
+      parentRoute: typeof FrotaRoute
+    }
+    '/kanban/$boardId': {
+      id: '/kanban/$boardId'
+      path: '/$boardId'
+      fullPath: '/kanban/$boardId'
+      preLoaderRoute: typeof KanbanBoardIdRouteImport
       parentRoute: typeof KanbanRoute
     }
-    '/comercial/contatos/$leadId': {
-      id: '/comercial/contatos/$leadId'
-      path: '/$leadId'
-      fullPath: '/comercial/contatos/$leadId'
-      preLoaderRoute: typeof ComercialContatosLeadIdRouteImport
-      parentRoute: typeof ComercialContatosRoute
-    }
-    '/comercial/contato/$leadId': {
-      id: '/comercial/contato/$leadId'
-      path: '/comercial/contato/$leadId'
-      fullPath: '/comercial/contato/$leadId'
-      preLoaderRoute: typeof ComercialContatoLeadIdRouteImport
+    '/suporte/agendamentos': {
+      id: '/suporte/agendamentos'
+      path: '/suporte/agendamentos'
+      fullPath: '/suporte/agendamentos'
+      preLoaderRoute: typeof SuporteAgendamentosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/test-places': {
@@ -783,6 +782,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/test-places'
       preLoaderRoute: typeof ApiPublicTestPlacesRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/comercial/contato/$leadId': {
+      id: '/comercial/contato/$leadId'
+      path: '/comercial/contato/$leadId'
+      fullPath: '/comercial/contato/$leadId'
+      preLoaderRoute: typeof ComercialContatoLeadIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comercial/contatos/$leadId': {
+      id: '/comercial/contatos/$leadId'
+      path: '/$leadId'
+      fullPath: '/comercial/contatos/$leadId'
+      preLoaderRoute: typeof ComercialContatosLeadIdRouteImport
+      parentRoute: typeof ComercialContatosRoute
+    }
+    '/kanban/convite/$token': {
+      id: '/kanban/convite/$token'
+      path: '/convite/$token'
+      fullPath: '/kanban/convite/$token'
+      preLoaderRoute: typeof KanbanConviteTokenRouteImport
+      parentRoute: typeof KanbanRoute
     }
   }
 }
@@ -870,6 +890,7 @@ const rootRouteChildren: RootRouteChildren = {
   ComercialProspeccaoRoute: ComercialProspeccaoRoute,
   ConfiguracoesAplicativosRoute: ConfiguracoesAplicativosRoute,
   ConfiguracoesAprendizadoIaRoute: ConfiguracoesAprendizadoIaRoute,
+  ConfiguracoesBaseHadronRoute: ConfiguracoesBaseHadronRoute,
   ConfiguracoesColaboradoresRoute: ConfiguracoesColaboradoresRoute,
   ConfiguracoesContratosRoute: ConfiguracoesContratosRoute,
   ConfiguracoesDispositivosRoute: ConfiguracoesDispositivosRoute,

@@ -110,6 +110,7 @@ const nav: NavItem[] = [
       { to: "/configuracoes/contratos", label: "Contratos", icon: FileKey2 },
       { to: "/configuracoes/logs", label: "Logs", icon: ScrollText },
       { to: "/configuracoes/aprendizado-ia", label: "Aprendizado da IA", icon: BrainCircuit },
+      { to: "/configuracoes/base-hadron", label: "Base Hádron", icon: BrainCircuit },
     ],
   },
 ];
