@@ -98,6 +98,7 @@ const nav: NavItem[] = [
   { to: "/analytics", label: "Analytics", icon: AnalyticsIcon },
   { to: "/kanban", label: "Kanban", icon: KanbanIcon },
   { to: "/clientes", label: "Clientes", icon: CustomersIcon },
+      { to: "/clientes/contadores", label: "Contadores", icon: Users },
   {
     to: "/configuracoes/colaboradores",
     label: "Configurações",
