@@ -1,3 +1,4 @@
+import { AnalyticsFocusData, AnalyzeButton } from "./AnalyticsFocus";
 import { useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -177,14 +178,17 @@ function RevenueStyleCards({
 
         if (link) {
           return (
-            <Link
-              key={card.tag}
-              to={link.to}
-              search={link.search as never}
-              className="block h-full rounded-[28px] focus:outline-none"
-            >
-              {cardEl}
-            </Link>
+            <div key={card.tag}>
+              <AnalyzeButton title={card.title} />
+              <Link
+                key={card.tag}
+                to={link.to}
+                search={link.search as never}
+                className="block h-full rounded-[28px] focus:outline-none"
+              >
+                {cardEl}
+              </Link>
+            </div>
           );
         }
 
@@ -383,6 +387,7 @@ function TopAgentsCard({ tickets }: { tickets: SupportTicket[] }) {
             <h3 className="text-base font-bold tracking-tight text-foreground">
               Performance dos Operadores
             </h3>
+            <AnalyzeButton title="Performance dos Operadores" />
             <Button
               type="button"
               variant="ghost"
@@ -701,6 +706,7 @@ function StatisticsCard({
     <Card className="analytics-statistics w-full max-w-full min-w-0 overflow-hidden rounded-[14px] border border-border/60 bg-white p-4 shadow-[0_10px_26px_rgba(25,29,51,0.06)] dark:bg-[#20263d] sm:p-5">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <h3 className="text-base font-bold tracking-tight text-foreground">Estatísticas</h3>
+        <AnalyzeButton title="Estatísticas" />
         <span className="inline-flex h-9 items-center gap-2 rounded-md bg-muted/60 px-4 text-sm font-semibold text-foreground">
           <CalendarClock className="h-4 w-4" />
           {selectedDay
@@ -1314,6 +1320,7 @@ function SlaProfileCard({ tickets }: { tickets: SupportTicket[] }) {
       <div className="grid gap-6 md:grid-cols-[1fr_220px] md:items-center">
         <div>
           <h3 className="text-base font-bold text-foreground">Saúde do atendimento</h3>
+          <AnalyzeButton title="Saúde do atendimento" />
           <p className="mt-1 text-sm text-muted-foreground">
             Tempo médio, SLA e taxa de resolução consolidados.
           </p>
@@ -1518,6 +1525,7 @@ function StatusCategoriesCard({
   return (
     <Card className="rounded-[14px] border-0 bg-white dark:bg-[#20263d] p-6 shadow-[0_10px_26px_rgba(25,29,51,0.06)]">
       <h3 className="text-base font-bold text-foreground">Chamados por status</h3>
+      <AnalyzeButton title="Chamados por status" />
       <p className="mt-1 text-xs text-muted-foreground">Distribuição atual do funil.</p>
       <div className="mt-4 flex h-[220px] items-center justify-center overflow-hidden">
         <svg
@@ -1678,6 +1686,7 @@ function SourceModuleCard({
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-base font-bold text-foreground">Origem & Módulo</h3>
+              <AnalyzeButton title="Origem & Módulo" />
               <p className="mt-1 text-xs text-muted-foreground">Canais e áreas mais acionadas.</p>
             </div>
             <Button
@@ -1893,53 +1902,65 @@ export function TicketsAnalyticsSection({ from = "", to = "" }: { from?: string;
     .slice(0, 5);
 
   return (
-    <section className="space-y-6">
-      <TicketsIndicatorCards
-        tickets={hasDateFilter ? supportTickets : allTickets}
-        filtered={hasDateFilter}
-      />
-
-      <AnalyticsOverview
-        tickets={supportTickets}
-        rangeEnd={to || (!from ? defaultTo : undefined)}
-      />
-
-      <ConnectedAnalysis tickets={supportTickets} />
-
-      <div className="analytics-detail-heading">
-        <h2>Análise detalhada</h2>
-        <span>Operadores, empresas e módulos</span>
-      </div>
-
-      <div
-        id="analytics-detalhado"
-        className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[0.92fr_1.35fr]"
-      >
-        <TopAgentsCard tickets={supportTickets} />
-        <StatisticsCard
-          tickets={scopedTickets}
-          rangeStart={from || (!to ? defaultFrom : "")}
-          rangeEnd={to || (!from ? defaultTo : "")}
+    <AnalyticsFocusData
+      rows={supportTickets.map((ticket) => ({
+        id: ticket.id,
+        dimensions: {
+          Situação: ticket.status,
+          Responsáveis: ticket.owner || "Sem responsável",
+          Clientes: ticket.clientName || "Não informado",
+          Módulos: ticket.module || "Não informado",
+        },
+      }))}
+    >
+      <section className="space-y-6">
+        <TicketsIndicatorCards
+          tickets={hasDateFilter ? supportTickets : allTickets}
+          filtered={hasDateFilter}
         />
-      </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <WeeklyBacklogCard tickets={supportTickets} filtered={hasDateFilter} />
-        <SlaProfileCard tickets={supportTickets} />
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <StatusCategoriesCard
-          data={statusDistribution}
-          activeStatus={statusFilter || null}
-          onSelect={setStatusFilter}
-        />
-        <SourceModuleCard
-          sources={sourceDistribution}
-          modules={moduleDistribution}
+        <AnalyticsOverview
           tickets={supportTickets}
+          rangeEnd={to || (!from ? defaultTo : undefined)}
         />
-      </div>
-    </section>
+
+        <ConnectedAnalysis tickets={supportTickets} />
+
+        <div className="analytics-detail-heading">
+          <h2>Análise detalhada</h2>
+          <span>Operadores, empresas e módulos</span>
+        </div>
+
+        <div
+          id="analytics-detalhado"
+          className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[0.92fr_1.35fr]"
+        >
+          <TopAgentsCard tickets={supportTickets} />
+          <StatisticsCard
+            tickets={scopedTickets}
+            rangeStart={from || (!to ? defaultFrom : "")}
+            rangeEnd={to || (!from ? defaultTo : "")}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <WeeklyBacklogCard tickets={supportTickets} filtered={hasDateFilter} />
+          <SlaProfileCard tickets={supportTickets} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <StatusCategoriesCard
+            data={statusDistribution}
+            activeStatus={statusFilter || null}
+            onSelect={setStatusFilter}
+          />
+          <SourceModuleCard
+            sources={sourceDistribution}
+            modules={moduleDistribution}
+            tickets={supportTickets}
+          />
+        </div>
+      </section>
+    </AnalyticsFocusData>
   );
 }
