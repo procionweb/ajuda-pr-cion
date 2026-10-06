@@ -473,7 +473,7 @@ function AccountantCreateScreen({
           </Button>
         }
       />
-      <div className="grid gap-4 text-sm [&_input]:text-sm [&_label]:text-xs lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid items-start gap-4 text-sm [&_input]:text-sm [&_label]:text-xs lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="rounded-xl border bg-card p-5 text-sm shadow-sm">
           <h2 className="mb-4 flex items-center gap-2 text-base font-medium">
             <UserRound className="size-5 text-primary" />
@@ -576,6 +576,15 @@ function AccountantCreateScreen({
                 </span>
               </label>
             ))}
+          </div>
+          <div className="mt-4 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <span>Empresas selecionadas</span>
+              <strong className="text-foreground">{selectedClients.length}</strong>
+            </div>
+            <p className="mt-1">
+              As empresas selecionadas serão vinculadas ao contador após salvar.
+            </p>
           </div>
         </section>
       </div>
