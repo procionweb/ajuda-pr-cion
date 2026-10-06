@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import {
   Building2,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   MapPinned,
   Mail,
@@ -14,7 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
-import { Button } from "@/components/ui/button";
+import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,7 +26,6 @@ import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/comercial/contatos")({ component: CommercialContactsRoute });
 
-const PAGE_SIZE = 25;
 const leadColumns =
   "id,cnpj,legal_name,trade_name,opened_at,registration_status,cnae_code,cnae_description,company_size,legal_nature,city,state,address,neighborhood,postal_code,relevance_score,stage,source,source_url,discovered_at,raw_payload";
 const stages: Array<{ value: CompanyLeadStage; label: string }> = [
@@ -67,7 +64,7 @@ function CommercialContactsPage() {
   const [city, setCity] = useState("");
   const [cities, setCities] = useState<string[]>([]);
   const [page, setPage] = useState(0);
-  const [hasNextPage, setHasNextPage] = useState(false);
+  const [pageSize, setPageSize] = useState(25);
   const [total, setTotal] = useState<number | null>(null);
   const [selected, setSelected] = useState<CompanyLeadDetails | null>(null);
 
@@ -80,7 +77,7 @@ function CommercialContactsPage() {
         .select(leadColumns, { count: "exact" })
         .order("discovered_at", { ascending: false })
         .order("id", { ascending: true })
-        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+        .range(page * pageSize, (page + 1) * pageSize - 1);
       query = stage
         ? query.eq("stage", stage)
         : query.in(
@@ -98,12 +95,10 @@ function CommercialContactsPage() {
       if (error) {
         toast.error("Não foi possível carregar os contatos comerciais.");
         setRows([]);
-        setHasNextPage(false);
         setTotal(null);
       } else {
         const mapped = (data || []).map((row) => mapLeadRow(row));
-        setHasNextPage(mapped.length > PAGE_SIZE);
-        setRows(mapped.slice(0, PAGE_SIZE));
+        setRows(mapped);
         setTotal(count);
       }
       setLoading(false);
@@ -112,7 +107,7 @@ function CommercialContactsPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [city, page, search, stage]);
+  }, [city, page, pageSize, search, stage]);
 
   useEffect(() => setPage(0), [city, search, stage]);
 
@@ -306,34 +301,21 @@ function CommercialContactsPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3 text-sm text-muted-foreground">
-          <span>
-            {rows.length
-              ? `Mostrando ${page * PAGE_SIZE + 1} a ${page * PAGE_SIZE + rows.length}${total !== null ? ` de ${total.toLocaleString("pt-BR")} contatos` : ""}`
-              : "Nenhum contato"}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={loading || page === 0}
-              aria-label="Página anterior"
-              onClick={() => setPage((value) => value - 1)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span>Página {page + 1}{total !== null ? ` de ${Math.max(1, Math.ceil(total / PAGE_SIZE))}` : ""}</span>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={loading || !hasNextPage}
-              aria-label="Próxima página"
-              onClick={() => setPage((value) => value + 1)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+      </div>
+      <div className="mt-4">
+        <ListPaginationFooter
+          page={page}
+          pageCount={Math.max(1, Math.ceil((total ?? 0) / pageSize))}
+          pageSize={pageSize}
+          total={total ?? 0}
+          noun="contatos"
+          loading={loading}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPageSize(value);
+            setPage(0);
+          }}
+        />
       </div>
     </AppShell>
   );
