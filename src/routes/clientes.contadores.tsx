@@ -473,8 +473,8 @@ function AccountantCreateScreen({
           </Button>
         }
       />
-      <div className="grid items-start gap-4 text-sm [&_input]:text-sm [&_label]:text-xs lg:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="rounded-xl border bg-card p-5 text-sm shadow-sm">
+      <div className="grid h-[calc(100vh-220px)] min-h-0 items-start gap-4 overflow-hidden text-sm [&_input]:text-sm [&_label]:text-xs lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="h-full overflow-y-auto rounded-xl border bg-card p-5 text-sm shadow-sm">
           <h2 className="mb-4 flex items-center gap-2 text-base font-medium">
             <UserRound className="size-5 text-primary" />
             Dados do contador
@@ -536,7 +536,7 @@ function AccountantCreateScreen({
             <Button onClick={onSave}>Salvar contador</Button>
           </div>
         </section>
-        <section className="rounded-xl border bg-card p-5 text-sm shadow-sm">
+        <section className="h-full overflow-y-auto rounded-xl border bg-card p-5 text-sm shadow-sm">
           <h2 className="flex items-center gap-2 text-base font-medium">
             <Building2 className="size-5 text-primary" />
             Empresas vinculadas
