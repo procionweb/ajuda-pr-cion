@@ -450,6 +450,12 @@ function AccountantCreateScreen({
   onSave,
   onCancel,
 }: any) {
+  const [clientQuery, setClientQuery] = useState("");
+  const visibleClients = clientOptions.filter((client: any) =>
+    `${client.trade_name || ""} ${client.legal_name || ""} ${client.document || ""}`
+      .toLowerCase()
+      .includes(clientQuery.toLowerCase()),
+  );
   const fields = [
     ["CPF do responsável", "responsible_document"],
     ["RG do responsável", "responsible_rg"],
@@ -473,8 +479,8 @@ function AccountantCreateScreen({
           </Button>
         }
       />
-      <div className="grid h-[calc(100vh-220px)] min-h-0 items-start gap-4 overflow-hidden text-sm [&_input]:text-sm [&_label]:text-xs lg:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="h-full overflow-y-auto rounded-xl border bg-card p-5 text-sm shadow-sm">
+      <div className="h-[calc(100vh-220px)] min-h-0 overflow-y-auto text-sm [&_input]:text-sm [&_label]:text-xs">
+        <section className="rounded-xl border bg-card p-5 text-sm shadow-sm">
           <h2 className="mb-4 flex items-center gap-2 text-base font-medium">
             <UserRound className="size-5 text-primary" />
             Dados do contador
@@ -536,7 +542,7 @@ function AccountantCreateScreen({
             <Button onClick={onSave}>Salvar contador</Button>
           </div>
         </section>
-        <section className="h-full overflow-y-auto rounded-xl border bg-card p-5 text-sm shadow-sm">
+        <section className="mt-4 rounded-xl border bg-card p-5 text-sm shadow-sm">
           <h2 className="flex items-center gap-2 text-base font-medium">
             <Building2 className="size-5 text-primary" />
             Empresas vinculadas
@@ -544,8 +550,14 @@ function AccountantCreateScreen({
           <p className="mt-1 text-sm text-muted-foreground">
             Selecione as empresas que ficarão ligadas a este contador.
           </p>
-          <div className="mt-3 max-h-[420px] space-y-2 overflow-y-auto">
-            {clientOptions.map((client: any) => (
+          <Input
+            className="mt-3 h-9"
+            placeholder="Buscar empresa por nome ou CNPJ"
+            value={clientQuery}
+            onChange={(e) => setClientQuery(e.target.value)}
+          />
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {visibleClients.map((client: any) => (
               <label
                 className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${selectedClients.includes(client.id) ? "border-primary bg-primary/10" : "hover:bg-muted/40"}`}
                 key={client.id}
