@@ -503,25 +503,94 @@ function SideInfoItem({ label, value }: { label: string; value: string }) {
 }
 
 function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackActor: string }) {
+  const [history, setHistory] = useState<Awaited<ReturnType<typeof companyLeadsApi.history>>>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyFailed, setHistoryFailed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setHistoryLoading(true);
+    setHistoryFailed(false);
+    companyLeadsApi
+      .history(lead.id)
+      .then((data) => {
+        if (active) setHistory(data);
+      })
+      .catch(() => {
+        if (active) {
+          setHistoryFailed(true);
+          setHistory([]);
+        }
+      })
+      .finally(() => {
+        if (active) setHistoryLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [lead]);
+  const labels: Record<string, string> = {
+    stage: "Etapa",
+    terminals: "Terminais",
+    name: "Nome",
+    acronym: "Sigla",
+    trade_name: "Nome fantasia",
+    phone: "Telefone",
+    email: "E-mail",
+    website: "Site",
+    priority: "Prioridade",
+    branch: "Ramo",
+    company_size: "Porte",
+    address: "Endereço",
+    address_number: "Número",
+    address_complement: "Complemento",
+    postal_code: "CEP",
+    neighborhood: "Bairro",
+    city: "Cidade",
+    state: "UF",
+    activities: "Atividades",
+    notes: "Observações",
+    conversion_status: "Fechamento",
+    registration_status: "Situação cadastral",
+    inactivation_reason: "Motivo da inativação",
+  };
+  const formatValue = (key: string, value: unknown) => {
+    if (value === null || value === undefined || value === "") return "Não informado";
+    if (key === "stage") return stageLabels[String(value) as CompanyLeadStage] || String(value);
+    return typeof value === "object" ? JSON.stringify(value) : String(value);
+  };
   const items = [
     {
       id: "1",
       kind: "created",
       title: "Lead Criado",
-      description: "Empresa identificada via prospecção ativa.",
-      at: lead.discovered_at || new Date().toISOString(),
+      description:
+        lead.source === "crm-manual"
+          ? "Contato cadastrado no CRM."
+          : lead.source === "crm-import"
+            ? "Contato importado para o CRM."
+            : "Empresa identificada via prospecção ativa.",
+      at: lead.discovered_at,
       actor: lead.source,
       status: "Concluído",
     },
-    {
-      id: "2",
-      kind: "stage",
-      title: "Alteração de Etapa",
-      description: `Etapa comercial definida como ${stageLabels[lead.stage]}.`,
-      at: new Date().toISOString(),
-      actor: lead.last_modified_by || fallbackActor,
+    ...history.map((event) => ({
+      id: event.id,
+      kind: "edit",
+      title:
+        event.changes.stage && Object.keys(event.changes).length === 1
+          ? "Alteração de etapa"
+          : "Dados comerciais atualizados",
+      description: Object.entries(event.changes)
+        .map(([key, value]) =>
+          key === "conversion_data"
+            ? "Dados do fechamento atualizados."
+            : `${labels[key] || key}: ${formatValue(key, value.old)} → ${formatValue(key, value.new)}`,
+        )
+        .join("\n"),
+      at: event.created_at,
+      actor: event.actor || fallbackActor,
       status: "Concluído",
-    },
+    })),
   ];
 
   return (
@@ -542,7 +611,7 @@ function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackA
                 {new Date(item.at).toLocaleString("pt-BR")}
               </span>
             </div>
-            <p className="text-sm">{item.description}</p>
+            <p className="whitespace-pre-line break-words text-sm">{item.description}</p>
             <div className="flex items-center gap-3 mt-1">
               <span className="text-[10px] text-muted-foreground">
                 <User className="h-3 w-3 inline mr-1" />
@@ -555,6 +624,14 @@ function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackA
           </div>
         </div>
       ))}
+      {historyLoading && (
+        <p className="pl-10 text-xs text-muted-foreground">Carregando histórico...</p>
+      )}
+      {historyFailed && (
+        <p className="pl-10 text-xs text-destructive">
+          Não foi possível carregar o histórico. Atualize a página para tentar novamente.
+        </p>
+      )}
     </div>
   );
 }

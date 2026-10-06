@@ -202,7 +202,45 @@ export const companyLeadsApi = {
     const { data, error } = await supabase.rpc("company_lead_details", { p_id: id });
     if (error) throw error;
     if (!data) throw new Error("Lead não encontrado.");
-    return data as CompanyLeadDetails;
+    const lead = data as CompanyLeadDetails;
+    const commercial = lead.commercial_data || {};
+    const fields = [
+      "trade_name",
+      "phone",
+      "email",
+      "website",
+      "company_size",
+      "address",
+      "postal_code",
+      "neighborhood",
+      "city",
+      "state",
+    ] as const;
+    return {
+      ...lead,
+      ...Object.fromEntries(
+        fields
+          .filter((key) => typeof commercial[key] === "string")
+          .map((key) => [key, commercial[key]]),
+      ),
+    };
+  },
+  async history(
+    id: string,
+  ): Promise<
+    Array<{
+      id: string;
+      actor: string;
+      created_at: string;
+      changes: Record<string, { old: unknown; new: unknown }>;
+    }>
+  > {
+    const { data, error } = await supabase.rpc(
+      "company_lead_history" as never,
+      { p_id: id } as never,
+    );
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
   },
 
   async countInProgress(filters: CompanyLeadFilters) {
