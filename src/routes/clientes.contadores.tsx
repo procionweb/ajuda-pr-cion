@@ -480,10 +480,12 @@ function AccountantCreateScreen({
           </Button>
         }
       />
-      <div className="h-[calc(100vh-220px)] min-h-0 overflow-y-auto text-sm [&_input]:text-sm [&_label]:text-xs">
+      <div className="space-y-5 text-sm [&_input]:h-11 [&_input]:rounded-xl [&_input]:text-sm [&_label]:text-[12px] [&_label]:font-medium">
         <section className="rounded-xl border bg-card p-5 text-sm shadow-sm">
-          <h2 className="mb-4 flex items-center gap-2 text-base font-medium">
-            <UserRound className="size-5 text-primary" />
+          <h2 className="mb-4 flex items-center gap-3 text-base font-medium">
+            <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+              <UserRound className="size-5" />
+            </span>
             Dados do contador
           </h2>
           <div className="grid gap-3 md:grid-cols-2">
@@ -521,7 +523,9 @@ function AccountantCreateScreen({
             </div>
           </div>
           <h3 className="mb-3 mt-5 flex items-center gap-2 border-t pt-4 text-sm font-medium">
-            <MapPin className="size-5 text-primary" />
+            <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+              <MapPin className="size-5" />
+            </span>
             Responsável e endereço
           </h3>
           <div className="grid gap-3 md:grid-cols-3">
@@ -536,16 +540,12 @@ function AccountantCreateScreen({
               </div>
             ))}
           </div>
-          <div className="mt-6 flex justify-end gap-2">
-            <Button variant="outline" onClick={onCancel}>
-              Cancelar
-            </Button>
-            <Button onClick={onSave}>Salvar contador</Button>
-          </div>
         </section>
         <section className="mt-4 rounded-xl border bg-card p-5 text-sm shadow-sm">
           <h2 className="flex items-center gap-2 text-base font-medium">
-            <Building2 className="size-5 text-primary" />
+            <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+              <Building2 className="size-5" />
+            </span>
             Empresas vinculadas
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -571,7 +571,7 @@ function AccountantCreateScreen({
                   value={clientQuery}
                   onChange={(e) => setClientQuery(e.target.value)}
                 />
-                <div className="mt-2 grid max-h-72 gap-2 overflow-y-auto md:grid-cols-2">
+                <div className="mt-2 max-h-72 space-y-1 overflow-y-auto">
                   {visibleClients.map((client: any) => (
                     <label
                       className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${selectedClients.includes(client.id) ? "border-primary bg-primary/10" : "hover:bg-muted/40"}`}
@@ -626,6 +626,12 @@ function AccountantCreateScreen({
             </p>
           </div>
         </section>
+        <div className="flex justify-end gap-2 pb-4">
+          <Button variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button onClick={onSave}>Salvar contador</Button>
+        </div>
       </div>
     </AppShell>
   );
