@@ -35,6 +35,23 @@ export async function createAccountant(input: Omit<Accountant, "id">) {
   if (error) throw error;
   return data as Accountant;
 }
+export async function listAccountantClientOptions() {
+  const { data, error } = await supabase
+    .from("client_companies")
+    .select("id,legal_name,trade_name,document,city,state")
+    .order("trade_name");
+  if (error) throw error;
+  return data ?? [];
+}
+export async function linkAccountantClients(accountantId: string, clientIds: string[]) {
+  if (!clientIds.length) return;
+  const { error } = await supabase
+    .from("crm_accountant_clients")
+    .upsert(
+      clientIds.map((client_company_id) => ({ accountant_id: accountantId, client_company_id })),
+    );
+  if (error) throw error;
+}
 
 export async function getAccountant(id: string) {
   const { data, error } = await supabase

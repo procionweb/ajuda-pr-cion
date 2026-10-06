@@ -17,6 +17,8 @@ import {
   listAccountants,
   createAccountant,
   getAccountant,
+  listAccountantClientOptions,
+  linkAccountantClients,
   type Accountant,
 } from "@/lib/accountants";
 
@@ -31,6 +33,8 @@ function AccountantsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [open, setOpen] = useState(false);
+  const [clientOptions, setClientOptions] = useState<any[]>([]);
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [form, setForm] = useState({
     name: "",
     office: "",
@@ -38,6 +42,16 @@ function AccountantsPage() {
     phone: "",
     email: "",
     notes: "",
+    responsible_name: "",
+    responsible_document: "",
+    responsible_rg: "",
+    address: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+    postal_code: "",
   });
   const load = async () => {
     try {
@@ -59,10 +73,30 @@ function AccountantsPage() {
   const save = async () => {
     if (!form.name.trim()) return toast.error("Informe o nome do contador.");
     try {
-      await createAccountant(form);
+      const created = await createAccountant(form as any);
+      await linkAccountantClients(created.id, selectedClients);
       toast.success("Contador cadastrado.");
       setOpen(false);
-      setForm({ name: "", office: "", document: "", phone: "", email: "", notes: "" });
+      setForm({
+        ...form,
+        name: "",
+        office: "",
+        document: "",
+        phone: "",
+        email: "",
+        notes: "",
+        responsible_name: "",
+        responsible_document: "",
+        responsible_rg: "",
+        address: "",
+        number: "",
+        complement: "",
+        neighborhood: "",
+        city: "",
+        state: "",
+        postal_code: "",
+      });
+      setSelectedClients([]);
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível cadastrar.");
@@ -80,7 +114,18 @@ function AccountantsPage() {
               <RefreshCw className="mr-2 size-4" />
               Atualizar
             </Button>
-            <Button onClick={() => setOpen(true)}>
+            <Button
+              onClick={async () => {
+                setOpen(true);
+                try {
+                  setClientOptions(await listAccountantClientOptions());
+                } catch (e) {
+                  toast.error(
+                    e instanceof Error ? e.message : "Não foi possível carregar as empresas.",
+                  );
+                }
+              }}
+            >
               <Plus className="mr-2 size-4" />
               Cadastrar contador
             </Button>
@@ -278,7 +323,7 @@ function AccountantsPage() {
           <DialogHeader>
             <DialogTitle>Cadastrar contador</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-3">
+          <div className="grid max-h-[70vh] gap-3 overflow-y-auto pr-1">
             <div>
               <Label>Nome</Label>
               <Input
@@ -311,6 +356,53 @@ function AccountantsPage() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                ["CPF do responsável", "responsible_document"],
+                ["RG do responsável", "responsible_rg"],
+                ["Responsável", "responsible_name"],
+                ["Endereço", "address"],
+                ["Número", "number"],
+                ["Complemento", "complement"],
+                ["Bairro", "neighborhood"],
+                ["Cidade", "city"],
+                ["UF", "state"],
+                ["CEP", "postal_code"],
+              ].map(([label, key]) => (
+                <div key={key}>
+                  <Label>{label}</Label>
+                  <Input
+                    className="mt-1"
+                    value={(form as any)[key]}
+                    onChange={(e) => setForm({ ...form, [key]: e.target.value } as any)}
+                  />
+                </div>
+              ))}
+            </div>
+            <div>
+              <Label>Empresas vinculadas</Label>
+              <div className="mt-1 max-h-40 space-y-1 overflow-y-auto rounded-md border p-2 text-xs">
+                {clientOptions.map((client) => (
+                  <label className="flex items-center gap-2" key={client.id}>
+                    <input
+                      type="checkbox"
+                      checked={selectedClients.includes(client.id)}
+                      onChange={(e) =>
+                        setSelectedClients(
+                          e.target.checked
+                            ? [...selectedClients, client.id]
+                            : selectedClients.filter((id) => id !== client.id),
+                        )
+                      }
+                    />
+                    <span>
+                      {client.trade_name || client.legal_name}{" "}
+                      {client.document ? `• ${client.document}` : ""}
+                    </span>
+                  </label>
+                ))}
               </div>
             </div>
           </div>
