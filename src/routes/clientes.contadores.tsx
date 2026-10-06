@@ -83,7 +83,27 @@ function AccountantsPage() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
   const save = async () => {
-    if (!form.name.trim()) return toast.error("Informe o nome do contador.");
+    const requiredFields = [
+      "name",
+      "office",
+      "phone",
+      "email",
+      "responsible_name",
+      "responsible_document",
+      "responsible_rg",
+      "address",
+      "number",
+      "complement",
+      "neighborhood",
+      "city",
+      "state",
+      "postal_code",
+    ] as const;
+    if (requiredFields.some((key) => !form[key].trim())) {
+      return toast.error("Preencha todos os campos obrigatórios do cadastro.");
+    }
+    if (!selectedClients.length)
+      return toast.error("Selecione pelo menos uma empresa para vincular.");
     try {
       const created = await createAccountant(form as any);
       await linkAccountantClients(created.id, selectedClients);
@@ -349,7 +369,9 @@ function AccountantsPage() {
           </DialogHeader>
           <div className="grid max-h-[70vh] gap-3 overflow-y-auto pr-1">
             <div>
-              <Label>Nome</Label>
+              <Label>
+                Nome <span className="text-destructive">*</span>
+              </Label>
               <Input
                 className="mt-1"
                 value={form.name}
@@ -357,7 +379,9 @@ function AccountantsPage() {
               />
             </div>
             <div>
-              <Label>Escritório</Label>
+              <Label>
+                Escritório <span className="text-destructive">*</span>
+              </Label>
               <Input
                 className="mt-1"
                 value={form.office}
@@ -366,7 +390,9 @@ function AccountantsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Telefone</Label>
+                <Label>
+                  Telefone <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   className="mt-1"
                   value={form.phone}
@@ -374,7 +400,9 @@ function AccountantsPage() {
                 />
               </div>
               <div>
-                <Label>E-mail</Label>
+                <Label>
+                  E-mail <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   className="mt-1"
                   value={form.email}
@@ -396,7 +424,9 @@ function AccountantsPage() {
                 ["CEP", "postal_code"],
               ].map(([label, key]) => (
                 <div key={key}>
-                  <Label>{label}</Label>
+                  <Label>
+                    {label} <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     className="mt-1"
                     value={(form as any)[key]}
@@ -502,7 +532,9 @@ function AccountantCreateScreen({
           </h2>
           <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <Label>Nome</Label>
+              <Label>
+                Nome <span className="text-destructive">*</span>
+              </Label>
               <Input
                 className="mt-1"
                 value={form.name}
@@ -510,7 +542,9 @@ function AccountantCreateScreen({
               />
             </div>
             <div>
-              <Label>Escritório</Label>
+              <Label>
+                Escritório <span className="text-destructive">*</span>
+              </Label>
               <Input
                 className="mt-1"
                 value={form.office}
@@ -518,7 +552,9 @@ function AccountantCreateScreen({
               />
             </div>
             <div>
-              <Label>Telefone</Label>
+              <Label>
+                Telefone <span className="text-destructive">*</span>
+              </Label>
               <Input
                 className="mt-1"
                 value={form.phone}
@@ -526,7 +562,9 @@ function AccountantCreateScreen({
               />
             </div>
             <div>
-              <Label>E-mail</Label>
+              <Label>
+                E-mail <span className="text-destructive">*</span>
+              </Label>
               <Input
                 className="mt-1"
                 value={form.email}
@@ -543,7 +581,9 @@ function AccountantCreateScreen({
           <div className="grid gap-3 md:grid-cols-3">
             {fields.map(([label, key]) => (
               <div key={key}>
-                <Label>{label}</Label>
+                <Label>
+                  {label} <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   className="mt-1"
                   value={form[key] || ""}
@@ -558,7 +598,7 @@ function AccountantCreateScreen({
             <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
               <Building2 className="size-5" />
             </span>
-            Empresas vinculadas
+            Empresas vinculadas <span className="text-destructive">*</span>
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Selecione as empresas que ficarão ligadas a este contador.
