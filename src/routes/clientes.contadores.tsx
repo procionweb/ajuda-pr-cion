@@ -465,6 +465,13 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
                         .filter(Boolean)
                         .join(" • ") || "Dados cadastrais não informados"}
                     </div>
+                    {(client.address || client.postal_code || client.size || client.tax_regime) && (
+                      <div className="mt-1 text-[10px] text-muted-foreground">
+                        {[client.address, client.postal_code, client.size, client.tax_regime]
+                          .filter(Boolean)
+                          .join(" • ")}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
