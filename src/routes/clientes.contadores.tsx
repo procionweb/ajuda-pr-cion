@@ -328,6 +328,12 @@ function AccountantsPage() {
 
 function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void }) {
   const registrationCode = `CTR-${detail.id.slice(0, 8).toUpperCase()}`;
+  const formatCnpj = (value: unknown) => {
+    const digits = String(value ?? "").replace(/\D/g, "");
+    return digits.length === 14
+      ? digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")
+      : String(value ?? "");
+  };
   const linkedClients = detail.clients?.length
     ? detail.clients
     : detail.clientIds.map((id: string) => ({ id }));
@@ -458,7 +464,7 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
                         client.legal_name && client.trade_name !== client.legal_name
                           ? client.legal_name
                           : null,
-                        client.document ? `CNPJ: ${client.document}` : null,
+                        client.document ? `CNPJ: ${formatCnpj(client.document)}` : null,
                         client.state_registration ? `IE: ${client.state_registration}` : null,
                         client.acronym,
                         client.city && `${client.city}/${client.state || ""}`,
