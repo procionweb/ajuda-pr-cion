@@ -54,9 +54,19 @@ export async function getAccountant(id: string) {
     clients = result.data ?? [];
   }
   const row = data as any;
-  const payload =
-    row.source_payload && typeof row.source_payload === "object" ? row.source_payload : {};
-  const responsible = payload.tcl_responsavel ?? payload.cli_responsavel ?? {};
+  const parse = (value: any) => {
+    if (value && typeof value === "object") return value;
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  };
+  const payload = parse(row.source_payload);
+  const responsible = parse(payload.tcl_responsavel ?? payload.cli_responsavel);
   const value = (current: any, ...fallbacks: string[]) =>
     current || fallbacks.map((key) => responsible[key]).find(Boolean) || null;
   return {
