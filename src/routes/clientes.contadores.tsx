@@ -473,7 +473,7 @@ function AccountantCreateScreen({
           </Button>
         }
       />
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-4 text-sm [&_input]:text-sm [&_label]:text-xs lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="rounded-xl border bg-card p-5 text-sm shadow-sm">
           <h2 className="mb-4 flex items-center gap-2 text-base font-medium">
             <UserRound className="size-5 text-primary" />
