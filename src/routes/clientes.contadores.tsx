@@ -50,7 +50,9 @@ function AccountantsPage() {
     void load();
   }, []);
   const filtered = rows.filter((r) =>
-    `${r.name} ${r.office ?? ""} ${r.email ?? ""} ${r.notes ?? ""}`.toLowerCase().includes(query.toLowerCase()),
+    `${r.name} ${r.office ?? ""} ${r.email ?? ""} ${r.notes ?? ""}`
+      .toLowerCase()
+      .includes(query.toLowerCase()),
   );
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -336,53 +338,84 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
           </Button>
         }
       />
-      <div className="grid gap-4 lg:grid-cols-[520px_minmax(420px,1fr)]">
-        <section className="rounded-xl border bg-card p-6 shadow-sm">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary">
-                  <UsersRound className="size-5" />
-            </div>
-            <div>
-                    <h2 className="text-[12px] font-normal leading-[1.2]">{detail.name}</h2>
-                    <p className="mt-1 text-[11px] text-muted-foreground">Contador cadastrado</p>
-            </div>
-          </div>
-              <dl className="space-y-3">
-            <div>
-                  <dt className="text-[11px] text-muted-foreground">Escritório</dt>
-                  <dd className="mt-1 text-[12px] font-normal">{detail.office || "Não informado"}</dd>
-            </div>
-            <div>
-                  <dt className="text-[11px] text-muted-foreground">E-mail</dt>
-                  <dd className="mt-1 break-all text-[12px] font-normal">{detail.email || "Não informado"}</dd>
-            </div>
-            <div>
-                  <dt className="text-[11px] text-muted-foreground">Telefone</dt>
-                  <dd className="mt-1 text-[12px] font-normal">{detail.phone || "Não informado"}</dd>
-            </div>
-            <div>
-                  <dt className="text-[11px] text-muted-foreground">Documento</dt>
-                  <dd className="mt-1 text-[12px] font-normal">{detail.document || "Não informado"}</dd>
-            </div>
-            <div className="border-t border-border/60 pt-3">
-              <dt className="text-[11px] text-muted-foreground">Endereço</dt>
-              <dd className="mt-1 text-[12px] font-normal">
-                {[detail.address, detail.number].filter(Boolean).join(", ") || "Não informado"}
-              </dd>
-              {(detail.complement || detail.neighborhood) && (
-                <dd className="mt-1 text-[11px] text-muted-foreground">
-                  {[detail.complement, detail.neighborhood].filter(Boolean).join(" • ")}
+      <section className="rounded-xl border bg-card p-5 shadow-sm">
+        <h2 className="mb-5 text-base font-medium">Dados do contador e responsabilidade</h2>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="border-border/60 lg:border-r lg:pr-6">
+            <p className="mb-4 text-xs uppercase tracking-wide text-muted-foreground">Contador</p>
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-[11px] text-muted-foreground">Nome</dt>
+                <dd className="mt-1 text-[12px]">{detail.name}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-muted-foreground">CPF</dt>
+                <dd className="mt-1 text-[12px]">
+                  {detail.responsible_document || "Não informado"}
                 </dd>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><dt className="text-[11px] text-muted-foreground">Cidade/UF</dt><dd className="mt-1 text-[12px] font-normal">{[detail.city, detail.state].filter(Boolean).join("/") || "Não informado"}</dd></div>
-              <div><dt className="text-[11px] text-muted-foreground">CEP</dt><dd className="mt-1 text-[12px] font-normal">{detail.postal_code || "Não informado"}</dd></div>
-            </div>
-            {detail.notes && <div><dt className="text-[11px] text-muted-foreground">Responsável da empresa</dt><dd className="mt-1 text-[12px] font-normal">{detail.notes.replace(/^Responsável:\s*/i, "")}</dd></div>}
-            {(detail.responsible_document || detail.responsible_rg) && <div className="grid grid-cols-2 gap-3"><div><dt className="text-[11px] text-muted-foreground">CPF do responsável</dt><dd className="mt-1 text-[12px] font-normal">{detail.responsible_document || "Não informado"}</dd></div><div><dt className="text-[11px] text-muted-foreground">RG do responsável</dt><dd className="mt-1 text-[12px] font-normal">{detail.responsible_rg || "Não informado"}</dd></div></div>}
-          </dl>
-        </section>
+              </div>
+              <div>
+                <dt className="text-[11px] text-muted-foreground">RG</dt>
+                <dd className="mt-1 text-[12px]">{detail.responsible_rg || "Não informado"}</dd>
+              </div>
+            </dl>
+          </div>
+          <div className="border-border/60 lg:border-r lg:pr-6">
+            <p className="mb-4 text-xs uppercase tracking-wide text-muted-foreground">
+              Endereço do responsável
+            </p>
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-[11px] text-muted-foreground">Logradouro e número</dt>
+                <dd className="mt-1 text-[12px]">
+                  {[detail.address, detail.number].filter(Boolean).join(", ") || "Não informado"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-muted-foreground">Bairro / complemento</dt>
+                <dd className="mt-1 text-[12px]">
+                  {[detail.neighborhood, detail.complement].filter(Boolean).join(" | ") ||
+                    "Não informado"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-muted-foreground">Cidade / UF</dt>
+                <dd className="mt-1 text-[12px]">
+                  {[detail.city, detail.state].filter(Boolean).join(" - ") || "Não informado"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-muted-foreground">CEP</dt>
+                <dd className="mt-1 text-[12px]">{detail.postal_code || "Não informado"}</dd>
+              </div>
+            </dl>
+          </div>
+          <div>
+            <p className="mb-4 text-xs uppercase tracking-wide text-muted-foreground">
+              Contabilidade
+            </p>
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-[11px] text-muted-foreground">Escritório</dt>
+                <dd className="mt-1 text-[12px]">{detail.office || "Não informado"}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-muted-foreground">Contador responsável</dt>
+                <dd className="mt-1 text-[12px]">{detail.name}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-muted-foreground">Telefone</dt>
+                <dd className="mt-1 text-[12px]">{detail.phone || "Não informado"}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] text-muted-foreground">E-mail</dt>
+                <dd className="mt-1 break-all text-[12px]">{detail.email || "Não informado"}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </section>
+      <div>
         <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
           <div className="flex items-center justify-between border-b px-5 py-4">
             <div>
