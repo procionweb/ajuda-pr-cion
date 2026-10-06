@@ -97,11 +97,10 @@ export function LeadDetailsPage() {
 
   // Dialog states
   const [showInactivateDialog, setShowInactivateDialog] = useState(false);
-  const [showCloseDealDialog, setShowCloseDealDialog] = useState(false);
+
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [inactivationReason, setInactivationReason] = useState("");
   const [inactivationNotes, setInactivationNotes] = useState("");
-  const [conversionForm, setConversionForm] = useState<Record<string, string>>({});
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -148,7 +147,6 @@ export function LeadDetailsPage() {
         state: data.state || "",
         postal_code: data.postal_code || "",
       });
-      setConversionForm((data.conversion_data || {}) as Record<string, string>);
     } catch (err) {
       console.error(err);
       toast.error("Não foi possível carregar os detalhes do lead.");
@@ -176,40 +174,6 @@ export function LeadDetailsPage() {
       setShowInactivateDialog(false);
     } catch (err) {
       toast.error("Erro ao inativar lead.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleCloseDeal = async () => {
-    setActionLoading(true);
-    try {
-      await companyLeadsApi.saveAction(leadId, "close_deal", conversionForm, true, currentOperator);
-      toast.success("Negócio fechado com sucesso!");
-      await loadLead();
-      setShowCloseDealDialog(false);
-    } catch (err) {
-      toast.error("Erro ao atualizar etapa.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleSaveDealDraft = async () => {
-    setActionLoading(true);
-    try {
-      await companyLeadsApi.saveAction(
-        leadId,
-        "close_deal",
-        conversionForm,
-        false,
-        currentOperator,
-      );
-      toast.success("Rascunho do negócio salvo.");
-      await loadLead();
-      setShowCloseDealDialog(false);
-    } catch {
-      toast.error("Erro ao salvar o negócio.");
     } finally {
       setActionLoading(false);
     }
@@ -308,11 +272,13 @@ export function LeadDetailsPage() {
               <Button
                 size="sm"
                 className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 border-none"
-                onClick={() => setShowCloseDealDialog(true)}
+                asChild
                 disabled={actionLoading}
               >
-                <CheckCircle className="h-3.5 w-3.5" />
-                Negócio fechado
+                <Link to="/comercial/negocio-fechado/$leadId" params={{ leadId: leadId! }}>
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Negócio fechado
+                </Link>
               </Button>
 
               <Button
@@ -373,79 +339,6 @@ export function LeadDetailsPage() {
                 disabled={actionLoading || !inactivationReason}
               >
                 Inativar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={showCloseDealDialog} onOpenChange={setShowCloseDealDialog}>
-          <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto modal-scrollbar">
-            <DialogHeader>
-              <DialogTitle>Negócio fechado</DialogTitle>
-              <DialogDescription>
-                Preencha os dados para converter este contato em cliente.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-6 py-2">
-              <FormSection title="Cliente e empresa">
-                {closeDealCompanyFields.map(([label, key]) => (
-                  <Field
-                    key={key}
-                    label={label}
-                    value={conversionForm[key] || closeDealFallback(lead, key)}
-                    onChange={(v) => setConversionFormField(setConversionForm, key, v)}
-                  />
-                ))}
-              </FormSection>
-              <FormSection title="Endereço e contatos">
-                {closeDealContactFields.map(([label, key]) => (
-                  <Field
-                    key={key}
-                    label={label}
-                    value={conversionForm[key] || closeDealFallback(lead, key)}
-                    onChange={(v) => setConversionFormField(setConversionForm, key, v)}
-                  />
-                ))}
-              </FormSection>
-              <FormSection title="Responsável e contabilidade">
-                {closeDealResponsibleFields.map(([label, key]) => (
-                  <Field
-                    key={key}
-                    label={label}
-                    value={conversionForm[key] || ""}
-                    onChange={(v) => setConversionFormField(setConversionForm, key, v)}
-                  />
-                ))}
-              </FormSection>
-              <FormSection title="Implantação do Hádron">
-                {closeDealHadronFields.map(([label, key]) => (
-                  <Field
-                    key={key}
-                    label={label}
-                    value={conversionForm[key] || ""}
-                    onChange={(v) => setConversionFormField(setConversionForm, key, v)}
-                  />
-                ))}
-              </FormSection>
-              <Field
-                label="Observação"
-                value={conversionForm.notes || ""}
-                onChange={(v) => setConversionFormField(setConversionForm, "notes", v)}
-                textarea
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCloseDealDialog(false)}>
-                Voltar
-              </Button>
-              <Button variant="secondary" onClick={handleSaveDealDraft}>
-                Salvar
-              </Button>
-              <Button
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
-                onClick={handleCloseDeal}
-              >
-                Salvar e finalizar
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -752,105 +645,6 @@ const inactivationReasons = [
   "Empresa fechou",
   "Outro (descreva)",
 ];
-
-const closeDealCompanyFields = [
-  ["Nome (apelido)", "nickname"],
-  ["Sigla", "acronym"],
-  ["E-mail do responsável (Admin.)", "admin_email"],
-  ["Nome (Admin.)", "admin_name"],
-  ["Sigla do grupo", "group_acronym"],
-  ["Unidade de atendimento", "service_unit"],
-  ["CNPJ", "cnpj"],
-  ["Razão social", "legal_name"],
-  ["Nome fantasia", "trade_name"],
-  ["Inscrição estadual", "state_registration"],
-  ["Inscrição municipal", "city_registration"],
-  ["CNAE", "cnae"],
-  ["ANTT (transportadora)", "antt"],
-  ["Regime de apuração", "tax_regime"],
-  ["Ramo", "branch"],
-  ["Porte", "company_size"],
-  ["Site", "website"],
-] as const;
-const closeDealContactFields = [
-  ["CEP", "postal_code"],
-  ["Endereço", "address"],
-  ["Número", "address_number"],
-  ["Complemento", "address_complement"],
-  ["Bairro", "neighborhood"],
-  ["Cidade", "city"],
-  ["UF", "state"],
-  ["Telefone", "phone"],
-  ["Contato do telefone", "phone_contact"],
-  ["E-mail", "email"],
-  ["Contato do e-mail", "email_contact"],
-] as const;
-const closeDealResponsibleFields = [
-  ["Responsável", "responsible_name"],
-  ["CPF", "responsible_cpf"],
-  ["RG", "responsible_rg"],
-  ["CEP do responsável", "responsible_postal_code"],
-  ["Endereço do responsável", "responsible_address"],
-  ["Número", "responsible_number"],
-  ["Complemento", "responsible_complement"],
-  ["Bairro", "responsible_neighborhood"],
-  ["Cidade", "responsible_city"],
-  ["UF", "responsible_state"],
-  ["Escritório", "accounting_office"],
-  ["Contador", "accountant_name"],
-  ["Telefone do contador", "accountant_phone"],
-  ["E-mail do contador", "accountant_email"],
-] as const;
-const closeDealHadronFields = [
-  ["Responsável PRC 1", "hadron_responsible_1"],
-  ["Responsável PRC 2", "hadron_responsible_2"],
-  ["Tempo de instalação", "installation_time"],
-  ["Terminais", "terminals"],
-  ["Configuração de rede", "network"],
-  ["Módulos contratados", "modules"],
-  ["Documentos fiscais", "fiscal_documents"],
-  ["Homologação de NF-e", "nfe_validation"],
-  ["Importação de dados", "data_import"],
-  ["Boleto bancário", "bank_slip"],
-  ["Bancos para cobrança", "banks"],
-  ["Aplicativos web", "web_apps"],
-] as const;
-
-function closeDealFallback(lead: CompanyLeadDetails, key: string) {
-  const values: Record<string, string> = {
-    cnpj: lead.cnpj,
-    legal_name: lead.legal_name,
-    trade_name: lead.trade_name || "",
-    cnae: lead.cnae_code || "",
-    company_size: lead.company_size || "",
-    website: lead.website || "",
-    postal_code: lead.postal_code || "",
-    address: lead.address || "",
-    neighborhood: lead.neighborhood || "",
-    city: lead.city,
-    state: lead.state,
-    phone: lead.phone || "",
-    email: lead.email || "",
-  };
-  return values[key] || "";
-}
-
-function setConversionFormField(
-  setter: React.Dispatch<React.SetStateAction<Record<string, string>>>,
-  key: string,
-  value: string,
-) {
-  setter((current) => ({ ...current, [key]: value }));
-}
-
-function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <fieldset className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-3">
-      <legend className="px-2 text-sm font-semibold">{title}</legend>
-      {children}
-    </fieldset>
-  );
-}
 
 function Field({
   label,
