@@ -474,12 +474,12 @@ function AccountantCreateScreen({
         }
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="mb-5 flex items-center gap-2 text-lg font-medium">
+        <section className="rounded-xl border bg-card p-5 text-sm shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 text-base font-medium">
             <UserRound className="size-5 text-primary" />
             Dados do contador
           </h2>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <div>
               <Label>Nome</Label>
               <Input
@@ -513,11 +513,11 @@ function AccountantCreateScreen({
               />
             </div>
           </div>
-          <h3 className="mb-3 mt-6 flex items-center gap-2 border-t pt-5 font-medium">
+          <h3 className="mb-3 mt-5 flex items-center gap-2 border-t pt-4 text-sm font-medium">
             <MapPin className="size-5 text-primary" />
             Responsável e endereço
           </h3>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-3">
             {fields.map(([label, key]) => (
               <div key={key}>
                 <Label>{label}</Label>
@@ -536,15 +536,15 @@ function AccountantCreateScreen({
             <Button onClick={onSave}>Salvar contador</Button>
           </div>
         </section>
-        <section className="rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="flex items-center gap-2 text-lg font-medium">
+        <section className="rounded-xl border bg-card p-5 text-sm shadow-sm">
+          <h2 className="flex items-center gap-2 text-base font-medium">
             <Building2 className="size-5 text-primary" />
             Empresas vinculadas
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Selecione as empresas que ficarão ligadas a este contador.
           </p>
-          <div className="mt-4 max-h-[520px] space-y-2 overflow-y-auto">
+          <div className="mt-3 max-h-[420px] space-y-2 overflow-y-auto">
             {clientOptions.map((client: any) => (
               <label
                 className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${selectedClients.includes(client.id) ? "border-primary bg-primary/10" : "hover:bg-muted/40"}`}
