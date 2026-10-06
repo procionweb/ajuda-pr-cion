@@ -18,8 +18,8 @@ for (const company of companies) {
   const payload = parseObject(company.source_payload)
   const accountantPayload = parseObject(payload?.tcl_contador ?? payload?.cli_contador)
   const responsiblePayload = parseObject(payload?.tcl_responsavel ?? payload?.cli_responsavel)
-  const name = String(company.accountantName ?? company.accountant_name ?? accountantPayload.cli_ctd_res ?? accountantPayload.tcl_ctd_res ?? '').trim()
-  const office = String(company.accountantOffice ?? company.accountant_office ?? accountantPayload.cli_ctd_nome ?? accountantPayload.tcl_ctd_nome ?? '').trim()
+  const name = String(accountantPayload.cli_ctd_res ?? accountantPayload.tcl_ctd_res ?? company.accountantName ?? '').trim()
+  const office = String(accountantPayload.cli_ctd_nome ?? accountantPayload.tcl_ctd_nome ?? company.accountantOffice ?? company.accountant_office ?? company.accountant_name ?? '').trim()
   const address = String(responsiblePayload.cli_res_endereco ?? responsiblePayload.tcl_res_endereco ?? '').trim() || null
   const number = String(responsiblePayload.cli_res_numero ?? responsiblePayload.tcl_res_numero ?? '').trim() || null
   const complement = String(responsiblePayload.cli_res_complemento ?? responsiblePayload.tcl_res_complemento ?? '').trim() || null
