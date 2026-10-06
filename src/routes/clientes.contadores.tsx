@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
+import { RegistrationSummary } from "@/components/portal/RegistrationSummary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -90,7 +91,9 @@ function AccountantsPage() {
     if (cpf.length !== 11) return toast.error("Informe o CPF completo com 11 dígitos.");
     const rg = form.responsible_rg.replace(/[^0-9xX]/g, "");
     if (!/^\d{8}[\dxX]$/.test(rg))
-      return toast.error("Informe o RG completo no formato 12.345.678-9 (8 números e o dígito final).");
+      return toast.error(
+        "Informe o RG completo no formato 12.345.678-9 (8 números e o dígito final).",
+      );
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim()))
       return toast.error("Informe um e-mail completo e válido, como nome@empresa.com.br.");
     const requiredFields = [
@@ -576,220 +579,258 @@ function AccountantCreateScreen({
           'body[data-accountant-create="true"] { overflow-anchor: none; } body[data-accountant-create="true"] button[aria-label="Voltar ao topo"] { display: none; }'
         }
       </style>
-      <div className="space-y-5 text-sm [&_input]:h-11 [&_input]:rounded-xl [&_input]:text-sm [&_label]:text-[12px] [&_label]:font-medium">
-        <section className="rounded-xl border bg-card p-5 text-sm shadow-sm">
-          <h2 className="mb-4 flex items-center gap-3 text-base font-medium">
-            <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-              <UserRound className="size-5" />
-            </span>
-            Dados do contador
-          </h2>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <Label>
-                Nome <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                className="mt-1"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>
-                Escritório <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                className="mt-1"
-                value={form.office}
-                onChange={(e) => setForm({ ...form, office: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>
-                Telefone <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                className="mt-1"
-                value={form.phone}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    phone: mask(
-                      e.target.value,
-                      e.target.value.replace(/\D/g, "").length > 10
-                        ? "(##) #####-####"
-                        : "(##) ####-####",
-                    ),
-                  })
-                }
-                placeholder="(11) 99999-9999"
-              />
-            </div>
-            <div>
-              <Label>
-                E-mail <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                className="mt-1"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-            </div>
-          </div>
-          <h3 className="mb-3 mt-5 flex items-center gap-2 border-t pt-4 text-sm font-medium">
-            <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-              <MapPin className="size-5" />
-            </span>
-            Responsável e endereço
-          </h3>
-          <div className="grid gap-3 md:grid-cols-3">
-            {fields.map(([label, key]) => (
-              <div key={key}>
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 space-y-5 text-sm [&_input]:h-11 [&_input]:rounded-xl [&_input]:text-sm [&_label]:text-[12px] [&_label]:font-medium">
+          <section className="rounded-xl border bg-card p-5 text-sm shadow-sm">
+            <h2 className="mb-4 flex items-center gap-3 text-base font-medium">
+              <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                <UserRound className="size-5" />
+              </span>
+              Dados do contador
+            </h2>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
                 <Label>
-                  {label} {key !== "complement" && <span className="text-destructive">*</span>}
+                  Nome <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   className="mt-1"
-                  value={form[key] || ""}
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>
+                  Escritório <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  className="mt-1"
+                  value={form.office}
+                  onChange={(e) => setForm({ ...form, office: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>
+                  Telefone <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  className="mt-1"
+                  value={form.phone}
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      [key]:
-                        key === "responsible_document"
-                          ? mask(e.target.value, "###.###.###-##")
-                          : key === "responsible_rg"
-                            ? e.target.value
-                                .replace(/[^0-9xX]/g, "")
-                                .slice(0, 9)
-                                .replace(/^(\d{2})(\d)/, "$1.$2")
-                                .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-                                .replace(/(\d{3})([\dxX])$/, "$1-$2")
-                            : key === "postal_code"
-                              ? mask(e.target.value, "#####-###")
-                              : e.target.value,
+                      phone: mask(
+                        e.target.value,
+                        e.target.value.replace(/\D/g, "").length > 10
+                          ? "(##) #####-####"
+                          : "(##) ####-####",
+                      ),
                     })
                   }
+                  placeholder="(11) 99999-9999"
                 />
-                {key === "postal_code" && (
-                  <p className="mt-1 h-8 text-xs text-muted-foreground" role="status">
-                    {cepStatus}
-                  </p>
-                )}
               </div>
-            ))}
-          </div>
-        </section>
-        <section className="mt-4 rounded-xl border bg-card p-5 text-sm shadow-sm">
-          <h2 className="flex items-center gap-2 text-base font-medium">
-            <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-              <Building2 className="size-5" />
-            </span>
-            Empresas vinculadas <span className="text-destructive">*</span>
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Selecione as empresas que ficarão ligadas a este contador.
-          </p>
-          <Popover open={clientSelectOpen} onOpenChange={setClientSelectOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="mt-3 flex h-11 w-full cursor-pointer items-center gap-2 rounded-xl border px-3 text-left text-sm text-muted-foreground"
-              >
-                <Search className="size-4" />
-                Buscar por sigla, fantasia, razão social, CNPJ ou cidade...
-                <span className="ml-auto">⌄</span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent
-              align="start"
-              className="w-[var(--radix-popover-trigger-width)] p-2"
-              onCloseAutoFocus={(event) => event.preventDefault()}
-            >
-              <Input
-                className="h-10"
-                placeholder="Digite para filtrar..."
-                value={clientQuery}
-                onChange={(e) => setClientQuery(e.target.value)}
-              />
-              <div className="mt-2 max-h-72 space-y-1 overflow-y-auto">
-                {visibleClients.map((client: any) => (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSelectedClients(
-                        selectedClients.includes(client.id)
-                          ? selectedClients.filter((id: string) => id !== client.id)
-                          : [...selectedClients, client.id],
-                      )
-                    }
-                    className={`flex w-full cursor-pointer items-start gap-3 rounded-md border p-3 text-left text-sm ${selectedClients.includes(client.id) ? "border-primary bg-primary/10" : "hover:bg-muted/40"}`}
-                    key={client.id}
-                  >
-                    <span
-                      className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded border ${selectedClients.includes(client.id) ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}
-                    >
-                      {selectedClients.includes(client.id) && <Check className="size-3.5" />}
-                    </span>
-                    <span>
-                      {client.trade_name || client.legal_name}
-                      <span className="block text-xs text-muted-foreground">
-                        {client.document || "CNPJ não informado"}
-                        {client.city ? ` • ${client.city}/${client.state || ""}` : ""}
-                      </span>
-                    </span>
-                  </button>
-                ))}
+              <div>
+                <Label>
+                  E-mail <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  className="mt-1"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
               </div>
-            </PopoverContent>
-          </Popover>
-          <div className="mt-4 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-            <div className="flex items-center justify-between">
-              <span>Empresas selecionadas</span>
-              <strong className="text-foreground">{selectedClients.length}</strong>
             </div>
-            <p className="mt-1">
-              As empresas selecionadas serão vinculadas ao contador após salvar.
+            <h3 className="mb-3 mt-5 flex items-center gap-2 border-t pt-4 text-sm font-medium">
+              <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                <MapPin className="size-5" />
+              </span>
+              Responsável e endereço
+            </h3>
+            <div className="grid gap-3 md:grid-cols-3">
+              {fields.map(([label, key]) => (
+                <div key={key}>
+                  <Label>
+                    {label} {key !== "complement" && <span className="text-destructive">*</span>}
+                  </Label>
+                  <Input
+                    className="mt-1"
+                    value={form[key] || ""}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        [key]:
+                          key === "responsible_document"
+                            ? mask(e.target.value, "###.###.###-##")
+                            : key === "responsible_rg"
+                              ? e.target.value
+                                  .replace(/[^0-9xX]/g, "")
+                                  .slice(0, 9)
+                                  .replace(/^(\d{2})(\d)/, "$1.$2")
+                                  .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+                                  .replace(/(\d{3})([\dxX])$/, "$1-$2")
+                              : key === "postal_code"
+                                ? mask(e.target.value, "#####-###")
+                                : e.target.value,
+                      })
+                    }
+                  />
+                  {key === "postal_code" && (
+                    <p className="mt-1 h-8 text-xs text-muted-foreground" role="status">
+                      {cepStatus}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className="mt-4 rounded-xl border bg-card p-5 text-sm shadow-sm">
+            <h2 className="flex items-center gap-2 text-base font-medium">
+              <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                <Building2 className="size-5" />
+              </span>
+              Empresas vinculadas <span className="text-destructive">*</span>
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Selecione as empresas que ficarão ligadas a este contador.
             </p>
-            <div className="mt-3 space-y-2">
+            <Popover open={clientSelectOpen} onOpenChange={setClientSelectOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="mt-3 flex h-11 w-full cursor-pointer items-center gap-2 rounded-xl border px-3 text-left text-sm text-muted-foreground"
+                >
+                  <Search className="size-4" />
+                  Buscar por sigla, fantasia, razão social, CNPJ ou cidade...
+                  <span className="ml-auto">⌄</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                className="w-[var(--radix-popover-trigger-width)] p-2"
+                onCloseAutoFocus={(event) => event.preventDefault()}
+              >
+                <Input
+                  className="h-10"
+                  placeholder="Digite para filtrar..."
+                  value={clientQuery}
+                  onChange={(e) => setClientQuery(e.target.value)}
+                />
+                <div className="mt-2 max-h-72 space-y-1 overflow-y-auto">
+                  {visibleClients.map((client: any) => (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedClients(
+                          selectedClients.includes(client.id)
+                            ? selectedClients.filter((id: string) => id !== client.id)
+                            : [...selectedClients, client.id],
+                        )
+                      }
+                      className={`flex w-full cursor-pointer items-start gap-3 rounded-md border p-3 text-left text-sm ${selectedClients.includes(client.id) ? "border-primary bg-primary/10" : "hover:bg-muted/40"}`}
+                      key={client.id}
+                    >
+                      <span
+                        className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded border ${selectedClients.includes(client.id) ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}
+                      >
+                        {selectedClients.includes(client.id) && <Check className="size-3.5" />}
+                      </span>
+                      <span>
+                        {client.trade_name || client.legal_name}
+                        <span className="block text-xs text-muted-foreground">
+                          {client.document || "CNPJ não informado"}
+                          {client.city ? ` • ${client.city}/${client.state || ""}` : ""}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <div className="mt-4 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>Empresas selecionadas</span>
+                <strong className="text-foreground">{selectedClients.length}</strong>
+              </div>
+              <p className="mt-1">
+                As empresas selecionadas serão vinculadas ao contador após salvar.
+              </p>
+              <div className="mt-3 space-y-2">
+                {clientOptions
+                  .filter((client: any) => selectedClients.includes(client.id))
+                  .map((client: any) => (
+                    <div
+                      key={client.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm text-foreground">
+                          {client.trade_name || client.legal_name}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {client.document || "CNPJ não informado"}
+                          {client.city ? ` • ${client.city}/${client.state || ""}` : ""}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 cursor-pointer text-destructive hover:text-destructive"
+                        onClick={() =>
+                          setSelectedClients(
+                            selectedClients.filter((id: string) => id !== client.id),
+                          )
+                        }
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </section>
+          <div className="flex justify-end gap-2 pb-4">
+            <Button variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <Button onClick={onSave}>Salvar contador</Button>
+          </div>
+        </div>
+        <RegistrationSummary
+          title={form.name.trim() || "Nome do contador"}
+          subtitle={form.office || "Escritório de contabilidade"}
+          items={[
+            { label: "Telefone", value: form.phone, icon: UserRound },
+            { label: "E-mail", value: form.email, icon: Mail },
+            { label: "Responsável", value: form.responsible_name, icon: UserRound },
+            { label: "CPF", value: form.responsible_document, icon: UserRound },
+            { label: "CEP", value: form.postal_code, icon: MapPin },
+            {
+              label: "Cidade / UF",
+              value: [form.city, form.state].filter(Boolean).join(" / "),
+              icon: MapPin,
+            },
+            { label: "RG", value: form.responsible_rg, icon: UserRound },
+            {
+              label: "Endereço",
+              value: [form.address, form.number].filter(Boolean).join(", "),
+              icon: MapPin,
+            },
+          ]}
+          note="As empresas selecionadas serão vinculadas ao contador após salvar o cadastro."
+        >
+          <div className="border-t pt-3 text-xs">
+            <p className="font-semibold">Empresas selecionadas: {selectedClients.length}</p>
+            <ul className="mt-2 space-y-1 text-muted-foreground">
               {clientOptions
                 .filter((client: any) => selectedClients.includes(client.id))
                 .map((client: any) => (
-                  <div
-                    key={client.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm text-foreground">
-                        {client.trade_name || client.legal_name}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {client.document || "CNPJ não informado"}
-                        {client.city ? ` • ${client.city}/${client.state || ""}` : ""}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="shrink-0 cursor-pointer text-destructive hover:text-destructive"
-                      onClick={() =>
-                        setSelectedClients(selectedClients.filter((id: string) => id !== client.id))
-                      }
-                    >
-                      Remover
-                    </Button>
-                  </div>
+                  <li key={client.id}>{client.trade_name || client.legal_name}</li>
                 ))}
-            </div>
+            </ul>
           </div>
-        </section>
-        <div className="flex justify-end gap-2 pb-4">
-          <Button variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button onClick={onSave}>Salvar contador</Button>
-        </div>
+        </RegistrationSummary>
       </div>
     </AppShell>
   );

@@ -7,12 +7,14 @@ import {
   Mail,
   MapPin,
   Phone,
+  Plus,
   Search,
   UsersRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -136,6 +138,14 @@ function CommercialContactsPage() {
         title="Contatos comerciais"
         description="Prospecção, relacionamento e acompanhamento das oportunidades comerciais."
         breadcrumbs={[{ label: "Comercial" }, { label: "Contatos" }]}
+        actions={
+          <Button asChild>
+            <Link to="/comercial/contatos/novo">
+              <Plus className="mr-2 h-4 w-4" />
+              Cadastrar empresa
+            </Link>
+          </Button>
+        }
       />
 
       <section className="mb-5 grid gap-3 md:grid-cols-[minmax(240px,360px)_220px_220px]">

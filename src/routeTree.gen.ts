@@ -49,6 +49,7 @@ import { Route as ApiPublicTestPlacesRouteImport } from './routes/api/public/tes
 import { Route as ClientesContadoresAccountantIdRouteImport } from './routes/clientes.contadores.$accountantId'
 import { Route as ComercialContatoLeadIdRouteImport } from './routes/comercial.contato.$leadId'
 import { Route as ComercialContatosLeadIdRouteImport } from './routes/comercial/contatos/$leadId'
+import { Route as ComercialContatosNovoRouteImport } from './routes/comercial.contatos.novo'
 import { Route as KanbanConviteTokenRouteImport } from './routes/kanban.convite.$token'
 
 const IndexRoute = IndexRouteImport.update({
@@ -256,6 +257,11 @@ const ComercialContatosLeadIdRoute = ComercialContatosLeadIdRouteImport.update({
   path: '/$leadId',
   getParentRoute: () => ComercialContatosRoute,
 } as any)
+const ComercialContatosNovoRoute = ComercialContatosNovoRouteImport.update({
+  id: '/novo',
+  path: '/novo',
+  getParentRoute: () => ComercialContatosRoute,
+} as any)
 const KanbanConviteTokenRoute = KanbanConviteTokenRouteImport.update({
   id: '/convite/$token',
   path: '/convite/$token',
@@ -303,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/clientes/contadores/$accountantId': typeof ClientesContadoresAccountantIdRoute
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
   '/comercial/contatos/$leadId': typeof ComercialContatosLeadIdRoute
+  '/comercial/contatos/novo': typeof ComercialContatosNovoRoute
   '/kanban/convite/$token': typeof KanbanConviteTokenRoute
 }
 export interface FileRoutesByTo {
@@ -344,6 +351,7 @@ export interface FileRoutesByTo {
   '/clientes/contadores/$accountantId': typeof ClientesContadoresAccountantIdRoute
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
   '/comercial/contatos/$leadId': typeof ComercialContatosLeadIdRoute
+  '/comercial/contatos/novo': typeof ComercialContatosNovoRoute
   '/kanban/convite/$token': typeof KanbanConviteTokenRoute
 }
 export interface FileRoutesById {
@@ -388,6 +396,7 @@ export interface FileRoutesById {
   '/clientes/contadores/$accountantId': typeof ClientesContadoresAccountantIdRoute
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
   '/comercial/contatos/$leadId': typeof ComercialContatosLeadIdRoute
+  '/comercial/contatos/novo': typeof ComercialContatosNovoRoute
   '/kanban/convite/$token': typeof KanbanConviteTokenRoute
 }
 export interface FileRouteTypes {
@@ -433,6 +442,7 @@ export interface FileRouteTypes {
     | '/clientes/contadores/$accountantId'
     | '/comercial/contato/$leadId'
     | '/comercial/contatos/$leadId'
+    | '/comercial/contatos/novo'
     | '/kanban/convite/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -474,6 +484,7 @@ export interface FileRouteTypes {
     | '/clientes/contadores/$accountantId'
     | '/comercial/contato/$leadId'
     | '/comercial/contatos/$leadId'
+    | '/comercial/contatos/novo'
     | '/kanban/convite/$token'
   id:
     | '__root__'
@@ -517,6 +528,7 @@ export interface FileRouteTypes {
     | '/clientes/contadores/$accountantId'
     | '/comercial/contato/$leadId'
     | '/comercial/contatos/$leadId'
+    | '/comercial/contatos/novo'
     | '/kanban/convite/$token'
   fileRoutesById: FileRoutesById
 }
@@ -837,6 +849,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ComercialContatosLeadIdRouteImport
       parentRoute: typeof ComercialContatosRoute
     }
+    '/comercial/contatos/novo': {
+      id: '/comercial/contatos/novo'
+      path: '/novo'
+      fullPath: '/comercial/contatos/novo'
+      preLoaderRoute: typeof ComercialContatosNovoRouteImport
+      parentRoute: typeof ComercialContatosRoute
+    }
     '/kanban/convite/$token': {
       id: '/kanban/convite/$token'
       path: '/convite/$token'
@@ -910,10 +929,12 @@ const ClientesContadoresRouteWithChildren =
 
 interface ComercialContatosRouteChildren {
   ComercialContatosLeadIdRoute: typeof ComercialContatosLeadIdRoute
+  ComercialContatosNovoRoute: typeof ComercialContatosNovoRoute
 }
 
 const ComercialContatosRouteChildren: ComercialContatosRouteChildren = {
   ComercialContatosLeadIdRoute: ComercialContatosLeadIdRoute,
+  ComercialContatosNovoRoute: ComercialContatosNovoRoute,
 }
 
 const ComercialContatosRouteWithChildren =
