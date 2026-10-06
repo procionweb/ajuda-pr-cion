@@ -114,8 +114,6 @@ function AccountantsPage() {
     if (requiredFields.some((key) => !form[key].trim())) {
       return toast.error("Preencha todos os campos obrigatórios do cadastro.");
     }
-    if (!selectedClients.length)
-      return toast.error("Selecione pelo menos uma empresa para vincular.");
     try {
       const created = await createAccountant(form as any);
       await linkAccountantClients(created.id, selectedClients);
@@ -689,10 +687,10 @@ function AccountantCreateScreen({
               <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
                 <Building2 className="size-5" />
               </span>
-              Empresas vinculadas <span className="text-destructive">*</span>
+              Empresas vinculadas
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Selecione as empresas que ficarão ligadas a este contador.
+              Selecione as empresas que ficarão ligadas a este contador, se desejar.
             </p>
             <Popover open={clientSelectOpen} onOpenChange={setClientSelectOpen}>
               <PopoverTrigger asChild>
