@@ -213,17 +213,19 @@ export function LeadDetailsPage() {
                 Inativar
               </Button>
 
-              <Button
-                size="sm"
-                className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 border-none"
-                asChild
-                disabled={actionLoading}
-              >
-                <Link to="/comercial/negocio-fechado/$leadId" params={{ leadId: leadId! }}>
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  Negócio fechado
-                </Link>
-              </Button>
+              {!lead.converted_client_id && (
+                <Button
+                  size="sm"
+                  className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 border-none"
+                  asChild
+                  disabled={actionLoading}
+                >
+                  <Link to="/comercial/negocio-fechado/$leadId" params={{ leadId: leadId! }}>
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Negócio fechado
+                  </Link>
+                </Button>
+              )}
 
               <Button
                 size="sm"

@@ -61,6 +61,7 @@ export type CompanyLeadDetails = CompanyLead & {
   commercial_data?: Record<string, string | number | boolean | null>;
   conversion_data?: Record<string, unknown>;
   conversion_status?: string | null;
+  converted_client_id?: string | null;
   inactivation_reason?: string | null;
   company_root: string | null;
   branch_type: string | null;
@@ -225,9 +226,7 @@ export const companyLeadsApi = {
       ),
     };
   },
-  async history(
-    id: string,
-  ): Promise<
+  async history(id: string): Promise<
     Array<{
       id: string;
       actor: string;

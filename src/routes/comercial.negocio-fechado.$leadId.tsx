@@ -37,7 +37,7 @@ import {
 export const Route = createFileRoute("/comercial/negocio-fechado/$leadId")({
   component: CloseDealPage,
 });
-const requiredFields = new Set(["nickname", "cnpj", "legal_name", "city", "state"]);
+const requiredFields = new Set(["nickname", "acronym", "cnpj", "legal_name", "city", "state"]);
 function CloseDealPage() {
   const { leadId } = Route.useParams();
   const navigate = useNavigate();
@@ -123,7 +123,7 @@ function CloseDealPage() {
   async function save(finalize: boolean) {
     if (saving) return;
     if (finalize && [...requiredFields].some((key) => !form[key]?.trim())) {
-      toast.error("Preencha nome, CNPJ, razão social, cidade e UF para finalizar.");
+      toast.error("Preencha nome, sigla, CNPJ, razão social, cidade e UF para finalizar.");
       return;
     }
     if (form.cnpj && form.cnpj.replace(/\D/g, "").length !== 14) {
@@ -156,8 +156,12 @@ function CloseDealPage() {
       await companyLeadsApi.saveAction(leadId, "close_deal", form, finalize, operator || "PRCREN");
       toast.success(finalize ? "Negócio fechado com sucesso." : "Rascunho do negócio salvo.");
       if (finalize) await navigate({ to: "/comercial/contatos/$leadId", params: { leadId } });
-    } catch {
-      toast.error("Não foi possível salvar o negócio. Os dados preenchidos foram mantidos.");
+    } catch (error) {
+      toast.error(
+        error && typeof error === "object" && "message" in error
+          ? String(error.message)
+          : "Não foi possível salvar o negócio. Os dados preenchidos foram mantidos.",
+      );
     } finally {
       setSaving(false);
     }
