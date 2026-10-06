@@ -319,7 +319,7 @@ function AccountantsPage() {
         </DialogContent>
       </Dialog>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>Cadastrar contador</DialogTitle>
           </DialogHeader>
