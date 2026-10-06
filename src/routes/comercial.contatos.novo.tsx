@@ -1,6 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Building2, Globe, Mail, MapPin, Phone, Plus, Trash2, UserRound } from "lucide-react";
+import {
+  ArrowUp,
+  Building2,
+  ChevronDown,
+  Globe,
+  Mail,
+  MapPin,
+  Minus,
+  Phone,
+  Plus,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { RegistrationSummary } from "@/components/portal/RegistrationSummary";
@@ -8,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/comercial/contatos/novo")({
   component: CreateCommercialCompany,
@@ -51,10 +64,100 @@ function CreateCommercialCompany() {
   const [emails, setEmails] = useState<Contact[]>([{ value: "", contact: "" }]);
   const [saving, setSaving] = useState(false);
   const [cepStatus, setCepStatus] = useState("");
+  const [cnpjStatus, setCnpjStatus] = useState("");
+  const [cnpjLoading, setCnpjLoading] = useState(false);
+  const companyCep = useRef("");
+  useEffect(() => {
+    const cnpj = form.cnpj.replace(/\D/g, "");
+    setCnpjStatus("");
+    setCnpjLoading(false);
+    if (cnpj.length !== 14) return;
+    const controller = new AbortController();
+    let active = true;
+    setCnpjLoading(true);
+    setCnpjStatus("Buscando dados da empresa...");
+    const timer = window.setTimeout(async () => {
+      const timeout = window.setTimeout(() => controller.abort(), 15000);
+      try {
+        const response = await fetch(`https://minhareceita.org/${cnpj}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok)
+          throw new Error(
+            response.status === 404
+              ? "CNPJ não encontrado. Preencha os dados manualmente."
+              : "Não foi possível consultar o CNPJ. Preencha os dados manualmente.",
+          );
+        const data = await response.json();
+        if (controller.signal.aborted) return;
+        companyCep.current = String(data.cep || "").replace(/\D/g, "");
+        setForm((previous) => ({
+          ...previous,
+          name: data.nome_fantasia || data.razao_social || previous.name,
+          legal_name: data.razao_social || previous.legal_name,
+          trade_name: data.nome_fantasia || previous.trade_name,
+          size: data.opcao_pelo_mei
+            ? "MEI"
+            : data.codigo_porte === 1
+              ? "Microempresa"
+              : data.codigo_porte === 3
+                ? "Pequeno"
+                : previous.size,
+          postal_code: data.cep ? mask(String(data.cep), "#####-###") : previous.postal_code,
+          address:
+            [data.descricao_tipo_de_logradouro, data.logradouro].filter(Boolean).join(" ") ||
+            previous.address,
+          number: data.numero || previous.number,
+          complement: data.complemento || previous.complement,
+          neighborhood: data.bairro || previous.neighborhood,
+          city: data.municipio || previous.city,
+          state: data.uf || previous.state,
+          activities: data.cnae_fiscal_descricao || previous.activities,
+        }));
+        const phone = String(data.ddd_telefone_1 || "").replace(/\D/g, "");
+        if ([10, 11].includes(phone.length))
+          setPhones((previous) =>
+            previous.some((item) => item.value)
+              ? previous
+              : [
+                  {
+                    value: mask(phone, phone.length === 11 ? "(##) #####-####" : "(##) ####-####"),
+                    contact: "",
+                  },
+                ],
+          );
+        if (data.email)
+          setEmails((previous) =>
+            previous.some((item) => item.value) ? previous : [{ value: data.email, contact: "" }],
+          );
+        setCnpjStatus("Dados preenchidos pelo CNPJ. Confira antes de salvar.");
+      } catch (error) {
+        if (!active) return;
+        if (!controller.signal.aborted)
+          setCnpjStatus(
+            error instanceof Error ? error.message : "Não foi possível consultar o CNPJ.",
+          );
+        else
+          setCnpjStatus("A consulta demorou mais que o esperado. Preencha os dados manualmente.");
+      } finally {
+        window.clearTimeout(timeout);
+        if (active) setCnpjLoading(false);
+      }
+    }, 350);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [form.cnpj]);
   useEffect(() => {
     const cep = form.postal_code.replace(/\D/g, "");
     if (cep.length !== 8) {
       setCepStatus("");
+      return;
+    }
+    if (cep === companyCep.current) {
+      setCepStatus("Endereço preenchido pelo CNPJ.");
       return;
     }
     const controller = new AbortController();
@@ -87,7 +190,7 @@ function CreateCommercialCompany() {
   }, [form.postal_code]);
   async function save(event: React.FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || cnpjLoading) return;
     const digits = form.cnpj.replace(/\D/g, "");
     if (digits && digits.length !== 14) {
       toast.error("Preencha o CNPJ completo, com 14 dígitos.");
@@ -170,6 +273,11 @@ function CreateCommercialCompany() {
           }))
         }
       />
+      {key === "cnpj" && (
+        <p className="mt-1 min-h-8 text-xs text-muted-foreground" role="status">
+          {cnpjStatus || "Digite o CNPJ completo para preencher os dados automaticamente."}
+        </p>
+      )}
     </div>
   );
   const selectClass =
@@ -199,8 +307,8 @@ function CreateCommercialCompany() {
           <section className="rounded-2xl border bg-card p-5">
             <Heading icon={Building2} title="Dados da empresa" />
             <div className="mt-4 grid gap-4 md:grid-cols-2">
-              {field("name", "Nome", true)}
               {field("cnpj", "CNPJ")}
+              {field("name", "Nome", true)}
               {field("legal_name", "Razão social")}
               {field("trade_name", "Nome fantasia")}
               <div>
@@ -217,7 +325,7 @@ function CreateCommercialCompany() {
                   ))}
                 </select>
               </div>
-              {field("acronym", "Sigla")}
+              <div className="w-full max-w-36">{field("acronym", "Sigla")}</div>
               <div>
                 <Label htmlFor="company-sector">Ramo</Label>
                 <select
@@ -228,11 +336,17 @@ function CreateCommercialCompany() {
                 >
                   <option value="">Selecione</option>
                   {[
+                    "Sem Identificação",
                     "Comércio",
+                    "Cooperativa",
+                    "Transportadora",
                     "Indústria",
                     "Serviços",
-                    "Transporte",
-                    "Agropecuária",
+                    "Escritórios",
+                    "Engenharias",
+                    "Agropecuárias",
+                    "Produtor Rural",
+                    "Distribuidora",
                     "Outros",
                   ].map((value) => (
                     <option key={value}>{value}</option>
@@ -245,22 +359,62 @@ function CreateCommercialCompany() {
             </div>
             <fieldset className="mt-4">
               <legend className="text-xs font-medium">Prioridade</legend>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {["Baixa", "Média", "Alta"].map((value) => (
-                  <label
-                    key={value}
-                    className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 ${form.priority === value ? "border-primary bg-primary/10" : "border-border"}`}
+              <div
+                role="radiogroup"
+                aria-label="Prioridade"
+                className="mt-2 grid grid-cols-3 gap-2"
+              >
+                {[
+                  {
+                    value: "Baixa",
+                    icon: ChevronDown,
+                    base: "border-success/25 bg-success/10 dark:bg-success/15",
+                    active:
+                      "border-success/70 ring-2 ring-success/40 shadow-sm bg-success/15 dark:bg-success/20",
+                    wrap: "bg-success text-success-foreground",
+                    text: "text-success",
+                  },
+                  {
+                    value: "Média",
+                    icon: Minus,
+                    base: "border-warning/30 bg-warning/12 dark:bg-warning/15",
+                    active:
+                      "border-warning/70 ring-2 ring-warning/40 shadow-sm bg-warning/20 dark:bg-warning/25",
+                    wrap: "bg-warning text-warning-foreground",
+                    text: "text-warning-foreground",
+                  },
+                  {
+                    value: "Alta",
+                    icon: ArrowUp,
+                    base: "border-destructive/25 bg-destructive/10 dark:bg-destructive/15",
+                    active:
+                      "border-destructive/70 ring-2 ring-destructive/40 shadow-sm bg-destructive/15 dark:bg-destructive/20",
+                    wrap: "bg-destructive text-destructive-foreground",
+                    text: "text-destructive",
+                  },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={form.priority === option.value}
+                    onClick={() => setForm({ ...form, priority: option.value })}
+                    className={cn(
+                      "relative flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+                      option.base,
+                      form.priority === option.value && option.active,
+                    )}
                   >
-                    <input
-                      type="radio"
-                      name="priority"
-                      className="accent-primary"
-                      value={value}
-                      checked={form.priority === value}
-                      onChange={() => setForm({ ...form, priority: value })}
-                    />
-                    {value}
-                  </label>
+                    <span
+                      className={cn(
+                        "grid size-5 shrink-0 place-items-center rounded-full",
+                        option.wrap,
+                      )}
+                    >
+                      <option.icon className="size-3" strokeWidth={3} />
+                    </span>
+                    <span className={option.text}>{option.value}</span>
+                  </button>
                 ))}
               </div>
             </fieldset>
@@ -392,7 +546,7 @@ function CreateCommercialCompany() {
             <Button type="button" variant="outline" asChild>
               <Link to="/comercial/contatos">Cancelar</Link>
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || cnpjLoading}>
               {saving ? "Salvando..." : "Salvar empresa"}
             </Button>
           </div>
