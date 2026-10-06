@@ -83,6 +83,16 @@ function AccountantsPage() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
   const save = async () => {
+    const phoneDigits = form.phone.replace(/\D/g, "");
+    if (![10, 11].includes(phoneDigits.length))
+      return toast.error("Informe o telefone completo com DDD (10 ou 11 dígitos).");
+    const cpf = form.responsible_document.replace(/\D/g, "");
+    if (cpf.length !== 11) return toast.error("Informe o CPF completo com 11 dígitos.");
+    const rg = form.responsible_rg.replace(/[^0-9xX]/g, "");
+    if (rg.length < 7 || rg.length > 9 || !/^\d+[\dxX]$/.test(rg))
+      return toast.error("Informe o RG completo, com 7 a 9 caracteres e dígito final.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim()))
+      return toast.error("Informe um e-mail completo e válido, como nome@empresa.com.br.");
     const requiredFields = [
       "name",
       "office",
@@ -542,13 +552,13 @@ function AccountantCreateScreen({
     ["CPF do responsável", "responsible_document"],
     ["RG do responsável", "responsible_rg"],
     ["Responsável", "responsible_name"],
+    ["CEP", "postal_code"],
     ["Endereço", "address"],
     ["Número", "number"],
     ["Complemento", "complement"],
     ["Bairro", "neighborhood"],
     ["Cidade", "city"],
     ["UF", "state"],
-    ["CEP", "postal_code"],
   ];
   return (
     <AppShell fullWidth>
@@ -563,7 +573,7 @@ function AccountantCreateScreen({
       />
       <style>
         {
-          'body[data-accountant-create="true"] button[aria-label="Voltar ao topo"] { display: none; }'
+          'body[data-accountant-create="true"] { overflow-anchor: none; } body[data-accountant-create="true"] button[aria-label="Voltar ao topo"] { display: none; }'
         }
       </style>
       <div className="space-y-5 text-sm [&_input]:h-11 [&_input]:rounded-xl [&_input]:text-sm [&_label]:text-[12px] [&_label]:font-medium">
@@ -662,7 +672,7 @@ function AccountantCreateScreen({
                   }
                 />
                 {key === "postal_code" && (
-                  <p className="mt-1 text-xs text-muted-foreground" role="status">
+                  <p className="mt-1 h-8 text-xs text-muted-foreground" role="status">
                     {cepStatus}
                   </p>
                 )}
