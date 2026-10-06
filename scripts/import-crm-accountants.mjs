@@ -3,7 +3,7 @@ const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 if (!url || !key) throw new Error('Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.')
 const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
-const { data, error } = await supabase.from('client_companies').select('id,accountant_name,accountant_phone,accountant_email,source_payload').not('accountant_name', 'is', null)
+const { data, error } = await supabase.from('client_companies').select('id,accountant_name,accountant_phone,accountant_email,source_payload')
 if (error) throw error
 const companies = data ?? []
 const grouped = new Map()
@@ -11,15 +11,16 @@ for (const company of companies) {
   let payload = company.source_payload
   if (typeof payload === 'string') { try { payload = JSON.parse(payload) } catch { payload = {} } }
   const accountantPayload = payload?.tcl_contador ?? payload?.cli_contador ?? {}
+  const responsiblePayload = payload?.tcl_responsavel ?? payload?.cli_responsavel ?? {}
   const name = String(company.accountantName ?? company.accountant_name ?? accountantPayload.cli_ctd_res ?? accountantPayload.tcl_ctd_res ?? '').trim()
   const office = String(company.accountantOffice ?? company.accountant_office ?? accountantPayload.cli_ctd_nome ?? accountantPayload.tcl_ctd_nome ?? '').trim()
-  const address = String(accountantPayload.cli_ctd_end ?? accountantPayload.tcl_ctd_end ?? accountantPayload.cli_ctd_endereco ?? accountantPayload.tcl_ctd_endereco ?? '').trim() || null
-  const number = String(accountantPayload.cli_ctd_num ?? accountantPayload.tcl_ctd_num ?? '').trim() || null
-  const complement = String(accountantPayload.cli_ctd_compl ?? accountantPayload.tcl_ctd_compl ?? '').trim() || null
-  const neighborhood = String(accountantPayload.cli_ctd_bairro ?? accountantPayload.tcl_ctd_bairro ?? '').trim() || null
-  const city = String(accountantPayload.cli_ctd_cid ?? accountantPayload.tcl_ctd_cid ?? '').trim() || null
-  const state = String(accountantPayload.cli_ctd_uf ?? accountantPayload.tcl_ctd_uf ?? '').trim() || null
-  const postal_code = String(accountantPayload.cli_ctd_cep ?? accountantPayload.tcl_ctd_cep ?? '').trim() || null
+  const address = String(responsiblePayload.cli_res_endereco ?? responsiblePayload.tcl_res_endereco ?? '').trim() || null
+  const number = String(responsiblePayload.cli_res_numero ?? responsiblePayload.tcl_res_numero ?? '').trim() || null
+  const complement = String(responsiblePayload.cli_res_complemento ?? responsiblePayload.tcl_res_complemento ?? '').trim() || null
+  const neighborhood = String(responsiblePayload.cli_res_bairro ?? responsiblePayload.tcl_res_bairro ?? '').trim() || null
+  const city = String(responsiblePayload.cli_res_cidade ?? responsiblePayload.tcl_res_cidade ?? '').trim() || null
+  const state = String(responsiblePayload.cli_res_uf ?? responsiblePayload.tcl_res_uf ?? '').trim() || null
+  const postal_code = String(responsiblePayload.cli_res_cep ?? responsiblePayload.tcl_res_cep ?? '').trim() || null
   if (!name && !office) continue
   const keyName = `${name || office}|${office}`.toLowerCase()
   const current = grouped.get(keyName) ?? { name: name || office, office: office || null, phone: company.accountantPhone ?? company.accountant_phone ?? null, email: company.accountantEmail ?? company.accountant_email ?? null, address, number, complement, neighborhood, city, state, postal_code, clients: [] }
