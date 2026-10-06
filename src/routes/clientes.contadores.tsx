@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -450,6 +451,12 @@ function AccountantCreateScreen({
   onSave,
   onCancel,
 }: any) {
+  useEffect(() => {
+    document.body.dataset.accountantCreate = "true";
+    return () => {
+      delete document.body.dataset.accountantCreate;
+    };
+  }, []);
   const [clientQuery, setClientQuery] = useState("");
   const [clientSelectOpen, setClientSelectOpen] = useState(false);
   const visibleClients = clientOptions.filter((client: any) =>
@@ -480,6 +487,11 @@ function AccountantCreateScreen({
           </Button>
         }
       />
+      <style>
+        {
+          'body[data-accountant-create="true"] button[aria-label="Voltar ao topo"] { display: none; }'
+        }
+      </style>
       <div className="space-y-5 text-sm [&_input]:h-11 [&_input]:rounded-xl [&_input]:text-sm [&_label]:text-[12px] [&_label]:font-medium">
         <section className="rounded-xl border bg-card p-5 text-sm shadow-sm">
           <h2 className="mb-4 flex items-center gap-3 text-base font-medium">
@@ -551,71 +563,59 @@ function AccountantCreateScreen({
           <p className="mt-1 text-sm text-muted-foreground">
             Selecione as empresas que ficarão ligadas a este contador.
           </p>
-          <div className="relative mt-3">
-            <Input
-              className="h-11"
-              placeholder="Buscar por sigla, fantasia, razão social, CNPJ ou cidade..."
-              value={clientQuery}
-              onFocus={() => setClientSelectOpen(true)}
-              onChange={(e) => {
-                setClientQuery(e.target.value);
-                setClientSelectOpen(true);
-              }}
-            />
-            {clientSelectOpen && (
-              <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-lg border bg-popover p-2 shadow-lg">
-                <Input
-                  autoFocus
-                  className="h-10"
-                  placeholder="Digite para filtrar..."
-                  value={clientQuery}
-                  onChange={(e) => setClientQuery(e.target.value)}
-                />
-                <div className="mt-2 max-h-72 space-y-1 overflow-y-auto">
-                  {visibleClients.map((client: any) => (
-                    <label
-                      className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${selectedClients.includes(client.id) ? "border-primary bg-primary/10" : "hover:bg-muted/40"}`}
-                      key={client.id}
+          <Popover open={clientSelectOpen} onOpenChange={setClientSelectOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="mt-3 flex h-11 w-full cursor-pointer items-center gap-2 rounded-xl border px-3 text-left text-sm text-muted-foreground"
+              >
+                <Search className="size-4" />
+                Buscar por sigla, fantasia, razão social, CNPJ ou cidade...
+                <span className="ml-auto">⌄</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              className="w-[var(--radix-popover-trigger-width)] p-2"
+              onCloseAutoFocus={(event) => event.preventDefault()}
+            >
+              <Input
+                className="h-10"
+                placeholder="Digite para filtrar..."
+                value={clientQuery}
+                onChange={(e) => setClientQuery(e.target.value)}
+              />
+              <div className="mt-2 max-h-72 space-y-1 overflow-y-auto">
+                {visibleClients.map((client: any) => (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedClients(
+                        selectedClients.includes(client.id)
+                          ? selectedClients.filter((id: string) => id !== client.id)
+                          : [...selectedClients, client.id],
+                      )
+                    }
+                    className={`flex w-full cursor-pointer items-start gap-3 rounded-md border p-3 text-left text-sm ${selectedClients.includes(client.id) ? "border-primary bg-primary/10" : "hover:bg-muted/40"}`}
+                    key={client.id}
+                  >
+                    <span
+                      className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded border ${selectedClients.includes(client.id) ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}
                     >
-                      <span
-                        className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded border ${selectedClients.includes(client.id) ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}
-                      >
-                        <input
-                          className="sr-only"
-                          type="checkbox"
-                          checked={selectedClients.includes(client.id)}
-                          onChange={(e) =>
-                            setSelectedClients(
-                              e.target.checked
-                                ? [...selectedClients, client.id]
-                                : selectedClients.filter((id: string) => id !== client.id),
-                            )
-                          }
-                        />
-                        {selectedClients.includes(client.id) && <Check className="size-3.5" />}
+                      {selectedClients.includes(client.id) && <Check className="size-3.5" />}
+                    </span>
+                    <span>
+                      {client.trade_name || client.legal_name}
+                      <span className="block text-xs text-muted-foreground">
+                        {client.document || "CNPJ não informado"}
+                        {client.city ? ` • ${client.city}/${client.state || ""}` : ""}
                       </span>
-                      <span>
-                        {client.trade_name || client.legal_name}
-                        <span className="block text-xs text-muted-foreground">
-                          {client.document || "CNPJ não informado"}
-                          {client.city ? ` • ${client.city}/${client.state || ""}` : ""}
-                        </span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => setClientSelectOpen(false)}
-                >
-                  Concluir seleção
-                </Button>
+                    </span>
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
+            </PopoverContent>
+          </Popover>
           <div className="mt-4 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
             <div className="flex items-center justify-between">
               <span>Empresas selecionadas</span>
