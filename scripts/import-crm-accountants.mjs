@@ -6,12 +6,18 @@ const supabase = createClient(url, key, { auth: { persistSession: false, autoRef
 const { data, error } = await supabase.from('client_companies').select('id,accountant_name,accountant_phone,accountant_email,source_payload')
 if (error) throw error
 const companies = data ?? []
+const parseObject = (value) => {
+  if (value && typeof value === 'object') return value
+  if (typeof value === 'string') {
+    try { return JSON.parse(value) } catch { return {} }
+  }
+  return {}
+}
 const grouped = new Map()
 for (const company of companies) {
-  let payload = company.source_payload
-  if (typeof payload === 'string') { try { payload = JSON.parse(payload) } catch { payload = {} } }
-  const accountantPayload = payload?.tcl_contador ?? payload?.cli_contador ?? {}
-  const responsiblePayload = payload?.tcl_responsavel ?? payload?.cli_responsavel ?? {}
+  const payload = parseObject(company.source_payload)
+  const accountantPayload = parseObject(payload?.tcl_contador ?? payload?.cli_contador)
+  const responsiblePayload = parseObject(payload?.tcl_responsavel ?? payload?.cli_responsavel)
   const name = String(company.accountantName ?? company.accountant_name ?? accountantPayload.cli_ctd_res ?? accountantPayload.tcl_ctd_res ?? '').trim()
   const office = String(company.accountantOffice ?? company.accountant_office ?? accountantPayload.cli_ctd_nome ?? accountantPayload.tcl_ctd_nome ?? '').trim()
   const address = String(responsiblePayload.cli_res_endereco ?? responsiblePayload.tcl_res_endereco ?? '').trim() || null
