@@ -26,6 +26,7 @@ export const Route = createFileRoute("/comercial/contatos/novo")({
   component: CreateCommercialCompany,
 });
 const initialForm = {
+  stage: "novo",
   cnpj: "",
   name: "",
   size: "",
@@ -46,6 +47,16 @@ const initialForm = {
   priority: "Média",
   activities: "",
 };
+const stageOptions = [
+  { value: "novo", label: "Novo" },
+  { value: "prospeccao", label: "Prospecção" },
+  { value: "relacionamento", label: "Relacionamento" },
+  { value: "proposta", label: "Proposta" },
+  { value: "negociacao", label: "Negociação" },
+  { value: "demonstracao", label: "Demonstração" },
+  { value: "negocio_fechado", label: "Negócio Fechado" },
+  { value: "sem_interesse", label: "Sem Interesse" },
+];
 type Contact = { value: string; contact: string };
 const mask = (value: string, pattern: string) => {
   const digits = value.replace(/\D/g, "");
@@ -214,10 +225,6 @@ function CreateCommercialCompany() {
       toast.error("Informe e-mails válidos.");
       return;
     }
-    if (form.website && !/^https?:\/\//i.test(form.website)) {
-      toast.error("Informe o site começando com https:// ou http://.");
-      return;
-    }
     setSaving(true);
     try {
       const { error } = await supabase.rpc(
@@ -225,6 +232,11 @@ function CreateCommercialCompany() {
         {
           p_payload: {
             ...form,
+            website: form.website.trim()
+              ? /^https?:\/\//i.test(form.website.trim())
+                ? form.website.trim()
+                : `https://${form.website.trim()}`
+              : "",
             phones: phones.filter((item) => item.value),
             emails: emails.filter((item) => item.value),
           },
@@ -267,8 +279,10 @@ function CreateCommercialCompany() {
                 ? mask(event.target.value, "##.###.###/####-##")
                 : key === "postal_code"
                   ? mask(event.target.value, "#####-###")
-                  : key === "state"
-                    ? event.target.value.replace(/[^a-z]/gi, "").toUpperCase()
+                  : key === "state" || key === "acronym"
+                    ? key === "acronym"
+                      ? event.target.value.toUpperCase()
+                      : event.target.value.replace(/[^a-z]/gi, "").toUpperCase()
                     : event.target.value,
           }))
         }
@@ -325,7 +339,27 @@ function CreateCommercialCompany() {
                   ))}
                 </select>
               </div>
-              <div className="w-full max-w-36">{field("acronym", "Sigla")}</div>
+              <div className="grid grid-cols-[minmax(0,144px)_minmax(0,1fr)] gap-3">
+                {field("acronym", "Sigla")}
+                <div>
+                  <Label htmlFor="company-stage">
+                    Etapa <span className="text-destructive">*</span>
+                  </Label>
+                  <select
+                    id="company-stage"
+                    required
+                    className={selectClass}
+                    value={form.stage}
+                    onChange={(event) => setForm({ ...form, stage: event.target.value })}
+                  >
+                    {stageOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div>
                 <Label htmlFor="company-sector">Ramo</Label>
                 <select
@@ -358,7 +392,9 @@ function CreateCommercialCompany() {
               {field("companies", "Empresas")}
             </div>
             <fieldset className="mt-4">
-              <legend className="text-xs font-medium">Prioridade</legend>
+              <legend className="text-xs font-medium">
+                Prioridade <span className="text-destructive">*</span>
+              </legend>
               <div
                 role="radiogroup"
                 aria-label="Prioridade"
@@ -572,7 +608,7 @@ function CreateCommercialCompany() {
             },
             { label: "E-mail", value: emails.find((item) => item.value)?.value || "", icon: Mail },
           ]}
-          note="A empresa será adicionada aos contatos comerciais na etapa Prospecção."
+          note={`A empresa será adicionada aos contatos comerciais na etapa ${stageOptions.find((option) => option.value === form.stage)?.label || "Novo"}.`}
         >
           <span className="inline-block rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs">
             Prioridade {form.priority}

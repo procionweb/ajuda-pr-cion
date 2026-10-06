@@ -31,6 +31,7 @@ export const Route = createFileRoute("/comercial/contatos")({ component: Commerc
 const leadColumns =
   "id,cnpj,legal_name,trade_name,opened_at,registration_status,cnae_code,cnae_description,company_size,legal_nature,city,state,address,neighborhood,postal_code,relevance_score,stage,source,source_url,discovered_at,raw_payload";
 const stages: Array<{ value: CompanyLeadStage; label: string }> = [
+  { value: "novo", label: "Novo" },
   { value: "prospeccao", label: "Prospecção" },
   { value: "relacionamento", label: "Relacionamento" },
   { value: "proposta", label: "Proposta" },
@@ -79,6 +80,7 @@ function CommercialContactsPage() {
         .select(leadColumns, { count: "exact" })
         .order("discovered_at", { ascending: false })
         .order("id", { ascending: true })
+        .or("stage.neq.novo,source.in.(crm-manual,crm-import)")
         .range(page * pageSize, (page + 1) * pageSize - 1);
       query = stage
         ? query.eq("stage", stage)
