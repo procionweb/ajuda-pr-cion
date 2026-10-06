@@ -5,6 +5,10 @@ import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { RegistrationSummary } from "@/components/portal/RegistrationSummary";
 import { AccountantSelect } from "@/components/portal/AccountantSelect";
+import {
+  HadronDeploymentField,
+  deploymentSelectKeys,
+} from "@/components/portal/HadronDeploymentField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -130,6 +134,13 @@ function CloseDealPage() {
       toast.error("Informe o CNAE completo, com 7 dígitos (ex.: 4751-2/01).");
       return;
     }
+    if (
+      form.terminals &&
+      (!/^\d+$/.test(form.terminals) || !Number.isSafeInteger(Number(form.terminals)))
+    ) {
+      toast.error("Informe uma quantidade inteira de terminais, igual ou maior que zero.");
+      return;
+    }
     setSaving(true);
     try {
       await companyLeadsApi.saveAction(leadId, "close_deal", form, finalize, operator || "PRCREN");
@@ -204,7 +215,21 @@ function CloseDealPage() {
                         {label}
                         {requiredFields.has(key) && <span className="text-destructive"> *</span>}
                       </Label>
-                      {key === "tax_regime" ? (
+                      {deploymentSelectKeys.has(key) ? (
+                        <HadronDeploymentField
+                          field={key}
+                          value={form[key] || ""}
+                          onChange={(value, collaboratorId) =>
+                            setForm((previous) => ({
+                              ...previous,
+                              [key]: value,
+                              ...(collaboratorId !== undefined
+                                ? { [`${key}_id`]: collaboratorId }
+                                : {}),
+                            }))
+                          }
+                        />
+                      ) : key === "tax_regime" ? (
                         <select
                           id={`deal-${key}`}
                           className="mt-1 h-11 w-full cursor-pointer rounded-xl border bg-background px-3 text-sm"
@@ -236,7 +261,15 @@ function CloseDealPage() {
                                 : undefined
                           }
                           inputMode={key === "cnae" || key === "antt" ? "numeric" : undefined}
-                          type={key.includes("email") ? "email" : "text"}
+                          type={
+                            key === "terminals"
+                              ? "number"
+                              : key.includes("email")
+                                ? "email"
+                                : "text"
+                          }
+                          min={key === "terminals" ? 0 : undefined}
+                          step={key === "terminals" ? 1 : undefined}
                           onChange={(event) =>
                             setForm((previous) => ({
                               ...previous,
