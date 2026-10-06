@@ -63,7 +63,10 @@ export async function getAccountant(id: string) {
         [String(client.client_id), client],
       ]),
     );
-    clients = clients.map((client: any) => ({ ...detailsById.get(String(client.id)), ...client }));
+    clients = clients.map((client: any) => ({
+      ...client,
+      ...detailsById.get(String(client.id)),
+    }));
   }
   const row = data as any;
   const parse = (value: any) => {
