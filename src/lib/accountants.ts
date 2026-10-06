@@ -67,8 +67,26 @@ export async function getAccountant(id: string) {
   };
   const payload = parse(row.source_payload);
   const responsible = parse(payload.tcl_responsavel ?? payload.cli_responsavel);
+  let linkedResponsible: any = {};
+  if (clientIds.length) {
+    const linked = await supabase
+      .from("client_companies")
+      .select("responsible_name,responsible_document,source_payload")
+      .in("id", clientIds)
+      .limit(1)
+      .maybeSingle();
+    if (linked.error) throw linked.error;
+    const linkedPayload = parse(linked.data?.source_payload);
+    linkedResponsible = {
+      ...(linked.data ?? {}),
+      ...parse(linkedPayload.tcl_responsavel ?? linkedPayload.cli_responsavel),
+    };
+  }
   const value = (current: any, ...fallbacks: string[]) =>
-    current || fallbacks.map((key) => responsible[key]).find(Boolean) || null;
+    current ||
+    fallbacks.map((key) => responsible[key]).find(Boolean) ||
+    fallbacks.map((key) => linkedResponsible[key]).find(Boolean) ||
+    null;
   return {
     ...row,
     responsible_name: value(row.responsible_name, "tcl_res_nome", "cli_res_nome"),
