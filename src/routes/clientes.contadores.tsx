@@ -456,16 +456,25 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
                     {index + 1}
                   </span>
                   <div>
-                    <div className="text-[12px] font-normal leading-[1.2] text-foreground">
-                      {client.trade_name || client.legal_name || client.name || client.id}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] leading-[1.2]">
+                      <span className="text-foreground">
+                        {client.trade_name || client.legal_name || client.name || client.id}
+                      </span>
+                      <span className="text-muted-foreground">
+                        CNPJ: {client.document ? formatCnpj(client.document) : "Não informado"}
+                      </span>
+                      <span className="text-muted-foreground">
+                        IE: {client.state_registration || "Não informada"}
+                      </span>
+                      <span className="text-muted-foreground">
+                        CNAE: {client.cnae || "Não informado"}
+                      </span>
                     </div>
                     <div className="mt-1 text-[11px] font-normal text-muted-foreground">
                       {[
                         client.legal_name && client.trade_name !== client.legal_name
                           ? client.legal_name
                           : null,
-                        client.document ? `CNPJ: ${formatCnpj(client.document)}` : null,
-                        client.state_registration ? `IE: ${client.state_registration}` : null,
                         client.acronym,
                         client.city && `${client.city}/${client.state || ""}`,
                       ]

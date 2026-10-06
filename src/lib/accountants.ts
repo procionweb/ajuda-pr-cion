@@ -63,10 +63,20 @@ export async function getAccountant(id: string) {
         [String(client.client_id), client],
       ]),
     );
-    clients = clients.map((client: any) => ({
-      ...client,
-      ...detailsById.get(String(client.id)),
-    }));
+    clients = clients.map((client: any) => {
+      const merged = { ...client, ...detailsById.get(String(client.id)) };
+      const source =
+        merged.source_payload && typeof merged.source_payload === "object"
+          ? merged.source_payload
+          : {};
+      return {
+        ...merged,
+        document: merged.document || source.tcl_cnpj || source.cli_cnpj || null,
+        state_registration:
+          merged.state_registration || source.tcl_ie || source.cli_insc_estadual || null,
+        cnae: merged.cnae || source.tcl_cnae || source.cli_cnae || null,
+      };
+    });
   }
   const row = data as any;
   const parse = (value: any) => {
