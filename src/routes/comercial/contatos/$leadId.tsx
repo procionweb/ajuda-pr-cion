@@ -98,55 +98,14 @@ export function LeadDetailsPage() {
   // Dialog states
   const [showInactivateDialog, setShowInactivateDialog] = useState(false);
 
-  const [showEditDialog, setShowEditDialog] = useState(false);
   const [inactivationReason, setInactivationReason] = useState("");
   const [inactivationNotes, setInactivationNotes] = useState("");
-
-  // Edit form state
-  const [editForm, setEditForm] = useState({
-    trade_name: "",
-    phone: "",
-    email: "",
-    website: "",
-    notes: "",
-    stage: "novo",
-    priority: "baixa",
-    activities: "",
-    branch: "",
-    company_size: "",
-    terminals: "",
-    address: "",
-    address_number: "",
-    neighborhood: "",
-    city: "",
-    state: "",
-    postal_code: "",
-  });
 
   const loadLead = async () => {
     try {
       setLoading(true);
       const data = await companyLeadsApi.details(leadId);
       setLead(data);
-      setEditForm({
-        trade_name: data.trade_name || "",
-        phone: data.phone || "",
-        email: data.email || "",
-        website: data.website || "",
-        notes: "", // Assuming notes isn't in lead details yet but we provide the field
-        stage: data.stage,
-        priority: String(data.commercial_data?.priority || "baixa"),
-        activities: String(data.commercial_data?.activities || data.notes || ""),
-        branch: String(data.commercial_data?.branch || ""),
-        company_size: data.company_size || "",
-        terminals: String(data.commercial_data?.terminals || ""),
-        address: data.address || "",
-        address_number: String(data.commercial_data?.address_number || ""),
-        neighborhood: data.neighborhood || "",
-        city: data.city || "",
-        state: data.state || "",
-        postal_code: data.postal_code || "",
-      });
     } catch (err) {
       console.error(err);
       toast.error("Não foi possível carregar os detalhes do lead.");
@@ -174,21 +133,6 @@ export function LeadDetailsPage() {
       setShowInactivateDialog(false);
     } catch (err) {
       toast.error("Erro ao inativar lead.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setActionLoading(true);
-    try {
-      await companyLeadsApi.saveAction(leadId, "edit", editForm, false, currentOperator);
-      toast.success("Dados atualizados com sucesso.");
-      await loadLead();
-      setShowEditDialog(false);
-    } catch (err) {
-      toast.error("Erro ao atualizar dados.");
     } finally {
       setActionLoading(false);
     }
@@ -285,11 +229,13 @@ export function LeadDetailsPage() {
                 size="sm"
                 variant="outline"
                 className="h-8 text-xs gap-1.5 border-primary text-primary hover:bg-primary/5"
-                onClick={() => setShowEditDialog(true)}
+                asChild
                 disabled={actionLoading}
               >
-                <Pencil className="h-3.5 w-3.5" />
-                Editar
+                <Link to="/comercial/editar-contato/$leadId" params={{ leadId: leadId! }}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
+                </Link>
               </Button>
 
               <Button
@@ -341,160 +287,6 @@ export function LeadDetailsPage() {
                 Inativar
               </Button>
             </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Form Dialog */}
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto modal-scrollbar">
-            <form onSubmit={handleEdit}>
-              <DialogHeader>
-                <DialogTitle>Editar dados comerciais</DialogTitle>
-                <DialogDescription>
-                  Altere apenas campos comerciais permitidos. Dados da Receita Federal não podem ser
-                  editados por aqui.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
-                <FieldSelect
-                  label="Etapa"
-                  value={editForm.stage}
-                  onChange={(stage) => setEditForm((current) => ({ ...current, stage }))}
-                  options={Object.keys(stageLabels)}
-                  labels={stageLabels}
-                />
-                <FieldSelect
-                  label="Prioridade"
-                  value={editForm.priority}
-                  onChange={(priority) => setEditForm((current) => ({ ...current, priority }))}
-                  options={["baixa", "media", "alta"]}
-                />
-                <div className="grid gap-2">
-                  <Label htmlFor="trade_name">Nome Fantasia</Label>
-                  <Input
-                    id="trade_name"
-                    value={editForm.trade_name}
-                    onChange={(e) =>
-                      setEditForm((prev) => ({ ...prev, trade_name: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input
-                      id="phone"
-                      value={editForm.phone}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, phone: e.target.value }))}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">E-mail</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={editForm.email}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, email: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    id="website"
-                    value={editForm.website}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, website: e.target.value }))}
-                  />
-                </div>
-                <Field
-                  label="Ramo"
-                  value={editForm.branch}
-                  onChange={(branch) => setEditForm((current) => ({ ...current, branch }))}
-                />
-                <Field
-                  label="Porte"
-                  value={editForm.company_size}
-                  onChange={(company_size) =>
-                    setEditForm((current) => ({ ...current, company_size }))
-                  }
-                />
-                <Field
-                  label="Terminais"
-                  value={editForm.terminals}
-                  onChange={(terminals) => setEditForm((current) => ({ ...current, terminals }))}
-                />
-                <Field
-                  label="CEP"
-                  value={editForm.postal_code}
-                  onChange={(postal_code) =>
-                    setEditForm((current) => ({ ...current, postal_code }))
-                  }
-                />
-                <Field
-                  label="Endereço"
-                  value={editForm.address}
-                  onChange={(address) => setEditForm((current) => ({ ...current, address }))}
-                />
-                <Field
-                  label="Número"
-                  value={editForm.address_number}
-                  onChange={(address_number) =>
-                    setEditForm((current) => ({ ...current, address_number }))
-                  }
-                />
-                <Field
-                  label="Bairro"
-                  value={editForm.neighborhood}
-                  onChange={(neighborhood) =>
-                    setEditForm((current) => ({ ...current, neighborhood }))
-                  }
-                />
-                <Field
-                  label="Cidade"
-                  value={editForm.city}
-                  onChange={(city) => setEditForm((current) => ({ ...current, city }))}
-                />
-                <Field
-                  label="UF"
-                  value={editForm.state}
-                  onChange={(state) =>
-                    setEditForm((current) => ({ ...current, state: state.toUpperCase() }))
-                  }
-                />
-                <div className="sm:col-span-2 lg:col-span-3">
-                  <Field
-                    label="Atividades"
-                    value={editForm.activities}
-                    onChange={(activities) =>
-                      setEditForm((current) => ({ ...current, activities }))
-                    }
-                    textarea
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="notes">Observações</Label>
-                  <Textarea
-                    id="notes"
-                    className="resize-none"
-                    value={editForm.notes}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowEditDialog(false)}
-                  disabled={actionLoading}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={actionLoading}>
-                  {actionLoading ? "Salvando..." : "Salvar alterações"}
-                </Button>
-              </DialogFooter>
-            </form>
           </DialogContent>
         </Dialog>
 

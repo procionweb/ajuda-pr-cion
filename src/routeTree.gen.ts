@@ -50,6 +50,7 @@ import { Route as ClientesContadoresAccountantIdRouteImport } from './routes/cli
 import { Route as ComercialContatoLeadIdRouteImport } from './routes/comercial.contato.$leadId'
 import { Route as ComercialContatosLeadIdRouteImport } from './routes/comercial/contatos/$leadId'
 import { Route as ComercialContatosNovoRouteImport } from './routes/comercial.contatos.novo'
+import { Route as ComercialEditarContatoLeadIdRouteImport } from './routes/comercial.editar-contato.$leadId'
 import { Route as ComercialNegocioFechadoLeadIdRouteImport } from './routes/comercial.negocio-fechado.$leadId'
 import { Route as KanbanConviteTokenRouteImport } from './routes/kanban.convite.$token'
 
@@ -263,6 +264,12 @@ const ComercialContatosNovoRoute = ComercialContatosNovoRouteImport.update({
   path: '/novo',
   getParentRoute: () => ComercialContatosRoute,
 } as any)
+const ComercialEditarContatoLeadIdRoute =
+  ComercialEditarContatoLeadIdRouteImport.update({
+    id: '/comercial/editar-contato/$leadId',
+    path: '/comercial/editar-contato/$leadId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ComercialNegocioFechadoLeadIdRoute =
   ComercialNegocioFechadoLeadIdRouteImport.update({
     id: '/comercial/negocio-fechado/$leadId',
@@ -317,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
   '/comercial/contatos/$leadId': typeof ComercialContatosLeadIdRoute
   '/comercial/contatos/novo': typeof ComercialContatosNovoRoute
+  '/comercial/editar-contato/$leadId': typeof ComercialEditarContatoLeadIdRoute
   '/comercial/negocio-fechado/$leadId': typeof ComercialNegocioFechadoLeadIdRoute
   '/kanban/convite/$token': typeof KanbanConviteTokenRoute
 }
@@ -360,6 +368,7 @@ export interface FileRoutesByTo {
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
   '/comercial/contatos/$leadId': typeof ComercialContatosLeadIdRoute
   '/comercial/contatos/novo': typeof ComercialContatosNovoRoute
+  '/comercial/editar-contato/$leadId': typeof ComercialEditarContatoLeadIdRoute
   '/comercial/negocio-fechado/$leadId': typeof ComercialNegocioFechadoLeadIdRoute
   '/kanban/convite/$token': typeof KanbanConviteTokenRoute
 }
@@ -406,6 +415,7 @@ export interface FileRoutesById {
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
   '/comercial/contatos/$leadId': typeof ComercialContatosLeadIdRoute
   '/comercial/contatos/novo': typeof ComercialContatosNovoRoute
+  '/comercial/editar-contato/$leadId': typeof ComercialEditarContatoLeadIdRoute
   '/comercial/negocio-fechado/$leadId': typeof ComercialNegocioFechadoLeadIdRoute
   '/kanban/convite/$token': typeof KanbanConviteTokenRoute
 }
@@ -453,6 +463,7 @@ export interface FileRouteTypes {
     | '/comercial/contato/$leadId'
     | '/comercial/contatos/$leadId'
     | '/comercial/contatos/novo'
+    | '/comercial/editar-contato/$leadId'
     | '/comercial/negocio-fechado/$leadId'
     | '/kanban/convite/$token'
   fileRoutesByTo: FileRoutesByTo
@@ -496,6 +507,7 @@ export interface FileRouteTypes {
     | '/comercial/contato/$leadId'
     | '/comercial/contatos/$leadId'
     | '/comercial/contatos/novo'
+    | '/comercial/editar-contato/$leadId'
     | '/comercial/negocio-fechado/$leadId'
     | '/kanban/convite/$token'
   id:
@@ -541,6 +553,7 @@ export interface FileRouteTypes {
     | '/comercial/contato/$leadId'
     | '/comercial/contatos/$leadId'
     | '/comercial/contatos/novo'
+    | '/comercial/editar-contato/$leadId'
     | '/comercial/negocio-fechado/$leadId'
     | '/kanban/convite/$token'
   fileRoutesById: FileRoutesById
@@ -578,6 +591,7 @@ export interface RootRouteChildren {
   ClientesIndexRoute: typeof ClientesIndexRoute
   ApiPublicTestPlacesRoute: typeof ApiPublicTestPlacesRoute
   ComercialContatoLeadIdRoute: typeof ComercialContatoLeadIdRoute
+  ComercialEditarContatoLeadIdRoute: typeof ComercialEditarContatoLeadIdRoute
   ComercialNegocioFechadoLeadIdRoute: typeof ComercialNegocioFechadoLeadIdRoute
 }
 
@@ -870,6 +884,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ComercialContatosNovoRouteImport
       parentRoute: typeof ComercialContatosRoute
     }
+    '/comercial/editar-contato/$leadId': {
+      id: '/comercial/editar-contato/$leadId'
+      path: '/comercial/editar-contato/$leadId'
+      fullPath: '/comercial/editar-contato/$leadId'
+      preLoaderRoute: typeof ComercialEditarContatoLeadIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/comercial/negocio-fechado/$leadId': {
       id: '/comercial/negocio-fechado/$leadId'
       path: '/comercial/negocio-fechado/$leadId'
@@ -994,6 +1015,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientesIndexRoute: ClientesIndexRoute,
   ApiPublicTestPlacesRoute: ApiPublicTestPlacesRoute,
   ComercialContatoLeadIdRoute: ComercialContatoLeadIdRoute,
+  ComercialEditarContatoLeadIdRoute: ComercialEditarContatoLeadIdRoute,
   ComercialNegocioFechadoLeadIdRoute: ComercialNegocioFechadoLeadIdRoute,
 }
 export const routeTree = rootRouteImport
