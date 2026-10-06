@@ -50,7 +50,7 @@ function AccountantsPage() {
     void load();
   }, []);
   const filtered = rows.filter((r) =>
-    `${r.name} ${r.office ?? ""} ${r.email ?? ""}`.toLowerCase().includes(query.toLowerCase()),
+    `${r.name} ${r.office ?? ""} ${r.email ?? ""} ${r.notes ?? ""}`.toLowerCase().includes(query.toLowerCase()),
   );
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);

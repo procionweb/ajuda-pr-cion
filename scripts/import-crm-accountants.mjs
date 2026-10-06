@@ -18,6 +18,7 @@ for (const company of companies) {
   const payload = parseObject(company.source_payload)
   const accountantPayload = parseObject(payload?.tcl_contador ?? payload?.cli_contador)
   const responsiblePayload = parseObject(payload?.tcl_responsavel ?? payload?.cli_responsavel)
+  const responsibleName = String(responsiblePayload.cli_res_nome ?? responsiblePayload.tcl_res_nome ?? '').trim() || null
   const name = String(accountantPayload.cli_ctd_res ?? accountantPayload.tcl_ctd_res ?? company.accountantName ?? '').trim()
   const office = String(accountantPayload.cli_ctd_nome ?? accountantPayload.tcl_ctd_nome ?? company.accountantOffice ?? company.accountant_office ?? company.accountant_name ?? '').trim()
   const address = String(responsiblePayload.cli_res_endereco ?? responsiblePayload.tcl_res_endereco ?? '').trim() || null
@@ -29,7 +30,7 @@ for (const company of companies) {
   const postal_code = String(responsiblePayload.cli_res_cep ?? responsiblePayload.tcl_res_cep ?? '').trim() || null
   if (!name && !office) continue
   const keyName = `${name || office}|${office}`.toLowerCase()
-  const current = grouped.get(keyName) ?? { name: name || office, office: office || null, phone: company.accountantPhone ?? company.accountant_phone ?? null, email: company.accountantEmail ?? company.accountant_email ?? null, address, number, complement, neighborhood, city, state, postal_code, clients: [] }
+  const current = grouped.get(keyName) ?? { name: name || office, office: office || null, phone: company.accountantPhone ?? company.accountant_phone ?? null, email: company.accountantEmail ?? company.accountant_email ?? null, notes: responsibleName ? `Responsável: ${responsibleName}` : null, address, number, complement, neighborhood, city, state, postal_code, clients: [] }
   current.phone ||= accountantPayload.cli_ctd_tel ?? accountantPayload.tcl_ctd_tel ?? company.accountantPhone ?? company.accountant_phone ?? null
   current.email ||= accountantPayload.cli_ctd_email ?? accountantPayload.tcl_ctd_email ?? company.accountantEmail ?? company.accountant_email ?? null
   current.clients.push(String(company.id ?? company.client_company_id ?? company.company_id))
@@ -40,10 +41,10 @@ for (const accountant of grouped.values()) {
   const { data: existing } = await supabase.from('crm_accountants').select('id').eq('name', accountant.name).eq('office', accountant.office).maybeSingle()
   const { data: created, error: createError } = existing
     ? { data: existing, error: null }
-    : await supabase.from('crm_accountants').insert({ name: accountant.name, office: accountant.office, phone: accountant.phone, email: accountant.email, address: accountant.address, number: accountant.number, complement: accountant.complement, neighborhood: accountant.neighborhood, city: accountant.city, state: accountant.state, postal_code: accountant.postal_code }).select('id').single()
+    : await supabase.from('crm_accountants').insert({ name: accountant.name, office: accountant.office, phone: accountant.phone, email: accountant.email, notes: accountant.notes, address: accountant.address, number: accountant.number, complement: accountant.complement, neighborhood: accountant.neighborhood, city: accountant.city, state: accountant.state, postal_code: accountant.postal_code }).select('id').single()
   if (createError) throw createError
   if (existing) {
-    const { error: updateError } = await supabase.from('crm_accountants').update({ office: accountant.office, phone: accountant.phone, email: accountant.email, address: accountant.address, number: accountant.number, complement: accountant.complement, neighborhood: accountant.neighborhood, city: accountant.city, state: accountant.state, postal_code: accountant.postal_code }).eq('id', created.id)
+    const { error: updateError } = await supabase.from('crm_accountants').update({ office: accountant.office, phone: accountant.phone, email: accountant.email, notes: accountant.notes, address: accountant.address, number: accountant.number, complement: accountant.complement, neighborhood: accountant.neighborhood, city: accountant.city, state: accountant.state, postal_code: accountant.postal_code }).eq('id', created.id)
     if (updateError) throw updateError
   }
   const links = accountant.clients.filter(Boolean).map((client_company_id) => ({ accountant_id: created.id, client_company_id }))
