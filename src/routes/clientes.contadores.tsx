@@ -104,6 +104,7 @@ function AccountantsPage() {
           <table className="w-full text-xs">
             <thead className="border-b bg-muted/35 text-left text-xs uppercase text-muted-foreground">
               <tr>
+                <th className="px-4 py-3">Código</th>
                 <th className="px-4 py-3">Contador</th>
                 <th className="px-4 py-3">Escritório</th>
                 <th className="px-4 py-3">Contato</th>
@@ -126,6 +127,9 @@ function AccountantsPage() {
                   }}
                   tabIndex={0}
                 >
+                  <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">
+                    CTR-{r.id.slice(0, 8).toUpperCase()}
+                  </td>
                   <td className="px-4 py-3 font-normal">{r.name}</td>
                   <td className="px-4 py-3">{r.office || "—"}</td>
                   <td className="px-4 py-3">{r.email || r.phone || "—"}</td>
@@ -323,6 +327,7 @@ function AccountantsPage() {
 }
 
 function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void }) {
+  const registrationCode = `CTR-${detail.id.slice(0, 8).toUpperCase()}`;
   const linkedClients = detail.clients?.length
     ? detail.clients
     : detail.clientIds.map((id: string) => ({ id }));
@@ -429,6 +434,9 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
               <p className="text-xs text-muted-foreground">
                 Empresas relacionadas a este contador.
               </p>
+              <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                Código: {registrationCode}
+              </p>
             </div>
             <span className="rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
               {linkedClients.length}
@@ -445,12 +453,18 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
                     <div className="text-[12px] font-normal leading-[1.2] text-foreground">
                       {client.trade_name || client.legal_name || client.name || client.id}
                     </div>
-                    {client.document && (
-                      <div className="mt-1 text-[11px] font-normal text-muted-foreground">
-                        {client.document}
-                        {client.city ? ` • ${client.city}/${client.state || ""}` : ""}
-                      </div>
-                    )}
+                    <div className="mt-1 text-[11px] font-normal text-muted-foreground">
+                      {[
+                        client.legal_name && client.trade_name !== client.legal_name
+                          ? client.legal_name
+                          : null,
+                        client.document,
+                        client.acronym,
+                        client.city && `${client.city}/${client.state || ""}`,
+                      ]
+                        .filter(Boolean)
+                        .join(" • ") || "Dados cadastrais não informados"}
+                    </div>
                   </div>
                 </div>
               ))}
