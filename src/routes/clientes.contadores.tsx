@@ -458,7 +458,8 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
                         client.legal_name && client.trade_name !== client.legal_name
                           ? client.legal_name
                           : null,
-                        client.document,
+                        client.document ? `CNPJ: ${client.document}` : null,
+                        client.state_registration ? `IE: ${client.state_registration}` : null,
                         client.acronym,
                         client.city && `${client.city}/${client.state || ""}`,
                       ]
