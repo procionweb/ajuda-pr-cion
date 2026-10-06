@@ -421,9 +421,9 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
           </div>
         </div>
       </section>
-      <div>
+      <div className="mt-4">
         <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
-          <div className="flex items-center justify-between border-b px-5 py-4">
+          <div className="flex items-center justify-between px-5 py-4">
             <div>
               <h2 className="font-medium">Clientes vinculados</h2>
               <p className="text-xs text-muted-foreground">
@@ -435,7 +435,7 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
             </span>
           </div>
           {linkedClients.length ? (
-            <div className="divide-y">
+            <div>
               {linkedClients.map((client: any, index: number) => (
                 <div className="flex items-center gap-3 px-5 py-4" key={client.id}>
                   <span className="grid size-8 place-items-center rounded-md bg-muted text-[11px] text-muted-foreground">
