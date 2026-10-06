@@ -32,7 +32,11 @@ export async function listAccountants() {
 }
 export async function createAccountant(input: Omit<Accountant, "id">) {
   const { data, error } = await supabase.from("crm_accountants").insert(input).select("*").single();
-  if (error) throw error;
+  if (error) {
+    throw new Error(
+      `Não foi possível salvar o contador: ${error.message}${error.details ? ` (${error.details})` : ""}`,
+    );
+  }
   return data as Accountant;
 }
 export async function listAccountantClientOptions() {
