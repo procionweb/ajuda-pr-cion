@@ -455,18 +455,7 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
                   <span className="grid size-8 place-items-center rounded-md bg-muted text-[11px] text-muted-foreground">
                     {index + 1}
                   </span>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] leading-[1.2]">
-                      <span className="text-muted-foreground">
-                        CNPJ: {client.document ? formatCnpj(client.document) : "Não informado"}
-                      </span>
-                      <span className="text-muted-foreground">
-                        IE: {client.state_registration || "Não informada"}
-                      </span>
-                      <span className="text-muted-foreground">
-                        CNAE: {client.cnae || "Não informado"}
-                      </span>
-                    </div>
+                  <div className="min-w-0">
                     <div className="mt-1 text-[12px] font-normal leading-[1.2] text-foreground">
                       {client.trade_name || client.legal_name || client.name || client.id}
                     </div>
@@ -488,6 +477,13 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
                           .join(" • ")}
                       </div>
                     )}
+                  </div>
+                  <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-x-5 gap-y-1 text-[12px] text-muted-foreground">
+                    <span>
+                      CNPJ: {client.document ? formatCnpj(client.document) : "Não informado"}
+                    </span>
+                    <span>IE: {client.state_registration || "Não informada"}</span>
+                    <span>CNAE: {client.cnae || "Não informado"}</span>
                   </div>
                 </div>
               ))}
