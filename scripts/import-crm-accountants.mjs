@@ -13,9 +13,16 @@ for (const company of companies) {
   const accountantPayload = payload?.tcl_contador ?? payload?.cli_contador ?? {}
   const name = String(company.accountantName ?? company.accountant_name ?? accountantPayload.cli_ctd_res ?? accountantPayload.tcl_ctd_res ?? '').trim()
   const office = String(company.accountantOffice ?? company.accountant_office ?? accountantPayload.cli_ctd_nome ?? accountantPayload.tcl_ctd_nome ?? '').trim()
+  const address = String(accountantPayload.cli_ctd_end ?? accountantPayload.tcl_ctd_end ?? accountantPayload.cli_ctd_endereco ?? accountantPayload.tcl_ctd_endereco ?? '').trim() || null
+  const number = String(accountantPayload.cli_ctd_num ?? accountantPayload.tcl_ctd_num ?? '').trim() || null
+  const complement = String(accountantPayload.cli_ctd_compl ?? accountantPayload.tcl_ctd_compl ?? '').trim() || null
+  const neighborhood = String(accountantPayload.cli_ctd_bairro ?? accountantPayload.tcl_ctd_bairro ?? '').trim() || null
+  const city = String(accountantPayload.cli_ctd_cid ?? accountantPayload.tcl_ctd_cid ?? '').trim() || null
+  const state = String(accountantPayload.cli_ctd_uf ?? accountantPayload.tcl_ctd_uf ?? '').trim() || null
+  const postal_code = String(accountantPayload.cli_ctd_cep ?? accountantPayload.tcl_ctd_cep ?? '').trim() || null
   if (!name && !office) continue
   const keyName = `${name || office}|${office}`.toLowerCase()
-  const current = grouped.get(keyName) ?? { name: name || office, office: office || null, phone: company.accountantPhone ?? company.accountant_phone ?? null, email: company.accountantEmail ?? company.accountant_email ?? null, clients: [] }
+  const current = grouped.get(keyName) ?? { name: name || office, office: office || null, phone: company.accountantPhone ?? company.accountant_phone ?? null, email: company.accountantEmail ?? company.accountant_email ?? null, address, number, complement, neighborhood, city, state, postal_code, clients: [] }
   current.phone ||= accountantPayload.cli_ctd_tel ?? accountantPayload.tcl_ctd_tel ?? company.accountantPhone ?? company.accountant_phone ?? null
   current.email ||= accountantPayload.cli_ctd_email ?? accountantPayload.tcl_ctd_email ?? company.accountantEmail ?? company.accountant_email ?? null
   current.clients.push(String(company.id ?? company.client_company_id ?? company.company_id))
@@ -26,8 +33,12 @@ for (const accountant of grouped.values()) {
   const { data: existing } = await supabase.from('crm_accountants').select('id').eq('name', accountant.name).eq('office', accountant.office).maybeSingle()
   const { data: created, error: createError } = existing
     ? { data: existing, error: null }
-    : await supabase.from('crm_accountants').insert({ name: accountant.name, office: accountant.office, phone: accountant.phone, email: accountant.email }).select('id').single()
+    : await supabase.from('crm_accountants').insert({ name: accountant.name, office: accountant.office, phone: accountant.phone, email: accountant.email, address: accountant.address, number: accountant.number, complement: accountant.complement, neighborhood: accountant.neighborhood, city: accountant.city, state: accountant.state, postal_code: accountant.postal_code }).select('id').single()
   if (createError) throw createError
+  if (existing) {
+    const { error: updateError } = await supabase.from('crm_accountants').update({ office: accountant.office, phone: accountant.phone, email: accountant.email, address: accountant.address, number: accountant.number, complement: accountant.complement, neighborhood: accountant.neighborhood, city: accountant.city, state: accountant.state, postal_code: accountant.postal_code }).eq('id', created.id)
+    if (updateError) throw updateError
+  }
   const links = accountant.clients.filter(Boolean).map((client_company_id) => ({ accountant_id: created.id, client_company_id }))
   if (links.length) { const { error: linkError } = await supabase.from('crm_accountant_clients').upsert(links); if (linkError) throw linkError }
   imported += 1

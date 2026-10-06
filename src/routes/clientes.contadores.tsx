@@ -336,7 +336,7 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
           </Button>
         }
       />
-      <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[420px_minmax(0,1fr)]">
         <section className="rounded-xl border bg-card p-5 shadow-sm">
               <div className="mb-4 flex items-center gap-3">
                 <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary">
@@ -364,6 +364,22 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
                   <dt className="text-[11px] text-muted-foreground">Documento</dt>
                   <dd className="mt-1 text-[12px] font-normal">{detail.document || "Não informado"}</dd>
             </div>
+            <div className="border-t border-border/60 pt-3">
+              <dt className="text-[11px] text-muted-foreground">Endereço</dt>
+              <dd className="mt-1 text-[12px] font-normal">
+                {[detail.address, detail.number].filter(Boolean).join(", ") || "Não informado"}
+              </dd>
+              {(detail.complement || detail.neighborhood) && (
+                <dd className="mt-1 text-[11px] text-muted-foreground">
+                  {[detail.complement, detail.neighborhood].filter(Boolean).join(" • ")}
+                </dd>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><dt className="text-[11px] text-muted-foreground">Cidade/UF</dt><dd className="mt-1 text-[12px] font-normal">{[detail.city, detail.state].filter(Boolean).join("/") || "Não informado"}</dd></div>
+              <div><dt className="text-[11px] text-muted-foreground">CEP</dt><dd className="mt-1 text-[12px] font-normal">{detail.postal_code || "Não informado"}</dd></div>
+            </div>
+            {detail.notes && <div><dt className="text-[11px] text-muted-foreground">Observações</dt><dd className="mt-1 text-[12px] font-normal">{detail.notes}</dd></div>}
           </dl>
         </section>
         <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
