@@ -89,8 +89,8 @@ function AccountantsPage() {
     const cpf = form.responsible_document.replace(/\D/g, "");
     if (cpf.length !== 11) return toast.error("Informe o CPF completo com 11 dígitos.");
     const rg = form.responsible_rg.replace(/[^0-9xX]/g, "");
-    if (rg.length < 7 || rg.length > 9 || !/^\d+[\dxX]$/.test(rg))
-      return toast.error("Informe o RG completo, com 7 a 9 caracteres e dígito final.");
+    if (!/^\d{8}[\dxX]$/.test(rg))
+      return toast.error("Informe o RG completo no formato 12.345.678-9 (8 números e o dígito final).");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email.trim()))
       return toast.error("Informe um e-mail completo e válido, como nome@empresa.com.br.");
     const requiredFields = [
