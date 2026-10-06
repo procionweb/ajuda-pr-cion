@@ -99,6 +99,7 @@ export function buildCloseDealForm(lead: CompanyLeadDetails): Record<string, str
     ...closeDealResponsibleFields,
     ...closeDealHadronFields,
     ["Observação", "notes"],
+    ["ID do contador", "accountant_id"],
   ];
   return Object.fromEntries(
     allFields.map(([, key]) => {

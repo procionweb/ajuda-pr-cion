@@ -4,6 +4,7 @@ import { Building2, CheckCircle, FileText, Mail, MapPin, Phone, UserRound } from
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { RegistrationSummary } from "@/components/portal/RegistrationSummary";
+import { AccountantSelect } from "@/components/portal/AccountantSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +17,6 @@ import {
   taxRegimeOptions,
   closeDealCompanyFields,
   closeDealContactFields,
-  closeDealResponsibleFields,
   closeDealHadronFields,
 } from "@/lib/close-deal-form";
 
@@ -144,7 +144,6 @@ function CloseDealPage() {
   const sections = [
     { title: "Cliente e empresa", icon: Building2, fields: closeDealCompanyFields },
     { title: "Endereço e contatos", icon: MapPin, fields: closeDealContactFields },
-    { title: "Responsável e contabilidade", icon: UserRound, fields: closeDealResponsibleFields },
     { title: "Implantação do Hádron", icon: FileText, fields: closeDealHadronFields },
   ];
   return (
@@ -270,6 +269,21 @@ function CloseDealPage() {
                 </div>
               </section>
             ))}
+            <AccountantSelect
+              value={form.accountant_id || ""}
+              name={form.accountant_name || ""}
+              office={form.accounting_office || ""}
+              onChange={(accountant) =>
+                setForm((previous) => ({
+                  ...previous,
+                  accountant_id: accountant?.id || "",
+                  accountant_name: accountant?.name || "",
+                  accounting_office: accountant?.office || "",
+                  accountant_phone: accountant?.phone || "",
+                  accountant_email: accountant?.email || "",
+                }))
+              }
+            />
             <section className="rounded-2xl border bg-card p-5">
               <Label htmlFor="deal-notes" className="text-xs">
                 Observação
