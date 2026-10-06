@@ -577,7 +577,24 @@ function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackA
     requests_count: "Quantidade de solicitações",
   };
   const formatValue = (key: string, value: unknown) => {
+    if (
+      ["calls_count", "emails_count", "requests_count"].includes(key) &&
+      (value === null || value === undefined || value === "")
+    )
+      return "0";
     if (value === null || value === undefined || value === "") return "Não informado";
+    if (key === "first_contact_at") {
+      const date = new Date(String(value));
+      return Number.isNaN(date.getTime())
+        ? String(value)
+        : date.toLocaleString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+    }
     if (key === "stage") return stageLabels[String(value) as CompanyLeadStage] || String(value);
     return typeof value === "object" ? JSON.stringify(value) : String(value);
   };
