@@ -342,11 +342,17 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
         <h2 className="mb-5 text-base font-medium">Dados do contador e responsabilidade</h2>
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="border-border/60 lg:border-r lg:pr-6">
-            <p className="mb-4 text-xs uppercase tracking-wide text-muted-foreground">Contador</p>
+            <p className="mb-4 text-xs uppercase tracking-wide text-muted-foreground">
+              Responsável
+            </p>
             <dl className="space-y-3">
               <div>
                 <dt className="text-[11px] text-muted-foreground">Nome</dt>
-                <dd className="mt-1 text-[12px]">{detail.name}</dd>
+                <dd className="mt-1 text-[12px]">
+                  {detail.responsible_name ||
+                    detail.notes?.replace(/^Responsável:\s*/i, "") ||
+                    "Não informado"}
+                </dd>
               </div>
               <div>
                 <dt className="text-[11px] text-muted-foreground">CPF</dt>
