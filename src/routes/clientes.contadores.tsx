@@ -103,6 +103,18 @@ function AccountantsPage() {
     }
   };
   if (detail) return <AccountantDetail detail={detail} onBack={() => setDetail(null)} />;
+  if (open)
+    return (
+      <AccountantCreateScreen
+        form={form}
+        setForm={setForm}
+        clientOptions={clientOptions}
+        selectedClients={selectedClients}
+        setSelectedClients={setSelectedClients}
+        onSave={save}
+        onCancel={() => setOpen(false)}
+      />
+    );
   return (
     <AppShell fullWidth>
       <PageHeader
@@ -414,6 +426,134 @@ function AccountantsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </AppShell>
+  );
+}
+
+function AccountantCreateScreen({
+  form,
+  setForm,
+  clientOptions,
+  selectedClients,
+  setSelectedClients,
+  onSave,
+  onCancel,
+}: any) {
+  const fields = [
+    ["CPF do responsável", "responsible_document"],
+    ["RG do responsável", "responsible_rg"],
+    ["Responsável", "responsible_name"],
+    ["Endereço", "address"],
+    ["Número", "number"],
+    ["Complemento", "complement"],
+    ["Bairro", "neighborhood"],
+    ["Cidade", "city"],
+    ["UF", "state"],
+    ["CEP", "postal_code"],
+  ];
+  return (
+    <AppShell fullWidth>
+      <PageHeader
+        title="Cadastrar contador"
+        description="Cadastre todos os dados do contador e vincule as empresas da base."
+        actions={
+          <Button variant="outline" onClick={onCancel}>
+            Voltar para contadores
+          </Button>
+        }
+      />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="rounded-xl border bg-card p-6 shadow-sm">
+          <h2 className="mb-5 text-lg font-medium">Dados do contador</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label>Nome</Label>
+              <Input
+                className="mt-1"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Escritório</Label>
+              <Input
+                className="mt-1"
+                value={form.office}
+                onChange={(e) => setForm({ ...form, office: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Telefone</Label>
+              <Input
+                className="mt-1"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>E-mail</Label>
+              <Input
+                className="mt-1"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
+          </div>
+          <h3 className="mb-3 mt-6 border-t pt-5 font-medium">Responsável e endereço</h3>
+          <div className="grid gap-4 md:grid-cols-3">
+            {fields.map(([label, key]) => (
+              <div key={key}>
+                <Label>{label}</Label>
+                <Input
+                  className="mt-1"
+                  value={form[key] || ""}
+                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <Button onClick={onSave}>Salvar contador</Button>
+          </div>
+        </section>
+        <section className="rounded-xl border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-medium">Empresas vinculadas</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Selecione as empresas que ficarão ligadas a este contador.
+          </p>
+          <div className="mt-4 max-h-[520px] space-y-2 overflow-y-auto">
+            {clientOptions.map((client: any) => (
+              <label
+                className="flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm hover:bg-muted/40"
+                key={client.id}
+              >
+                <input
+                  className="mt-1"
+                  type="checkbox"
+                  checked={selectedClients.includes(client.id)}
+                  onChange={(e) =>
+                    setSelectedClients(
+                      e.target.checked
+                        ? [...selectedClients, client.id]
+                        : selectedClients.filter((id: string) => id !== client.id),
+                    )
+                  }
+                />
+                <span>
+                  {client.trade_name || client.legal_name}
+                  <span className="block text-xs text-muted-foreground">
+                    {client.document || "CNPJ não informado"}
+                    {client.city ? ` • ${client.city}/${client.state || ""}` : ""}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </section>
+      </div>
     </AppShell>
   );
 }
