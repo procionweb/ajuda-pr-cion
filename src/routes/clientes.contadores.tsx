@@ -93,7 +93,6 @@ function AccountantsPage() {
       "responsible_rg",
       "address",
       "number",
-      "complement",
       "neighborhood",
       "city",
       "state",
@@ -488,6 +487,51 @@ function AccountantCreateScreen({
     };
   }, []);
   const [clientQuery, setClientQuery] = useState("");
+  const [cepStatus, setCepStatus] = useState("");
+  const mask = (value: string, pattern: string) => {
+    const digits = value.replace(/\D/g, "");
+    let index = 0;
+    let output = "";
+    for (const character of pattern) {
+      if (index >= digits.length) break;
+      output += character === "#" ? digits[index++] : character;
+    }
+    return output;
+  };
+  useEffect(() => {
+    const cep = form.postal_code.replace(/\D/g, "");
+    if (cep.length !== 8) {
+      setCepStatus("");
+      return;
+    }
+    const controller = new AbortController();
+    setCepStatus("Buscando endereço...");
+    fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error();
+        return response.json();
+      })
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        if (data.erro) {
+          setCepStatus("CEP não encontrado. Preencha o endereço manualmente.");
+          return;
+        }
+        setForm((previous: any) => ({
+          ...previous,
+          address: data.logradouro || previous.address,
+          neighborhood: data.bairro || previous.neighborhood,
+          city: data.localidade || previous.city,
+          state: data.uf || previous.state,
+        }));
+        setCepStatus("Endereço preenchido pelo CEP.");
+      })
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setCepStatus("Não foi possível consultar o CEP. Preencha o endereço manualmente.");
+      });
+    return () => controller.abort();
+  }, [form.postal_code]);
   const [clientSelectOpen, setClientSelectOpen] = useState(false);
   const visibleClients = clientOptions.filter((client: any) =>
     `${client.trade_name || ""} ${client.legal_name || ""} ${client.document || ""}`
@@ -558,7 +602,18 @@ function AccountantCreateScreen({
               <Input
                 className="mt-1"
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    phone: mask(
+                      e.target.value,
+                      e.target.value.replace(/\D/g, "").length > 10
+                        ? "(##) #####-####"
+                        : "(##) ####-####",
+                    ),
+                  })
+                }
+                placeholder="(11) 99999-9999"
               />
             </div>
             <div>
@@ -582,13 +637,35 @@ function AccountantCreateScreen({
             {fields.map(([label, key]) => (
               <div key={key}>
                 <Label>
-                  {label} <span className="text-destructive">*</span>
+                  {label} {key !== "complement" && <span className="text-destructive">*</span>}
                 </Label>
                 <Input
                   className="mt-1"
                   value={form[key] || ""}
-                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      [key]:
+                        key === "responsible_document"
+                          ? mask(e.target.value, "###.###.###-##")
+                          : key === "responsible_rg"
+                            ? e.target.value
+                                .replace(/[^0-9xX]/g, "")
+                                .slice(0, 9)
+                                .replace(/^(\d{2})(\d)/, "$1.$2")
+                                .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+                                .replace(/(\d{3})([\dxX])$/, "$1-$2")
+                            : key === "postal_code"
+                              ? mask(e.target.value, "#####-###")
+                              : e.target.value,
+                    })
+                  }
                 />
+                {key === "postal_code" && (
+                  <p className="mt-1 text-xs text-muted-foreground" role="status">
+                    {cepStatus}
+                  </p>
+                )}
               </div>
             ))}
           </div>
