@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowLeft, Plus, RefreshCw, Search, UsersRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  Check,
+  Mail,
+  MapPin,
+  Plus,
+  RefreshCw,
+  Search,
+  UsersRound,
+  UserRound,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { Button } from "@/components/ui/button";
@@ -464,7 +475,10 @@ function AccountantCreateScreen({
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="mb-5 text-lg font-medium">Dados do contador</h2>
+          <h2 className="mb-5 flex items-center gap-2 text-lg font-medium">
+            <UserRound className="size-5 text-primary" />
+            Dados do contador
+          </h2>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <Label>Nome</Label>
@@ -499,7 +513,10 @@ function AccountantCreateScreen({
               />
             </div>
           </div>
-          <h3 className="mb-3 mt-6 border-t pt-5 font-medium">Responsável e endereço</h3>
+          <h3 className="mb-3 mt-6 flex items-center gap-2 border-t pt-5 font-medium">
+            <MapPin className="size-5 text-primary" />
+            Responsável e endereço
+          </h3>
           <div className="grid gap-4 md:grid-cols-3">
             {fields.map(([label, key]) => (
               <div key={key}>
@@ -520,28 +537,36 @@ function AccountantCreateScreen({
           </div>
         </section>
         <section className="rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="text-lg font-medium">Empresas vinculadas</h2>
+          <h2 className="flex items-center gap-2 text-lg font-medium">
+            <Building2 className="size-5 text-primary" />
+            Empresas vinculadas
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Selecione as empresas que ficarão ligadas a este contador.
           </p>
           <div className="mt-4 max-h-[520px] space-y-2 overflow-y-auto">
             {clientOptions.map((client: any) => (
               <label
-                className="flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm hover:bg-muted/40"
+                className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${selectedClients.includes(client.id) ? "border-primary bg-primary/10" : "hover:bg-muted/40"}`}
                 key={client.id}
               >
-                <input
-                  className="mt-1"
-                  type="checkbox"
-                  checked={selectedClients.includes(client.id)}
-                  onChange={(e) =>
-                    setSelectedClients(
-                      e.target.checked
-                        ? [...selectedClients, client.id]
-                        : selectedClients.filter((id: string) => id !== client.id),
-                    )
-                  }
-                />
+                <span
+                  className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded border ${selectedClients.includes(client.id) ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}
+                >
+                  <input
+                    className="sr-only"
+                    type="checkbox"
+                    checked={selectedClients.includes(client.id)}
+                    onChange={(e) =>
+                      setSelectedClients(
+                        e.target.checked
+                          ? [...selectedClients, client.id]
+                          : selectedClients.filter((id: string) => id !== client.id),
+                      )
+                    }
+                  />
+                  {selectedClients.includes(client.id) && <Check className="size-3.5" />}
+                </span>
                 <span>
                   {client.trade_name || client.legal_name}
                   <span className="block text-xs text-muted-foreground">
