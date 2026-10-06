@@ -451,15 +451,12 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
           {linkedClients.length ? (
             <div>
               {linkedClients.map((client: any, index: number) => (
-                <div className="flex items-center gap-3 px-5 py-4" key={client.id}>
+                <div className="flex items-start gap-3 px-5 py-4" key={client.id}>
                   <span className="grid size-8 place-items-center rounded-md bg-muted text-[11px] text-muted-foreground">
                     {index + 1}
                   </span>
                   <div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] leading-[1.2]">
-                      <span className="text-foreground">
-                        {client.trade_name || client.legal_name || client.name || client.id}
-                      </span>
                       <span className="text-muted-foreground">
                         CNPJ: {client.document ? formatCnpj(client.document) : "Não informado"}
                       </span>
@@ -469,6 +466,9 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
                       <span className="text-muted-foreground">
                         CNAE: {client.cnae || "Não informado"}
                       </span>
+                    </div>
+                    <div className="mt-1 text-[12px] font-normal leading-[1.2] text-foreground">
+                      {client.trade_name || client.legal_name || client.name || client.id}
                     </div>
                     <div className="mt-1 text-[11px] font-normal text-muted-foreground">
                       {[
