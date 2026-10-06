@@ -624,6 +624,37 @@ function AccountantCreateScreen({
             <p className="mt-1">
               As empresas selecionadas serão vinculadas ao contador após salvar.
             </p>
+            <div className="mt-3 space-y-2">
+              {clientOptions
+                .filter((client: any) => selectedClients.includes(client.id))
+                .map((client: any) => (
+                  <div
+                    key={client.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm text-foreground">
+                        {client.trade_name || client.legal_name}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {client.document || "CNPJ não informado"}
+                        {client.city ? ` • ${client.city}/${client.state || ""}` : ""}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0 cursor-pointer text-destructive hover:text-destructive"
+                      onClick={() =>
+                        setSelectedClients(selectedClients.filter((id: string) => id !== client.id))
+                      }
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                ))}
+            </div>
           </div>
         </section>
         <div className="flex justify-end gap-2 pb-4">
