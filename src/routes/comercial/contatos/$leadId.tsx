@@ -401,10 +401,28 @@ export function LeadDetailsPage() {
 
                     <div className="h-px bg-border my-2" />
 
-                    <SideInfoItem label="Primeiro Contato" value="—" />
-                    <SideInfoItem label="Quantidade de Ligações" value="0" />
-                    <SideInfoItem label="Quantidade de E-mails" value="0" />
-                    <SideInfoItem label="Quantidade de Solicitações" value="0" />
+                    <SideInfoItem
+                      label="Primeiro Contato"
+                      value={
+                        lead.commercial_data?.first_contact_at
+                          ? new Date(String(lead.commercial_data.first_contact_at)).toLocaleString(
+                              "pt-BR",
+                            )
+                          : "—"
+                      }
+                    />
+                    <SideInfoItem
+                      label="Quantidade de Ligações"
+                      value={String(lead.commercial_data?.calls_count ?? 0)}
+                    />
+                    <SideInfoItem
+                      label="Quantidade de E-mails"
+                      value={String(lead.commercial_data?.emails_count ?? 0)}
+                    />
+                    <SideInfoItem
+                      label="Quantidade de Solicitações"
+                      value={String(lead.commercial_data?.requests_count ?? 0)}
+                    />
                   </div>
                 </section>
               </div>
@@ -503,6 +521,7 @@ function SideInfoItem({ label, value }: { label: string; value: string }) {
 }
 
 function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackActor: string }) {
+  const [showAll, setShowAll] = useState(false);
   const [history, setHistory] = useState<Awaited<ReturnType<typeof companyLeadsApi.history>>>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyFailed, setHistoryFailed] = useState(false);
@@ -552,6 +571,10 @@ function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackA
     conversion_status: "Fechamento",
     registration_status: "Situação cadastral",
     inactivation_reason: "Motivo da inativação",
+    first_contact_at: "Primeiro contato",
+    calls_count: "Quantidade de ligações",
+    emails_count: "Quantidade de e-mails",
+    requests_count: "Quantidade de solicitações",
   };
   const formatValue = (key: string, value: unknown) => {
     if (value === null || value === undefined || value === "") return "Não informado";
@@ -593,9 +616,12 @@ function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackA
     })),
   ];
 
-  return (
+  const orderedItems = [...items].sort(
+    (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime(),
+  );
+  const renderTimeline = (visibleItems: typeof items) => (
     <div className="space-y-8 relative before:absolute before:inset-0 before:left-[17px] before:w-0.5 before:bg-muted">
-      {items.map((item) => (
+      {visibleItems.map((item) => (
         <div key={item.id} className="relative pl-10">
           <div className="absolute left-0 top-0 h-9 w-9 rounded-full bg-background border-2 border-primary flex items-center justify-center z-10">
             {item.kind === "created" ? (
@@ -633,5 +659,30 @@ function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackA
         </p>
       )}
     </div>
+  );
+  return (
+    <>
+      {renderTimeline(orderedItems.slice(0, 3))}
+      {orderedItems.length > 3 && (
+        <div className="mt-5 flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => setShowAll(true)}>
+            Ver todos ({orderedItems.length})
+          </Button>
+        </div>
+      )}
+      <Dialog open={showAll} onOpenChange={setShowAll}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Timeline de atividades</DialogTitle>
+            <DialogDescription>
+              Histórico completo do contato, do mais recente ao mais antigo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[65vh] overflow-y-auto pr-3 py-4">
+            {renderTimeline(orderedItems)}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

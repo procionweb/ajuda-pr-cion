@@ -80,6 +80,10 @@ function EditCommercialContact() {
           state: String(c.state ?? data.state ?? ""),
           activities: String(c.activities ?? data.notes ?? ""),
           notes: String(c.notes ?? ""),
+          first_contact_at: String(c.first_contact_at ?? ""),
+          calls_count: String(c.calls_count ?? 0),
+          emails_count: String(c.emails_count ?? 0),
+          requests_count: String(c.requests_count ?? 0),
         });
       })
       .catch(() => {
@@ -95,6 +99,14 @@ function EditCommercialContact() {
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (saving) return;
+    if (
+      ["calls_count", "emails_count", "requests_count"].some(
+        (key) => !/^\d+$/.test(form[key] || ""),
+      )
+    ) {
+      toast.error("Informe quantidades inteiras iguais ou maiores que zero.");
+      return;
+    }
     if (form.phone && ![10, 11].includes(form.phone.replace(/\D/g, "").length)) {
       toast.error("Informe o telefone completo, com DDD.");
       return;
@@ -138,7 +150,17 @@ function EditCommercialContact() {
       <Input
         id={`edit-${key}`}
         className="mt-1 h-11 rounded-xl text-sm"
-        type={key === "email" ? "email" : "text"}
+        type={
+          key === "email"
+            ? "email"
+            : key === "first_contact_at"
+              ? "datetime-local"
+              : key.endsWith("_count")
+                ? "number"
+                : "text"
+        }
+        min={key.endsWith("_count") ? 0 : undefined}
+        step={key.endsWith("_count") ? 1 : undefined}
         value={form[key] || ""}
         onChange={(e) =>
           setForm((previous) => ({
@@ -249,6 +271,18 @@ function EditCommercialContact() {
                   ["phone", "Telefone"],
                   ["email", "E-mail"],
                 ].map(([key, label]) => field(key, label))}
+              </div>
+            </section>
+            <section className="rounded-2xl border bg-card p-5">
+              <h2 className="mb-4 flex items-center gap-3 text-base font-medium">
+                <Phone className="size-5 text-primary" />
+                Acompanhamento do contato
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                {field("first_contact_at", "Primeiro contato")}
+                {field("calls_count", "Quantidade de ligações")}
+                {field("emails_count", "Quantidade de e-mails")}
+                {field("requests_count", "Quantidade de solicitações")}
               </div>
             </section>
             <section className="space-y-4 rounded-2xl border bg-card p-5">
