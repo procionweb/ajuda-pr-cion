@@ -336,8 +336,8 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
           </Button>
         }
       />
-      <div className="grid gap-4 lg:grid-cols-[420px_minmax(0,1fr)]">
-        <section className="rounded-xl border bg-card p-5 shadow-sm">
+      <div className="grid gap-4 lg:grid-cols-[520px_minmax(420px,1fr)]">
+        <section className="rounded-xl border bg-card p-6 shadow-sm">
               <div className="mb-4 flex items-center gap-3">
                 <div className="grid size-10 place-items-center rounded-full bg-primary/10 text-primary">
                   <UsersRound className="size-5" />
@@ -380,6 +380,7 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
               <div><dt className="text-[11px] text-muted-foreground">CEP</dt><dd className="mt-1 text-[12px] font-normal">{detail.postal_code || "Não informado"}</dd></div>
             </div>
             {detail.notes && <div><dt className="text-[11px] text-muted-foreground">Responsável da empresa</dt><dd className="mt-1 text-[12px] font-normal">{detail.notes.replace(/^Responsável:\s*/i, "")}</dd></div>}
+            {(detail.responsible_document || detail.responsible_rg) && <div className="grid grid-cols-2 gap-3"><div><dt className="text-[11px] text-muted-foreground">CPF do responsável</dt><dd className="mt-1 text-[12px] font-normal">{detail.responsible_document || "Não informado"}</dd></div><div><dt className="text-[11px] text-muted-foreground">RG do responsável</dt><dd className="mt-1 text-[12px] font-normal">{detail.responsible_rg || "Não informado"}</dd></div></div>}
           </dl>
         </section>
         <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
