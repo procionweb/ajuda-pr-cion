@@ -72,7 +72,11 @@ export function buildCloseDealForm(lead: CompanyLeadDetails): Record<string, str
     cnpj: lead.cnpj,
     legal_name: lead.legal_name,
     trade_name: lead.trade_name,
-    cnae: lead.cnae_code,
+    cnae: lead.cnae_code || raw.cnae_fiscal || raw.tcl_cnae,
+    state_registration: raw.inscricao_estadual || raw.ie || raw.tcl_ie,
+    city_registration:
+      raw.municipal_registration || raw.inscricao_municipal || raw.im || raw.tcl_im,
+    antt: raw.rntrc || raw.tcl_antt,
     company_size: lead.company_size,
     website: lead.website,
     postal_code: lead.postal_code,
@@ -108,4 +112,38 @@ export function buildCloseDealForm(lead: CompanyLeadDetails): Record<string, str
       return [key, String(value)];
     }),
   );
+}
+
+export const taxRegimeOptions = [
+  "Simples Nacional",
+  "Lucro Presumido",
+  "Lucro Real",
+  "MEI",
+  "Lucro Arbitrado",
+  "Imune ou Isenta",
+];
+export function formatFiscalField(key: string, value: string): string {
+  if (key === "tax_regime")
+    return (
+      (
+        {
+          "0": "Simples Nacional",
+          "1": "Lucro Presumido",
+          "2": "Lucro Real",
+          "3": "MEI",
+          "4": "Lucro Arbitrado",
+          "5": "Imune ou Isenta",
+        } as Record<string, string>
+      )[value] || value
+    );
+  if (key === "cnae")
+    return value
+      .replace(/\D/g, "")
+      .slice(0, 7)
+      .replace(/^(\d{4})(\d)/, "$1-$2")
+      .replace(/^(\d{4}-\d)(\d)/, "$1/$2");
+  if (key === "state_registration" || key === "city_registration")
+    return value.toUpperCase().replace(/[^A-Z0-9.\/ -]/g, "");
+  if (key === "antt") return value.replace(/\D/g, "");
+  return value;
 }

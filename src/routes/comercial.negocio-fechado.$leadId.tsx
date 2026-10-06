@@ -12,6 +12,8 @@ import { usePortalAuth } from "@/lib/portal-auth";
 import { companyLeadsApi } from "@/lib/company-leads-api";
 import {
   buildCloseDealForm,
+  formatFiscalField,
+  taxRegimeOptions,
   closeDealCompanyFields,
   closeDealContactFields,
   closeDealResponsibleFields,
@@ -30,6 +32,8 @@ function CloseDealPage() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [fiscalReference, setFiscalReference] = useState("");
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -37,7 +41,21 @@ function CloseDealPage() {
     companyLeadsApi
       .details(leadId)
       .then((lead) => {
-        if (active) setForm(buildCloseDealForm(lead));
+        if (active) {
+          setForm(
+            Object.fromEntries(
+              Object.entries(buildCloseDealForm(lead)).map(([key, value]) => [
+                key,
+                formatFiscalField(key, value),
+              ]),
+            ),
+          );
+          setFiscalReference(
+            lead.tax_regime_year
+              ? `Referência do regime: ${lead.tax_regime_year}. Confirme o regime atual.`
+              : "",
+          );
+        }
       })
       .catch(() => {
         if (active) {
@@ -52,6 +70,42 @@ function CloseDealPage() {
       active = false;
     };
   }, [leadId]);
+  async function lookupFiscalData() {
+    const cnpj = (form.cnpj || "").replace(/\D/g, "");
+    if (cnpj.length !== 14) {
+      toast.error("Informe o CNPJ completo para consultar.");
+      return;
+    }
+    setLookingUp(true);
+    try {
+      const response = await fetch(`https://minhareceita.org/${cnpj}`, {
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) throw new Error("Consulta indisponível");
+      const data = await response.json();
+      const regime =
+        data.opcao_pelo_mei === true
+          ? "MEI"
+          : data.opcao_pelo_simples === true
+            ? "Simples Nacional"
+            : "";
+      setForm((previous) => {
+        if ((previous.cnpj || "").replace(/\D/g, "") !== cnpj) return previous;
+        return {
+          ...previous,
+          cnae: previous.cnae || formatFiscalField("cnae", String(data.cnae_fiscal || "")),
+          tax_regime: previous.tax_regime || regime,
+        };
+      });
+      toast.success("Consulta concluída. Os campos preenchidos foram preservados.");
+      if (!regime)
+        setFiscalReference("A API não confirmou o regime atual. Confira e selecione manualmente.");
+    } catch {
+      toast.error("Não foi possível consultar o CNPJ. Tente novamente ou preencha manualmente.");
+    } finally {
+      setLookingUp(false);
+    }
+  }
   async function save(finalize: boolean) {
     if (saving) return;
     if (finalize && [...requiredFields].some((key) => !form[key]?.trim())) {
@@ -72,6 +126,10 @@ function CloseDealPage() {
         toast.error("Informe telefones completos, com DDD.");
         return;
       }
+    if (form.cnae && form.cnae.replace(/\D/g, "").length !== 7) {
+      toast.error("Informe o CNAE completo, com 7 dígitos (ex.: 4751-2/01).");
+      return;
+    }
     setSaving(true);
     try {
       await companyLeadsApi.saveAction(leadId, "close_deal", form, finalize, operator || "PRCREN");
@@ -129,6 +187,17 @@ function CloseDealPage() {
                   </span>
                   {title}
                 </h2>
+                {title === "Cliente e empresa" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-4"
+                    disabled={lookingUp}
+                    onClick={() => void lookupFiscalData()}
+                  >
+                    {lookingUp ? "Consultando..." : "Consultar CNAE e Simples pelo CNPJ"}
+                  </Button>
+                )}
                 <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {fields.map(([label, key]) => (
                     <div key={key}>
@@ -136,24 +205,66 @@ function CloseDealPage() {
                         {label}
                         {requiredFields.has(key) && <span className="text-destructive"> *</span>}
                       </Label>
-                      <Input
-                        id={`deal-${key}`}
-                        className="mt-1 h-11 rounded-xl text-sm"
-                        value={form[key] || ""}
-                        type={key.includes("email") ? "email" : "text"}
-                        onChange={(event) =>
-                          setForm((previous) => ({
-                            ...previous,
-                            [key]:
-                              key === "acronym" ||
-                              key === "group_acronym" ||
-                              key === "state" ||
-                              key === "responsible_state"
-                                ? event.target.value.toUpperCase()
-                                : event.target.value,
-                          }))
-                        }
-                      />
+                      {key === "tax_regime" ? (
+                        <select
+                          id={`deal-${key}`}
+                          className="mt-1 h-11 w-full cursor-pointer rounded-xl border bg-background px-3 text-sm"
+                          value={form[key] || ""}
+                          onChange={(event) =>
+                            setForm((previous) => ({ ...previous, [key]: event.target.value }))
+                          }
+                        >
+                          <option value="">Selecione o regime</option>
+                          {form[key] && !taxRegimeOptions.includes(form[key]) && (
+                            <option value={form[key]}>{form[key]}</option>
+                          )}
+                          {taxRegimeOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <Input
+                          id={`deal-${key}`}
+                          className="mt-1 h-11 rounded-xl text-sm"
+                          value={form[key] || ""}
+                          placeholder={
+                            key === "cnae"
+                              ? "4751-2/01"
+                              : key === "antt"
+                                ? "Número do RNTRC"
+                                : undefined
+                          }
+                          inputMode={key === "cnae" || key === "antt" ? "numeric" : undefined}
+                          type={key.includes("email") ? "email" : "text"}
+                          onChange={(event) =>
+                            setForm((previous) => ({
+                              ...previous,
+                              [key]:
+                                key === "acronym" ||
+                                key === "group_acronym" ||
+                                key === "state" ||
+                                key === "responsible_state"
+                                  ? event.target.value.toUpperCase()
+                                  : formatFiscalField(key, event.target.value),
+                            }))
+                          }
+                        />
+                      )}
+                      {key === "state_registration" && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Formato conforme a UF; aceita ISENTO.
+                        </p>
+                      )}
+                      {key === "city_registration" && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Número conforme o cadastro municipal.
+                        </p>
+                      )}
+                      {key === "tax_regime" && fiscalReference && (
+                        <p className="mt-1 text-xs text-muted-foreground">{fiscalReference}</p>
+                      )}
                     </div>
                   ))}
                 </div>
