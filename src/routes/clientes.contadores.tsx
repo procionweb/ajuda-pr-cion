@@ -451,6 +451,7 @@ function AccountantCreateScreen({
   onCancel,
 }: any) {
   const [clientQuery, setClientQuery] = useState("");
+  const [clientSelectOpen, setClientSelectOpen] = useState(false);
   const visibleClients = clientOptions.filter((client: any) =>
     `${client.trade_name || ""} ${client.legal_name || ""} ${client.document || ""}`
       .toLowerCase()
@@ -551,44 +552,68 @@ function AccountantCreateScreen({
             Selecione as empresas que ficarão ligadas a este contador.
           </p>
           <Input
-            className="mt-3 h-9"
-            placeholder="Buscar empresa por nome ou CNPJ"
+            className="mt-3 h-11"
+            placeholder="Buscar por sigla, fantasia, razão social, CNPJ ou cidade..."
             value={clientQuery}
-            onChange={(e) => setClientQuery(e.target.value)}
+            onFocus={() => setClientSelectOpen(true)}
+            onChange={(e) => {
+              setClientQuery(e.target.value);
+              setClientSelectOpen(true);
+            }}
           />
-          <div className="mt-3 grid gap-2 md:grid-cols-2">
-            {visibleClients.map((client: any) => (
-              <label
-                className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${selectedClients.includes(client.id) ? "border-primary bg-primary/10" : "hover:bg-muted/40"}`}
-                key={client.id}
+          {clientSelectOpen && (
+            <div className="mt-2 rounded-lg border bg-popover p-2 shadow-lg">
+              <Input
+                autoFocus
+                className="h-10"
+                placeholder="Digite para filtrar..."
+                value={clientQuery}
+                onChange={(e) => setClientQuery(e.target.value)}
+              />
+              <div className="mt-2 grid max-h-72 gap-2 overflow-y-auto md:grid-cols-2">
+                {visibleClients.map((client: any) => (
+                  <label
+                    className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 text-sm ${selectedClients.includes(client.id) ? "border-primary bg-primary/10" : "hover:bg-muted/40"}`}
+                    key={client.id}
+                  >
+                    <span
+                      className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded border ${selectedClients.includes(client.id) ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}
+                    >
+                      <input
+                        className="sr-only"
+                        type="checkbox"
+                        checked={selectedClients.includes(client.id)}
+                        onChange={(e) =>
+                          setSelectedClients(
+                            e.target.checked
+                              ? [...selectedClients, client.id]
+                              : selectedClients.filter((id: string) => id !== client.id),
+                          )
+                        }
+                      />
+                      {selectedClients.includes(client.id) && <Check className="size-3.5" />}
+                    </span>
+                    <span>
+                      {client.trade_name || client.legal_name}
+                      <span className="block text-xs text-muted-foreground">
+                        {client.document || "CNPJ não informado"}
+                        {client.city ? ` • ${client.city}/${client.state || ""}` : ""}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="mt-2"
+                onClick={() => setClientSelectOpen(false)}
               >
-                <span
-                  className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded border ${selectedClients.includes(client.id) ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"}`}
-                >
-                  <input
-                    className="sr-only"
-                    type="checkbox"
-                    checked={selectedClients.includes(client.id)}
-                    onChange={(e) =>
-                      setSelectedClients(
-                        e.target.checked
-                          ? [...selectedClients, client.id]
-                          : selectedClients.filter((id: string) => id !== client.id),
-                      )
-                    }
-                  />
-                  {selectedClients.includes(client.id) && <Check className="size-3.5" />}
-                </span>
-                <span>
-                  {client.trade_name || client.legal_name}
-                  <span className="block text-xs text-muted-foreground">
-                    {client.document || "CNPJ não informado"}
-                    {client.city ? ` • ${client.city}/${client.state || ""}` : ""}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
+                Concluir seleção
+              </Button>
+            </div>
+          )}
           <div className="mt-4 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
             <div className="flex items-center justify-between">
               <span>Empresas selecionadas</span>
