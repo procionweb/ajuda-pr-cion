@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronDown, X } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { CollaboratorSelect } from "@/components/portal/CollaboratorPicker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -113,26 +113,6 @@ export function HadronDeploymentField({
           </div>
         </PopoverContent>
       </Popover>
-      {selected.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {selected.map((item) => (
-            <span
-              key={item}
-              className="inline-flex items-center gap-1 rounded-lg border bg-primary/5 px-2 py-1 text-xs"
-            >
-              {item}
-              <button
-                type="button"
-                aria-label={`Remover ${item}`}
-                className="cursor-pointer p-1"
-                onClick={() => onChange(selected.filter((option) => option !== item).join("; "))}
-              >
-                <X className="size-3" />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

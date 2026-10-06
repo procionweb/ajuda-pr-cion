@@ -1,6 +1,16 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Building2, CheckCircle, FileText, Mail, MapPin, Phone, UserRound } from "lucide-react";
+import {
+  Building2,
+  CheckCircle,
+  FileText,
+  Mail,
+  MapPin,
+  Phone,
+  UserRound,
+  Layers,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { RegistrationSummary } from "@/components/portal/RegistrationSummary";
@@ -188,119 +198,177 @@ function CloseDealPage() {
           }}
           style={{ overflowAnchor: "none" }}
         >
-          <div className="min-w-0 space-y-5">
+          <div className="contents [&>section]:xl:col-start-1 [&>p]:xl:col-start-1 [&>div]:xl:col-start-1">
             {sections.map(({ title, icon: Icon, fields }) => (
-              <section key={title} className="rounded-2xl border bg-card p-5">
-                <h2 className="flex items-center gap-3 text-base font-medium">
-                  <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-                    <Icon className="size-5" />
-                  </span>
-                  {title}
-                </h2>
-                {title === "Cliente e empresa" && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="mt-4"
-                    disabled={lookingUp}
-                    onClick={() => void lookupFiscalData()}
-                  >
-                    {lookingUp ? "Consultando..." : "Consultar CNAE e Simples pelo CNPJ"}
-                  </Button>
-                )}
-                <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {fields.map(([label, key]) => (
-                    <div key={key}>
-                      <Label htmlFor={`deal-${key}`} className="text-xs font-medium">
-                        {label}
-                        {requiredFields.has(key) && <span className="text-destructive"> *</span>}
-                      </Label>
-                      {deploymentSelectKeys.has(key) ? (
-                        <HadronDeploymentField
-                          field={key}
-                          value={form[key] || ""}
-                          onChange={(value, collaboratorId) =>
-                            setForm((previous) => ({
-                              ...previous,
-                              [key]: value,
-                              ...(collaboratorId !== undefined
-                                ? { [`${key}_id`]: collaboratorId }
-                                : {}),
-                            }))
-                          }
-                        />
-                      ) : key === "tax_regime" ? (
-                        <select
-                          id={`deal-${key}`}
-                          className="mt-1 h-11 w-full cursor-pointer rounded-xl border bg-background px-3 text-sm"
-                          value={form[key] || ""}
-                          onChange={(event) =>
-                            setForm((previous) => ({ ...previous, [key]: event.target.value }))
-                          }
-                        >
-                          <option value="">Selecione o regime</option>
-                          {form[key] && !taxRegimeOptions.includes(form[key]) && (
-                            <option value={form[key]}>{form[key]}</option>
-                          )}
-                          {taxRegimeOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <Input
-                          id={`deal-${key}`}
-                          className="mt-1 h-11 rounded-xl text-sm"
-                          value={form[key] || ""}
-                          placeholder={
-                            key === "cnae"
-                              ? "4751-2/01"
-                              : key === "antt"
-                                ? "Número do RNTRC"
-                                : undefined
-                          }
-                          inputMode={key === "cnae" || key === "antt" ? "numeric" : undefined}
-                          type={
-                            key === "terminals"
-                              ? "number"
-                              : key.includes("email")
-                                ? "email"
-                                : "text"
-                          }
-                          min={key === "terminals" ? 0 : undefined}
-                          step={key === "terminals" ? 1 : undefined}
-                          onChange={(event) =>
-                            setForm((previous) => ({
-                              ...previous,
-                              [key]:
-                                key === "acronym" ||
-                                key === "group_acronym" ||
-                                key === "state" ||
-                                key === "responsible_state"
-                                  ? event.target.value.toUpperCase()
-                                  : formatFiscalField(key, event.target.value),
-                            }))
-                          }
-                        />
-                      )}
-                      {key === "state_registration" && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Formato conforme a UF; aceita ISENTO.
+              <Fragment key={title}>
+                <section className="min-w-0 rounded-2xl border bg-card p-5 xl:col-start-1">
+                  <h2 className="flex items-center gap-3 text-base font-medium">
+                    <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                      <Icon className="size-5" />
+                    </span>
+                    {title}
+                  </h2>
+                  {title === "Cliente e empresa" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-4"
+                      disabled={lookingUp}
+                      onClick={() => void lookupFiscalData()}
+                    >
+                      {lookingUp ? "Consultando..." : "Consultar CNAE e Simples pelo CNPJ"}
+                    </Button>
+                  )}
+                  <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {fields.map(([label, key]) => (
+                      <div key={key}>
+                        <Label htmlFor={`deal-${key}`} className="text-xs font-medium">
+                          {label}
+                          {requiredFields.has(key) && <span className="text-destructive"> *</span>}
+                        </Label>
+                        {deploymentSelectKeys.has(key) ? (
+                          <HadronDeploymentField
+                            field={key}
+                            value={form[key] || ""}
+                            onChange={(value, collaboratorId) =>
+                              setForm((previous) => ({
+                                ...previous,
+                                [key]: value,
+                                ...(collaboratorId !== undefined
+                                  ? { [`${key}_id`]: collaboratorId }
+                                  : {}),
+                              }))
+                            }
+                          />
+                        ) : key === "tax_regime" ? (
+                          <select
+                            id={`deal-${key}`}
+                            className="mt-1 h-11 w-full cursor-pointer rounded-xl border bg-background px-3 text-sm"
+                            value={form[key] || ""}
+                            onChange={(event) =>
+                              setForm((previous) => ({ ...previous, [key]: event.target.value }))
+                            }
+                          >
+                            <option value="">Selecione o regime</option>
+                            {form[key] && !taxRegimeOptions.includes(form[key]) && (
+                              <option value={form[key]}>{form[key]}</option>
+                            )}
+                            {taxRegimeOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <Input
+                            id={`deal-${key}`}
+                            className="mt-1 h-11 rounded-xl text-sm"
+                            value={form[key] || ""}
+                            placeholder={
+                              key === "cnae"
+                                ? "4751-2/01"
+                                : key === "antt"
+                                  ? "Número do RNTRC"
+                                  : undefined
+                            }
+                            inputMode={key === "cnae" || key === "antt" ? "numeric" : undefined}
+                            type={
+                              key === "terminals"
+                                ? "number"
+                                : key.includes("email")
+                                  ? "email"
+                                  : "text"
+                            }
+                            min={key === "terminals" ? 0 : undefined}
+                            step={key === "terminals" ? 1 : undefined}
+                            onChange={(event) =>
+                              setForm((previous) => ({
+                                ...previous,
+                                [key]:
+                                  key === "acronym" ||
+                                  key === "group_acronym" ||
+                                  key === "state" ||
+                                  key === "responsible_state"
+                                    ? event.target.value.toUpperCase()
+                                    : formatFiscalField(key, event.target.value),
+                              }))
+                            }
+                          />
+                        )}
+                        {key === "state_registration" && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Formato conforme a UF; aceita ISENTO.
+                          </p>
+                        )}
+                        {key === "city_registration" && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Número conforme o cadastro municipal.
+                          </p>
+                        )}
+                        {key === "tax_regime" && fiscalReference && (
+                          <p className="mt-1 text-xs text-muted-foreground">{fiscalReference}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                {title === "Implantação do Hádron" && (
+                  <aside className="min-w-0 rounded-2xl border border-border/70 bg-card p-5 xl:col-start-2 xl:row-start-3">
+                    <div className="flex items-center gap-3">
+                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                        <Layers className="size-5" />
+                      </span>
+                      <div>
+                        <h2 className="text-base font-medium">Módulos contratados</h2>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                          Seleção da implantação em tempo real.
                         </p>
-                      )}
-                      {key === "city_registration" && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Número conforme o cadastro municipal.
+                      </div>
+                    </div>
+                    <div className="mt-5 space-y-2">
+                      {(form.modules || "")
+                        .split(";")
+                        .map((item) => item.trim())
+                        .filter(Boolean)
+                        .map((item) => (
+                          <div
+                            key={item}
+                            className="flex items-center gap-3 rounded-xl border bg-primary/5 p-3"
+                          >
+                            <Layers className="size-4 shrink-0 text-primary" />
+                            <span className="min-w-0 flex-1 break-words text-sm font-medium">
+                              {item}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 shrink-0"
+                              aria-label={`Remover módulo ${item}`}
+                              onClick={() =>
+                                setForm((previous) => ({
+                                  ...previous,
+                                  modules: (previous.modules || "")
+                                    .split(";")
+                                    .map((value) => value.trim())
+                                    .filter((value) => value && value !== item)
+                                    .join("; "),
+                                }))
+                              }
+                            >
+                              <X className="size-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      {!form.modules?.trim() && (
+                        <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+                          Os módulos que você selecionar aparecerão aqui.
                         </p>
-                      )}
-                      {key === "tax_regime" && fiscalReference && (
-                        <p className="mt-1 text-xs text-muted-foreground">{fiscalReference}</p>
                       )}
                     </div>
-                  ))}
-                </div>
-              </section>
+                  </aside>
+                )}
+              </Fragment>
             ))}
             <AccountantSelect
               value={form.accountant_id || ""}
@@ -358,34 +426,36 @@ function CloseDealPage() {
               </Button>
             </div>
           </div>
-          <RegistrationSummary
-            title={form.nickname || form.trade_name || "Nome do cliente"}
-            subtitle={[form.acronym, form.legal_name].filter(Boolean).join(" · ")}
-            items={[
-              { label: "CNPJ", value: form.cnpj, icon: Building2 },
-              {
-                label: "Cidade / UF",
-                value: [form.city, form.state].filter(Boolean).join(" / "),
-                icon: MapPin,
-              },
-              {
-                label: "Responsável",
-                value: form.responsible_name || form.admin_name,
-                icon: UserRound,
-              },
-              { label: "E-mail", value: form.admin_email || form.email, icon: Mail },
-              { label: "Telefone", value: form.phone, icon: Phone },
-              { label: "Contador", value: form.accountant_name, icon: UserRound },
-              { label: "Terminais", value: form.terminals, icon: Building2 },
-              { label: "Módulos", value: form.modules, icon: FileText },
-            ]}
-            note="Salvar rascunho mantém a etapa atual. Salvar e finalizar registra o negócio como fechado."
-          >
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-600">
-              <CheckCircle className="size-3.5" />
-              Negócio fechado
-            </span>
-          </RegistrationSummary>
+          <div className="min-w-0 xl:col-start-2 xl:row-start-1">
+            <RegistrationSummary
+              title={form.nickname || form.trade_name || "Nome do cliente"}
+              subtitle={[form.acronym, form.legal_name].filter(Boolean).join(" · ")}
+              items={[
+                { label: "CNPJ", value: form.cnpj, icon: Building2 },
+                {
+                  label: "Cidade / UF",
+                  value: [form.city, form.state].filter(Boolean).join(" / "),
+                  icon: MapPin,
+                },
+                {
+                  label: "Responsável",
+                  value: form.responsible_name || form.admin_name,
+                  icon: UserRound,
+                },
+                { label: "E-mail", value: form.admin_email || form.email, icon: Mail },
+                { label: "Telefone", value: form.phone, icon: Phone },
+                { label: "Contador", value: form.accountant_name, icon: UserRound },
+                { label: "Terminais", value: form.terminals, icon: Building2 },
+                { label: "Módulos", value: form.modules, icon: FileText },
+              ]}
+              note="Salvar rascunho mantém a etapa atual. Salvar e finalizar registra o negócio como fechado."
+            >
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-600">
+                <CheckCircle className="size-3.5" />
+                Negócio fechado
+              </span>
+            </RegistrationSummary>
+          </div>
         </form>
       )}
     </AppShell>
