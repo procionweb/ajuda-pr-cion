@@ -379,7 +379,7 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
               <div><dt className="text-[11px] text-muted-foreground">Cidade/UF</dt><dd className="mt-1 text-[12px] font-normal">{[detail.city, detail.state].filter(Boolean).join("/") || "Não informado"}</dd></div>
               <div><dt className="text-[11px] text-muted-foreground">CEP</dt><dd className="mt-1 text-[12px] font-normal">{detail.postal_code || "Não informado"}</dd></div>
             </div>
-            {detail.notes && <div><dt className="text-[11px] text-muted-foreground">Observações</dt><dd className="mt-1 text-[12px] font-normal">{detail.notes}</dd></div>}
+            {detail.notes && <div><dt className="text-[11px] text-muted-foreground">Responsável da empresa</dt><dd className="mt-1 text-[12px] font-normal">{detail.notes.replace(/^Responsável:\s*/i, "")}</dd></div>}
           </dl>
         </section>
         <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
