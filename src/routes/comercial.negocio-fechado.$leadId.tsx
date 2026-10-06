@@ -31,6 +31,7 @@ import {
   taxRegimeOptions,
   closeDealCompanyFields,
   closeDealContactFields,
+  closeDealResponsibleFields,
   closeDealHadronFields,
 } from "@/lib/close-deal-form";
 
@@ -170,6 +171,11 @@ function CloseDealPage() {
     { title: "Cliente e empresa", icon: Building2, fields: closeDealCompanyFields },
     { title: "Endereço e contatos", icon: MapPin, fields: closeDealContactFields },
     { title: "Implantação do Hádron", icon: FileText, fields: closeDealHadronFields },
+    {
+      title: "Responsável pela empresa",
+      icon: UserRound,
+      fields: closeDealResponsibleFields.slice(0, 11),
+    },
   ];
   return (
     <AppShell fullWidth>

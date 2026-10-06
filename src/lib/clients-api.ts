@@ -551,22 +551,47 @@ export async function getClientDetail(acronym: string): Promise<ClientDetail | n
       responsibleDocument: formatCpf(
         company.responsible_document || respRaw.cli_res_cpf || respRaw.tcl_res_cpf || "",
       ),
-      responsibleRg: String(respRaw.cli_res_rg || respRaw.tcl_res_rg || ""),
-      responsibleAddress: String(respRaw.cli_res_endereco || respRaw.tcl_res_endereco || ""),
-      responsibleNumber: String(respRaw.cli_res_numero || respRaw.tcl_res_numero || ""),
+      responsibleRg: String(
+        payload.responsible_rg || respRaw.cli_res_rg || respRaw.tcl_res_rg || "",
+      ),
+      responsibleAddress: String(
+        payload.responsible_address || respRaw.cli_res_endereco || respRaw.tcl_res_endereco || "",
+      ),
+      responsibleNumber: String(
+        payload.responsible_number || respRaw.cli_res_numero || respRaw.tcl_res_numero || "",
+      ),
       responsibleComplement: String(
-        respRaw.cli_res_complemento || respRaw.tcl_res_complemento || "",
+        payload.responsible_complement ||
+          respRaw.cli_res_complemento ||
+          respRaw.tcl_res_complemento ||
+          "",
       ),
-      responsibleNeighborhood: String(respRaw.cli_res_bairro || respRaw.tcl_res_bairro || ""),
+      responsibleNeighborhood: String(
+        payload.responsible_neighborhood || respRaw.cli_res_bairro || respRaw.tcl_res_bairro || "",
+      ),
       responsibleCity: normalizeCityName(
-        String(respRaw.cli_res_cidade || respRaw.tcl_res_cidade || ""),
+        String(payload.responsible_city || respRaw.cli_res_cidade || respRaw.tcl_res_cidade || ""),
       ),
-      responsibleState: String(respRaw.cli_res_uf || respRaw.tcl_res_uf || "").toUpperCase(),
-      responsiblePostalCode: formatCep(respRaw.cli_res_cep || respRaw.tcl_res_cep || ""),
+      responsibleState: String(
+        payload.responsible_state || respRaw.cli_res_uf || respRaw.tcl_res_uf || "",
+      ).toUpperCase(),
+      responsiblePostalCode: formatCep(
+        payload.responsible_postal_code || respRaw.cli_res_cep || respRaw.tcl_res_cep || "",
+      ),
       accountantOffice: String(
-        ctdRaw.cli_ctd_nome || ctdRaw.tcl_ctd_nome || company.accountant_name || "",
+        payload.accounting_office ||
+          ctdRaw.cli_ctd_nome ||
+          ctdRaw.tcl_ctd_nome ||
+          (!payload.accountant_name ? company.accountant_name : "") ||
+          "",
       ),
-      accountantName: String(ctdRaw.cli_ctd_res || ctdRaw.tcl_ctd_res || ""),
+      accountantName: String(
+        payload.accountant_name ||
+          ctdRaw.cli_ctd_res ||
+          ctdRaw.tcl_ctd_res ||
+          (payload.accountant_name ? company.accountant_name : "") ||
+          "",
+      ),
       accountantPhone: String(
         ctdRaw.cli_ctd_tel || ctdRaw.tcl_ctd_tel || company.accountant_phone || "",
       ),
