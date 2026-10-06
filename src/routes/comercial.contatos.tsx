@@ -40,7 +40,7 @@ const stages: Array<{ value: CompanyLeadStage; label: string }> = [
   { value: "negocio_fechado", label: "Negócio fechado" },
   { value: "sem_interesse", label: "Sem interesse" },
 ];
-const visibleStages = stages.filter((item) => item.value !== "sem_interesse");
+const visibleStages = stages;
 
 const googleMapsAddressUrl = (lead: CompanyLead) => {
   const address = [lead.address, lead.neighborhood, lead.city, lead.state, lead.postal_code]
@@ -68,6 +68,7 @@ function CommercialContactsPage() {
   const [cities, setCities] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
+  const [total, setTotal] = useState<number | null>(null);
   const [selected, setSelected] = useState<CompanyLeadDetails | null>(null);
 
   useEffect(() => {
@@ -76,7 +77,9 @@ function CommercialContactsPage() {
       setLoading(true);
       let query = supabase
         .from("company_leads")
-        .select(leadColumns)
+        .select(leadColumns, { count: "exact" })
+        .order("discovered_at", { ascending: false })
+        .order("id", { ascending: true })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
       query = stage
         ? query.eq("stage", stage)
@@ -90,16 +93,18 @@ function CommercialContactsPage() {
         query = query.or(
           `legal_name.ilike.%${term}%,trade_name.ilike.%${term}%,cnpj.ilike.%${term}%,city.ilike.%${term}%`,
         );
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (!active) return;
       if (error) {
         toast.error("Não foi possível carregar os contatos comerciais.");
         setRows([]);
         setHasNextPage(false);
+        setTotal(null);
       } else {
         const mapped = (data || []).map((row) => mapLeadRow(row));
         setHasNextPage(mapped.length > PAGE_SIZE);
         setRows(mapped.slice(0, PAGE_SIZE));
+        setTotal(count);
       }
       setLoading(false);
     }, 250);
@@ -301,26 +306,28 @@ function CommercialContactsPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t px-5 py-3 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3 text-sm text-muted-foreground">
           <span>
             {rows.length
-              ? `Mostrando ${page * PAGE_SIZE + 1} a ${page * PAGE_SIZE + rows.length}`
+              ? `Mostrando ${page * PAGE_SIZE + 1} a ${page * PAGE_SIZE + rows.length}${total !== null ? ` de ${total.toLocaleString("pt-BR")} contatos` : ""}`
               : "Nenhum contato"}
           </span>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
-              disabled={page === 0}
+              disabled={loading || page === 0}
+              aria-label="Página anterior"
               onClick={() => setPage((value) => value - 1)}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span>Página {page + 1}</span>
+            <span>Página {page + 1}{total !== null ? ` de ${Math.max(1, Math.ceil(total / PAGE_SIZE))}` : ""}</span>
             <Button
               variant="outline"
               size="icon"
-              disabled={!hasNextPage}
+              disabled={loading || !hasNextPage}
+              aria-label="Próxima página"
               onClick={() => setPage((value) => value + 1)}
             >
               <ChevronRight className="h-4 w-4" />
