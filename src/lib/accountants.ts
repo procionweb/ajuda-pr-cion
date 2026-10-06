@@ -52,10 +52,16 @@ export async function getAccountant(id: string) {
     const result = await supabase.rpc("get_crm_client_companies_by_ids", { ids: clientIds });
     if (result.error) throw result.error;
     clients = result.data ?? [];
-    const detailed = await supabase.from("client_companies").select("*").in("id", clientIds);
+    const detailed = await supabase
+      .from("client_companies")
+      .select("*")
+      .or(`id.in.(${clientIds.join(",")}),client_id.in.(${clientIds.join(",")})`);
     if (detailed.error) throw detailed.error;
     const detailsById = new Map(
-      (detailed.data ?? []).map((client: any) => [String(client.id), client]),
+      (detailed.data ?? []).flatMap((client: any) => [
+        [String(client.id), client],
+        [String(client.client_id), client],
+      ]),
     );
     clients = clients.map((client: any) => ({ ...detailsById.get(String(client.id)), ...client }));
   }
