@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Padrão de modais
+
+Nos detalhes de chamados e suas ações, não exibir X de fechar no cabeçalho. Manter o fechamento pelo rodapé (Fechar ou Cancelar). Aplicar esse padrão aos próximos modais.

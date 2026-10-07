@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
  * Cabeçalho padronizado para modais de detalhe e telas afins.
  *
  * Estrutura: faixa colorida à esquerda, ícone circular sólido, título,
- * metadados/protocolo, chips e botão X. O mesmo ícone é reutilizado como
+ * metadados/protocolo e chips. O fechamento fica no rodapé por padrão. O mesmo ícone é reutilizado como
  * marca d'água decorativa à direita (apenas em telas médias+).
  */
 export function DetailModalHeader({
@@ -17,6 +17,7 @@ export function DetailModalHeader({
   chips,
   trailing,
   onClose,
+  showClose = false,
   dense = false,
   accentClassName = "bg-primary",
   iconWrapClassName = "bg-primary text-primary-foreground",
@@ -30,6 +31,8 @@ export function DetailModalHeader({
   /** Conteúdo alinhado à direita no desktop e quebrado para linha abaixo em telas menores. */
   trailing?: ReactNode;
   onClose?: () => void;
+  /** Exceção explícita: o padrão é fechar pelo rodapé, sem X superior. */
+  showClose?: boolean;
   /** Versão ainda mais compacta (menos padding vertical). */
   dense?: boolean;
   /** Classe da faixa vertical à esquerda. */
@@ -91,7 +94,7 @@ export function DetailModalHeader({
               {trailing}
             </div>
           )}
-          {onClose && (
+          {showClose && onClose && (
             <button
               type="button"
               aria-label="Fechar"

@@ -23,6 +23,14 @@ export function DateRangeFilter({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1279px)");
+    const update = () => setCompact(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   const [draft, setDraft] = useState<DateRange | undefined>();
   useEffect(
     () => setDraft(from || to ? { from: parseDate(from), to: parseDate(to) } : undefined),
@@ -51,17 +59,17 @@ export function DateRangeFilter({
           <span className="truncate">{label}</span>
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-auto p-0">
+      <PopoverContent align="end" collisionPadding={8} className="w-auto max-w-[calc(100vw-1rem)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto overscroll-contain p-0">
         <Calendar
           mode="range"
-          numberOfMonths={2}
+          numberOfMonths={compact ? 1 : 2}
           selected={draft}
           onSelect={setDraft}
           locale={ptBR}
           initialFocus
           className="pointer-events-auto p-3"
         />
-        <div className="flex justify-end gap-2 border-t px-3 py-2">
+        <div className="sticky bottom-0 flex justify-end gap-2 border-t bg-popover px-3 py-2">
           <Button
             variant="ghost"
             size="sm"
