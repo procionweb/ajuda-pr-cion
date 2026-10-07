@@ -97,7 +97,7 @@ function HomePage() {
             ))}
           </select>
         </div>
-        <TicketsIndicatorCards month={selectedMonth} />
+        <TicketsIndicatorCards month={selectedMonth} compact />
       </section>
 
       <section className="mb-6 grid grid-cols-1 items-stretch gap-6 lg:h-[400px] lg:grid-cols-[minmax(0,68fr)_minmax(0,32fr)]">

@@ -76,6 +76,7 @@ export type IndicatorCardLink = {
 function RevenueStyleCards({
   cards,
   links,
+  compact = false,
 }: {
   cards: {
     tag: string;
@@ -89,9 +90,15 @@ function RevenueStyleCards({
     bars: number[];
   }[];
   links?: (IndicatorCardLink | undefined)[];
+  compact?: boolean;
 }) {
   return (
-    <div className="analytics-kpis grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-4">
+    <div
+      className={cn(
+        "analytics-kpis grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-4",
+        compact && "max-xl:gap-3",
+      )}
+    >
       {cards.map((card, idx) => {
         const link = links?.[idx];
         const maxBar = Math.max(...card.bars, 1);
@@ -99,6 +106,7 @@ function RevenueStyleCards({
           <Card
             className={cn(
               "analytics-kpi relative flex h-full min-h-[152px] overflow-hidden rounded-[28px] border-0 bg-[#f6f7f9] pl-[74px] shadow-[0_14px_34px_rgba(15,23,42,0.08)] dark:bg-[#20263d]",
+              compact && "max-xl:min-h-[108px] max-xl:rounded-2xl max-xl:pl-[48px]",
               link &&
                 "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             )}
@@ -106,37 +114,65 @@ function RevenueStyleCards({
             <div
               className={cn(
                 "absolute inset-y-0 left-0 w-[104px] overflow-hidden rounded-l-[28px] bg-gradient-to-b",
+                compact && "max-xl:w-[68px] max-xl:rounded-l-2xl",
                 card.tone,
               )}
             >
               <span
                 className={cn(
                   "absolute right-[-26px] top-1/2 h-[74px] w-[74px] -translate-y-1/2 rotate-45 shadow-[10px_10px_18px_rgba(0,0,0,0.12)]",
+                  compact && "max-xl:right-[-18px] max-xl:h-12 max-xl:w-12",
                   card.arrow,
                 )}
                 aria-hidden="true"
               />
-              <span className="absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[17px] font-black tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">
+              <span
+                className={cn(
+                  "absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[17px] font-black tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]",
+                  compact && "max-xl:left-2 max-xl:text-[13px]",
+                )}
+              >
                 {card.tag}
               </span>
             </div>
 
-            <div className="relative z-10 flex h-full w-full min-h-[152px] flex-col justify-between rounded-l-[28px] bg-[#f6f7f9] px-6 py-5 dark:bg-[#20263d]">
+            <div
+              className={cn(
+                "relative z-10 flex h-full w-full min-h-[152px] flex-col justify-between rounded-l-[28px] bg-[#f6f7f9] px-6 py-5 dark:bg-[#20263d]",
+                compact &&
+                  "max-xl:min-h-[108px] max-xl:gap-2 max-xl:rounded-l-2xl max-xl:px-3 max-xl:py-3",
+              )}
+            >
               <div>
-                <p className="text-[13px] font-medium text-muted-foreground">{card.title}</p>
-                <p className="mt-2 text-[20px] font-bold leading-none tracking-tight text-foreground">
+                <p
+                  className={cn(
+                    "text-[13px] font-medium text-muted-foreground",
+                    compact && "max-xl:text-xs",
+                  )}
+                >
+                  {card.title}
+                </p>
+                <p
+                  className={cn(
+                    "mt-2 text-[20px] font-bold leading-none tracking-tight text-foreground",
+                    compact && "max-xl:mt-1 max-xl:text-lg",
+                  )}
+                >
                   {card.value} chamados
                 </p>
               </div>
               <div
-                className="grid items-end gap-3"
-                style={{ gridTemplateColumns: "minmax(0, 1fr) 56px" }}
+                className={cn(
+                  "grid grid-cols-[minmax(0,1fr)_56px] items-end gap-3",
+                  compact && "max-xl:grid-cols-[minmax(0,1fr)_32px] max-xl:gap-2",
+                )}
               >
                 <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                   {card.change && (
                     <span
                       className={cn(
                         "shrink-0 rounded-full px-2 py-1 text-[13px] font-semibold",
+                        compact && "max-xl:px-1.5 max-xl:py-0.5 max-xl:text-[11px]",
                         card.positive
                           ? "bg-emerald-100 text-emerald-600"
                           : "bg-rose-100 text-rose-600",
@@ -146,7 +182,10 @@ function RevenueStyleCards({
                     </span>
                   )}
                   <span
-                    className="min-w-0 flex-1 text-[13px] leading-tight text-muted-foreground"
+                    className={cn(
+                      "min-w-0 flex-1 text-[13px] leading-tight text-muted-foreground",
+                      compact && "max-xl:text-[11px]",
+                    )}
                     style={{
                       whiteSpace: "normal",
                       overflow: "visible",
@@ -157,7 +196,10 @@ function RevenueStyleCards({
                   </span>
                 </div>
                 <div
-                  className="ml-auto flex items-end justify-end gap-[3px] opacity-80"
+                  className={cn(
+                    "ml-auto flex items-end justify-end gap-[3px] opacity-80",
+                    compact && "max-xl:origin-bottom-right max-xl:scale-75",
+                  )}
                   style={{ width: 56, height: 40 }}
                   aria-hidden="true"
                 >
@@ -201,10 +243,12 @@ export function TicketsIndicatorCards({
   month,
   tickets,
   filtered = false,
+  compact = false,
 }: {
   month?: string;
   tickets?: SupportTicket[];
   filtered?: boolean;
+  compact?: boolean;
 } = {}) {
   const allTickets = useTickets();
   const supportTickets = tickets ?? allTickets;
@@ -324,7 +368,7 @@ export function TicketsIndicatorCards({
     };
   }, [supportTickets, monthKey, filtered]);
 
-  return <RevenueStyleCards cards={cards} links={links} />;
+  return <RevenueStyleCards cards={cards} links={links} compact={compact} />;
 }
 
 type AgentPerformance = {
