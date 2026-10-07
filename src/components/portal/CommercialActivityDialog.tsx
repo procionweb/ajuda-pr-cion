@@ -34,6 +34,7 @@ export function CommercialActivityDialog({
     description: "",
     occurred_at: localNow(),
     return_at: "",
+    ends_at: "",
     priority: "media",
     stage: "",
   });
@@ -58,6 +59,7 @@ export function CommercialActivityDialog({
             ...form,
             actor,
             occurred_at: new Date(form.occurred_at).toISOString(),
+            ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
             return_at: form.return_at ? new Date(form.return_at).toISOString() : null,
           },
         } as never,
@@ -76,6 +78,7 @@ export function CommercialActivityDialog({
       setSaving(false);
     }
   }
+  const isAppointment = ["3", "5", "6"].includes(form.type);
   const selectClass =
     "mt-1 h-11 w-full cursor-pointer rounded-xl border bg-background px-3 text-sm";
   return (
@@ -88,6 +91,7 @@ export function CommercialActivityDialog({
             description: "",
             occurred_at: localNow(),
             return_at: "",
+            ends_at: "",
             priority: "media",
             stage: "",
           });
@@ -104,7 +108,7 @@ export function CommercialActivityDialog({
           if (!saving) setOpen(next);
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent autoFooter={false} className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Registrar atividade comercial</DialogTitle>
             <DialogDescription>
@@ -142,7 +146,9 @@ export function CommercialActivityDialog({
                 </select>
               </div>
               <div>
-                <Label htmlFor="activity-date">Data da atividade *</Label>
+                <Label htmlFor="activity-date">
+                  {isAppointment ? "Início da visita/reunião *" : "Data da atividade *"}
+                </Label>
                 <Input
                   id="activity-date"
                   type="datetime-local"
@@ -160,6 +166,19 @@ export function CommercialActivityDialog({
                   onChange={(e) => set("return_at", e.target.value)}
                 />
               </div>
+              {isAppointment && (
+                <div className="sm:col-span-2">
+                  <Label htmlFor="activity-end">Término da visita/reunião *</Label>
+                  <Input
+                    id="activity-end"
+                    type="datetime-local"
+                    required
+                    min={form.occurred_at}
+                    value={form.ends_at}
+                    onChange={(e) => set("ends_at", e.target.value)}
+                  />
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="activity-stage">Etapa após a atividade (opcional)</Label>
@@ -196,7 +215,9 @@ export function CommercialActivityDialog({
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Sem retorno, a atividade fica concluída. Com retorno, ela entra no acompanhamento.
+              {isAppointment
+                ? "Visitas e reuniões também aparecem no calendário e em Agendamentos Comercial."
+                : "Sem retorno, a atividade fica concluída. Com retorno, ela entra no acompanhamento."}
             </p>
             <div className="flex justify-end gap-2">
               <Button

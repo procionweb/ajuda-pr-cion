@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { finishActivity, activityTypes } from "@/lib/commercial-activities";
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarDays, Check, Mail, MapPin, Phone, Search, UsersRound } from "lucide-react";
+import { CalendarDays, Check, Mail, MapPin, Phone, Search, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { ListPaginationFooter } from "@/components/portal/ListPaginationFooter";
@@ -298,24 +298,30 @@ function ActivityRow({ activity, onSaved }: { activity: CommercialActivity; onSa
           {statusLabel(activity.status)}
         </span>
         {activity.leadId && ["agendado", "atrasado"].includes(activity.status) && (
-          <div className="mt-2 flex flex-wrap gap-1">
+          <div className="mt-2 flex flex-nowrap items-center gap-2">
             <Button
               type="button"
               size="sm"
               variant="outline"
               disabled={saving}
+              className="h-8 w-8 shrink-0 p-0"
+              title="Concluir atividade"
+              aria-label="Concluir atividade"
               onClick={() => void finish("concluido")}
             >
-              Concluir
+              <Check className="size-4" />
             </Button>
             <Button
               type="button"
               size="sm"
               variant="ghost"
               disabled={saving}
+              className="h-8 w-8 shrink-0 p-0"
+              title="Cancelar atividade"
+              aria-label="Cancelar atividade"
               onClick={() => void finish("cancelado")}
             >
-              Cancelar retorno
+              <X className="size-4" />
             </Button>
           </div>
         )}
