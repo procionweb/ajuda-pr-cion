@@ -40,12 +40,15 @@ export function AppHeader() {
             <span className="text-muted-foreground font-normal">{greeting}, </span>
             {currentUser.name}
           </p>
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground xl:hidden">
+            {currentUser.role}
+          </p>
         </div>
 
-        <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
           <ThemeToggle />
           <NotificationsPopover />
-          <div className="ml-1 hidden sm:block">
+          <div className="ml-1 shrink-0">
             <UserMenu />
           </div>
         </div>

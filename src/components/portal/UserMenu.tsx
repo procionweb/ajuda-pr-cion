@@ -23,7 +23,7 @@ export function UserMenu() {
           className="group flex cursor-pointer items-center gap-3 rounded-r-md border-l border-border pl-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Menu do usuário"
         >
-          <div className="hidden sm:block text-right">
+          <div className="hidden xl:block text-right">
             <p className="text-sm font-medium leading-none group-hover:text-primary transition-colors">
               {currentUser.name}
             </p>

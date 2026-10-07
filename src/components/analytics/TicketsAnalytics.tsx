@@ -164,7 +164,7 @@ function RevenueStyleCards({
               <div
                 className={cn(
                   "grid grid-cols-[minmax(0,1fr)_56px] items-end gap-3",
-                  compact && "max-xl:grid-cols-[minmax(0,1fr)_32px] max-xl:gap-2",
+                  compact && "max-xl:grid-cols-1 max-xl:gap-2",
                 )}
               >
                 <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -198,7 +198,7 @@ function RevenueStyleCards({
                 <div
                   className={cn(
                     "ml-auto flex items-end justify-end gap-[3px] opacity-80",
-                    compact && "max-xl:origin-bottom-right max-xl:scale-75",
+                    compact && "max-xl:hidden",
                   )}
                   style={{ width: 56, height: 40 }}
                   aria-hidden="true"
