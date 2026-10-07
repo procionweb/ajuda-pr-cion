@@ -414,7 +414,7 @@ export function CreateEventDialog({
                     label=""
                     value={client}
                     onSelect={setClient}
-                    placeholder="Buscar por sigla, razão social, fantasia, CNPJ ou grupo..."
+                    placeholder="Busca rápida"
                   />
                   {groupCompanies.length > 0 && (
                     <div className="mt-2 rounded-md border border-border bg-background/40 p-2">
@@ -640,7 +640,7 @@ function MeetingTargetFields({
             label=""
             value={client}
             onSelect={onClientChange}
-            placeholder="Buscar empresa por sigla, razão social, fantasia, CNPJ ou grupo..."
+            placeholder="Busca rápida"
           />
         </NewField>
       )}
@@ -694,7 +694,7 @@ function NewField({
   className?: string;
 }) {
   return (
-    <div className={className}>
+    <div className={cn("min-w-0 max-w-full", className)}>
       <Label className="mb-1.5 block text-[12.5px] font-medium">
         {label}
         {required && <span className="text-destructive"> *</span>}

@@ -12,3 +12,7 @@
 ## Padrão de modais
 
 Nos detalhes de chamados e suas ações, não exibir X de fechar no cabeçalho. Manter o fechamento pelo rodapé (Fechar ou Cancelar). Aplicar esse padrão aos próximos modais.
+
+## Envio das alterações
+
+O usuário autorizou permanentemente commits e pushes normais para a branch main das alterações solicitadas neste projeto. Após validar a correção, enviar sem perguntar novamente. Preservar o histórico publicado, sem force push.

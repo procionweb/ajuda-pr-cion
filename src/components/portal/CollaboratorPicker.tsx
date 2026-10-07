@@ -57,14 +57,14 @@ function useFiltered(list: Collaborator[], term: string) {
 function SearchBox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const compactScreen = useIsMobileOrTablet();
   return (
-    <div className="flex items-center gap-2 border-b border-border px-2 py-1.5">
+    <div className="flex items-center gap-2 shrink-0 border-b border-border px-2 py-1.5">
       <Search className="h-3.5 w-3.5 text-muted-foreground" />
       <input
         autoFocus={!compactScreen}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Pesquisar por nome, sigla, departamento ou e-mail"
-        className="h-6 flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-muted-foreground"
+        className="h-9 min-w-0 flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-muted-foreground"
       />
     </div>
   );
@@ -117,18 +117,18 @@ export function CollaboratorSelect({
   const filtered = useFiltered(options, term);
 
   return (
-    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setTerm(""); }}>
+    <Popover modal open={open} onOpenChange={(next) => { setOpen(next); if (!next) setTerm(""); }}>
       <PopoverTrigger asChild>
         <button
           type="button"
           disabled={disabled}
           className={cn(
-            "inline-flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-[13px] outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60",
+            "inline-flex h-9 w-full min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-left text-[13px] outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60",
             className,
           )}
         >
           <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className={cn("flex-1 truncate", !value && "text-muted-foreground")}>
+          <span className={cn("min-w-0 flex-1 truncate", !value && "text-muted-foreground")}>
             {current
               ? `${current.acronym ? `${current.acronym} · ` : ""}${current.name}`
               : value || placeholder}
@@ -136,10 +136,10 @@ export function CollaboratorSelect({
           <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[--radix-popover-trigger-width] min-w-[260px] p-1">
+      <PopoverContent align="start" className="flex w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-1rem)] max-h-[var(--radix-popover-content-available-height)] min-h-0 flex-col overflow-hidden p-1">
         <SearchBox value={term} onChange={setTerm} />
         <StateRow loading={loading} error={error} empty={filtered.length === 0} />
-        <ul className="max-h-64 overflow-y-auto pt-1">
+        <ul className="min-h-0 max-h-64 overflow-y-auto overscroll-contain touch-pan-y pt-1">
           {filtered.map((item) => (
             <li key={item.id}>
               <OptionRow
@@ -235,7 +235,7 @@ export function CollaboratorMultiSelect({
           ))}
         </div>
       )}
-      <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) setTerm(""); }}>
+      <Popover modal open={open} onOpenChange={(next) => { setOpen(next); if (!next) setTerm(""); }}>
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -243,14 +243,14 @@ export function CollaboratorMultiSelect({
             className="inline-flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-1 text-left text-[13px] text-muted-foreground outline-none hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Search className="h-3.5 w-3.5" />
-            <span className="flex-1 truncate">{placeholder}</span>
+            <span className="min-w-0 flex-1 truncate">{placeholder}</span>
             <ChevronDown className="h-4 w-4 opacity-60" />
           </button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-[--radix-popover-trigger-width] min-w-[280px] p-1">
+        <PopoverContent align="start" className="flex w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-1rem)] max-h-[var(--radix-popover-content-available-height)] min-h-0 flex-col overflow-hidden p-1">
           <SearchBox value={term} onChange={setTerm} />
           <StateRow loading={loading} error={error} empty={filtered.length === 0} />
-          <ul className="max-h-64 overflow-y-auto pt-1">
+          <ul className="min-h-0 max-h-64 overflow-y-auto overscroll-contain touch-pan-y pt-1">
             {filtered.map((item) => (
               <li key={item.id}>
                 <OptionRow

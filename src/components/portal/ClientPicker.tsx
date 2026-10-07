@@ -29,7 +29,7 @@ export function ClientPicker({
   onSelect,
   label = "Empresa",
   required,
-  placeholder = "Buscar por sigla, fantasia, razão social, CNPJ ou cidade...",
+  placeholder = "Busca rápida",
   className,
   disabled,
   compact,
@@ -51,7 +51,7 @@ export function ClientPicker({
   const filtered = useMemo(() => clients.filter((c) => matchClient(c, query)), [clients, query]);
 
   return (
-    <div ref={rootRef} className={cn("relative", className)}>
+    <div ref={rootRef} className={cn("relative min-w-0 max-w-full", className)}>
       {label && (
         <Label className="mb-1.5 block text-[12px] font-medium text-foreground">
           {label}
@@ -63,15 +63,15 @@ export function ClientPicker({
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex w-full items-center gap-2 border border-input bg-background px-3 text-left transition hover:bg-accent/40 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer",
+          "flex w-full min-w-0 max-w-full items-center gap-2 overflow-hidden border border-input bg-background px-3 text-left transition hover:bg-accent/40 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer",
           compact ? "h-9 rounded-md text-[13px]" : "h-11 rounded-xl bg-card text-sm",
         )}
       >
-        <Search className="h-4 w-4 text-muted-foreground" />
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         {value ? (
           <span className="flex min-w-0 flex-1 items-center gap-2">
             <span className="font-mono text-xs text-muted-foreground">{value.acronym}</span>
-            <span className="truncate">{value.fantasia || value.name}</span>
+            <span className="min-w-0 flex-1 truncate">{value.fantasia || value.name}</span>
             {value.cnpj && (
               <span className="hidden truncate text-xs text-muted-foreground md:inline">
                 · {value.cnpj}
@@ -81,7 +81,7 @@ export function ClientPicker({
         ) : (
           <span className="flex-1 text-muted-foreground">{placeholder}</span>
         )}
-        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
       </button>
       {open && (
         <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-lg">

@@ -176,10 +176,10 @@ export function VehicleAvailabilitySelect({
 
   return (
     <>
-      <div className="relative">
+      <div className="relative min-w-0 max-w-full">
         <Car className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger className="h-9 pl-8 text-[13px]">
+          <SelectTrigger className="h-9 min-w-0 max-w-full gap-2 overflow-hidden pl-8 text-[13px] [&>span]:min-w-0 [&>span]:truncate [&>svg]:shrink-0">
             <SelectValue placeholder="Selecione o veículo" />
           </SelectTrigger>
           <SelectContent>
