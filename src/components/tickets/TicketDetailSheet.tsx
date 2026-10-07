@@ -871,7 +871,7 @@ export function TicketDetailSheet({
               </div>
 
               {/* Main content */}
-              <div className="flex-1 min-w-0 overflow-y-auto rounded-2xl border border-border bg-card px-3 py-4 [scrollbar-width:none] sm:px-4 xl:px-6 [&::-webkit-scrollbar]:hidden max-xl:border-0 max-xl:rounded-none max-xl:[&_*]:border-0 max-xl:[&>div:not(:last-child)]:!border-b max-xl:[&>section:not(:last-child)]:!border-b max-xl:[&>div:not(:last-child)]:pb-4 max-xl:[&_div]:shadow-none">
+              <div className="flex-1 min-w-0 overflow-y-auto rounded-2xl border border-border bg-card px-3 py-4 [scrollbar-width:none] sm:px-4 xl:px-6 [&::-webkit-scrollbar]:hidden max-xl:border-0 max-xl:rounded-none max-xl:[&_*]:border-0 max-xl:[&>div:not(:last-child)]:!border-b max-xl:[&>section:not(:last-child)]:!border-b max-xl:[&>div:not(:last-child)]:rounded-b-2xl max-xl:[&>section:not(:last-child)]:rounded-b-2xl max-xl:[&>div:not(:last-child)]:pb-4 max-xl:[&_div]:shadow-none">
                 {/* Datas e responsáveis */}
                 <div className="mb-4 grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-3 shadow-[0_6px_18px_rgba(25,29,51,0.04)] sm:grid-cols-2 xl:grid-cols-4">
                   <CompactInfo
@@ -1076,7 +1076,7 @@ export function TicketDetailSheet({
             </div>
             {/* fim body wrapper */}
             {!selectedHistory && !selectedCalendarEvent && (
-              <DialogFooter className="border-t border-border py-4 pl-5 pr-20 sm:pr-5 max-xl:[&_button]:border-0">
+              <DialogFooter className="border-t border-border py-4 pl-5 pr-20 sm:pr-5 max-xl:min-h-[84px] max-xl:items-center max-xl:justify-end max-xl:[&_button]:border-0">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Fechar
                 </Button>
