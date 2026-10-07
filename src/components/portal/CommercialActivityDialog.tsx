@@ -1,3 +1,4 @@
+import { refreshPersistedEvents } from "@/lib/local-events-store";
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -65,6 +66,7 @@ export function CommercialActivityDialog({
         } as never,
       );
       if (error) throw error;
+      await refreshPersistedEvents();
       setOpen(false);
       toast.success("Atividade registrada.");
       await onSaved();

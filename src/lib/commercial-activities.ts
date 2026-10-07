@@ -1,3 +1,4 @@
+import { refreshPersistedEvents } from "./local-events-store";
 import { supabase } from "./supabase";
 export const activityTypes = [
   { value: "1", label: "Ligação" },
@@ -41,4 +42,5 @@ export async function finishActivity(id: string, status = "concluido") {
     { p_id: id, p_status: status } as never,
   );
   if (error) throw error;
+  await refreshPersistedEvents();
 }

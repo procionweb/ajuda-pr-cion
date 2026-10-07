@@ -154,8 +154,9 @@ export function updateLocalEvent(
   return updated;
 }
 
-function hydratePersistedEvents() {
-  if (typeof window === "undefined" || hydrationPromise) return;
+export function refreshPersistedEvents(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (hydrationPromise) return hydrationPromise;
   hydrationPromise = listCrmCalendarEvents()
     .then((events) => {
       const persisted = events.filter((event) => event.editable);
@@ -170,7 +171,11 @@ function hydratePersistedEvents() {
     })
     .catch((error) => {
       console.error("[calendar] Nao foi possivel carregar os agendamentos salvos.", error);
+    })
+    .finally(() => {
+      hydrationPromise = null;
     });
+  return hydrationPromise;
 }
 
 /** Indica se o evento é local (editável/cancelável pelo usuário). */
@@ -188,7 +193,12 @@ function subscribe(listener: () => void) {
 export function useLocalEvents(): CalendarEvent[] {
   const events = useSyncExternalStore(subscribe, read, () => EMPTY);
   useEffect(() => {
-    hydratePersistedEvents();
+    void refreshPersistedEvents();
+    const refresh = () => {
+      void refreshPersistedEvents();
+    };
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
   }, []);
   return events;
 }
