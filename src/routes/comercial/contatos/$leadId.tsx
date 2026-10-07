@@ -1,3 +1,11 @@
+import { CommercialActivityDialog } from "@/components/portal/CommercialActivityDialog";
+import {
+  contactActivities,
+  activityStatus,
+  activityTypes,
+  finishActivity,
+  type ContactActivity,
+} from "@/lib/commercial-activities";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import {
@@ -213,6 +221,11 @@ export function LeadDetailsPage() {
                 Inativar
               </Button>
 
+              <CommercialActivityDialog
+                leadId={lead.id}
+                actor={currentOperator}
+                onSaved={loadLead}
+              />
               {!lead.converted_client_id && (
                 <Button
                   size="sm"
@@ -523,6 +536,9 @@ function SideInfoItem({ label, value }: { label: string; value: string }) {
 }
 
 function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackActor: string }) {
+  const [activities, setActivities] = useState<ContactActivity[]>([]);
+  const [finishing, setFinishing] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
   const [showAll, setShowAll] = useState(false);
   const [history, setHistory] = useState<Awaited<ReturnType<typeof companyLeadsApi.history>>>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -531,10 +547,12 @@ function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackA
     let active = true;
     setHistoryLoading(true);
     setHistoryFailed(false);
-    companyLeadsApi
-      .history(lead.id)
+    Promise.all([companyLeadsApi.history(lead.id), contactActivities(lead.id)])
       .then((data) => {
-        if (active) setHistory(data);
+        if (active) {
+          setHistory(data[0]);
+          setActivities(data[1]);
+        }
       })
       .catch(() => {
         if (active) {
@@ -548,7 +566,7 @@ function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackA
     return () => {
       active = false;
     };
-  }, [lead]);
+  }, [lead, revision]);
   const labels: Record<string, string> = {
     stage: "Etapa",
     terminals: "Terminais",
@@ -615,6 +633,20 @@ function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackA
       actor: lead.source,
       status: "Concluído",
     },
+    ...activities.map((activity) => ({
+      id: `activity-${activity.id}`,
+      kind: "activity",
+      title:
+        activityTypes.find((type) => type.value === activity.type)?.label || "Atividade comercial",
+      description:
+        activity.description +
+        (activity.return_at
+          ? `\nRetorno: ${new Date(activity.return_at).toLocaleString("pt-BR")}`
+          : ""),
+      at: activity.occurred_at,
+      actor: activity.actor,
+      status: activityStatus(activity),
+    })),
     ...history.map((event) => ({
       id: event.id,
       kind: "edit",
@@ -664,6 +696,31 @@ function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackA
                 <User className="h-3 w-3 inline mr-1" />
                 {item.actor}
               </span>
+              {item.kind === "activity" &&
+                activities.find((activity) => `activity-${activity.id}` === item.id)?.status ===
+                  "pendente" && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!!finishing}
+                    onClick={async () => {
+                      const id = item.id.replace("activity-", "");
+                      setFinishing(id);
+                      try {
+                        await finishActivity(id);
+                        setRevision((value) => value + 1);
+                        toast.success("Retorno concluído.");
+                      } catch {
+                        toast.error("Não foi possível concluir o retorno.");
+                      } finally {
+                        setFinishing(null);
+                      }
+                    }}
+                  >
+                    Concluir retorno
+                  </Button>
+                )}
               <Badge variant="secondary" className="h-4 px-1.5 text-[9px] uppercase font-bold">
                 {item.status}
               </Badge>

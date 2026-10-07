@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+import { finishActivity, activityTypes } from "@/lib/commercial-activities";
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarDays, Check, Mail, MapPin, Phone, Search, UsersRound } from "lucide-react";
@@ -19,6 +21,7 @@ type ActivityType = "conclusao" | "ligacao" | "demonstracao" | "acompanhamento";
 type CommercialActivity = {
   id: string;
   contactId: string;
+  leadId: string;
   type: ActivityType;
   historyType: string;
   date: string;
@@ -42,6 +45,7 @@ function CommercialActivitiesPage() {
   const [substatus, setSubstatus] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [revision, setRevision] = useState(0);
   const [page, setPage] = useState(0);
 
   useEffect(() => {
@@ -78,7 +82,7 @@ function CommercialActivitiesPage() {
     return () => {
       active = false;
     };
-  }, [from, page, search, status, substatus, to]);
+  }, [from, page, search, status, substatus, to, revision]);
 
   useEffect(() => setPage(0), [from, search, status, substatus, to]);
 
@@ -90,6 +94,11 @@ function CommercialActivitiesPage() {
         title="Atividades"
         description="Histórico e acompanhamento das atividades da equipe comercial."
         breadcrumbs={[{ label: "Comercial" }, { label: "Atividades" }]}
+        actions={
+          <Button asChild>
+            <Link to="/comercial/contatos">Abrir contato para registrar atividade</Link>
+          </Button>
+        }
       />
 
       <section className="mb-5 grid gap-3 xl:grid-cols-[minmax(220px,1fr)_180px_170px_220px_96px]">
@@ -108,7 +117,11 @@ function CommercialActivitiesPage() {
           className={selectClass}
         >
           <option value="">Todos os status</option>
-          <option value="5">Em acompanhamento</option>
+          <option value="agendado">Agendados</option>
+          <option value="atrasado">Atrasados</option>
+          <option value="concluido">Concluídos</option>
+          <option value="cancelado">Cancelados</option>
+          <option value="5">Em acompanhamento (histórico)</option>
           <option value="30">Visita/Demonstração</option>
         </select>
         <select
@@ -120,7 +133,10 @@ function CommercialActivitiesPage() {
           <option value="1">Ligação</option>
           <option value="2">E-mail</option>
           <option value="3">Visita</option>
-          <option value="7">Reunião</option>
+          <option value="5">Reunião Prócion</option>
+          <option value="6">Reunião remota</option>
+          <option value="10">Solicitação / sugestão</option>
+          <option value="7">Conclusão de agendamento</option>
         </select>
         <DateRangeFilter
           from={from}
@@ -174,7 +190,13 @@ function CommercialActivitiesPage() {
                   </td>
                 </tr>
               ) : (
-                rows.map((activity) => <ActivityRow key={activity.id} activity={activity} />)
+                rows.map((activity) => (
+                  <ActivityRow
+                    key={activity.id}
+                    activity={activity}
+                    onSaved={() => setRevision((value) => value + 1)}
+                  />
+                ))
               )}
             </tbody>
           </table>
@@ -194,7 +216,20 @@ function CommercialActivitiesPage() {
   );
 }
 
-function ActivityRow({ activity }: { activity: CommercialActivity }) {
+function ActivityRow({ activity, onSaved }: { activity: CommercialActivity; onSaved: () => void }) {
+  const [saving, setSaving] = useState(false);
+  async function finish(status: string) {
+    setSaving(true);
+    try {
+      await finishActivity(activity.id, status);
+      onSaved();
+      toast.success(status === "concluido" ? "Retorno concluído." : "Retorno cancelado.");
+    } catch {
+      toast.error("Não foi possível atualizar o retorno.");
+    } finally {
+      setSaving(false);
+    }
+  }
   const TypeIcon =
     activity.historyType === "2"
       ? Mail
@@ -231,7 +266,17 @@ function ActivityRow({ activity }: { activity: CommercialActivity }) {
       <td className="px-3 py-3">{activity.returnAt ? formatDate(activity.returnAt) : "—"}</td>
       <td className="min-w-0 px-3 py-3">
         <span className="block truncate font-normal" title={activity.company}>
-          {activity.company}
+          {activity.leadId ? (
+            <Link
+              className="text-primary hover:underline"
+              to="/comercial/contatos/$leadId"
+              params={{ leadId: activity.leadId }}
+            >
+              {activity.company}
+            </Link>
+          ) : (
+            activity.company
+          )}
         </span>
         <span className="block truncate text-[11px] text-muted-foreground">{activity.subject}</span>
       </td>
@@ -252,6 +297,28 @@ function ActivityRow({ activity }: { activity: CommercialActivity }) {
         >
           {statusLabel(activity.status)}
         </span>
+        {activity.leadId && ["agendado", "atrasado"].includes(activity.status) && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={saving}
+              onClick={() => void finish("concluido")}
+            >
+              Concluir
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={saving}
+              onClick={() => void finish("cancelado")}
+            >
+              Cancelar retorno
+            </Button>
+          </div>
+        )}
       </td>
     </tr>
   );
@@ -262,18 +329,27 @@ function mapHistoryActivity(row: Record<string, unknown>): CommercialActivity {
   return {
     id: String(row.id),
     contactId: String(row.contact_id || ""),
+    leadId: String(row.lead_id || ""),
     type: rawType === "3" ? "demonstracao" : rawType === "1" ? "ligacao" : "acompanhamento",
     historyType: rawType,
     date: String(row.crm_created_at || ""),
     returnAt: row.return_date ? String(row.return_date) : null,
     company: String(row.company || `Contato #${row.contact_id || ""}`),
     subject: String(row.subject || typeLabel(rawType)),
-    note: plainHistoryText(String(row.observation_html || "Sem observação")),
+    note: row.lead_id
+      ? String(row.observation_html || "")
+      : plainHistoryText(String(row.observation_html || "Sem observação")),
     city: String(row.city || "Não informada"),
     state: String(row.state || ""),
-    status: String(row.status_code || ""),
+    status: String(row.activity_status || row.status_code || ""),
     operator: String(row.operator_code || "Não informado"),
-    priority: rawType === "3" || rawType === "7" ? "alta" : rawType === "2" ? "media" : "baixa",
+    priority: row.priority
+      ? (row.priority as CommercialActivity["priority"])
+      : rawType === "3" || rawType === "7"
+        ? "alta"
+        : rawType === "2"
+          ? "media"
+          : "baixa",
   };
 }
 
@@ -294,6 +370,8 @@ function formatDate(value: string) {
     : date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 function typeLabel(type: string) {
+  const current = activityTypes.find((item) => item.value === type);
+  if (current) return current.label;
   return (
     ({ "1": "Ligação", "2": "E-mail", "3": "Visita", "7": "Reunião" } as Record<string, string>)[
       type
@@ -302,8 +380,16 @@ function typeLabel(type: string) {
 }
 function statusLabel(status: string) {
   return (
-    ({ "5": "Em acompanhamento", "30": "Visita/Demonstração" } as Record<string, string>)[status] ||
-    `Status ${status || "não informado"}`
+    (
+      {
+        agendado: "Agendado",
+        atrasado: "Atrasado",
+        concluido: "Concluído",
+        cancelado: "Cancelado",
+        "5": "Em acompanhamento",
+        "30": "Visita/Demonstração",
+      } as Record<string, string>
+    )[status] || `Status ${status || "não informado"}`
   );
 }
 function statusClass(status: string) {
