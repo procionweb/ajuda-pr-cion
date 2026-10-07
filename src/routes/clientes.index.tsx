@@ -962,106 +962,106 @@ function ClientsPage() {
       />
 
       <>
-          <div className="mb-3">
-            <div className="mb-2 flex justify-end">
-              <Button
-                type="button"
-                onClick={() => setFiltersOpen(true)}
-                className="h-9 w-full cursor-pointer justify-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:w-40"
-              >
-                <Filter className="h-4 w-4" />
-                Filtros
-                {activeCount > 0 && (
-                  <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/95 px-1.5 text-[11px] font-semibold text-blue-700">
-                    {activeCount}
-                  </span>
-                )}
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="shrink-0 text-xs font-medium text-muted-foreground">Filtros:</span>
-
-              {chips.map((chip) => (
-                <span
-                  key={chip.key}
-                  className="inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-foreground"
-                >
-                  <span className="truncate">{chip.label}</span>
-                  <button
-                    type="button"
-                    onClick={chip.onRemove}
-                    aria-label={`Remover filtro ${chip.label}`}
-                    className="grid h-4 w-4 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+        <div className="mb-3">
+          <div className="mb-2 flex justify-end">
+            <Button
+              type="button"
+              onClick={() => setFiltersOpen(true)}
+              className="h-9 w-full cursor-pointer justify-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:w-40"
+            >
+              <Filter className="h-4 w-4" />
+              Filtros
+              {activeCount > 0 && (
+                <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/95 px-1.5 text-[11px] font-semibold text-blue-700">
+                  {activeCount}
                 </span>
-              ))}
-
-              <label className="relative block w-full min-w-0 sm:w-[200px]">
-                <span className="sr-only">Pesquisar por sigla</span>
-                <input
-                  value={quickAcronym}
-                  onChange={(event) => setQuickAcronym(event.target.value.toUpperCase())}
-                  type="search"
-                  placeholder="Sigla"
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm uppercase outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
-                />
-              </label>
-
-              <label className="relative block min-w-[240px] flex-1">
-                <span className="sr-only">Pesquisa geral</span>
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={quickDraft}
-                  onChange={(event) => {
-                    setQuickDraft(event.target.value);
-                    setQuickQuery(event.target.value);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") setQuickQuery(quickDraft);
-                  }}
-                  type="search"
-                  placeholder="Pesquisa geral"
-                  className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
-                />
-              </label>
-
-              <label className="w-full sm:w-[170px]">
-                <span className="sr-only">Status do cliente</span>
-                <select
-                  value={filters.status}
-                  onChange={(event) =>
-                    setFilters((previous) => ({
-                      ...previous,
-                      status: event.target.value as StatusFilter,
-                    }))
-                  }
-                  className="h-9 w-full cursor-pointer rounded-md border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
-                >
-                  {QUICK_STATUS_OPTIONS.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+              )}
+            </Button>
           </div>
 
-          {grupoParam && (
-            <div className="mb-3 flex items-baseline gap-2">
-              <h2 className="text-base font-medium">Clientes do grupo {grupoParam}</h2>
-              <span className="text-sm text-muted-foreground">
-                {filtered.length} {filtered.length === 1 ? "cliente" : "clientes"}
-              </span>
-            </div>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="shrink-0 text-xs font-medium text-muted-foreground">Filtros:</span>
 
-          <div>
-            <div className="overflow-hidden rounded-md border bg-card">
-              <div className="overflow-x-auto">
+            {chips.map((chip) => (
+              <span
+                key={chip.key}
+                className="inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-foreground"
+              >
+                <span className="truncate">{chip.label}</span>
+                <button
+                  type="button"
+                  onClick={chip.onRemove}
+                  aria-label={`Remover filtro ${chip.label}`}
+                  className="grid h-4 w-4 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+
+            <label className="relative block w-full min-w-0 sm:w-[200px]">
+              <span className="sr-only">Pesquisar por sigla</span>
+              <input
+                value={quickAcronym}
+                onChange={(event) => setQuickAcronym(event.target.value.toUpperCase())}
+                type="search"
+                placeholder="Sigla"
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm uppercase outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
+              />
+            </label>
+
+            <label className="relative block min-w-[240px] flex-1">
+              <span className="sr-only">Pesquisa geral</span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={quickDraft}
+                onChange={(event) => {
+                  setQuickDraft(event.target.value);
+                  setQuickQuery(event.target.value);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") setQuickQuery(quickDraft);
+                }}
+                type="search"
+                placeholder="Pesquisa geral"
+                className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
+              />
+            </label>
+
+            <label className="w-full sm:w-[170px]">
+              <span className="sr-only">Status do cliente</span>
+              <select
+                value={filters.status}
+                onChange={(event) =>
+                  setFilters((previous) => ({
+                    ...previous,
+                    status: event.target.value as StatusFilter,
+                  }))
+                }
+                className="h-9 w-full cursor-pointer rounded-md border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+              >
+                {QUICK_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+
+        {grupoParam && (
+          <div className="mb-3 flex items-baseline gap-2">
+            <h2 className="text-base font-medium">Clientes do grupo {grupoParam}</h2>
+            <span className="text-sm text-muted-foreground">
+              {filtered.length} {filtered.length === 1 ? "cliente" : "clientes"}
+            </span>
+          </div>
+        )}
+
+        <div>
+          <div className="overflow-hidden rounded-md border bg-card">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/35 text-xs uppercase text-muted-foreground">
                   <tr>
@@ -1195,36 +1195,39 @@ function ClientsPage() {
                   )}
                 </tbody>
               </table>
-              </div>
             </div>
-            {totalItems > 0 && (
-              <Pagination
-                page={currentPage}
-                totalPages={totalPages}
-                start={startIndex + 1}
-                end={endIndex}
-                total={totalItems}
-                onChange={setPage}
-                pageSize={pageSize}
-                onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
-              />
-            )}
           </div>
+          {totalItems > 0 && (
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              start={startIndex + 1}
+              end={endIndex}
+              total={totalItems}
+              onChange={setPage}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          )}
+        </div>
 
-          <FiltersPanel
-            open={filtersOpen}
-            onOpenChange={setFiltersOpen}
-            draft={draft}
-            setDraft={setDraft}
-            sizes={sizes}
-            segments={segments}
-            ufs={ufs}
-            onApply={() => {
-              setFilters(draft);
-              setFiltersOpen(false);
-            }}
-            onClear={() => setDraft(emptyFilters)}
-          />
+        <FiltersPanel
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          draft={draft}
+          setDraft={setDraft}
+          sizes={sizes}
+          segments={segments}
+          ufs={ufs}
+          onApply={() => {
+            setFilters(draft);
+            setFiltersOpen(false);
+          }}
+          onClear={() => setDraft(emptyFilters)}
+        />
       </>
     </AppShell>
   );
@@ -1600,7 +1603,7 @@ function Section({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs uppercase text-muted-foreground">{label}</p>
+      <p className="text-[11px] uppercase text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm">{value}</p>
     </div>
   );
@@ -4799,7 +4802,20 @@ function Pagination({
         <span className="font-medium text-foreground">{end}</span> de{" "}
         <span className="font-medium text-foreground">{total}</span> clientes
       </p>
-      <div className="flex flex-wrap items-center gap-2"><label htmlFor="clients-page-size">Itens por página</label><select id="clients-page-size" className="h-9 rounded-md border border-border bg-background px-2 text-xs" value={pageSize} onChange={(e) => onPageSizeChange(Number(e.target.value))}>{[25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}</select>
+      <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor="clients-page-size">Itens por página</label>
+        <select
+          id="clients-page-size"
+          className="h-9 rounded-md border border-border bg-background px-2 text-xs"
+          value={pageSize}
+          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+        >
+          {[25, 50, 100].map((size) => (
+            <option key={size} value={size}>
+              {size}
+            </option>
+          ))}
+        </select>
         {showEdges && (
           <button
             type="button"

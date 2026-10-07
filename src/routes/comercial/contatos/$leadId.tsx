@@ -626,7 +626,9 @@ function Timeline({ lead, fallbackActor }: { lead: CompanyLeadDetails; fallbackA
         .map(([key, value]) =>
           key === "conversion_data"
             ? "Dados do fechamento atualizados."
-            : `${labels[key] || key}: ${formatValue(key, value.old)} → ${formatValue(key, value.new)}`,
+            : key === "first_contact_at" && !value.old && value.new
+              ? `Primeiro contato registrado em ${formatValue(key, value.new)}.`
+              : `${labels[key] || key}: ${formatValue(key, value.old)} → ${formatValue(key, value.new)}`,
         )
         .join("\n"),
       at: event.created_at,
