@@ -1127,7 +1127,7 @@ export function TicketDetailSheet({
       />
 
       <Dialog open={descriptionOpen} onOpenChange={setDescriptionOpen}>
-        <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0 [&>button]:hidden">
+        <DialogContent className="ticket-action-modal max-w-2xl gap-0 overflow-hidden p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">Descrição original {ticket.protocol}</DialogTitle>
           <DetailModalHeader
             icon={FileText}
@@ -1141,7 +1141,7 @@ export function TicketDetailSheet({
               {ticketDescription || "Descrição não informada"}
             </p>
           </div>
-          <DialogFooter className="border-t border-border bg-card px-5 py-3">
+          <DialogFooter className="ticket-action-footer border-t border-border bg-card px-5 py-3">
             <Button variant="outline" size="sm" onClick={() => setDescriptionOpen(false)}>
               Fechar
             </Button>
@@ -1303,7 +1303,7 @@ function CloseTicketDialog({
           event.preventDefault();
         }}
         style={{ maxHeight: "calc(100vh - 2rem)" }}
-        className="flex w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden"
+        className="ticket-action-modal flex w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden"
       >
         <DialogTitle className="sr-only">Finalizar chamado {ticket.protocol}</DialogTitle>
 
@@ -1461,7 +1461,7 @@ function CloseTicketDialog({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="gap-2 border-t border-border bg-card px-6 py-3 sm:gap-2">
+        <DialogFooter className="ticket-action-footer gap-2 border-t border-border bg-card px-6 py-3 sm:gap-2">
           <Button
             variant="outline"
             onClick={() => {

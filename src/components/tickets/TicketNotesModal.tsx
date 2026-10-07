@@ -36,7 +36,7 @@ export function TicketNotesModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[80vh] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 sm:w-[calc(100vw-2rem)] md:w-[560px] [&>button]:hidden">
+      <DialogContent className="ticket-action-modal flex max-h-[80vh] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 sm:w-[calc(100vw-2rem)] md:w-[560px] [&>button]:hidden">
         <DialogTitle className="sr-only">Notas internas {protocol ?? ""}</DialogTitle>
 
         <DetailModalHeader
@@ -82,7 +82,7 @@ export function TicketNotesModal({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 border-t border-border bg-card px-5 py-3">
+        <DialogFooter className="ticket-action-footer shrink-0 border-t border-border bg-card px-5 py-3">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

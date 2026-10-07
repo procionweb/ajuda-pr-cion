@@ -257,7 +257,7 @@ function ForwardSpecialistModalContent({
         onInteractOutside={preventOutsideClose}
         onEscapeKeyDown={preventOutsideClose}
         style={{ maxHeight: "calc(100vh - 2rem)" }}
-        className="flex w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden"
+        className="ticket-action-modal flex w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden"
       >
         <DialogTitle className="sr-only">
           Enviar chamado {ticket.protocol} a especialista
@@ -277,7 +277,7 @@ function ForwardSpecialistModalContent({
           }
         />
         <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-5 py-3 md:px-6">
-          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
             <Field label="Tipo" required>
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger className="h-9 w-full cursor-pointer text-[13px]">
@@ -413,7 +413,7 @@ function ForwardSpecialistModalContent({
             posteriormente pelo backend.
           </p>
         </div>
-        <DialogFooter className="shrink-0 gap-2 border-t border-border bg-card px-5 py-2.5 sm:gap-2">
+        <DialogFooter className="ticket-action-footer shrink-0 gap-2 border-t border-border bg-card px-5 py-2.5 sm:gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="cursor-pointer">
             Cancelar
           </Button>

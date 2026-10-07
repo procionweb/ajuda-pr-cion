@@ -269,7 +269,7 @@ export function ScheduleEventModal({
         onInteractOutside={preventOutsideClose}
         onEscapeKeyDown={preventOutsideClose}
         style={{ maxHeight: "calc(100vh - 2rem)" }}
-        className="flex w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden"
+        className="ticket-action-modal flex w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden"
       >
         <DialogTitle className="sr-only">Agendar evento {ticket.protocol}</DialogTitle>
         <DetailModalHeader
@@ -285,7 +285,7 @@ export function ScheduleEventModal({
             </span>
           }
         />
-        <div className="flex-1 space-y-2.5 overflow-y-auto bg-card px-5 py-3 md:px-6">
+        <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto bg-card px-5 py-3 md:px-6">
           <EventDateTimeFields
             className="gap-2.5"
             date={date}
@@ -385,7 +385,7 @@ export function ScheduleEventModal({
             />
           </Field>
         </div>
-        <DialogFooter className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-card px-5 py-2.5 sm:justify-between">
+        <DialogFooter className="ticket-action-footer flex shrink-0 items-center justify-between gap-3 border-t border-border bg-card px-5 py-2.5 sm:justify-between">
           <label className="flex cursor-pointer items-center gap-2 text-[11.5px] text-muted-foreground">
             <Checkbox
               checked={reminder}

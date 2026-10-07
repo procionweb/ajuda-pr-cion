@@ -285,7 +285,7 @@ export function TransferTicketModal({
         onInteractOutside={preventOutsideClose}
         onEscapeKeyDown={preventOutsideClose}
         style={{ maxHeight: "min(94svh, calc(100dvh - 1.5rem))" }}
-        className="flex w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden"
+        className="ticket-action-modal flex w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden"
       >
         <DialogTitle className="sr-only">Transferir chamado {ticket.protocol}</DialogTitle>
 
@@ -506,7 +506,7 @@ export function TransferTicketModal({
           />
         </div>
 
-        <DialogFooter className="shrink-0 gap-2 border-t border-border bg-card px-6 py-2.5 sm:gap-2">
+        <DialogFooter className="ticket-action-footer shrink-0 gap-2 border-t border-border bg-card px-6 py-2.5 sm:gap-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

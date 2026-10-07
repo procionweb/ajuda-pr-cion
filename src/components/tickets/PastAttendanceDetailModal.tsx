@@ -272,7 +272,7 @@ export function PastAttendanceDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 !overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] sm:w-[calc(100vw-2rem)] md:w-[880px] lg:w-[960px] [&>button]:hidden">
+      <DialogContent className="ticket-action-modal flex max-h-[90vh] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 !overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] sm:w-[calc(100vw-2rem)] md:w-[880px] lg:w-[960px] [&>button]:hidden">
         <DialogTitle className="sr-only">
           Detalhes do atendimento {attendance.protocol}
         </DialogTitle>
