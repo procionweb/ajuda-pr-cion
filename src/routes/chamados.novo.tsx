@@ -59,8 +59,7 @@ export const Route = createFileRoute("/chamados/novo")({
   validateSearch: (search: Record<string, unknown>) => ({
     cliente: typeof search.cliente === "string" ? search.cliente : undefined,
     empresa: typeof search.empresa === "string" ? search.empresa : undefined,
-    voltarChamado:
-      typeof search.voltarChamado === "string" ? search.voltarChamado : undefined,
+    voltarChamado: typeof search.voltarChamado === "string" ? search.voltarChamado : undefined,
   }),
   head: () => ({
     meta: [
@@ -479,10 +478,7 @@ function NewTicketPage() {
         breadcrumbs={[{ label: "Chamados", to: "/chamados" }, { label: "Criar chamado" }]}
         actions={
           <Button asChild variant="outline" size="sm" className="rounded-xl cursor-pointer">
-            <Link
-              to="/chamados"
-              search={voltarChamado ? { ticket: voltarChamado } : {}}
-            >
+            <Link to="/chamados" search={voltarChamado ? { ticket: voltarChamado } : {}}>
               <ArrowLeft className="mr-1.5 h-4 w-4" />
               Voltar
             </Link>
@@ -492,11 +488,11 @@ function NewTicketPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]"
+        className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-6"
       >
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-4 xl:space-y-5">
           {/* 1. Cliente */}
-          <Card className="rounded-[16px] border border-border/70 bg-card p-5">
+          <Card className="rounded-[16px] border border-border/70 bg-card p-4 xl:p-5">
             <SectionTitle
               icon={Building2}
               title="Cliente"
@@ -571,13 +567,13 @@ function NewTicketPage() {
           </Card>
 
           {/* 2. Contato */}
-          <Card className="rounded-[16px] border border-border/70 bg-card p-5">
+          <Card className="rounded-[16px] border border-border/70 bg-card p-4 xl:p-5">
             <SectionTitle
               icon={UserRound}
               title="Contato"
               description="Quem está solicitando o atendimento."
             />
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               <Field label="Nome do contato" required>
                 <Input
                   value={form.contactName}
@@ -632,13 +628,13 @@ function NewTicketPage() {
           </Card>
 
           {/* 3. Classificação */}
-          <Card className="rounded-[16px] border border-border/70 bg-card p-5">
+          <Card className="rounded-[16px] border border-border/70 bg-card p-4 xl:p-5">
             <SectionTitle
               icon={FileText}
               title="Classificação"
               description="Módulo, submódulo e operador responsável."
             />
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               <Field label="Módulo">
                 <Select
                   value={form.module}
@@ -691,13 +687,13 @@ function NewTicketPage() {
           </Card>
 
           {/* 4. Informações do chamado */}
-          <Card className="rounded-[16px] border border-border/70 bg-card p-5">
+          <Card className="rounded-[16px] border border-border/70 bg-card p-4 xl:p-5">
             <SectionTitle
               icon={MessageSquarePlus}
               title="Informações do chamado"
               description="Assunto, descrição, tipo e prioridade."
             />
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
               <div className="space-y-3">
                 <Field label="Assunto" required>
                   <SmartInput
@@ -857,7 +853,7 @@ function NewTicketPage() {
             </div>
 
             <div className="mt-5 border-t border-border pt-5">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
                 <HadronOptionField
                   value={form.hadronOption}
                   onChange={(hadronOption) => setForm((prev) => ({ ...prev, hadronOption }))}
@@ -905,31 +901,11 @@ function NewTicketPage() {
               </div>
             </div>
           </Card>
-
-          {/* 5. Ações */}
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-11 rounded-xl cursor-pointer"
-              onClick={() => void navigate({ to: "/chamados" })}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={submitting || requiredMissing}
-              className="h-11 rounded-xl cursor-pointer shadow-[0_10px_22px_rgba(11,151,196,0.18)]"
-            >
-              <Send className="mr-1.5 h-4 w-4" />
-              {submitting ? "Criando..." : "Criar chamado"}
-            </Button>
-          </div>
         </div>
 
         {/* Resumo lateral */}
-        <aside>
-          <Card className="sticky top-6 rounded-[16px] border border-border/70 bg-card p-5">
+        <aside className="min-w-0 xl:col-start-2 xl:row-start-1 xl:row-span-2">
+          <Card className="xl:sticky xl:top-20 rounded-[16px] border border-border/70 bg-card p-4 xl:p-5">
             <SectionTitle
               icon={MessageSquarePlus}
               title="Resumo"
@@ -1017,6 +993,25 @@ function NewTicketPage() {
             </div>
           </Card>
         </aside>
+        {/* 5. Ações */}
+        <div className="flex flex-wrap items-center justify-end gap-2 xl:col-start-1 [&>button]:flex-1 sm:[&>button]:flex-none">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 rounded-xl cursor-pointer"
+            onClick={() => void navigate({ to: "/chamados" })}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            disabled={submitting || requiredMissing}
+            className="h-11 rounded-xl cursor-pointer shadow-[0_10px_22px_rgba(11,151,196,0.18)]"
+          >
+            <Send className="mr-1.5 h-4 w-4" />
+            {submitting ? "Criando..." : "Criar chamado"}
+          </Button>
+        </div>
       </form>
     </AppShell>
   );
@@ -1068,7 +1063,13 @@ function Field({
   );
 }
 
-function HadronOptionField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function HadronOptionField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const suggestions = useMemo(() => searchHadronOptions(value).slice(0, 10), [value]);
   return (

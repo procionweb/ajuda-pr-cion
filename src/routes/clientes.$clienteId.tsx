@@ -260,9 +260,9 @@ function ClientDetailPage() {
       </div>
 
       <Card className="overflow-hidden border-border bg-card p-0 shadow-sm dark:border-border">
-        <header className="border-b border-border px-7 py-5 dark:border-border">
+        <header className="border-b border-border px-4 py-4 sm:px-5 xl:px-7 xl:py-5 dark:border-border">
           <div className="flex flex-wrap items-start justify-between gap-5">
-            <div className="flex min-w-0 gap-4">
+            <div className="flex min-w-0 max-w-full gap-3 xl:gap-4">
               <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-primary text-base font-semibold text-primary-foreground shadow-sm">
                 {client.acronym.slice(0, 4).toUpperCase()}
               </div>
@@ -285,7 +285,7 @@ function ClientDetailPage() {
                   </Badge>
                 </div>
 
-                <h2 className="mt-1 truncate text-xl font-medium text-foreground">
+                <h2 className="mt-1 break-words text-lg xl:text-xl font-medium text-foreground">
                   {client.razaoSocial}
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -315,8 +315,8 @@ function ClientDetailPage() {
         </header>
 
         <Tabs value={currentTab} onValueChange={setTab} className="flex flex-col">
-          <div className="flex flex-wrap items-center gap-2 border-b border-border px-7">
-            <TabsList className="h-auto justify-start gap-1 rounded-none border-0 bg-transparent p-0">
+          <div className="min-w-0 overflow-x-auto border-b border-border px-2 sm:px-4 xl:px-7">
+            <TabsList className="h-auto w-max justify-start gap-1 rounded-none border-0 bg-transparent p-0">
               {[
                 ["cliente", "Cliente", Building2],
                 ["hadron", "Hádron", HadronMenuIcon],
@@ -346,7 +346,7 @@ function ClientDetailPage() {
             </TabsList>
           </div>
 
-          <div className="bg-muted/10 p-6">
+          <div className="min-w-0 bg-muted/10 p-3 sm:p-4 xl:p-6">
             <TabsContent
               value="cliente"
               className="m-0 space-y-5 text-[12px] [&_.text-sm]:text-[12px]"

@@ -542,12 +542,12 @@ export function TicketDetailSheet({
               event.preventDefault();
             }
           }}
-          className="grid max-h-none w-[92vw] max-w-[1500px] gap-4 !overflow-visible border-0 bg-transparent p-0 shadow-none xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-6 [&>button]:hidden"
+          className="grid h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[1500px] xl:h-auto xl:max-h-none xl:w-[92vw] gap-4 !overflow-visible border-0 bg-transparent p-0 shadow-none xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-6 [&>button]:hidden"
         >
           <DialogTitle className="sr-only">Detalhes do chamado {ticket.protocol}</DialogTitle>
 
           {/* Painel esquerdo — Chamado */}
-          <div className="relative flex max-h-[90vh] min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
+          <div className="relative flex h-full max-h-full min-h-0 xl:max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
             <DetailModalHeader
               icon={getModuleIcon(ticket.module, ticket.source, ticket.subject)}
               title={ticket.clientName || "Cliente não vinculado"}
@@ -644,12 +644,12 @@ export function TicketDetailSheet({
             />
 
             {/* Body: sidebar (menu + ações) | conteúdo | chat */}
-            <div className="flex flex-1 min-h-0 flex-col bg-card md:flex-row md:gap-4 md:p-4 dark:bg-muted/30">
+            <div className="flex flex-1 min-h-0 flex-col bg-card xl:flex-row xl:gap-4 xl:p-4 dark:bg-muted/30">
               {/* Sidebar */}
               <aside
                 className={cn(
-                  "hidden shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card transition-[width] duration-200 md:flex",
-                  navCollapsed ? "md:w-[64px]" : "md:w-[210px]",
+                  "hidden shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card transition-[width] duration-200 xl:flex",
+                  navCollapsed ? "xl:w-[64px]" : "xl:w-[210px]",
                 )}
               >
                 <div className="flex items-center justify-end p-2">
@@ -794,7 +794,7 @@ export function TicketDetailSheet({
               </aside>
 
               {/* Mobile action bar (topo, rolável) */}
-              <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-border bg-card px-3 py-2 md:hidden">
+              <div className="grid shrink-0 grid-cols-2 gap-2 border-b border-border bg-card px-3 py-2 sm:grid-cols-3 xl:hidden">
                 <MobileAction
                   icon={Plus}
                   label="Adicionar chamado"
@@ -871,7 +871,7 @@ export function TicketDetailSheet({
               </div>
 
               {/* Main content */}
-              <div className="flex-1 min-w-0 overflow-y-auto rounded-2xl border border-border bg-card px-5 py-5 [scrollbar-width:none] md:px-6 [&::-webkit-scrollbar]:hidden">
+              <div className="flex-1 min-w-0 overflow-y-auto rounded-2xl border border-border bg-card px-3 py-4 [scrollbar-width:none] sm:px-4 xl:px-6 [&::-webkit-scrollbar]:hidden">
                 {/* Datas e responsáveis */}
                 <div className="mb-4 grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-3 shadow-[0_6px_18px_rgba(25,29,51,0.04)] sm:grid-cols-2 xl:grid-cols-4">
                   <CompactInfo
@@ -1822,7 +1822,7 @@ function MobileAction({
       title={title}
       aria-label={label}
       className={cn(
-        "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-medium transition",
+        "inline-flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-[11.5px] font-medium transition",
         disabled && "cursor-not-allowed opacity-50",
         highlight
           ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
@@ -1836,7 +1836,7 @@ function MobileAction({
         )}
         strokeWidth={2.35}
       />
-      <span>{label}</span>
+      <span className="min-w-0 text-left leading-tight">{label}</span>
     </button>
   );
 }
