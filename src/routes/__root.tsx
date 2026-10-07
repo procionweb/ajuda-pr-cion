@@ -169,6 +169,7 @@ function RootComponent() {
 }
 
 function ScrollToTopButton() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -178,7 +179,7 @@ function ScrollToTopButton() {
     return () => window.removeEventListener("scroll", updateVisibility);
   }, []);
 
-  if (!visible) return null;
+  if (!visible || pathname === "/frota" || pathname.startsWith("/frota/")) return null;
 
   return (
     <button

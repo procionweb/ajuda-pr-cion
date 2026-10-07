@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { KeyRound, Truck, Undo2, History, Filter, ShieldCheck } from "lucide-react";
+import { KeyRound, Truck, Undo2, History, ShieldCheck } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/portal/AppShell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,18 +53,14 @@ function FleetPage() {
         breadcrumbs={[{ label: "Frota" }]}
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="h-10 cursor-pointer gap-2 rounded-lg">
-              <Filter className="h-4 w-4" />
-              Filtros
-            </Button>
             <FleetEntryDialog />
           </div>
         }
       />
 
       <div className="mb-4 w-full min-w-0 max-w-full border-b border-border">
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <div className="-mb-px flex min-w-0 items-center gap-1 overflow-x-auto">
+        <div className="flex min-w-0 flex-col gap-2 xl:flex-row xl:items-center xl:justify-between xl:gap-4">
+          <div className="-mb-px grid w-full min-w-0 grid-cols-4 items-center gap-1 xl:flex xl:w-auto">
             {TABS.map((t) => {
               const Icon = t.icon;
               const active = t.key === tab;
@@ -74,7 +70,7 @@ function FleetPage() {
                   type="button"
                   onClick={() => setTab(t.key)}
                   className={cn(
-                    "flex h-11 shrink-0 cursor-pointer items-center gap-2 border-b-2 px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    "flex min-h-14 min-w-0 cursor-pointer flex-col justify-center items-center gap-1 border-b-2 px-1 text-xs sm:h-11 sm:min-h-11 sm:flex-row sm:gap-2 sm:text-sm xl:shrink-0 xl:px-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     active
                       ? "border-primary text-primary font-medium"
                       : "border-transparent text-muted-foreground hover:text-foreground",
@@ -86,7 +82,7 @@ function FleetPage() {
               );
             })}
           </div>
-          <div className="flex h-11 w-full items-center pb-2 sm:w-64 sm:pb-2">
+          <div className="flex h-11 w-full items-center pb-2 xl:w-64 xl:shrink-0 xl:pb-2">
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
