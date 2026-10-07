@@ -862,16 +862,12 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="border-border/60 lg:border-r lg:pr-6">
             <p className="mb-4 text-xs uppercase tracking-wide text-muted-foreground">
-              Responsável
+              Responsável pelo escritório
             </p>
             <dl className="space-y-3">
               <div>
                 <dt className="text-[11px] text-muted-foreground">Nome</dt>
-                <dd className="mt-1 text-[12px]">
-                  {detail.responsible_name ||
-                    detail.notes?.replace(/^Responsável:\s*/i, "") ||
-                    "Não informado"}
-                </dd>
+                <dd className="mt-1 text-[12px]">{detail.responsible_name || "Não informado"}</dd>
               </div>
               <div>
                 <dt className="text-[11px] text-muted-foreground">CPF</dt>
@@ -887,7 +883,7 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
           </div>
           <div className="border-border/60 lg:border-r lg:pr-6">
             <p className="mb-4 text-xs uppercase tracking-wide text-muted-foreground">
-              Endereço do responsável
+              Endereço do responsável pelo escritório
             </p>
             <dl className="space-y-3">
               <div>

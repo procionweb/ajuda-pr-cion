@@ -99,45 +99,8 @@ export async function getAccountant(id: string) {
       };
     });
   }
-  const row = data as any;
-  const parse = (value: any) => {
-    if (value && typeof value === "object") return value;
-    if (typeof value === "string") {
-      try {
-        return JSON.parse(value);
-      } catch {
-        return {};
-      }
-    }
-    return {};
-  };
-  const payload = parse(row.source_payload);
-  const responsible = parse(payload.tcl_responsavel ?? payload.cli_responsavel);
-  let linkedResponsible: any = {};
-  if (clientIds.length) {
-    const linked = await supabase
-      .from("client_companies")
-      .select("responsible_name,responsible_document,source_payload")
-      .in("id", clientIds)
-      .limit(1)
-      .maybeSingle();
-    if (linked.error) throw linked.error;
-    const linkedPayload = parse(linked.data?.source_payload);
-    linkedResponsible = {
-      ...(linked.data ?? {}),
-      ...parse(linkedPayload.tcl_responsavel ?? linkedPayload.cli_responsavel),
-    };
-  }
-  const value = (current: any, ...fallbacks: string[]) =>
-    current ||
-    fallbacks.map((key) => responsible[key]).find(Boolean) ||
-    fallbacks.map((key) => linkedResponsible[key]).find(Boolean) ||
-    null;
   return {
-    ...row,
-    responsible_name: value(row.responsible_name, "tcl_res_nome", "cli_res_nome"),
-    responsible_document: value(row.responsible_document, "tcl_res_cpf", "cli_res_cpf"),
-    responsible_rg: value(row.responsible_rg, "tcl_res_rg", "cli_res_rg"),
+    ...(data as any),
     clientIds,
     clients,
   } as Accountant & { clientIds: string[]; clients: any[] };
