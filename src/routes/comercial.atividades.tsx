@@ -296,7 +296,7 @@ function ActivityRow({ activity, onSaved }: { activity: CommercialActivity; onSa
       <td className="whitespace-nowrap px-3 py-3">
         <span
           className={cn(
-            "inline-flex rounded px-2 py-1 text-[10px] font-medium",
+            "inline-flex h-7 w-32 items-center justify-center rounded-md px-2 text-[11px] font-medium",
             statusClass(activity.status),
           )}
         >
@@ -409,7 +409,21 @@ function statusLabel(status: string) {
   );
 }
 function statusClass(status: string) {
-  return status === "30" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground";
+  const tones: Record<string, string> = {
+    "0": "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300",
+    "5": "bg-violet-500/15 text-violet-700 dark:text-violet-300",
+    "10": "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300",
+    "20": "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300",
+    "30": "bg-primary/15 text-primary",
+    "60": "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+    "90": "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+    agendado: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+    atrasado: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+    concluido: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+    cancelado: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+  };
+  return tones[status] || "bg-muted text-muted-foreground";
 }
+
 const selectClass =
   "h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring";

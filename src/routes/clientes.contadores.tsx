@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   Building2,
@@ -7,6 +7,7 @@ import {
   Mail,
   MapPin,
   Plus,
+  Pencil,
   RefreshCw,
   Search,
   UsersRound,
@@ -29,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import {
   listAccountants,
   createAccountant,
+  updateAccountant,
   getAccountant,
   listAccountantClientOptions,
   linkAccountantClients,
@@ -36,10 +38,17 @@ import {
 } from "@/lib/accountants";
 
 export const Route = createFileRoute("/clientes/contadores")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    editar: typeof search.editar === "string" ? search.editar : undefined,
+  }),
   component: AccountantsPage,
   head: () => ({ meta: [{ title: "Contadores - Clientes - Portal Prócion" }] }),
 });
 function AccountantsPage() {
+  const navigate = useNavigate();
+  const { editar } = Route.useSearch();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [detail, setDetail] = useState<any>(null);
   const [rows, setRows] = useState<Accountant[]>([]);
   const [query, setQuery] = useState("");
@@ -83,7 +92,40 @@ function AccountantsPage() {
   );
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const edit = async (id: string) => {
+    try {
+      const [data, options] = await Promise.all([getAccountant(id), listAccountantClientOptions()]);
+      setForm(
+        (previous) =>
+          Object.fromEntries(
+            Object.keys(previous).map((key) => [key, (data as any)[key] ?? ""]),
+          ) as typeof previous,
+      );
+      setSelectedClients(data.clientIds);
+      setClientOptions(options);
+      setEditingId(id);
+      setDetail(null);
+      setOpen(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível carregar o contador.");
+    }
+  };
+  useEffect(() => {
+    if (editar) void edit(editar);
+  }, [editar]);
+  const closeEditor = () => {
+    setOpen(false);
+    setEditingId(null);
+    setForm(
+      (previous) =>
+        Object.fromEntries(Object.keys(previous).map((key) => [key, ""])) as typeof previous,
+    );
+    setSelectedClients([]);
+    if (editar)
+      void navigate({ to: "/clientes/contadores", search: { editar: undefined }, replace: true });
+  };
   const save = async () => {
+    if (saving) return;
     const phoneDigits = form.phone.replace(/\D/g, "");
     if (![10, 11].includes(phoneDigits.length))
       return toast.error("Informe o telefone completo com DDD (10 ou 11 dígitos).");
@@ -115,9 +157,14 @@ function AccountantsPage() {
       return toast.error("Preencha todos os campos obrigatórios do cadastro.");
     }
     try {
-      const created = await createAccountant(form as any);
-      await linkAccountantClients(created.id, selectedClients);
-      toast.success("Contador cadastrado.");
+      setSaving(true);
+      if (editingId) await updateAccountant(editingId, form, selectedClients);
+      else {
+        const created = await createAccountant(form as any);
+        await linkAccountantClients(created.id, selectedClients);
+      }
+      toast.success(editingId ? "Contador atualizado." : "Contador cadastrado.");
+      closeEditor();
       setOpen(false);
       setForm({
         ...form,
@@ -141,20 +188,31 @@ function AccountantsPage() {
       setSelectedClients([]);
       await load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível cadastrar.");
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar.");
+    } finally {
+      setSaving(false);
     }
   };
-  if (detail) return <AccountantDetail detail={detail} onBack={() => setDetail(null)} />;
+  if (detail)
+    return (
+      <AccountantDetail
+        detail={detail}
+        onBack={() => setDetail(null)}
+        onEdit={() => void edit(detail.id)}
+      />
+    );
   if (open)
     return (
       <AccountantCreateScreen
+        editing={Boolean(editingId)}
+        saving={saving}
         form={form}
         setForm={setForm}
         clientOptions={clientOptions}
         selectedClients={selectedClients}
         setSelectedClients={setSelectedClients}
         onSave={save}
-        onCancel={() => setOpen(false)}
+        onCancel={closeEditor}
       />
     );
   return (
@@ -208,6 +266,7 @@ function AccountantsPage() {
                 <th className="px-4 py-3">Escritório</th>
                 <th className="px-4 py-3">Contato</th>
                 <th className="px-4 py-3">Clientes</th>
+                <th className="px-4 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -237,6 +296,20 @@ function AccountantsPage() {
                       <UsersRound className="size-4" />
                       {r.clientCount ?? 0} clientes
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Editar contador"
+                      aria-label={`Editar ${r.name}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void edit(r.id);
+                      }}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -490,7 +563,10 @@ function AccountantCreateScreen({
   setSelectedClients,
   onSave,
   onCancel,
+  editing = false,
+  saving = false,
 }: any) {
+  const lastQueriedCep = useRef(editing ? form.postal_code.replace(/\D/g, "") : "");
   useEffect(() => {
     document.body.dataset.accountantCreate = "true";
     return () => {
@@ -511,6 +587,8 @@ function AccountantCreateScreen({
   };
   useEffect(() => {
     const cep = form.postal_code.replace(/\D/g, "");
+    if (cep === lastQueriedCep.current) return;
+    lastQueriedCep.current = cep;
     if (cep.length !== 8) {
       setCepStatus("");
       return;
@@ -564,10 +642,14 @@ function AccountantCreateScreen({
   return (
     <AppShell fullWidth>
       <PageHeader
-        title="Cadastrar contador"
-        description="Cadastre todos os dados do contador e vincule as empresas da base."
+        title={editing ? "Editar contador" : "Cadastrar contador"}
+        description={
+          editing
+            ? "Atualize os dados do contador e as empresas vinculadas."
+            : "Cadastre todos os dados do contador e vincule as empresas da base."
+        }
         actions={
-          <Button variant="outline" onClick={onCancel}>
+          <Button variant="outline" onClick={onCancel} disabled={saving}>
             Voltar para contadores
           </Button>
         }
@@ -792,7 +874,9 @@ function AccountantCreateScreen({
             <Button variant="outline" onClick={onCancel}>
               Cancelar
             </Button>
-            <Button onClick={onSave}>Salvar contador</Button>
+            <Button disabled={saving} onClick={onSave}>
+              {saving ? "Salvando..." : editing ? "Salvar alterações" : "Salvar contador"}
+            </Button>
           </div>
         </div>
         <RegistrationSummary
@@ -834,7 +918,15 @@ function AccountantCreateScreen({
   );
 }
 
-function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void }) {
+function AccountantDetail({
+  detail,
+  onBack,
+  onEdit,
+}: {
+  detail: any;
+  onBack: () => void;
+  onEdit: () => void;
+}) {
   const registrationCode = `CTR-${detail.id.slice(0, 8).toUpperCase()}`;
   const formatCnpj = (value: unknown) => {
     const digits = String(value ?? "").replace(/\D/g, "");
@@ -851,10 +943,16 @@ function AccountantDetail({ detail, onBack }: { detail: any; onBack: () => void 
         title={detail.name}
         description="Detalhes do contador e empresas vinculadas."
         actions={
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeft className="mr-2 size-4" />
-            Voltar para contadores
-          </Button>
+          <>
+            <Button variant="outline" onClick={onEdit}>
+              <Pencil className="mr-2 size-4" />
+              Editar contador
+            </Button>
+            <Button variant="outline" onClick={onBack}>
+              <ArrowLeft className="mr-2 size-4" />
+              Voltar para contadores
+            </Button>
+          </>
         }
       />
       <section className="rounded-xl border bg-card p-5 shadow-sm">

@@ -105,3 +105,15 @@ export async function getAccountant(id: string) {
     clients,
   } as Accountant & { clientIds: string[]; clients: any[] };
 }
+
+export async function updateAccountant(
+  id: string,
+  input: Omit<Accountant, "id">,
+  clientIds: string[],
+) {
+  const { error } = await supabase.rpc(
+    "update_crm_accountant" as never,
+    { p_id: id, p_data: input, p_clients: clientIds } as never,
+  );
+  if (error) throw new Error(error.message);
+}
