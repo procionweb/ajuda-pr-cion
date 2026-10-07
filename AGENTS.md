@@ -16,3 +16,7 @@ Nos detalhes de chamados e suas ações, não exibir X de fechar no cabeçalho. 
 ## Envio das alterações
 
 O usuário autorizou permanentemente commits e pushes normais para a branch main das alterações solicitadas neste projeto. Após validar a correção, enviar sem perguntar novamente. Preservar o histórico publicado, sem force push.
+
+## Permissões da Frota
+
+Histórico de lançamentos, edição de veículo e histórico de manutenção são exclusivos do perfil s_admin (super admin), incluindo componentes abertos a partir de outras telas.

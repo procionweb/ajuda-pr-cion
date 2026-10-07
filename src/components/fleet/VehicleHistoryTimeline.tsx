@@ -1,3 +1,4 @@
+import { usePortalAuth } from "@/lib/portal-auth";
 import { useMemo, useState } from "react";
 import { 
   Fuel, 
@@ -32,6 +33,7 @@ const TYPE_CONFIG = {
 };
 
 export function VehicleHistoryTimeline({ vehicleId }: { vehicleId: string }) {
+  const { role } = usePortalAuth();
   const allEntries = useFleetEntries();
   const vehicle = useVehicles().find((item) => item.id === vehicleId);
   const [entryType, setEntryType] = useState<FleetEntryType | "all">("all");
@@ -73,6 +75,8 @@ export function VehicleHistoryTimeline({ vehicleId }: { vehicleId: string }) {
     }));
     exportFleetHistoryXlsx(vehicle, rows);
   };
+
+  if (role !== "s_admin") return null;
 
   return (
     <Card className="flex flex-col border-border/50 bg-card p-5">

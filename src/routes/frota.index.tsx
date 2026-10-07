@@ -1,3 +1,4 @@
+import { usePortalAuth } from "@/lib/portal-auth";
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { KeyRound, Truck, Undo2, History, ShieldCheck } from "lucide-react";
@@ -42,6 +43,8 @@ const TABS: { key: TabKey; label: string; icon: typeof KeyRound }[] = [
 ];
 
 function FleetPage() {
+  const { role } = usePortalAuth();
+  const isSuperAdmin = role === "s_admin";
   const [tab, setTab] = useState<TabKey>("veiculos");
   const [query, setQuery] = useState("");
 
@@ -61,7 +64,7 @@ function FleetPage() {
       <div className="mb-4 w-full min-w-0 max-w-full border-b border-border">
         <div className="flex min-w-0 flex-col gap-2 xl:flex-row xl:items-center xl:justify-between xl:gap-4">
           <div className="-mb-px grid w-full min-w-0 grid-cols-4 items-center gap-1 xl:flex xl:w-auto">
-            {TABS.map((t) => {
+            {TABS.filter((t) => t.key !== "historico" || isSuperAdmin).map((t) => {
               const Icon = t.icon;
               const active = t.key === tab;
               return (
@@ -97,7 +100,7 @@ function FleetPage() {
         {tab === "saidas" && <DeparturesView query={query} />}
         {tab === "veiculos" && <VehiclesView query={query} />}
         {tab === "em_uso" && <InUseView query={query} />}
-        {tab === "historico" && <HistoryView query={query} />}
+        {tab === "historico" && isSuperAdmin && <HistoryView query={query} />}
       </div>
     </AppShell>
   );

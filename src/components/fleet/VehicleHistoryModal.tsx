@@ -1,3 +1,4 @@
+import { usePortalAuth } from "@/lib/portal-auth";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -112,6 +113,7 @@ export function VehicleHistoryModal({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const { role } = usePortalAuth();
   const allUsages = useUsages();
   const allEntries = useFleetEntries();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -191,7 +193,7 @@ export function VehicleHistoryModal({
     onOpenChange(v);
   };
 
-  if (!vehicle) return null;
+  if (role !== "s_admin" || !vehicle) return null;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

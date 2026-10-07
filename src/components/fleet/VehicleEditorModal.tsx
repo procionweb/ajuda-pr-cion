@@ -1,3 +1,4 @@
+import { usePortalAuth } from "@/lib/portal-auth";
 import { useEffect, useState } from "react";
 import { Save, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ type Props = {
 };
 
 export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
+  const { role } = usePortalAuth();
   const [draft, setDraft] = useState<Vehicle | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -53,7 +55,7 @@ export function VehicleEditorModal({ vehicle, open, onOpenChange }: Props) {
     }
   }, [vehicle, open]);
 
-  if (!draft || !vehicle) return null;
+  if (role !== "s_admin" || !draft || !vehicle) return null;
 
   const change = (field: keyof Vehicle, value: any) =>
     setDraft((current) => (current ? { ...current, [field]: value } : current));

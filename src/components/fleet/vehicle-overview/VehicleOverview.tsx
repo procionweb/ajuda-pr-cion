@@ -1,3 +1,4 @@
+import { usePortalAuth } from "@/lib/portal-auth";
 import { useState, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -52,6 +53,8 @@ interface VehicleOverviewProps {
 }
 
 export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
+  const { role } = usePortalAuth();
+  const isSuperAdmin = role === "s_admin";
   const navigate = useNavigate();
   const usages = useUsages();
   useReservations();
@@ -191,6 +194,7 @@ export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
             }}
           />
         )}
+        {isSuperAdmin && (<>
         <ActionButton
           icon={History}
           label="Histórico"
@@ -201,9 +205,10 @@ export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
           label="Editar veículo"
           onClick={() => setIsEditorOpen(true)}
         />
+        </>)}
       </div>
 
-      <VehicleEditorModal vehicle={vehicle} open={isEditorOpen} onOpenChange={setIsEditorOpen} />
+      <VehicleEditorModal vehicle={vehicle} open={isSuperAdmin && isEditorOpen} onOpenChange={setIsEditorOpen} />
       <MaintenanceDialog
         vehicle={vehicle}
         open={isMaintenanceOpen}
@@ -224,7 +229,7 @@ export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
 
         <TabsContent value="overview" className="mt-6 flex flex-col gap-6">
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-            <VehicleHistoryTimeline vehicleId={vehicle.id} />
+            {isSuperAdmin && <VehicleHistoryTimeline vehicleId={vehicle.id} />}
             <VehicleLastMonthStats
               vehicleId={vehicle.id}
               usages={vehicleUsages}
@@ -307,7 +312,7 @@ export function VehicleOverview({ vehicle }: VehicleOverviewProps) {
       {/* Modais */}
       <VehicleHistoryModal
         vehicle={vehicle}
-        open={isHistoryModalOpen}
+        open={isSuperAdmin && isHistoryModalOpen}
         onOpenChange={setIsHistoryModalOpen}
       />
 
