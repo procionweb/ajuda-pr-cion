@@ -121,8 +121,13 @@ function CommercialActivitiesPage() {
           <option value="atrasado">Atrasados</option>
           <option value="concluido">Concluídos</option>
           <option value="cancelado">Cancelados</option>
-          <option value="5">Em acompanhamento (histórico)</option>
-          <option value="30">Visita/Demonstração</option>
+          <option value="0">Prospecção (histórico)</option>
+          <option value="5">Relacionamento (histórico)</option>
+          <option value="10">Demonstração (histórico)</option>
+          <option value="20">Proposta (histórico)</option>
+          <option value="30">Negociação (histórico)</option>
+          <option value="60">Negócio fechado (histórico)</option>
+          <option value="90">Sem interesse (histórico)</option>
         </select>
         <select
           value={substatus}
@@ -152,17 +157,17 @@ function CommercialActivitiesPage() {
       </section>
 
       <div className="overflow-hidden rounded-lg border bg-card">
-        <div className="overflow-x-auto xl:overflow-x-hidden">
-          <table className="w-full min-w-[820px] table-fixed text-left text-[13px] text-foreground xl:min-w-0">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1100px] table-fixed text-left text-[13px] text-foreground">
             <colgroup>
               <col className="w-[3%]" />
               <col className="w-[5%]" />
               <col className="w-[12%]" />
               <col className="w-[9%]" />
               <col className="w-[20%]" />
-              <col className="w-[25%]" />
+              <col className="w-[16%]" />
               <col className="w-[12%]" />
-              <col className="w-[14%]" />
+              <col className="w-[23%]" />
             </colgroup>
             <thead className="border-b bg-muted/35 text-[11px] uppercase text-muted-foreground">
               <tr>
@@ -304,24 +309,24 @@ function ActivityRow({ activity, onSaved }: { activity: CommercialActivity; onSa
               size="sm"
               variant="outline"
               disabled={saving}
-              className="h-8 w-8 shrink-0 p-0"
+              className="h-8 shrink-0 whitespace-nowrap px-2.5"
               title="Concluir atividade"
               aria-label="Concluir atividade"
               onClick={() => void finish("concluido")}
             >
-              <Check className="size-4" />
+              <Check className="mr-1 size-3.5" /> Concluir
             </Button>
             <Button
               type="button"
               size="sm"
               variant="ghost"
               disabled={saving}
-              className="h-8 w-8 shrink-0 p-0"
+              className="h-8 shrink-0 whitespace-nowrap px-2.5"
               title="Cancelar atividade"
               aria-label="Cancelar atividade"
               onClick={() => void finish("cancelado")}
             >
-              <X className="size-4" />
+              <X className="mr-1 size-3.5" /> Cancelar
             </Button>
           </div>
         )}
@@ -392,8 +397,13 @@ function statusLabel(status: string) {
         atrasado: "Atrasado",
         concluido: "Concluído",
         cancelado: "Cancelado",
-        "5": "Em acompanhamento",
-        "30": "Visita/Demonstração",
+        "0": "Prospecção",
+        "5": "Relacionamento",
+        "10": "Demonstração",
+        "20": "Proposta",
+        "30": "Negociação",
+        "60": "Negócio fechado",
+        "90": "Sem interesse",
       } as Record<string, string>
     )[status] || `Status ${status || "não informado"}`
   );
