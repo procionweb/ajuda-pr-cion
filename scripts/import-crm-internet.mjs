@@ -93,6 +93,13 @@ let devicesImported = 0;
 let devicesLinked = 0;
 
 try {
+  const sourceMode = await pool.query(
+    "select relkind from pg_class where oid=to_regclass('public.auth_contratos')",
+  );
+  if (sourceMode.rows[0]?.relkind === "v") {
+    throw new Error("Esta base usa MySQL ao vivo. A importação de cópias locais está desativada.");
+  }
+
   for (const migrationFile of migrationFiles) {
     const migrationPath = path.resolve("supabase/migrations", migrationFile);
     if (fs.existsSync(migrationPath)) await pool.query(fs.readFileSync(migrationPath, "utf8"));

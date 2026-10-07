@@ -67,9 +67,14 @@ let logsLinkedToUsers = 0;
 let logsLinkedToClients = 0;
 
 try {
-  const migration = path.resolve(
-    "supabase/migrations/20260724203000_auth_users_logs.sql",
+  const sourceMode = await pool.query(
+    "select relkind from pg_class where oid=to_regclass('public.auth_usuarios')",
   );
+  if (sourceMode.rows[0]?.relkind === "v") {
+    throw new Error("Esta base usa MySQL ao vivo. A importação de cópias locais está desativada.");
+  }
+
+  const migration = path.resolve("supabase/migrations/20260724203000_auth_users_logs.sql");
   await pool.query(fs.readFileSync(migration, "utf8"));
   await pool.query("begin");
 
@@ -116,9 +121,7 @@ try {
   }
 
   const importedUsers = await pool.query("select id, legacy_id from public.auth_usuarios");
-  const userByLegacyId = new Map(
-    importedUsers.rows.map((user) => [text(user.legacy_id), user.id]),
-  );
+  const userByLegacyId = new Map(importedUsers.rows.map((user) => [text(user.legacy_id), user.id]));
 
   for (const row of logRows) {
     const legacyId = text(row.id);
