@@ -1,14 +1,13 @@
 import { COLLECTOR_PRIVATE_KEY } from "./collector-config.local.js";
 
 const SOURCE_URL = "https://downdetector.com.br/fora-do-ar/sefaz/";
-const FUNCTION_URL =
-  "https://vbkbbfeujqmvgmmhmeao.supabase.co/functions/v1/downdetector-snapshot";
+const FUNCTION_URL = "https://vbkbbfeujqmvgmmhmeao.supabase.co/functions/v1/downdetector-snapshot";
 const ALARM_NAME = "collect-sefaz-reports";
 
 async function ensureAlarm() {
   const alarm = await chrome.alarms.get(ALARM_NAME);
-  if (!alarm) {
-    chrome.alarms.create(ALARM_NAME, { delayInMinutes: 0.1, periodInMinutes: 10 });
+  if (!alarm || alarm.periodInMinutes !== 10) {
+    await chrome.alarms.create(ALARM_NAME, { delayInMinutes: 10, periodInMinutes: 10 });
   }
 }
 
@@ -54,16 +53,25 @@ async function sendSnapshot(snapshot) {
 }
 
 async function saveStatus(status) {
-  await chrome.storage.local.set({ collectorStatus: { ...status, checkedAt: new Date().toISOString() } });
+  await chrome.storage.local.set({
+    collectorStatus: { ...status, checkedAt: new Date().toISOString() },
+  });
 }
 
 async function refreshSource() {
   const tabs = await chrome.tabs.query({ url: `${SOURCE_URL}*` });
   if (tabs[0]?.id) {
-    await chrome.tabs.reload(tabs[0].id);
+    await chrome.tabs.update(tabs[0].id, { autoDiscardable: false });
+    await chrome.tabs.reload(tabs[0].id, { bypassCache: true });
     return;
   }
-  await chrome.tabs.create({ url: SOURCE_URL, active: false });
+  const created = await chrome.tabs.create({ url: SOURCE_URL, active: false });
+  if (created.id) await chrome.tabs.update(created.id, { autoDiscardable: false });
+}
+
+function reportRefreshError(error) {
+  setBadge("!", "#dc3545");
+  void saveStatus({ ok: false, error: error instanceof Error ? error.message : String(error) });
 }
 
 function setBadge(text, color) {
@@ -75,7 +83,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!sender.url?.startsWith(SOURCE_URL)) return;
 
   if (message?.type === "downdetector-refresh-request") {
-    if (sender.tab?.id) void chrome.tabs.reload(sender.tab.id);
+    if (sender.tab?.id) void chrome.tabs.reload(sender.tab.id, { bypassCache: true });
     return;
   }
 
@@ -104,15 +112,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 chrome.runtime.onInstalled.addListener(() => {
   void ensureAlarm();
-  void refreshSource();
+  void refreshSource().catch(reportRefreshError);
 });
 
 chrome.runtime.onStartup.addListener(() => {
   void ensureAlarm();
+  void refreshSource().catch(reportRefreshError);
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === ALARM_NAME) void refreshSource();
+  if (alarm.name === ALARM_NAME) void refreshSource().catch(reportRefreshError);
 });
 
 // Recria o alarme caso o Chrome tenha removido o agendamento ao suspender ou

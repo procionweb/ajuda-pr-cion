@@ -21,9 +21,13 @@ document.querySelector("#collect").addEventListener("click", async () => {
   statusElement.className = "";
   statusElement.textContent = "Abrindo a fonte e iniciando a coleta...";
   const tabs = await chrome.tabs.query({ url: `${SOURCE_URL}*` });
-  if (tabs[0]?.id) await chrome.tabs.reload(tabs[0].id);
+  if (tabs[0]?.id) await chrome.tabs.reload(tabs[0].id, { bypassCache: true });
   else await chrome.tabs.create({ url: SOURCE_URL, active: false });
   window.setTimeout(renderStatus, 7_000);
 });
 
 void renderStatus();
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.collectorStatus) void renderStatus();
+});

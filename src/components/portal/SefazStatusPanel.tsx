@@ -114,7 +114,16 @@ export function SefazStatusPanel() {
       void loadExternalReports();
     }, 60_000);
 
-    return () => window.clearInterval(refreshInterval);
+    const refreshVisible = () => {
+      if (document.visibilityState === "visible") void loadExternalReports();
+    };
+    window.addEventListener("focus", refreshVisible);
+    document.addEventListener("visibilitychange", refreshVisible);
+    return () => {
+      window.clearInterval(refreshInterval);
+      window.removeEventListener("focus", refreshVisible);
+      document.removeEventListener("visibilitychange", refreshVisible);
+    };
   }, [loadExternalReports]);
 
   const selected = data?.documents.find((item) => item.document === "nfe");
