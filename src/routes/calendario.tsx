@@ -702,7 +702,7 @@ function CalendarPage() {
                   setAgendaOpen(true);
                 }}
                 className={cn(
-                  "group min-h-[118px] cursor-pointer border-b border-r border-border p-2 text-left align-top transition-colors hover:bg-primary/[0.035]",
+                  "group min-w-0 min-h-[118px] max-xl:px-0.5 cursor-pointer border-b border-r border-border p-2 text-left align-top transition-colors hover:bg-primary/[0.035]",
                   !cell.current && "bg-muted/15 text-muted-foreground/45",
                   selected && "bg-primary/[0.06] ring-1 ring-inset ring-primary/25",
                 )}
@@ -1065,13 +1065,13 @@ function CalendarEventPill({ event, now }: { event: CalendarEvent; now: Date }) 
     <span
       title={`${EVENT_TONE_LABEL[tone]} · ${event.type} · ${event.time} ${operator} - ${label}`}
       className={cn(
-        "flex items-center gap-2 overflow-hidden rounded px-2 py-1 text-[10px]",
+        "flex min-w-0 items-center gap-2 overflow-hidden rounded px-2 py-1 text-[10px] max-xl:justify-center max-xl:gap-0 max-xl:px-0 max-[360px]:text-[9px]",
         toneStyle.solid,
       )}
     >
       <span className="shrink-0 tabular-nums">{event.time}</span>
-      <Icon className="h-3 w-3 shrink-0" aria-label={event.type} />
-      <span className="truncate">
+      <Icon className="hidden h-3 w-3 shrink-0 xl:block" aria-label={event.type} />
+      <span className="hidden truncate xl:inline">
         <span className="font-medium">{operator}</span>
         <span> - {label}</span>
       </span>

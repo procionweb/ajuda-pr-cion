@@ -1,3 +1,4 @@
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { useState, type ReactNode } from "react";
 import { CalendarDays } from "lucide-react";
 import { format } from "date-fns";
@@ -35,6 +36,11 @@ export function EventDateTimeFields({
   className?: string;
 }) {
   const [dateOpen, setDateOpen] = useState(false);
+  const compact = useIsMobileOrTablet();
+  const typedTime = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 4);
+    return digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
+  };
 
   return (
     <div className={cn("grid gap-3 sm:grid-cols-3", className)}>
@@ -67,17 +73,25 @@ export function EventDateTimeFields({
       </DateTimeField>
       <DateTimeField label="Início" required>
         <Input
-          type="time"
+          type={compact ? "text" : "time"}
+          inputMode={compact ? "numeric" : undefined}
+          placeholder="HH:mm"
+          maxLength={compact ? 5 : undefined}
+          pattern={compact ? "([01][0-9]|2[0-3]):[0-5][0-9]" : undefined}
           value={startTime}
-          onChange={(e) => onStartTimeChange(e.target.value)}
+          onChange={(e) => onStartTimeChange(compact ? typedTime(e.target.value) : e.target.value)}
           className="cursor-pointer"
         />
       </DateTimeField>
       <DateTimeField label="Término" required>
         <Input
-          type="time"
+          type={compact ? "text" : "time"}
+          inputMode={compact ? "numeric" : undefined}
+          placeholder="HH:mm"
+          maxLength={compact ? 5 : undefined}
+          pattern={compact ? "([01][0-9]|2[0-3]):[0-5][0-9]" : undefined}
           value={endTime}
-          onChange={(e) => onEndTimeChange(e.target.value)}
+          onChange={(e) => onEndTimeChange(compact ? typedTime(e.target.value) : e.target.value)}
           className="cursor-pointer"
         />
       </DateTimeField>

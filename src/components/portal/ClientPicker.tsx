@@ -1,3 +1,4 @@
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Building2, ChevronDown, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ export function ClientPicker({
   compact,
 }: Props) {
   const { clients, loading, error } = useClients({ onlyActive: true });
+  const compactScreen = useIsMobileOrTablet();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -87,7 +89,7 @@ export function ClientPicker({
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                autoFocus
+                autoFocus={!compactScreen}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Digite para filtrar..."

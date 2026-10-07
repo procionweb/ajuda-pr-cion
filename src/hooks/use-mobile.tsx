@@ -17,3 +17,15 @@ export function useIsMobile() {
 
   return !!isMobile;
 }
+
+export function useIsMobileOrTablet() {
+  const [compact, setCompact] = React.useState(false);
+  React.useEffect(() => {
+    const media = window.matchMedia("(max-width: 1279px)");
+    const update = () => setCompact(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return compact;
+}

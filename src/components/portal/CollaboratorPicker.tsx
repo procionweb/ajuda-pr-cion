@@ -1,3 +1,4 @@
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { useMemo, useState } from "react";
 import { Check, ChevronDown, Loader2, Search, UserRound, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -54,11 +55,12 @@ function useFiltered(list: Collaborator[], term: string) {
 }
 
 function SearchBox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const compactScreen = useIsMobileOrTablet();
   return (
     <div className="flex items-center gap-2 border-b border-border px-2 py-1.5">
       <Search className="h-3.5 w-3.5 text-muted-foreground" />
       <input
-        autoFocus
+        autoFocus={!compactScreen}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Pesquisar por nome, sigla, departamento ou e-mail"

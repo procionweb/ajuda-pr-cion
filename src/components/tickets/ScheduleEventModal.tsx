@@ -144,6 +144,10 @@ export function ScheduleEventModal({
       toast.error("Selecione o veículo que será usado na visita.");
       return;
     }
+    if (![startTime, endTime].every((value) => /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(value))) {
+      toast.error("Informe horários válidos no formato HH:mm.");
+      return;
+    }
     if (hasEventStarted({ date, time: startTime })) {
       toast.error("Esse horário já passou. Escolha um horário futuro.");
       return;
