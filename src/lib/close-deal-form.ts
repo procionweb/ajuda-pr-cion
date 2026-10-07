@@ -139,6 +139,22 @@ export function formatFiscalField(key: string, value: string): string {
         } as Record<string, string>
       )[value] || value
     );
+  if (key === "responsible_cpf")
+    return value
+      .replace(/\D/g, "")
+      .slice(0, 11)
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3}\.\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3}\.\d{3}\.\d{3})(\d)/, "$1-$2");
+  if (key === "responsible_postal_code")
+    return value
+      .replace(/\D/g, "")
+      .slice(0, 8)
+      .replace(/^(\d{5})(\d)/, "$1-$2");
+  if (key === "responsible_rg") {
+    const raw = value.toUpperCase().replace(/[^0-9X]/g, "");
+    return raw.length === 9 ? raw.replace(/^(\d{2})(\d{3})(\d{3})([\dX])$/, "$1.$2.$3-$4") : raw;
+  }
   if (key === "cnae")
     return value
       .replace(/\D/g, "")

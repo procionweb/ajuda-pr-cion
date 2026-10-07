@@ -48,6 +48,8 @@ function CloseDealPage() {
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
+  const [cepStatus, setCepStatus] = useState("");
+  const [responsibleCepQuery, setResponsibleCepQuery] = useState("");
   const [fiscalReference, setFiscalReference] = useState("");
   useEffect(() => {
     let active = true;
@@ -85,6 +87,49 @@ function CloseDealPage() {
       active = false;
     };
   }, [leadId]);
+  useEffect(() => {
+    const cep = responsibleCepQuery.replace(/\D/g, "");
+    if (cep.length !== 8) {
+      setCepStatus("");
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setCepStatus("Buscando endereço...");
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
+        });
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+        if (controller.signal.aborted) return;
+        if (data.erro) {
+          setCepStatus("CEP não encontrado. Confira ou preencha manualmente.");
+          return;
+        }
+        setForm((previous) => {
+          if ((previous.responsible_postal_code || "").replace(/\D/g, "") !== cep) return previous;
+          return {
+            ...previous,
+            responsible_address: data.logradouro || "",
+            responsible_neighborhood: data.bairro || "",
+            responsible_city: data.localidade || "",
+            responsible_state: data.uf || "",
+          };
+        });
+        setCepStatus("Endereço preenchido pelo CEP. Informe o número.");
+      } catch {
+        if (!controller.signal.aborted)
+          setCepStatus(
+            "Não foi possível consultar o CEP. Preencha manualmente ou tente outro CEP.",
+          );
+      }
+    }, 350);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [responsibleCepQuery]);
   async function lookupFiscalData() {
     const cnpj = (form.cnpj || "").replace(/\D/g, "");
     if (cnpj.length !== 14) {
@@ -150,6 +195,17 @@ function CloseDealPage() {
       (!/^\d+$/.test(form.terminals) || !Number.isSafeInteger(Number(form.terminals)))
     ) {
       toast.error("Informe uma quantidade inteira de terminais, igual ou maior que zero.");
+      return;
+    }
+    if (form.responsible_cpf && form.responsible_cpf.replace(/\D/g, "").length !== 11) {
+      toast.error("Informe o CPF completo do responsável, com 11 dígitos.");
+      return;
+    }
+    if (
+      form.responsible_postal_code &&
+      form.responsible_postal_code.replace(/\D/g, "").length !== 8
+    ) {
+      toast.error("Informe o CEP completo do responsável, com 8 dígitos.");
       return;
     }
     setSaving(true);
@@ -291,7 +347,9 @@ function CloseDealPage() {
                             }
                             min={key === "terminals" ? 0 : undefined}
                             step={key === "terminals" ? 1 : undefined}
-                            onChange={(event) =>
+                            onChange={(event) => {
+                              if (key === "responsible_postal_code")
+                                setResponsibleCepQuery(event.target.value);
                               setForm((previous) => ({
                                 ...previous,
                                 [key]:
@@ -301,9 +359,14 @@ function CloseDealPage() {
                                   key === "responsible_state"
                                     ? event.target.value.toUpperCase()
                                     : formatFiscalField(key, event.target.value),
-                              }))
-                            }
+                              }));
+                            }}
                           />
+                        )}
+                        {key === "responsible_postal_code" && cepStatus && (
+                          <p className="mt-1 text-xs text-muted-foreground" role="status">
+                            {cepStatus}
+                          </p>
                         )}
                         {key === "state_registration" && (
                           <p className="mt-1 text-xs text-muted-foreground">
@@ -375,6 +438,47 @@ function CloseDealPage() {
                           Os módulos que você selecionar aparecerão aqui.
                         </p>
                       )}
+                    </div>
+                    <div className="mt-5 border-t pt-4">
+                      <h3 className="text-sm font-medium">Bancos para cobrança</h3>
+                      <div className="mt-3 space-y-2">
+                        {(form.banks || "")
+                          .split(";")
+                          .map((item) => item.trim())
+                          .filter(Boolean)
+                          .map((item) => (
+                            <div
+                              key={item}
+                              className="flex items-center gap-2 rounded-xl border bg-primary/5 p-3"
+                            >
+                              <span className="min-w-0 flex-1 break-words text-sm">{item}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 shrink-0"
+                                aria-label={`Remover banco ${item}`}
+                                onClick={() =>
+                                  setForm((previous) => ({
+                                    ...previous,
+                                    banks: (previous.banks || "")
+                                      .split(";")
+                                      .map((value) => value.trim())
+                                      .filter((value) => value && value !== item)
+                                      .join("; "),
+                                  }))
+                                }
+                              >
+                                <X className="size-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        {!form.banks?.trim() && (
+                          <p className="text-xs text-muted-foreground">
+                            Os bancos selecionados aparecerão aqui.
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </aside>
                 )}

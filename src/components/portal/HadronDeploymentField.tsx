@@ -4,12 +4,14 @@ import { CollaboratorSelect } from "@/components/portal/CollaboratorPicker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import banksCatalog from "@/data/banks.json";
 import { moduleOptions } from "@/lib/modules-map";
 
 export const deploymentSelectKeys = new Set([
   "hadron_responsible_1",
   "hadron_responsible_2",
   "modules",
+  "banks",
   "nfe_validation",
   "data_import",
   "bank_slip",
@@ -35,7 +37,7 @@ export function HadronDeploymentField({
         className="mt-1 h-11 rounded-xl"
       />
     );
-  if (field !== "modules")
+  if (field !== "modules" && field !== "banks")
     return (
       <select
         id={`deal-${field}`}
@@ -49,6 +51,11 @@ export function HadronDeploymentField({
         <option value="Não">Não</option>
       </select>
     );
+  const options =
+    field === "banks"
+      ? banksCatalog.banks.map((bank) => `${bank.code} · ${bank.name}`)
+      : moduleOptions;
+  const label = field === "banks" ? "banco(s)" : "módulo(s)";
   const selected = value
     .split(";")
     .map((item) => item.trim())
@@ -66,27 +73,29 @@ export function HadronDeploymentField({
             type="button"
             variant="outline"
             role="combobox"
-            aria-label="Módulos contratados"
+            aria-label={field === "banks" ? "Bancos para cobrança" : "Módulos contratados"}
             aria-expanded={open}
             className="h-11 w-full cursor-pointer justify-between rounded-xl text-sm font-normal"
           >
             <span className="truncate">
               {selected.length
-                ? `${selected.length} módulo(s) selecionado(s)`
-                : "Buscar módulos..."}
+                ? `${selected.length} ${label} selecionado(s)`
+                : field === "banks"
+                  ? "Buscar bancos..."
+                  : "Buscar módulos..."}
             </span>
             <ChevronDown className="size-4 shrink-0" />
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-2">
           <Input
-            aria-label="Buscar módulos"
+            aria-label={field === "banks" ? "Buscar bancos" : "Buscar módulos"}
             placeholder="Digite para buscar..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
           <div className="mt-2 max-h-64 overflow-y-auto">
-            {moduleOptions
+            {options
               .filter((option) => normalize(option).includes(normalize(search)))
               .map((option) => (
                 <button
@@ -107,8 +116,8 @@ export function HadronDeploymentField({
                   {selected.includes(option) && <Check className="size-4 shrink-0 text-primary" />}
                 </button>
               ))}
-            {!moduleOptions.some((option) => normalize(option).includes(normalize(search))) && (
-              <p className="p-2 text-xs text-muted-foreground">Nenhum módulo encontrado.</p>
+            {!options.some((option) => normalize(option).includes(normalize(search))) && (
+              <p className="p-2 text-xs text-muted-foreground">Nenhuma opção encontrada.</p>
             )}
           </div>
         </PopoverContent>
