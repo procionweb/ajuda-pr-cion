@@ -605,8 +605,8 @@ export function TicketDetailSheet({
               }
 
               meta={
-                <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                  <span className="truncate text-foreground">{ticket.subject}</span>
+                <span className="inline-flex max-w-full min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
+                  <span className="max-w-full min-w-0 text-foreground max-xl:whitespace-normal max-xl:[overflow-wrap:anywhere] xl:truncate">{ticket.subject}</span>
                   <span aria-hidden className="text-border">
                     ·
                   </span>
@@ -630,7 +630,7 @@ export function TicketDetailSheet({
                       <span aria-hidden className="text-border">
                         ·
                       </span>
-                      <span className="truncate text-[11px] text-muted-foreground">
+                      <span className="min-w-0 text-[11px] text-muted-foreground max-xl:whitespace-normal max-xl:[overflow-wrap:anywhere] xl:truncate">
                         {ticket.companyNumber
                           ? `${String(ticket.companyNumber).padStart(3, "0")} · `
                           : ""}
@@ -794,7 +794,7 @@ export function TicketDetailSheet({
               </aside>
 
               {/* Mobile action bar (topo, rolável) */}
-              <div className="grid shrink-0 grid-cols-7 gap-1 bg-card px-3 py-3 xl:hidden">
+              <div className="grid shrink-0 grid-cols-7 gap-1 border-b border-border bg-card px-3 py-3 xl:hidden">
                 <MobileAction
                   icon={Plus}
                   label="Adicionar chamado"
@@ -871,7 +871,7 @@ export function TicketDetailSheet({
               </div>
 
               {/* Main content */}
-              <div className="flex-1 min-w-0 overflow-y-auto rounded-2xl border border-border bg-card px-3 py-4 [scrollbar-width:none] sm:px-4 xl:px-6 [&::-webkit-scrollbar]:hidden max-xl:border-0 max-xl:rounded-none max-xl:[&_*]:border-0 max-xl:[&_div]:shadow-none">
+              <div className="flex-1 min-w-0 overflow-y-auto rounded-2xl border border-border bg-card px-3 py-4 [scrollbar-width:none] sm:px-4 xl:px-6 [&::-webkit-scrollbar]:hidden max-xl:border-0 max-xl:rounded-none max-xl:[&_*]:border-0 max-xl:[&>div:not(:last-child)]:!border-b max-xl:[&>section:not(:last-child)]:!border-b max-xl:[&>div:not(:last-child)]:pb-4 max-xl:[&_div]:shadow-none">
                 {/* Datas e responsáveis */}
                 <div className="mb-4 grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-3 shadow-[0_6px_18px_rgba(25,29,51,0.04)] sm:grid-cols-2 xl:grid-cols-4">
                   <CompactInfo
@@ -1076,7 +1076,7 @@ export function TicketDetailSheet({
             </div>
             {/* fim body wrapper */}
             {!selectedHistory && !selectedCalendarEvent && (
-              <DialogFooter className="border-t border-border py-4 pl-5 pr-20 sm:pr-5 max-xl:border-0 max-xl:[&_button]:border-0">
+              <DialogFooter className="border-t border-border py-4 pl-5 pr-20 sm:pr-5 max-xl:[&_button]:border-0">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Fechar
                 </Button>
@@ -1697,7 +1697,7 @@ function HeaderSlaStat({
   return (
     <div className="flex min-w-0 xl:min-w-[150px] items-center justify-between gap-2 rounded-lg border border-border bg-background/70 px-2.5 py-1.5 max-xl:border-0">
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate text-[9px] font-medium uppercase text-muted-foreground">
+        <span className="text-[9px] font-medium uppercase text-muted-foreground max-xl:whitespace-normal xl:truncate">
           {label}
         </span>
         {children}
