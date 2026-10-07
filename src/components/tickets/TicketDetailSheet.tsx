@@ -556,7 +556,7 @@ export function TicketDetailSheet({
                 <>
                   <Badge
                     className={cn(
-                      "shrink-0 rounded-md border px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wide",
+                      "shrink-0 rounded-md border px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wide max-xl:border-0",
                       statusTone[ticket.status],
                     )}
                   >
@@ -794,7 +794,7 @@ export function TicketDetailSheet({
               </aside>
 
               {/* Mobile action bar (topo, rolável) */}
-              <div className="grid shrink-0 grid-cols-2 gap-2 border-b border-border bg-card px-3 py-2 sm:grid-cols-3 xl:hidden">
+              <div className="grid shrink-0 grid-cols-7 gap-1 bg-card px-3 py-3 xl:hidden">
                 <MobileAction
                   icon={Plus}
                   label="Adicionar chamado"
@@ -871,7 +871,7 @@ export function TicketDetailSheet({
               </div>
 
               {/* Main content */}
-              <div className="flex-1 min-w-0 overflow-y-auto rounded-2xl border border-border bg-card px-3 py-4 [scrollbar-width:none] sm:px-4 xl:px-6 [&::-webkit-scrollbar]:hidden">
+              <div className="flex-1 min-w-0 overflow-y-auto rounded-2xl border border-border bg-card px-3 py-4 [scrollbar-width:none] sm:px-4 xl:px-6 [&::-webkit-scrollbar]:hidden max-xl:border-0 max-xl:rounded-none max-xl:[&_*]:border-0 max-xl:[&_div]:shadow-none">
                 {/* Datas e responsáveis */}
                 <div className="mb-4 grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-3 shadow-[0_6px_18px_rgba(25,29,51,0.04)] sm:grid-cols-2 xl:grid-cols-4">
                   <CompactInfo
@@ -1076,7 +1076,7 @@ export function TicketDetailSheet({
             </div>
             {/* fim body wrapper */}
             {!selectedHistory && !selectedCalendarEvent && (
-              <DialogFooter className="border-t border-border py-4 pl-5 pr-20 sm:pr-5">
+              <DialogFooter className="border-t border-border py-4 pl-5 pr-20 sm:pr-5 max-xl:border-0 max-xl:[&_button]:border-0">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Fechar
                 </Button>
@@ -1695,7 +1695,7 @@ function HeaderSlaStat({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-w-[150px] items-center justify-between gap-2 rounded-lg border border-border bg-background/70 px-2.5 py-1.5">
+    <div className="flex min-w-0 xl:min-w-[150px] items-center justify-between gap-2 rounded-lg border border-border bg-background/70 px-2.5 py-1.5 max-xl:border-0">
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="truncate text-[9px] font-medium uppercase text-muted-foreground">
           {label}
@@ -1704,7 +1704,7 @@ function HeaderSlaStat({
       </div>
       <span
         className={cn(
-          "grid h-8 w-8 shrink-0 place-items-center rounded-full border",
+          "grid h-8 w-8 shrink-0 place-items-center rounded-full border max-xl:border-0",
           tone === "ok" && "border-success/25 bg-success/10 text-success",
           tone === "warn" && "border-warning/25 bg-warning/15 text-warning-foreground",
           tone === "late" && "border-destructive/25 bg-destructive/10 text-destructive",
@@ -1819,10 +1819,10 @@ function MobileAction({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title={title}
+      title={title ?? label}
       aria-label={label}
       className={cn(
-        "inline-flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-[11.5px] font-medium transition",
+        "inline-flex h-10 w-full min-w-0 cursor-pointer items-center justify-center rounded-xl border-0 p-0 text-[11.5px] font-medium transition sm:h-11",
         disabled && "cursor-not-allowed opacity-50",
         highlight
           ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
@@ -1831,12 +1831,12 @@ function MobileAction({
     >
       <Icon
         className={cn(
-          "h-3.5 w-3.5",
+          "h-4 w-4 shrink-0",
           highlight ? "text-primary-foreground" : "text-slate-500 dark:text-slate-300",
         )}
         strokeWidth={2.35}
       />
-      <span className="min-w-0 text-left leading-tight">{label}</span>
+      <span className="sr-only">{label}</span>
     </button>
   );
 }
