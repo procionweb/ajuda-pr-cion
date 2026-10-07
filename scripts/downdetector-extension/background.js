@@ -58,14 +58,32 @@ async function saveStatus(status) {
   });
 }
 
-async function refreshSource() {
+let refreshInFlight;
+function refreshSource() {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = refreshSourceTab().finally(() => {
+    refreshInFlight = undefined;
+  });
+  return refreshInFlight;
+}
+
+async function refreshSourceTab() {
   const tabs = await chrome.tabs.query({ url: `${SOURCE_URL}*` });
   if (tabs[0]?.id) {
     await chrome.tabs.update(tabs[0].id, { autoDiscardable: false });
     await chrome.tabs.reload(tabs[0].id, { bypassCache: true });
     return;
   }
-  const created = await chrome.tabs.create({ url: SOURCE_URL, active: false });
+  const windows = await chrome.windows.getAll({ windowTypes: ["normal"] });
+  const target =
+    windows.find((window) => window.focused && !window.incognito) ??
+    windows.find((window) => !window.incognito);
+  if (!target?.id) {
+    setBadge("", "#08a9d1");
+    await saveStatus({ ok: false, waitingForWindow: true });
+    return;
+  }
+  const created = await chrome.tabs.create({ windowId: target.id, url: SOURCE_URL, active: false });
   if (created.id) await chrome.tabs.update(created.id, { autoDiscardable: false });
 }
 
@@ -83,7 +101,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!sender.url?.startsWith(SOURCE_URL)) return;
 
   if (message?.type === "downdetector-refresh-request") {
-    if (sender.tab?.id) void chrome.tabs.reload(sender.tab.id, { bypassCache: true });
+    if (sender.tab?.id)
+      void chrome.tabs.reload(sender.tab.id, { bypassCache: true }).catch(reportRefreshError);
     return;
   }
 
@@ -111,12 +130,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  void ensureAlarm();
+  void ensureAlarm().catch(reportRefreshError);
   void refreshSource().catch(reportRefreshError);
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  void ensureAlarm();
+  void ensureAlarm().catch(reportRefreshError);
   void refreshSource().catch(reportRefreshError);
 });
 
@@ -124,6 +143,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) void refreshSource().catch(reportRefreshError);
 });
 
+chrome.windows.onCreated.addListener((window) => {
+  if (window.type === "normal" && !window.incognito) void refreshSource().catch(reportRefreshError);
+});
+
 // Recria o alarme caso o Chrome tenha removido o agendamento ao suspender ou
 // atualizar o service worker da extensão.
-void ensureAlarm();
+void ensureAlarm().catch(reportRefreshError);
