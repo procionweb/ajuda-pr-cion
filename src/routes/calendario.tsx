@@ -548,7 +548,7 @@ function CalendarPage() {
         description="Visitas, reuniões e compromissos da equipe em um só lugar."
         breadcrumbs={[{ label: "Calendário" }]}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex max-w-full flex-wrap items-center gap-2 max-xl:gap-1.5">
             <Button
               type="button"
               variant="outline"
@@ -571,8 +571,8 @@ function CalendarPage() {
                 </span>
               )}
             </Button>
-            <Button onClick={() => setCreateOpen(true)} className="cursor-pointer">
-              <Plus className="mr-1.5 h-4 w-4" />
+            <Button onClick={() => setCreateOpen(true)} className="cursor-pointer max-xl:h-9 max-xl:gap-1 max-xl:px-2 max-xl:text-xs">
+              <Plus className="mr-1.5 h-4 w-4 max-xl:mr-0 max-xl:h-3.5 max-xl:w-3.5" />
               Novo evento
             </Button>
           </div>
