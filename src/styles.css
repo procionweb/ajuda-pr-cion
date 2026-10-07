@@ -714,3 +714,27 @@ main th[data-auto-sortable="true"] {
   .ticket-action-footer > div { display: grid; grid-template-columns: 1fr; width: 100%; }
   .ticket-action-footer button { width: 100%; margin: 0; white-space: normal; }
 }
+
+@media (max-width: 1279px) {
+  .fleet-departures > .grid:not(.fleet-departure-row) { display: none; }
+  .fleet-departure-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    padding-block: 1rem;
+  }
+  .fleet-departure-row > [data-label] {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .fleet-departure-row > [data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--muted-foreground);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .fleet-departure-actions { grid-column: 1 / -1; flex-wrap: wrap; }
+  .fleet-departure-actions button { min-height: 44px; }
+}

@@ -123,7 +123,8 @@ function DeparturesView({ query }: { query: string }) {
   );
 
   return (
-    <Card className="overflow-hidden p-0">
+    <Card className="fleet-departures overflow-hidden p-0">
+      <div className="border-b border-border px-4 py-3 text-sm font-medium xl:hidden">Saídas</div>
       <TableHeader
         cols={["Saída", "Devolução", "Operador", "Cliente/Destino", "Veículo", "Status", "Ações"]}
         widths={["150px", "150px", "120px", "1fr", "180px", "150px", "200px"]}
@@ -137,10 +138,10 @@ function DeparturesView({ query }: { query: string }) {
         return (
           <div
             key={u.id}
-            className="grid items-center gap-3 border-t border-border px-4 py-2.5 text-[13px]"
+            className="fleet-departure-row grid items-center gap-3 border-t border-border px-4 py-2.5 text-[13px]"
             style={{ gridTemplateColumns: "150px 150px 120px 1fr 180px 150px 200px" }}
           >
-            <span className="tabular-nums text-foreground">
+            <span data-label="Saída" className="tabular-nums text-foreground">
               {departureLabel}
               {pending && (
                 <span className="block text-[10.5px] uppercase tracking-wide text-muted-foreground">
@@ -148,7 +149,7 @@ function DeparturesView({ query }: { query: string }) {
                 </span>
               )}
             </span>
-            <span className="tabular-nums text-muted-foreground">
+            <span data-label="Devolução" className="tabular-nums text-muted-foreground">
               {returnLabel}
               {u.status !== "devolvido" && (
                 <span className="block text-[10.5px] uppercase tracking-wide text-muted-foreground">
@@ -156,14 +157,14 @@ function DeparturesView({ query }: { query: string }) {
                 </span>
               )}
             </span>
-            <span className="text-foreground">{u.operatorId}</span>
-            <span className="min-w-0 truncate text-muted-foreground">{u.destination}</span>
-            <span className="text-muted-foreground">
+            <span data-label="Operador" className="text-foreground">{u.operatorId}</span>
+            <span data-label="Cliente/Destino" className="min-w-0 truncate text-muted-foreground">{u.destination}</span>
+            <span data-label="Veículo" className="text-muted-foreground">
               {vehicle ? `${vehicle.model} · ${vehicle.plate}` : "—"}
             </span>
-            <UsageBadge status={u.status} />
+            <div data-label="Status"><UsageBadge status={u.status} /></div>
 
-            <div className="flex justify-end gap-1.5">
+            <div className="fleet-departure-actions flex justify-end gap-1.5">
               {u.status === "aguardando_retirada" && (
                 <Button
                   size="sm"
