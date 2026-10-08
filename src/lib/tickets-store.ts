@@ -476,7 +476,7 @@ export const ticketsStore = {
     return internalNotes[id] ?? EMPTY_NOTES;
   },
 
-  async addManualTimeline(id: string, input: { subject: string; description: string; metadata?: unknown }) {
+  async addManualTimeline(id: string, input: { subject: string; description: string; metadata?: unknown; priority?: SupportTicket["priority"]; permission?: ClosurePayload["permission"]; hadronOption?: string; type?: ClosurePayload["type"]; relatedArticles?: string[]; relatedForms?: string[]; finalize?: boolean }) {
     await ensureHydrated();
     const ticket = tickets.find((item) => item.id === id);
     if (!ticket || ticket.status === "Finalizado") throw new Error("Selecione um chamado não finalizado.");
@@ -484,11 +484,14 @@ export const ticketsStore = {
     ensureActivityLoaded(id);
     await activityLoading.get(id);
     const when = nowIso();
-    const event = { kind: "message" as const, actor: operator(), actorType: "suporte" as const,
+    const event = { kind: input.finalize ? "closed" as const : "message" as const, actor: operator(), actorType: "suporte" as const,
       description: "Registro manual — " + input.subject.trim() + "\n" + input.description.trim() };
-    const result = await ticketsApi.update(id, { updatedAt: when }, { ...event, title: input.subject.trim(), metadata: { manual: true, details: input.metadata } });
+    const patch: Partial<SupportTicket> = { updatedAt: when };
+    if (input.priority) patch.priority = input.priority;
+    if (input.finalize) Object.assign(patch, { status: "Finalizado", closedAt: when, lockedBy: undefined, ...attendancePatch(ticket, "Finalizado", when) });
+    const result = await ticketsApi.update(id, patch, { ...event, title: input.subject.trim(), metadata: { manual: true, details: input.metadata, manualEntry: { type: input.type, priority: input.priority, permission: input.permission, hadronOption: input.hadronOption, relatedArticles: input.relatedArticles, relatedForms: input.relatedForms }, ...(input.finalize ? { finalization: { closingType: input.type, solutionHtml: input.description, visibility: input.permission, hadronOption: input.hadronOption, relatedArticles: input.relatedArticles, relatedForms: input.relatedForms } } : {}) } });
     if (!result.ok) throw new Error("Não foi possível salvar a timeline.");
-    updateTicket(id, { updatedAt: when });
+    updateTicket(id, patch);
     pushEvent(id, { ...event, when });
     emit();
     return ticket;
