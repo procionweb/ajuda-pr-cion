@@ -933,3 +933,13 @@ main th[data-auto-sortable="true"] {
   .hadron-modal [role="tablist"] { margin-left:1rem; margin-right:1rem; }
   .hadron-modal-footer > button { min-width:calc(50% - .5rem); }
 }
+
+/* Long viewing content scrolls together with its heading. */
+@media (max-width:1279px) {
+  .hadron-view-modal { display:block; overflow-y:auto; overscroll-behavior:contain; }
+  .hadron-view-modal > .overflow-y-auto { flex:none; overflow:visible; min-height:auto; }
+  .hadron-view-modal .hadron-detail-layout.grid { display:block; min-height:auto; overflow:visible; }
+  .hadron-view-modal .hadron-detail-layout > aside { display:block; height:auto; min-height:auto; padding-bottom:1rem; }
+  .hadron-view-modal .hadron-detail-layout > section { display:block; margin-top:1rem; padding-top:0; }
+  .hadron-view-modal > .sticky:last-child { position:sticky; bottom:0; z-index:20; background:var(--card); }
+}

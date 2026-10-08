@@ -459,7 +459,7 @@ function HadronPage() {
       <Dialog open={!!detail} onOpenChange={(open) => !open && setDetail(null)}>
         <DialogContent
           className={cn(
-            "hadron-modal",
+            "hadron-modal hadron-view-modal",
             detail?.release ? "max-w-5xl" : "max-w-2xl",
             "flex flex-col gap-0 overflow-hidden bg-card p-0 [&>button]:hidden",
           )}
@@ -6036,7 +6036,7 @@ function articleStatusLabel(value: string) {
 function ArticleViewDialog({ article, onClose }: { article: ArticleDraft | null; onClose: () => void }) {
   return (
     <Dialog open={Boolean(article)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="hadron-modal flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+      <DialogContent className="hadron-modal hadron-view-modal flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
         <DialogTitle className="sr-only">Visualizar artigo</DialogTitle>
         <DetailModalHeader icon={BookOpenText} title={article?.title || "Artigo"} protocol={article ? `Artigo ${article.id}` : undefined} meta={article ? `${articleCategoryLabel(article.category)} · ${article.owner}` : undefined} onClose={onClose} accentClassName="bg-sky-600" iconWrapClassName="bg-sky-600 text-white" />
         {article && (
