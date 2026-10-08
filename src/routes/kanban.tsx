@@ -246,8 +246,8 @@ function BoardListPage() {
 
   return (
     <AppShell>
-      <div className="min-h-[calc(100vh-92px)] rounded-[18px] border border-slate-200 bg-white p-5 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#050c18] dark:text-slate-100 dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-h-[calc(100vh-92px)] min-w-0 max-xl:p-3 rounded-[18px] border border-slate-200 bg-white p-5 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/8 dark:bg-[#050c18] dark:text-slate-100 dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+        <div className="mb-6 flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <h1 className="flex items-center gap-2 text-[22px] font-medium tracking-tight text-slate-900 dark:text-white">
               <LayoutGrid className="h-5 w-5 text-primary" />
@@ -258,15 +258,15 @@ function BoardListPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative h-11 w-full min-w-[220px] shrink-0 sm:w-[280px]">
+          <div className="kanban-menu-actions kanban-header-actions flex flex-wrap items-center gap-2">
+            <div className="relative h-11 w-full min-w-0 xl:min-w-[220px] xl:shrink-0 xl:w-[280px]">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 type="search"
                 placeholder="Buscar quadros..."
-                className="h-11 pl-10"
+                className="h-11 min-w-0 pl-10 max-xl:text-base"
               />
             </div>
             {isGeneralAdmin && <Button
@@ -292,7 +292,7 @@ function BoardListPage() {
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as FilterTab)} className="mb-5">
-          <TabsList className="cursor-pointer">
+          <TabsList className="h-auto cursor-pointer max-xl:grid max-xl:w-full max-xl:grid-cols-3 max-xl:[&_button]:min-h-11 max-xl:[&_button]:min-w-0 max-xl:[&_button]:px-1 max-xl:[&_button]:text-xs">
             <TabsTrigger value="all" className="cursor-pointer">Todos</TabsTrigger>
             <TabsTrigger value="mine" className="cursor-pointer">Meus quadros</TabsTrigger>
             <TabsTrigger value="favorites" className="cursor-pointer">Favoritos</TabsTrigger>
@@ -341,14 +341,14 @@ function BoardListPage() {
           <div className="space-y-10">
             {workspaceSections.map((workspace) => (
               <section key={workspace.id}>
-                <div className="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
+                <div className="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-4 xl:flex-row xl:items-center xl:justify-between dark:border-white/10">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                       <Building2 className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="truncate text-base font-medium">{workspace.name}</h2>
-                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">{workspace.description || "Área de trabalho Kanban"}</p>
+                      <h2 className="truncate text-base font-medium max-xl:whitespace-normal max-xl:break-words">{workspace.name}</h2>
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400 max-xl:whitespace-normal max-xl:break-words">{workspace.description || "Área de trabalho Kanban"}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
