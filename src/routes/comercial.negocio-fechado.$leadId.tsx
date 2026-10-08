@@ -516,7 +516,7 @@ function CloseDealPage() {
               Os campos com * são necessários para finalizar. Você pode salvar um rascunho para
               completar depois.
             </p>
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:flex xl:flex-wrap xl:justify-end max-xl:[&>button]:min-h-11 max-xl:[&>button]:min-w-0 max-xl:[&>button]:w-full max-xl:[&>a]:min-h-11 max-xl:[&>a]:w-full max-xl:[&>button]:whitespace-normal max-xl:[&>button:last-child]:col-span-2 sm:[&>button:last-child]:col-span-1">
               <Button type="button" variant="outline" asChild>
                 <Link to="/comercial/contatos/$leadId" params={{ leadId }}>
                   Voltar
@@ -540,7 +540,7 @@ function CloseDealPage() {
               </Button>
             </div>
           </div>
-          <div className="min-w-0 xl:col-start-2 xl:row-start-1">
+          <div className="hidden min-w-0 xl:block xl:col-start-2 xl:row-start-1">
             <RegistrationSummary
               title={form.nickname || form.trade_name || "Nome do cliente"}
               subtitle={[form.acronym, form.legal_name].filter(Boolean).join(" · ")}

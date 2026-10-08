@@ -316,6 +316,7 @@ function EditCommercialContact() {
               </Button>
             </div>
           </div>
+          <div className="hidden xl:block">
           <RegistrationSummary
             title={form.name || form.trade_name || lead.legal_name}
             subtitle={lead.legal_name}
@@ -337,6 +338,7 @@ function EditCommercialContact() {
             ]}
             note="As alterações comerciais serão aplicadas após salvar."
           />
+          </div>
         </form>
       )}
     </AppShell>
