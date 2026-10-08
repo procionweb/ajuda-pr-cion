@@ -476,6 +476,24 @@ export const ticketsStore = {
     return internalNotes[id] ?? EMPTY_NOTES;
   },
 
+  async addManualTimeline(id: string, input: { subject: string; description: string; metadata?: unknown }) {
+    await ensureHydrated();
+    const ticket = tickets.find((item) => item.id === id);
+    if (!ticket || ticket.status === "Finalizado") throw new Error("Selecione um chamado não finalizado.");
+    if (!input.subject.trim() || !input.description.trim()) throw new Error("Informe assunto e descrição.");
+    ensureActivityLoaded(id);
+    await activityLoading.get(id);
+    const when = nowIso();
+    const event = { kind: "message" as const, actor: operator(), actorType: "suporte" as const,
+      description: "Registro manual — " + input.subject.trim() + "\n" + input.description.trim() };
+    const result = await ticketsApi.update(id, { updatedAt: when }, { ...event, title: input.subject.trim(), metadata: { manual: true, details: input.metadata } });
+    if (!result.ok) throw new Error("Não foi possível salvar a timeline.");
+    updateTicket(id, { updatedAt: when });
+    pushEvent(id, { ...event, when });
+    emit();
+    return ticket;
+  },
+
   createTicket(input: CreateTicketInput) {
     const when = nowIso();
     const sequence = nextTicketSequence();

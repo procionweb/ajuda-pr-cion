@@ -39,9 +39,9 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SmartInput, SmartTextarea } from "@/components/ui/smart-text";
-import { ticketsStore } from "@/lib/tickets-store";
+import { ticketsStore, useTickets } from "@/lib/tickets-store";
 import type { SupportTicket, TicketPriority } from "@/lib/support-tickets-data";
-import type { ClosurePayload } from "@/lib/tickets-store";
+import type { ClosurePayload, CreateTicketInput } from "@/lib/tickets-store";
 import { loadClients } from "@/lib/clients-store";
 import {
   fetchClientGroupCompanies,
@@ -203,6 +203,8 @@ function NewTicketPage() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [client, setClient] = useState<ClientRow | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const allTickets = useTickets();
+  const [existingTicketId, setExistingTicketId] = useState("new");
   const [attachments, setAttachments] = useState<
     Array<{ name: string; type: string; dataUrl: string }>
   >([]);
@@ -275,6 +277,21 @@ function NewTicketPage() {
     }
   }, [activeCollaborators, form.operator]);
   const selectedCompany = companies.find((c) => c.id === form.companyId) ?? null;
+  const effectiveCode = (selectedCompany?.clientAcronym || client?.acronym || "").trim().toUpperCase();
+  const existingTickets = allTickets.filter((ticket) => ticket.clientCode.trim().toUpperCase() === effectiveCode && ticket.status !== "Finalizado").sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const existingTicket = existingTickets.find((ticket) => ticket.id === existingTicketId);
+  useEffect(() => { setExistingTicketId("new"); }, [effectiveCode]);
+  const selectExistingTicket = (id: string) => {
+    setExistingTicketId(id);
+    const ticket = existingTickets.find((item) => item.id === id);
+    if (!ticket) return;
+    const [module, submodule] = ticket.module.split(" - ");
+    setForm((prev) => ({ ...prev, subject: ticket.subject, contactName: ticket.contact,
+      phoneValue: ticket.contactPhone || prev.phoneValue,
+      module: moduleOptions.includes(module) ? module : prev.module,
+      submodule: submodule || prev.submodule, priority: ticket.priority }));
+  };
+
 
   useEffect(() => {
     if (!submodules.includes(form.submodule)) {
@@ -406,7 +423,8 @@ function NewTicketPage() {
     }
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    if (submitting) { event.preventDefault(); return; }
     event.preventDefault();
     if (requiredMissing || !client) {
       toast.error("Preencha os campos obrigatórios para abrir o chamado.");
@@ -427,7 +445,7 @@ function NewTicketPage() {
       client.fantasia ||
       client.razaoSocial ||
       client.name;
-    const ticket = ticketsStore.createTicket({
+    const payload: CreateTicketInput = {
       priority: form.priority,
       owner: selectedOwner.acronym ?? selectedOwner.name,
       ownerId: selectedOwner.id,
@@ -462,12 +480,23 @@ function NewTicketPage() {
       permission: form.permission,
       relatedArticles: form.relatedArticles,
       relatedForms: form.relatedForms,
-    });
+    };
+    let ticket: SupportTicket;
+    if (existingTicketId !== "new") {
+      if (!existingTicket) { setSubmitting(false); toast.error("O chamado selecionado não está mais disponível."); return; }
+      try {
+        ticket = await ticketsStore.addManualTimeline(existingTicket.id, { subject: form.subject, description: payload.description, metadata: payload });
+      } catch (error) {
+        setSubmitting(false);
+        toast.error(error instanceof Error ? error.message : "Não foi possível salvar a timeline.");
+        return;
+      }
+    } else { ticket = ticketsStore.createTicket(payload); }
     attachments.forEach((attachment) => ticketsStore.addAttachment(ticket.id, attachment));
-    toast.success("Chamado criado", {
-      description: `${ticket.protocol} foi adicionado na fila de suporte.`,
+    toast.success(existingTicket ? "Registro adicionado à timeline" : "Chamado criado", {
+      description: existingTicket ? `Registro salvo no chamado ${ticket.protocol}.` : `${ticket.protocol} foi adicionado na fila de suporte.`,
     });
-    void navigate({ to: "/chamados" });
+    void navigate({ to: "/chamados", search: { ticket: ticket.id } });
   };
 
   return (
@@ -500,6 +529,17 @@ function NewTicketPage() {
             />
             <div className="mt-4 space-y-3">
               <ClientPicker value={client} onSelect={handleClientSelect} required />
+              {existingTickets.length > 0 && <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+                <Label className="mb-1.5 block">Novo chamado ou timeline em um chamado existente</Label>
+                <Select value={existingTicket ? existingTicketId : "new"} onValueChange={selectExistingTicket}>
+                  <SelectTrigger className="h-11 min-w-0 max-w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">Criar um chamado novo</SelectItem>
+                    {existingTickets.map((ticket) => <SelectItem key={ticket.id} value={ticket.id}>{ticket.protocol} — {ticket.subject} ({ticket.status})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="mt-2 text-xs text-muted-foreground">{existingTicket ? "O registro será adicionado à timeline deste chamado, mantendo seu protocolo e status." : "Este cliente já possui chamados não finalizados. Você pode criar outro ou registrar o contato em um deles."}</p>
+              </div>}
 
               {client && (
                 <div className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-[12px] text-muted-foreground">
@@ -989,7 +1029,7 @@ function NewTicketPage() {
             </div>
 
             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />O chamado entrará como Em Aberto.
+              <Sparkles className="h-3.5 w-3.5 text-primary" />{existingTicket ? "O registro entrará na timeline do chamado selecionado." : "O chamado entrará como Em Aberto."}
             </div>
           </Card>
         </aside>
@@ -1009,7 +1049,7 @@ function NewTicketPage() {
             className="h-11 rounded-xl cursor-pointer shadow-[0_10px_22px_rgba(11,151,196,0.18)]"
           >
             <Send className="mr-1.5 h-4 w-4" />
-            {submitting ? "Criando..." : "Criar chamado"}
+            {submitting ? "Salvando..." : existingTicket ? "Adicionar à timeline" : "Criar chamado"}
           </Button>
         </div>
       </form>

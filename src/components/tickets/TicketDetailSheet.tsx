@@ -1,3 +1,4 @@
+import { ManualTicketTimelineModal } from "./ManualTicketTimelineModal";
 import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { toast } from "sonner";
 import {
@@ -94,7 +95,7 @@ import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { ModuleKnowledgeLink } from "@/lib/module-link";
 import { kbArticlesFull } from "@/lib/kb-data";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { clientRows } from "@/routes/clientes.index";
 import { useClients } from "@/lib/clients-store";
 import { getClientLogs, type ClientExternalLog } from "@/lib/clients-api";
@@ -220,7 +221,6 @@ export function TicketDetailSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const navigate = useNavigate();
   const ticket = useTicket(ticketId);
   const allTickets = useTickets();
   const events = useTicketEvents(ticketId);
@@ -259,6 +259,7 @@ export function TicketDetailSheet({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [manualTimelineOpen, setManualTimelineOpen] = useState(false);
   const [selectedCalendarEvent, setSelectedCalendarEvent] = useState<CalendarEvent | null>(null);
   const [calendarEventAction, setCalendarEventAction] = useState<"details" | "cancel" | "report">(
     "details",
@@ -486,17 +487,7 @@ export function TicketDetailSheet({
   const isMine = ticket.owner === currentUser.operator || ticket.lockedBy === currentUser.operator;
   const isFinalized = ticket.status === "Finalizado";
   const attendanceStarted = Boolean(ticket.attendanceStartedAt);
-  const createAnotherTicket = () => {
-    onOpenChange(false);
-    void navigate({
-      to: "/chamados/novo",
-      search: {
-        cliente: ticket.clientCode || undefined,
-        empresa: ticket.companyId || undefined,
-        voltarChamado: ticket.id,
-      },
-    });
-  };
+  const openManualTimeline = () => setManualTimelineOpen(true);
 
   const handleAttend = () => {
     if (ticket.attendanceStartedAt) {
@@ -676,7 +667,7 @@ export function TicketDetailSheet({
                   )}
                   <SideItem
                     icon={Plus}
-                    label="Adicionar chamado"
+                    label="Adicionar à timeline"
                     collapsed={navCollapsed}
                     active={activeAction === "novo"}
                     disabled={!attendanceStarted || isFinalized}
@@ -685,7 +676,7 @@ export function TicketDetailSheet({
                     }
                     onClick={() => {
                       setActiveAction("novo");
-                      createAnotherTicket();
+                      openManualTimeline();
                     }}
                   />
                   <SideItem
@@ -797,8 +788,8 @@ export function TicketDetailSheet({
               <div className="grid shrink-0 grid-cols-7 gap-1 border-b border-border bg-card px-3 py-3 xl:hidden">
                 <MobileAction
                   icon={Plus}
-                  label="Adicionar chamado"
-                  onClick={createAnotherTicket}
+                  label="Adicionar à timeline"
+                  onClick={openManualTimeline}
                   disabled={!attendanceStarted || isFinalized}
                   highlight
                 />
@@ -1149,6 +1140,7 @@ export function TicketDetailSheet({
         </DialogContent>
       </Dialog>
 
+      <ManualTicketTimelineModal ticket={ticket} open={manualTimelineOpen} onOpenChange={setManualTimelineOpen} />
       <TicketTimelineModal
         open={timelineOpen}
         onOpenChange={setTimelineOpen}
