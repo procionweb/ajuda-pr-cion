@@ -203,7 +203,7 @@ export function LeadDetailsPage() {
             </>
           }
           trailing={
-            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center max-xl:[&>button]:min-w-0 max-xl:[&>button]:min-h-10 max-xl:[&>button]:h-auto max-xl:[&>button]:whitespace-normal max-xl:[&>button]:px-2 max-xl:[&>button]:gap-1 max-xl:[&>button]:text-[11px] max-xl:[&>button>svg]:mr-0 max-xl:[&>button>svg]:shrink-0">
               <Button size="sm" asChild variant="outline" className="h-8 text-xs gap-1.5">
                 <a href={googleMapsAddressUrl(lead)} target="_blank" rel="noreferrer">
                   <MapPinned className="h-3.5 w-3.5" />
