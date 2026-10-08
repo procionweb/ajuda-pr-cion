@@ -51,7 +51,7 @@ function TypedDateInput({
   useEffect(() => setDraft(formatDateInput(value)), [value]);
 
   return (
-    <label className="min-w-[145px] flex-1 sm:flex-none">
+    <label className="analytics-date-field min-w-[145px] flex-1 sm:flex-none">
       <span className="mb-1 block text-[11px] font-medium text-muted-foreground">{label}</span>
       <input
         type="text"
@@ -177,15 +177,15 @@ function AnalyticsPage() {
                   Kanban
                 </TabsTrigger>
               </TabsList>
-              <div className="flex items-center gap-2">
+              <div className="analytics-toolbar-controls flex items-center gap-2">
                 <Button type="button" variant={effectsEnabled ? "default" : "outline"} className="h-9 cursor-pointer gap-2 text-xs" onClick={() => setEffectsEnabled((value) => !value)} aria-pressed={effectsEnabled}>
                   <Sparkles className="h-3.5 w-3.5" />
                   {effectsEnabled ? "Efeitos ativos" : "Ativar efeitos"}
                 </Button>
                 {activeTab === "chamados" && (
-                <div className="flex w-full flex-wrap items-end gap-2 sm:w-auto sm:flex-nowrap">
+                <div className="analytics-date-filters flex w-full flex-wrap items-end gap-2 sm:w-auto sm:flex-nowrap">
                   {!from && !to && (
-                    <span className="self-end pb-2 text-xs text-muted-foreground">Mês atual</span>
+                    <span className="analytics-current-month self-end pb-2 text-xs text-muted-foreground">Mês atual</span>
                   )}
                   <TypedDateInput
                     label="Data inicial"

@@ -689,3 +689,20 @@
   .analytics-effects-on .recharts-line-curve,
   .analytics-effects-on .recharts-area-area { animation: none; }
 }
+
+/* Keep analytics navigation and dates aligned on phones and tablets. */
+@media (max-width:1279px) {
+  .analytics-cockpit .analytics-toolbar { display:flex; flex-direction:column; align-items:stretch; gap:12px; min-width:0; }
+  .analytics-cockpit .analytics-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; height:auto; }
+  .analytics-cockpit .analytics-tabs [role="tab"] { min-height:40px; min-width:0; }
+  .analytics-cockpit .analytics-toolbar-controls { display:flex; flex-direction:column; align-items:stretch; gap:12px; min-width:0; }
+  .analytics-cockpit .analytics-toolbar-controls > button { align-self:flex-start; min-height:44px; }
+  .analytics-cockpit .analytics-date-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:end; gap:12px; width:100%; min-width:0; }
+  .analytics-cockpit .analytics-date-field { min-width:0; width:100%; }
+  .analytics-cockpit .analytics-date-field input { width:100%; max-width:none; min-width:0; height:44px; }
+  .analytics-cockpit .analytics-current-month { grid-column:1/-1; padding:0; }
+  .analytics-cockpit .analytics-date-filters > button { grid-column:1/-1; min-height:44px; }
+}
+@media (max-width:639px) {
+  .analytics-cockpit .analytics-date-field input { font-size:16px; padding-left:10px; padding-right:10px; }
+}
