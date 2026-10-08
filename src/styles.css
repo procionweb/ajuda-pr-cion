@@ -786,3 +786,18 @@ main th[data-auto-sortable="true"] {
   .commercial-activities-table td[data-label="Status"] > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
   .commercial-activities-table td[data-label="Status"] button { width: 100%; min-width: 0; }
 }
+
+/* Commercial appointments on phones and tablets. */
+@media (max-width: 1279px) {
+ .commercial-appointments-table { display:block; min-width:0; }
+ .commercial-appointments-table colgroup, .commercial-appointments-table thead { display:none; }
+ .commercial-appointments-table tbody { display:grid; gap:.75rem; padding:.75rem; background:var(--background); }
+ .commercial-appointments-table tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; padding:1rem; border:1px solid var(--border); border-radius:.75rem; background:var(--card); }
+ .commercial-appointments-table td { display:block; min-width:0; padding:0; white-space:normal; overflow-wrap:anywhere; }
+ .commercial-appointments-table td[data-label]::before { content:attr(data-label); display:block; margin-bottom:.25rem; font-size:10px; opacity:.65; text-transform:uppercase; }
+ .commercial-appointments-table td[data-label="Título"], .commercial-appointments-table td[data-label="Tipo / Status"], .commercial-appointments-table td[data-label="Responsável"], .commercial-appointments-table td[data-label="Ações"], .commercial-appointments-table td[colspan] { grid-column:1/-1; }
+ .commercial-appointments-table td[data-label="Ações"] { border-top:1px solid var(--border); padding-top:.75rem; }
+ .commercial-appointments-table td[data-label="Ações"]::before { display:none; }
+ .commercial-appointments-table td[colspan] { height:auto; padding:2rem 0; }
+ .commercial-appointments-table .truncate { white-space:normal; overflow-wrap:anywhere; }
+}

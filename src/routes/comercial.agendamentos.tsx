@@ -94,7 +94,7 @@ function CommercialAppointmentsPage() {
         breadcrumbs={[{ label: "Comercial" }, { label: "Agendamentos" }]}
       />
 
-      <section className="mb-5 grid gap-3 xl:grid-cols-[180px_minmax(220px,1fr)_170px_190px_220px_96px]">
+      <section className="mb-5 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-[180px_minmax(220px,1fr)_170px_190px_220px_96px]">
         <select
           value={operator}
           onChange={(event) => setOperator(event.target.value)}
@@ -107,13 +107,13 @@ function CommercialAppointmentsPage() {
             </option>
           ))}
         </select>
-        <label className="relative">
+        <label className="relative min-w-0 max-xl:sm:col-span-2">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Pesquisar chamado, título ou cliente"
-            className="h-9 rounded-lg pl-9"
+            className="h-9 min-w-0 rounded-lg pl-9 max-xl:h-11 max-xl:text-base"
           />
         </label>
         <select
@@ -141,6 +141,7 @@ function CommercialAppointmentsPage() {
           ))}
         </select>
         <DateRangeFilter
+          className="max-xl:h-11 max-xl:min-w-0"
           from={from}
           to={to}
           onChange={(start, end) => {
@@ -148,14 +149,14 @@ function CommercialAppointmentsPage() {
             setTo(end);
           }}
         />
-        <Button className="h-9 w-24 rounded-lg" onClick={() => setPage(0)}>
+        <Button className="h-9 w-24 rounded-lg max-xl:h-11 max-xl:w-full" onClick={() => setPage(0)}>
           Buscar
         </Button>
       </section>
 
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="overflow-x-auto xl:overflow-x-hidden">
-          <table className="w-full min-w-[700px] table-fixed text-left text-[13px] text-foreground xl:min-w-0">
+          <table className="commercial-appointments-table w-full min-w-[700px] table-fixed text-left text-[13px] text-foreground xl:min-w-0">
             <colgroup>
               <col className="w-[45%]" />
               <col className="w-[18%]" />
@@ -223,7 +224,7 @@ function AppointmentRow({ event, onOpen }: { event: CalendarEvent; onOpen: () =>
   const responsible = event.responsible || event.operator || "Não informado";
   return (
     <tr className="transition-colors hover:bg-muted/25">
-      <td className="px-4 py-3">
+      <td data-label="Título" className="px-4 py-3">
         <p className="font-normal leading-snug text-foreground">
           {event.type.replace(" presencial", "")} - {event.client || event.title}
         </p>
@@ -233,7 +234,7 @@ function AppointmentRow({ event, onOpen }: { event: CalendarEvent; onOpen: () =>
           </p>
         )}
       </td>
-      <td className="px-4 py-3">
+      <td data-label="Tipo / Status" className="px-4 py-3">
         <div className="flex flex-wrap gap-1.5">
           <span className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium text-primary bg-primary/10">
             <Icon className="h-3.5 w-3.5" />
@@ -250,16 +251,17 @@ function AppointmentRow({ event, onOpen }: { event: CalendarEvent; onOpen: () =>
           </span>
         </div>
       </td>
-      <td className="px-4 py-3 font-normal text-foreground">{responsible}</td>
-      <td className="px-4 py-3 font-normal tabular-nums text-foreground">
+      <td data-label="Responsável" className="px-4 py-3 font-normal text-foreground">{responsible}</td>
+      <td data-label="Dia" className="px-4 py-3 font-normal tabular-nums text-foreground">
         {formatDate(event.date)}
       </td>
-      <td className="px-4 py-3 font-normal tabular-nums text-foreground">
+      <td data-label="Horário" className="px-4 py-3 font-normal tabular-nums text-foreground">
         {event.time} - {event.end}
       </td>
-      <td className="px-3 py-3">
-        <Button type="button" variant="ghost" size="icon" onClick={onOpen} title="Ver agendamento">
-          <ClipboardList className="h-4 w-4" />
+      <td data-label="Ações" className="px-3 py-3">
+        <Button type="button" variant="ghost" size="icon" onClick={onOpen} title="Ver agendamento" aria-label="Ver agendamento" className="max-xl:h-11 max-xl:w-full max-xl:gap-2 max-xl:border max-xl:border-border">
+          <ClipboardList className="h-4 w-4 shrink-0" />
+          <span className="xl:hidden">Ver agendamento</span>
         </Button>
       </td>
     </tr>
@@ -277,4 +279,4 @@ function formatDate(value: string) {
   return year && month && day ? `${day}/${month}/${year.slice(-2)}` : value;
 }
 const selectClass =
-  "h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/25";
+  "h-9 min-w-0 w-full rounded-lg border border-input max-xl:h-11 max-xl:text-base bg-background px-3 text-sm text-foreground shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/25";
