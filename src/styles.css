@@ -868,3 +868,31 @@ main th[data-auto-sortable="true"] {
 @media (min-width:768px) and (max-width:1279px) {
   .hadron-main-tabs { grid-template-columns:repeat(5,minmax(0,1fr)); }
 }
+
+/* Hádron catalog tabs: cards instead of wide tables on compact screens. */
+@media (max-width: 1279px) {
+  .hadron-tab-content { min-width:0; max-width:100%; }
+  .hadron-tab-content section, .hadron-tab-filters > * { min-width:0; }
+  .hadron-tab-filters input, .hadron-tab-filters select, .hadron-tab-filters button { min-width:0; min-height:44px; }
+  .hadron-tab-content section > .flex { flex-wrap:wrap; }
+  .hadron-tab-content section > .flex > * { min-width:0; max-width:100%; }
+  .hadron-responsive-table { display:block; min-width:0; width:100%; font-size:12px; }
+  .hadron-responsive-table colgroup, .hadron-responsive-table thead { display:none; }
+  .hadron-responsive-table tbody { display:grid; gap:.75rem; padding:.75rem; background:var(--background); }
+  .hadron-responsive-table tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; padding:1rem; border:1px solid var(--border); border-radius:.75rem; background:var(--card); }
+  .hadron-responsive-table td { display:block; min-width:0; max-width:none; width:auto; padding:0; text-align:left; white-space:normal; overflow-wrap:anywhere; }
+  .hadron-responsive-table td[data-label]::before { content:attr(data-label); display:block; margin-bottom:.25rem; font-size:10px; opacity:.65; text-transform:uppercase; }
+  .hadron-responsive-table td[data-label="Descrição"], .hadron-responsive-table td[data-label="Detalhes"], .hadron-responsive-table td[data-label="Título"], .hadron-responsive-table td[data-label="Nome"], .hadron-responsive-table td[data-label="Número de série"], .hadron-responsive-table td[data-label="Módulo / Submódulo"], .hadron-responsive-table td[data-label="Módulo/Submódulo"], .hadron-responsive-table td[data-label="Ações"], .hadron-responsive-table td[colspan] { grid-column:1/-1; }
+  .hadron-responsive-table td[data-label="Ações"] { border-top:1px solid var(--border); padding-top:.75rem; }
+  .hadron-responsive-table td[data-label="Ações"] > div { flex-wrap:wrap; justify-content:flex-end; gap:.5rem; }
+  .hadron-responsive-table td[colspan] { padding:2rem 0; text-align:center; }
+  .hadron-responsive-table .truncate, .hadron-responsive-table .whitespace-nowrap { white-space:normal; overflow-wrap:anywhere; }
+  .hadron-responsive-table .line-clamp-2, .hadron-responsive-table .line-clamp-3 { display:block; overflow:visible; -webkit-line-clamp:unset; }
+  .hadron-responsive-table button.h-8.w-8, .hadron-responsive-table a.h-8.w-8, .hadron-responsive-table button.h-7.w-7, .hadron-responsive-table a.h-7.w-7 { height:44px; width:44px; }
+  .hadron-responsive-table td[data-label="Ações"] button, .hadron-responsive-table td[data-label="Ações"] a { min-height:44px; }
+  .hadron-responsive-table td > .flex > * { min-width:0; }
+  .hadron-responsive-table [role="combobox"] { min-width:0; max-width:100%; }
+}
+@media (max-width:639px) {
+  .hadron-tab-filters input { font-size:16px; }
+}

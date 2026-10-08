@@ -412,34 +412,34 @@ function HadronPage() {
                 </TabsTrigger>
               ))}
             </TabsList>
-            <TabsContent value="visao-geral">
+            <TabsContent className="hadron-tab-content min-w-0" value="visao-geral">
               <Overview onOpen={setDetail} onViewOption={setViewingOption} />
             </TabsContent>
-            <TabsContent value="opcoes">
+            <TabsContent className="hadron-tab-content min-w-0" value="opcoes">
               <OptionsTable query={query} onOpen={setDetail} onDetailChange={setOptionDetailOpen} />
             </TabsContent>
-            <TabsContent value="ocorrencias">
+            <TabsContent className="hadron-tab-content min-w-0" value="ocorrencias">
               <ImportedOccurrencesTable query={query} onOpen={setDetail} />
             </TabsContent>
-            <TabsContent value="releases">
+            <TabsContent className="hadron-tab-content min-w-0" value="releases">
               <ReleasesTable query={query} onOpen={setDetail} />
             </TabsContent>
-            <TabsContent value="checklist">
+            <TabsContent className="hadron-tab-content min-w-0" value="checklist">
               <ChecklistTable query={query} onOpen={setDetail} />
             </TabsContent>
-            <TabsContent value="parametros">
+            <TabsContent className="hadron-tab-content min-w-0" value="parametros">
               <ParametersTable query={query} onOpen={setDetail} />
             </TabsContent>
-            <TabsContent value="modulos">
+            <TabsContent className="hadron-tab-content min-w-0" value="modulos">
               <ModulesTable query={query} onOpen={setDetail} />
             </TabsContent>
-            <TabsContent value="seriais">
+            <TabsContent className="hadron-tab-content min-w-0" value="seriais">
               <SerialsTable query={query} onOpen={setDetail} />
             </TabsContent>
-            <TabsContent value="versoes">
+            <TabsContent className="hadron-tab-content min-w-0" value="versoes">
               <VersionsTable query={query} onOpen={setDetail} />
             </TabsContent>
-            <TabsContent value="artigos">
+            <TabsContent className="hadron-tab-content min-w-0" value="artigos">
               <ArticlesTable query={query} onOpen={setDetail} />
             </TabsContent>
           </Tabs>
@@ -1256,7 +1256,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
               Criar opção
             </Button>
           </div>
-          <div className="mt-4 grid items-center gap-2 md:grid-cols-2 xl:grid-cols-[minmax(100px,1fr)_minmax(90px,.8fr)_minmax(90px,.75fr)_minmax(100px,.8fr)_minmax(110px,.8fr)_minmax(100px,.8fr)_minmax(90px,.75fr)_minmax(210px,1.5fr)_auto]">
+          <div className="hadron-tab-filters mt-4 grid items-center gap-2 md:grid-cols-2 xl:grid-cols-[minmax(100px,1fr)_minmax(90px,.8fr)_minmax(90px,.75fr)_minmax(100px,.8fr)_minmax(110px,.8fr)_minmax(100px,.8fr)_minmax(90px,.75fr)_minmax(210px,1.5fr)_auto]">
             <Input
               value={optionQuery}
               onChange={(event) => {
@@ -1351,8 +1351,16 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
           </Button>
           </div>
         </div>
+        <div className="flex flex-wrap gap-2 border-b p-3 xl:hidden">
+          <Button type="button" variant="outline" className="min-h-11 gap-2" aria-pressed={optionSort === "priority"} onClick={() => setOptionSort(optionSort === "priority" ? "default" : "priority")}>
+            Prioridade <ArrowUpDown className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="outline" className="min-h-11 gap-2" aria-pressed={optionSort === "occupied"} onClick={() => setOptionSort(optionSort === "occupied" ? "default" : "occupied")}>
+            Ocupadas <ArrowUpDown className="h-4 w-4" />
+          </Button>
+        </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px] table-fixed text-left text-[11px] xl:text-xs">
+          <table className="hadron-responsive-table w-full min-w-[1200px] table-fixed text-left text-[11px] xl:text-xs">
             <colgroup>
               <col className="w-[9%]" />
               <col className="w-[3%]" />
@@ -1436,7 +1444,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                       disabled && "opacity-55",
                     )}
                   >
-                    <td className="px-2 py-3">
+                    <td data-label="Status" className="px-2 py-3">
                       <Badge className={cn("whitespace-nowrap", statusDisplay.className)}>
                         {statusDisplay.label}
                       </Badge>
@@ -1444,10 +1452,10 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                         <span className="mt-1 block text-[10px] text-rose-700">{daysOverdue} dias de atraso</span>
                       )}
                     </td>
-                    <td className="px-1 py-3 text-center">
+                    <td data-label="Prioridade" className="px-1 py-3 text-center">
                       <span className={cn("mx-auto block h-3.5 w-3.5 rounded-full", option.priority === "2" ? "bg-rose-500" : option.priority === "1" ? "bg-amber-500" : option.priority === "0" ? "bg-sky-500" : "bg-muted-foreground")} title={`Prioridade ${option.priority === "2" ? "alta" : option.priority === "1" ? "normal" : option.priority === "0" ? "baixa" : "não informada"}`} aria-label={`Prioridade ${option.priority === "2" ? "alta" : option.priority === "1" ? "normal" : option.priority === "0" ? "baixa" : "não informada"}`} />
                     </td>
-                    <td className="break-words px-2 py-3 font-medium">
+                    <td data-label="Opção" className="break-words px-2 py-3 font-medium">
                       <span className="inline-flex items-center gap-1.5">
                         {option.option}
                         {(optionLock || option.occupied) && (
@@ -1460,22 +1468,22 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
                         )}
                       </span>
                     </td>
-                    <td className="break-words px-2 py-3">{option.form || "Não informado"}</td>
-                    <td className="break-words px-2 py-3 text-primary">{option.description}</td>
-                    <td className="break-words px-2 py-3">{option.call || "Não informado"}</td>
-                    <td className="break-words px-2 py-3">
+                    <td data-label="Formulário" className="break-words px-2 py-3">{option.form || "Não informado"}</td>
+                    <td data-label="Descrição" className="break-words px-2 py-3 text-primary">{option.description}</td>
+                    <td data-label="Chamada" className="break-words px-2 py-3">{option.call || "Não informado"}</td>
+                    <td data-label="Data" className="break-words px-2 py-3">
                       {option.openedAt ? formatCatalogDate(option.openedAt) : "Não informado"}
                     </td>
-                    <td className="break-words px-2 py-3">
+                    <td data-label="DLL EXE" className="break-words px-2 py-3">
                       {option.executable || "Não informado"}
                     </td>
-                    <td className="break-words px-2 py-3 text-center">
+                    <td data-label="Módulo / Submódulo" className="break-words px-2 py-3 text-center">
                       <span title={`${getOptionModuleName(option)} - ${getOptionSubmoduleName(option)}`}>
                         {[option.moduleId, option.submoduleId].filter(Boolean).join(" - ") || "Não informado"}
                       </span>
                     </td>
-                    <td className="break-words px-2 py-3">{option.owner || "Não informado"}</td>
-                    <td className="px-2 py-3">
+                    <td data-label="Responsável" className="break-words px-2 py-3">{option.owner || "Não informado"}</td>
+                    <td data-label="Ações" className="px-2 py-3">
                       <div className="flex items-center justify-center gap-0">
                         <Button
                           type="button"
@@ -1784,7 +1792,7 @@ function HadronOptionPage({
             </Button>
           </div>
         </div>
-        <div className="mt-4 grid gap-x-3 gap-y-2 border-t pt-4 sm:grid-cols-4 xl:grid-cols-8">
+        <div className="hadron-tab-filters mt-4 grid gap-x-3 gap-y-2 border-t pt-4 sm:grid-cols-4 xl:grid-cols-8">
           <OptionHeaderMeta label="Data" value={formatCatalogDate(option.openedAt)} />
           <OptionHeaderMeta label="Responsável" value={option.owner} />
           <OptionHeaderMeta label="Tester" value={option.tester} />
@@ -3242,7 +3250,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
               {total.toLocaleString("pt-BR")} registros
             </span>
           </div>
-          <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[.8fr_.7fr_.85fr_.85fr_.85fr_.8fr_1.35fr_auto]">
+          <div className="hadron-tab-filters mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[.8fr_.7fr_.85fr_.85fr_.85fr_.8fr_1.35fr_auto]">
             <Input
               value={optionQuery}
               onChange={(event) => {
@@ -3334,7 +3342,7 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1400px] table-fixed text-left text-[11px] xl:text-xs [&_td]:align-middle [&_th]:align-middle">
+          <table className="hadron-responsive-table w-full min-w-[1400px] table-fixed text-left text-[11px] xl:text-xs [&_td]:align-middle [&_th]:align-middle">
             <thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal">
               <tr>
                 <th className="w-[4%] px-3 py-3 text-center font-medium">Tipo</th>
@@ -3354,40 +3362,40 @@ function ImportedOccurrencesTable({ query, onOpen }: TableProps) {
                 const option = hadronOptionsById.get(occurrence.optionLegacyId);
                 return (
                   <tr key={occurrence.id} className="hover:bg-muted/25">
-                    <td className="px-3 py-3 text-center">
+                    <td data-label="Tipo" className="px-3 py-3 text-center">
                       <ImportedOccurrenceTypeIcon occurrence={occurrence} />
                     </td>
-                    <td className="px-3 py-3"><OccurrencePriorityField occurrence={occurrence} /></td>
-                    <td className="break-words px-3 py-3 font-medium">
+                    <td data-label="Prioridade" className="px-3 py-3"><OccurrencePriorityField occurrence={occurrence} /></td>
+                    <td data-label="Opção/Form." className="break-words px-3 py-3 font-medium">
                       {option
                         ? `${option.option}/${option.form || option.option}`
                         : occurrence.optionLegacyId}
                     </td>
-                    <td className="px-3 py-3 font-medium text-primary">
+                    <td data-label="Descrição" className="px-3 py-3 font-medium text-primary">
                       <p className="line-clamp-2 break-words">
                         {option?.description || "Descrição não informada"}
                       </p>
                     </td>
-                    <td className="max-w-lg px-3 py-3">
+                    <td data-label="Detalhes" className="max-w-lg px-3 py-3">
                       <p title={occurrence.occurrenceText || "Sem descrição"} className="line-clamp-3 leading-5">
                         {occurrence.occurrenceText || "Sem descrição"}
                       </p>
                     </td>
-                    <td className="px-3 py-3">{option?.owner || "-"}</td>
-                    <td className="px-3 py-3">
+                    <td data-label="Responsável" className="px-3 py-3">{option?.owner || "-"}</td>
+                    <td data-label="Ocorrência / Operador" className="px-3 py-3">
                       <OccurrenceDate
                         value={occurrence.occurredAt}
                         operator={occurrence.reporter}
                         dateOnly
                       />
                     </td>
-                    <td className="px-3 py-3">
+                    <td data-label="Solução / Operador" className="px-3 py-3">
                       <OccurrenceDate value={occurrence.solvedAt} operator={occurrence.solver} />
                     </td>
-                    <td className="px-3 py-3 text-emerald-600">
+                    <td data-label="Revisão" className="px-3 py-3 text-emerald-600">
                       {occurrence.reviewedAt ? formatOccurrenceDate(occurrence.reviewedAt) : "-"}
                     </td>
-                    <td className="px-3 py-3">
+                    <td data-label="Ações" className="px-3 py-3">
                       <div className="flex flex-nowrap items-center justify-center gap-0.5 whitespace-nowrap">
                         {occurrence.kind === "ocorrencia" &&
                           occurrence.solvedAt &&
@@ -3660,7 +3668,7 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
     <section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="border-b px-4 py-4">
         <h2 className="text-lg font-medium">Ocorrências</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_.7fr_.75fr_.75fr_.8fr_.8fr_.75fr_.75fr_auto]">
+        <div className="hadron-tab-filters mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_.7fr_.75fr_.75fr_.8fr_.8fr_.75fr_.75fr_auto]">
           <Input
             value={optionQuery}
             onChange={(event) => setOptionQuery(event.target.value)}
@@ -3729,7 +3737,7 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
         </Button>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1280px] text-left text-xs">
+        <table className="hadron-responsive-table w-full min-w-[1280px] text-left text-xs">
           <thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal">
             <tr>
               <th className="w-14 px-3 py-3 font-medium">Tipo</th>
@@ -3752,27 +3760,27 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
                 normalizeOccurrenceText(currentUser.operator);
               return (
                 <tr key={ticket.id} className="hover:bg-muted/25">
-                  <td className="px-3 py-3">
+                  <td data-label="Tipo" className="px-3 py-3">
                     <OccurrenceTypeIcon ticket={ticket} />
                   </td>
-                  <td className="px-3 py-3 font-medium">
+                  <td data-label="Opção/Formulário" className="px-3 py-3 font-medium">
                     {option ? `${option.option}/${option.form || option.option}` : "-"}
                   </td>
-                  <td className="px-3 py-3 font-medium">{option?.description || ticket.module}</td>
-                  <td className="max-w-md px-3 py-3 leading-5 text-muted-foreground">
+                  <td data-label="Descrição" className="px-3 py-3 font-medium">{option?.description || ticket.module}</td>
+                  <td data-label="Detalhes" className="max-w-md px-3 py-3 leading-5 text-muted-foreground">
                     {ticket.description || ticket.subject}
                   </td>
-                  <td className="px-3 py-3">{ticket.owner || "-"}</td>
-                  <td className="px-3 py-3">
+                  <td data-label="Responsável" className="px-3 py-3">{ticket.owner || "-"}</td>
+                  <td data-label="Ocorrência" className="px-3 py-3">
                     <OccurrenceDate value={ticket.openedAt} operator={ticket.owner} />
                   </td>
-                  <td className="px-3 py-3">
+                  <td data-label="Solução" className="px-3 py-3">
                     <OccurrenceDate
                       value={ticket.closedAt || ticket.updatedAt}
                       operator={solved ? ticket.owner : ""}
                     />
                   </td>
-                  <td className="px-3 py-3">
+                  <td data-label="Revisado" className="px-3 py-3">
                     {review ? (
                       <span className="text-emerald-600">
                         {formatOccurrenceDate(review.reviewed_at)}
@@ -3793,7 +3801,7 @@ function OccurrencesTable({ query, onOpen }: TableProps) {
                       <span className="text-muted-foreground">-</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-center">
+                  <td data-label="Ações" className="px-3 py-3 text-center">
                     <Button
                       size="icon"
                       variant="ghost"
@@ -4348,7 +4356,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
     <><section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="border-b p-4">
         <h2 className="text-lg font-medium">Parâmetros</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[1.3fr_.6fr_.6fr_1fr_auto_auto]">
+        <div className="hadron-tab-filters mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[1.3fr_.6fr_.6fr_1fr_auto_auto]">
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -4387,7 +4395,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] text-left text-xs">
+        <table className="hadron-responsive-table w-full min-w-[960px] text-left text-xs">
           <thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal">
             <tr>
               <th className="w-16 px-4 py-3">ID</th>
@@ -4406,15 +4414,15 @@ function ParametersTable({ query, onOpen }: TableProps) {
                   index % 2 === 0 && "bg-muted/15",
                 )}
               >
-                <td className="px-4 py-3 text-muted-foreground">{parameter.id}</td>
-                <td className="px-4 py-3">{parameter.title}</td>
-                <td className="px-4 py-3 text-muted-foreground">{parameter.description}</td>
-                <td className="px-4 py-3 text-xs text-primary">
+                <td data-label="ID" className="px-4 py-3 text-muted-foreground">{parameter.id}</td>
+                <td data-label="Título" className="px-4 py-3">{parameter.title}</td>
+                <td data-label="Descrição" className="px-4 py-3 text-muted-foreground">{parameter.description}</td>
+                <td data-label="Datas" className="px-4 py-3 text-xs text-primary">
                   <span>{parameter.createdAt}</span>
                   <br />
                   <span>{parameter.updatedAt}</span>
                 </td>
-                <td className="px-4 py-3">
+                <td data-label="Ações" className="px-4 py-3">
                   <div className="flex justify-center gap-1">
                     <Button asChild variant="ghost" size="icon" className="h-8 w-8 cursor-pointer hover:bg-sky-100 dark:hover:bg-sky-500/15" title="Ir para a Base">
                       <Link to="/base-de-conhecimento" search={{search:parameter.title,from:"hadron-parameter"}}><Globe2 className="h-4 w-4 text-emerald-600" /></Link>
@@ -4569,7 +4577,7 @@ function ModulesTable({ query, onOpen }: TableProps) {
         />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[920px] text-left text-xs">
+        <table className="hadron-responsive-table w-full min-w-[920px] text-left text-xs">
           <thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal">
             <tr>
               <th className="w-20 px-4 py-3">ID</th>
@@ -4580,8 +4588,8 @@ function ModulesTable({ query, onOpen }: TableProps) {
           <tbody className="divide-y">
             {rows.slice((page - 1) * pageSize, page * pageSize).map((row) => (
               <tr key={row.id} className="hover:bg-muted/20">
-                <td className="px-4 py-4 text-muted-foreground">{row.id}</td>
-                <td className="px-4 py-4">
+                <td data-label="ID" className="px-4 py-4 text-muted-foreground">{row.id}</td>
+                <td data-label="Nome" className="px-4 py-4">
                   <p className="font-medium uppercase">{row.module}</p>
                   {row.options.map((option) => <button key={option.id} className="mt-2 block text-left text-xs hover:text-primary" onClick={() => onOpen({title: option.description, subtitle: `${option.option} | ${option.form}`, body: option.observation, meta: [`Operador: ${option.owner}`]})}>{option.option} | {option.form} · {option.owner} - {option.description}</button>)}
                   <div className="mt-3 space-y-3 border-l pl-5">
@@ -4622,7 +4630,7 @@ function ModulesTable({ query, onOpen }: TableProps) {
                     ))}
                   </div>
                 </td>
-                <td className="px-4 py-4">
+                <td data-label="Ações" className="px-4 py-4">
                   <div className="flex justify-center gap-1">
                     <Button
                       variant="ghost"
@@ -4751,7 +4759,7 @@ function SerialsTable({ query }: TableProps) {
     <section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="border-b p-4">
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-medium">Seriais</h2><Button className="h-10 cursor-pointer gap-2" onClick={() => setEditingSerial({id:`novo-${Date.now()}`,numero_serie:"",operador:"",cliente:"PRC",created:null,modified:null})}><Plus className="h-4 w-4" />Novo número de série</Button></div>
-        <div className="mt-4 grid items-center gap-3 md:grid-cols-2 xl:grid-cols-[1.2fr_.6fr_.8fr_.8fr_auto]">
+        <div className="hadron-tab-filters mt-4 grid items-center gap-3 md:grid-cols-2 xl:grid-cols-[1.2fr_.6fr_.8fr_.8fr_auto]">
           <Input
             value={serial}
             onChange={(event) => setSerial(event.target.value)}
@@ -4790,7 +4798,7 @@ function SerialsTable({ query }: TableProps) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[920px] text-left text-xs">
+        <table className="hadron-responsive-table w-full min-w-[920px] text-left text-xs">
           <thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal">
             <tr>
               <th className="w-20 px-4 py-3">ID</th>
@@ -4802,7 +4810,7 @@ function SerialsTable({ query }: TableProps) {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {rows.slice((page-1)*pageSize,page*pageSize).map((item) => <tr key={item.id} className="hover:bg-muted/20"><td className="px-4 py-3 text-muted-foreground">{item.id}</td><td className="px-4 py-3 font-mono">{item.numero_serie}</td><td className="px-4 py-3">{item.operador}</td><td className="px-4 py-3">{item.cliente}</td><td className="px-4 py-3 whitespace-nowrap"><div>{formatSerialDate(item.created)}</div><div className="text-xs text-muted-foreground">Atualizado {formatSerialDate(item.modified)}</div></td><td className="px-4 py-3"><div className="flex justify-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title="Editar serial" onClick={() => setEditingSerial({...item})}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" title="Excluir serial" onClick={() => setRemovingSerial(item)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}
+            {rows.slice((page-1)*pageSize,page*pageSize).map((item) => <tr key={item.id} className="hover:bg-muted/20"><td data-label="ID" className="px-4 py-3 text-muted-foreground">{item.id}</td><td data-label="Número de série" className="px-4 py-3 font-mono">{item.numero_serie}</td><td data-label="Operador" className="px-4 py-3">{item.operador}</td><td data-label="Cliente" className="px-4 py-3">{item.cliente}</td><td data-label="Datas" className="px-4 py-3 whitespace-nowrap"><div>{formatSerialDate(item.created)}</div><div className="text-xs text-muted-foreground">Atualizado {formatSerialDate(item.modified)}</div></td><td data-label="Ações" className="px-4 py-3"><div className="flex justify-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title="Editar serial" onClick={() => setEditingSerial({...item})}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" title="Excluir serial" onClick={() => setRemovingSerial(item)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}
             {rows.length === 0 && <tr>
               <td colSpan={6} className="px-4 py-16 text-center">
                 <KeyRound className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
@@ -4874,7 +4882,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
           <div>
             <div className="flex items-center justify-between gap-3"><h2 className="text-lg font-medium">Checklist</h2><Button className="h-10 cursor-pointer gap-2" onClick={() => setEditing([[`novo-${Date.now()}`,characteristic === "todos" ? "geral" : characteristic,"","",false,new Date().toISOString(),new Date().toISOString()]])}><Plus className="h-4 w-4" />Criar checklist</Button></div>
           </div>
-          <div className="grid w-full gap-2 md:grid-cols-[1fr_1fr_auto]">
+          <div className="hadron-tab-filters grid w-full gap-2 md:grid-cols-[1fr_1fr_auto]">
             <Input
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
@@ -4898,7 +4906,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-xs">
+          <table className="hadron-responsive-table w-full min-w-[980px] text-xs">
             <thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal">
               <tr>
                 <th className="w-36 px-4 py-3">Característica</th>
@@ -4924,22 +4932,22 @@ function ChecklistTable({ query, onOpen }: TableProps) {
                         index % 2 === 0 && "bg-muted/20",
                       )}
                     >
-                      <td className="px-4 py-3">{label(characteristic)}</td>
-                      <td className="px-4 py-3 font-medium">{title}</td>
-                      <td className="px-4 py-3">{description}</td>
-                      <td className="px-4 py-3 text-center">
+                      <td data-label="Característica" className="px-4 py-3">{label(characteristic)}</td>
+                      <td data-label="Título" className="px-4 py-3 font-medium">{title}</td>
+                      <td data-label="Descrição" className="px-4 py-3">{description}</td>
+                      <td data-label="Salvo" className="px-4 py-3 text-center">
                         {saved ? (
                           <Flag className="mx-auto h-4 w-4 text-muted-foreground" />
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-primary">
+                      <td data-label="Datas" className="px-4 py-3 text-xs text-primary">
                         <span>{formatCatalogDate(createdAt)}</span>
                         <br />
                         <span>{formatCatalogDate(updatedAt)}</span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td data-label="Ações" className="px-4 py-3">
                         <div className="flex justify-center gap-1">
                           <Button
                             variant="ghost"
@@ -5247,7 +5255,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
               {rows.length.toLocaleString("pt-BR")} registros
             </span>
           </div>
-          <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.2fr_.85fr_.85fr_.8fr_1.35fr_auto]">
+          <div className="hadron-tab-filters mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.2fr_.85fr_.85fr_.8fr_1.35fr_auto]">
             <Input
               value={optionQuery}
               onChange={(event) => {
@@ -5307,7 +5315,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1180px] text-left text-[11px] xl:text-xs">
+          <table className="hadron-responsive-table w-full min-w-[1180px] text-left text-[11px] xl:text-xs">
             <thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal">
               <tr>
                 <th className="w-14 px-4 py-3">Tipo</th>
@@ -5324,7 +5332,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
             <tbody className="divide-y">
               {pagedRows.map(({ release, option, type }) => (
                 <tr key={release.id} className="transition-colors hover:bg-muted/30">
-                  <td className="px-4 py-3">
+                  <td data-label="Tipo" className="px-4 py-3">
                     <Sparkles
                       className={cn(
                         "h-4 w-4",
@@ -5338,12 +5346,12 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                       )}
                     />
                   </td>
-                  <td className="px-4 py-3 font-medium">
+                  <td data-label="Opção/Formulário" className="px-4 py-3 font-medium">
                     {release.option || option?.option || "Não informado"}/
                     {release.form || option?.form || release.option || "Não informado"}
                   </td>
-                  <td className="px-4 py-3 font-medium text-primary">{release.title}</td>
-                  <td className="px-4 py-3">
+                  <td data-label="Descrição" className="px-4 py-3 font-medium text-primary">{release.title}</td>
+                  <td data-label="Módulo/Submódulo" className="px-4 py-3">
                     {release.moduleId
                       ? hadronModuleNames.get(release.moduleId) || `Módulo ${release.moduleId}`
                       : "Não informado"}
@@ -5357,16 +5365,16 @@ function ReleasesTable({ query, onOpen }: TableProps) {
                       </>
                     )}
                   </td>
-                  <td className="px-4 py-3">{release.owner || "Não informado"}</td>
-                  <td className="px-4 py-3 text-center">{release.clicks}</td>
-                  <td className="px-4 py-3">{getReleaseVersionLabel(release.version)}</td>
-                  <td className="whitespace-nowrap px-4 py-3">
+                  <td data-label="Responsável" className="px-4 py-3">{release.owner || "Não informado"}</td>
+                  <td data-label="Cliques" className="px-4 py-3 text-center">{release.clicks}</td>
+                  <td data-label="Versão" className="px-4 py-3">{getReleaseVersionLabel(release.version)}</td>
+                  <td data-label="Data" className="whitespace-nowrap px-4 py-3">
                     <span className="block">{formatCatalogDate(release.createdAt)}</span>
                     <span className="block text-xs">
                       Atualizado {formatCatalogDate(release.updatedAt)}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td data-label="Ações" className="px-4 py-3">
                     <div className="mx-auto grid w-fit grid-cols-2 gap-0.5">
                       <Button
                         asChild
@@ -5730,9 +5738,9 @@ function VersionsTable({ query, onOpen }: TableProps) {
     <section className="overflow-hidden rounded-md border bg-card shadow-sm">
       <div className="border-b p-4">
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-medium">Versões do ERP</h2><Button className="h-10 cursor-pointer gap-2" onClick={() => {const today=new Date().toISOString().slice(0,10);setDraft({id:`novo-${Date.now()}`,versao:"",data_versao:today,data_runtime:today,data_arq:today,data_arq_bas:today,data_alterar:today});}}><Plus className="h-4 w-4" />Criar versão</Button></div>
-        <div className="mt-4 grid items-center gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1.5fr_auto]"><Input placeholder="Versão" value={versionQuery} onChange={e => setVersionQuery(e.target.value)} /><DateRangeFilter from={dateFrom} to={dateTo} onChange={(from,to) => {setDateFrom(from);setDateTo(to);}} /><Button variant="ghost" className="h-10 cursor-pointer bg-transparent px-3 hover:bg-sky-100 dark:hover:bg-sky-500/15" onClick={clearFilters}>Limpar</Button></div>
+        <div className="hadron-tab-filters mt-4 grid items-center gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1.5fr_auto]"><Input placeholder="Versão" value={versionQuery} onChange={e => setVersionQuery(e.target.value)} /><DateRangeFilter from={dateFrom} to={dateTo} onChange={(from,to) => {setDateFrom(from);setDateTo(to);}} /><Button variant="ghost" className="h-10 cursor-pointer bg-transparent px-3 hover:bg-sky-100 dark:hover:bg-sky-500/15" onClick={clearFilters}>Limpar</Button></div>
       </div>
-      <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-xs"><thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal"><tr><th className="px-4 py-3">Versão</th>{dateFields.map(([field,label]) => <th key={field} className="px-4 py-3">{label}</th>)}<th className="w-24 px-4 py-3 text-center">Ações</th></tr></thead><tbody className="divide-y">{rows.slice((currentPage-1)*pageSize,currentPage*pageSize).map(version => <tr key={version.id} className="hover:bg-muted/20"><td className="px-4 py-3 font-medium">{version.versao}</td>{dateFields.map(([field]) => <td key={field} className="px-4 py-3">{formatVersionDate(version[field])}</td>)}<td className="px-4 py-3"><div className="flex justify-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title="Editar versão" onClick={() => setDraft({...version})}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" title="Excluir versão" onClick={() => setRemoving(version)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}{!rows.length && <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">Nenhuma versão encontrada.</td></tr>}</tbody></table></div>
+      <div className="overflow-x-auto"><table className="hadron-responsive-table w-full min-w-[900px] text-left text-xs"><thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal"><tr><th className="px-4 py-3">Versão</th>{dateFields.map(([field,label]) => <th key={field} className="px-4 py-3">{label}</th>)}<th className="w-24 px-4 py-3 text-center">Ações</th></tr></thead><tbody className="divide-y">{rows.slice((currentPage-1)*pageSize,currentPage*pageSize).map(version => <tr key={version.id} className="hover:bg-muted/20"><td data-label="Versão" className="px-4 py-3 font-medium">{version.versao}</td>{dateFields.map(([field,label]) => <td data-label={label} key={field} className="px-4 py-3">{formatVersionDate(version[field])}</td>)}<td data-label="Ações" className="px-4 py-3"><div className="flex justify-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title="Editar versão" onClick={() => setDraft({...version})}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" title="Excluir versão" onClick={() => setRemoving(version)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}{!rows.length && <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">Nenhuma versão encontrada.</td></tr>}</tbody></table></div>
     </section>
     <TablePagination noun="versões" page={currentPage} pageCount={pageCount} pageSize={pageSize} total={rows.length} onPageChange={setPage} onPageSizeChange={value => {setPageSize(value);setPage(1);}} />
     <Dialog open={Boolean(draft)} onOpenChange={open => !open && setDraft(null)}><DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden"><DialogTitle className="sr-only">{creating ? "Criar versão" : "Editar versão"}</DialogTitle><DetailModalHeader icon={creating ? Plus : Pencil} title={creating ? "Criar versão" : "Editar versão"} onClose={() => setDraft(null)} />{draft && <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-2 lg:grid-cols-6"><label className="space-y-1 text-sm"><span>Versão</span><Input value={draft.versao} onChange={e => setDraft({...draft,versao:e.target.value})} /></label>{dateFields.map(([field,label]) => <label key={field} className="min-w-0 space-y-1 text-sm"><span>{label}</span><Input type="date" value={draft[field]} onChange={e => setDraft({...draft,[field]:e.target.value})} /></label>)}</div>}<DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={save}>Salvar</Button></DialogFooter></DialogContent></Dialog>
@@ -5813,7 +5821,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
             </div>
             <Button className="h-10 cursor-pointer gap-2" onClick={() => { const now = new Date().toISOString(); setEditingArticle({id:`novo-${Date.now()}`,title:"",status:"0",description:"",category:"guia",owner:currentUser.operator || operators[0] || "",clicks:0,tags:"",permission:"1",emailCopy:"",relatedArticleIds:"",relatedReleaseIds:"",moduleId:"1",submoduleId:"none",createdAt:now,updatedAt:now}); }}><Plus className="h-4 w-4" />Criar artigo</Button>
           </div>
-          <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.35fr_1fr_1fr_1fr_1.35fr_auto]">
+          <div className="hadron-tab-filters mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-[1.35fr_1fr_1fr_1fr_1.35fr_auto]">
             <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Título" />
             <OccurrenceSelect value={category} onValueChange={setCategory} items={[["todos", "Categoria"], ...categories.map((item) => [item, articleCategoryLabel(item)] as [string, string])]} />
             <OccurrenceSelect value={operator} onValueChange={setOperator} items={[["todos", "Operador"], ...operators.map((item) => [item, item] as [string, string])]} />
@@ -5823,7 +5831,7 @@ function ArticlesTable({ query, onOpen }: TableProps) {
           </div>
         </div>
         <div className="overflow-x-auto">
-        <table className="w-full min-w-[1180px] text-left text-xs">
+        <table className="hadron-responsive-table w-full min-w-[1180px] text-left text-xs">
           <thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal">
             <tr>
               {[
@@ -5867,32 +5875,32 @@ function ArticlesTable({ query, onOpen }: TableProps) {
                     index % 2 === 1 && "bg-muted/20",
                   )}
                 >
-                  <td className="px-3 py-2.5 text-muted-foreground">
+                  <td data-label="Permissão" className="px-3 py-2.5 text-muted-foreground">
                     <PermissionIcon className="h-4 w-4" aria-label={permissionLabel} />
                   </td>
-                  <td className="max-w-[420px] px-3 py-2.5 font-medium">
+                  <td data-label="Título" className="max-w-[420px] px-3 py-2.5 font-medium">
                     <span className="mr-1 text-muted-foreground">{article.id} -</span>
                     {article.title}
                   </td>
-                  <td className="px-3 py-2.5">{articleCategoryLabel(article.category)}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5">{article.owner}</td>
-                  <td className="px-3 py-2.5">
+                  <td data-label="Categoria" className="px-3 py-2.5">{articleCategoryLabel(article.category)}</td>
+                  <td data-label="Responsável" className="whitespace-nowrap px-3 py-2.5">{article.owner}</td>
+                  <td data-label="Módulo / Submódulo" className="px-3 py-2.5">
                     <span className="block">{hadronModuleNames.get(article.moduleId) || `Módulo ${article.moduleId}`}</span>
                     <span className="text-[10px] text-muted-foreground">
                       {hadronSubmoduleNames.get(`${article.moduleId}:${article.submoduleId}`) || `Submódulo ${article.submoduleId}`}
                     </span>
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td data-label="Status" className="px-3 py-2.5">
                     <Badge className={cn("whitespace-nowrap", article.status === "2" ? "bg-amber-500 text-white hover:bg-amber-500" : article.status === "0" ? "bg-rose-600 text-white hover:bg-rose-600" : undefined)} variant={published ? "default" : "secondary"}>
                       {articleStatusLabel(article.status)}
                     </Badge>
                   </td>
-                  <td className="px-3 py-2.5 text-center text-muted-foreground">{article.clicks}</td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-primary">
+                  <td data-label="Cliques" className="px-3 py-2.5 text-center text-muted-foreground">{article.clicks}</td>
+                  <td data-label="Datas" className="whitespace-nowrap px-3 py-2.5 text-primary">
                     <span className="block">Criado {formatHadronArticleDate(article.createdAt)}</span>
                     <span className="block text-[10px] text-muted-foreground">Alterado {formatHadronArticleDate(article.updatedAt)}</span>
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td data-label="Ações" className="px-3 py-2.5">
                     <div className="flex items-center justify-center gap-0.5">
                       {baseArticle && (
                         <Button asChild variant="ghost" size="icon" className="h-8 w-8" title="Abrir artigo na Base de Conhecimento">
