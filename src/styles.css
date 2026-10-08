@@ -777,3 +777,12 @@ main th[data-auto-sortable="true"] {
   .commercial-activities-table button { min-height: 44px; }
   .commercial-activities-table td[colspan] { display: grid; place-items: center; }
 }
+
+@media (max-width: 1279px) {
+  .commercial-activities-table tbody { padding: 0.5rem; background: var(--background); }
+  .commercial-activities-table tr { border: 1px solid var(--border); border-radius: 0.75rem; background: var(--card); margin-bottom: 0.5rem; }
+  .commercial-activities-table tr:last-child { margin-bottom: 0; }
+  .commercial-activities-table td[data-label="Status"] { border-top: 1px solid var(--border); padding-top: 0.75rem; }
+  .commercial-activities-table td[data-label="Status"] > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .commercial-activities-table td[data-label="Status"] button { width: 100%; min-width: 0; }
+}

@@ -95,7 +95,7 @@ function CommercialActivitiesPage() {
         description="Histórico e acompanhamento das atividades da equipe comercial."
         breadcrumbs={[{ label: "Comercial" }, { label: "Atividades" }]}
         actions={
-          <Button asChild>
+          <Button asChild className="max-w-full max-xl:h-auto max-xl:min-h-11 max-xl:whitespace-normal max-xl:text-xs">
             <Link to="/comercial/contatos">Abrir contato para registrar atividade</Link>
           </Button>
         }
@@ -108,7 +108,7 @@ function CommercialActivitiesPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Pesquisa geral"
-            className="h-9 rounded-lg pl-9"
+            className="h-9 min-w-0 rounded-lg pl-9 max-xl:h-11 max-xl:text-base"
           />
         </label>
         <select
@@ -144,6 +144,7 @@ function CommercialActivitiesPage() {
           <option value="7">Conclusão de agendamento</option>
         </select>
         <DateRangeFilter
+          className="max-xl:h-11 max-xl:min-w-0"
           from={from}
           to={to}
           onChange={(start, end) => {
@@ -151,7 +152,7 @@ function CommercialActivitiesPage() {
             setTo(end);
           }}
         />
-        <Button className="h-9 w-24 rounded-lg" onClick={() => setPage(0)}>
+        <Button className="h-9 w-full rounded-lg max-xl:h-11 xl:w-24" onClick={() => setPage(0)}>
           Buscar
         </Button>
       </section>
@@ -250,6 +251,7 @@ function ActivityRow({ activity, onSaved }: { activity: CommercialActivity; onSa
   return (
     <tr className="transition-colors hover:bg-muted/25">
       <td data-label="Prioridade" className="px-3 py-3">
+        <span className="float-right text-xs xl:hidden">{activity.priority === "alta" ? "Alta" : activity.priority === "media" ? "Média" : "Baixa"}</span>
         <span
           className={cn(
             "block h-3 w-3 rounded-full",
@@ -262,7 +264,7 @@ function ActivityRow({ activity, onSaved }: { activity: CommercialActivity; onSa
         />
       </td>
       <td data-label="Tipo" className="px-3 py-3">
-        <TypeIcon className="h-4 w-4 text-primary" />
+        <span className="inline-flex min-w-0 items-center gap-2"><TypeIcon className="h-4 w-4 shrink-0 text-primary" /><span className="xl:hidden">{typeLabel(activity.historyType)}</span></span>
       </td>
       <td data-label="Data / Operador" className="whitespace-nowrap px-3 py-3">
         <span className="block">{formatDate(activity.date)}</span>
@@ -426,4 +428,4 @@ function statusClass(status: string) {
 }
 
 const selectClass =
-  "h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring";
+  "h-9 w-full min-w-0 rounded-lg border border-input max-xl:h-11 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring";
