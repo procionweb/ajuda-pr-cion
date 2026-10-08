@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageSquarePlus, Plus, X } from "lucide-react";
+import { MessageSquarePlus, Plus, X, ArrowUp, ChevronDown, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,47 @@ import type { SupportTicket } from "@/lib/support-tickets-data";
 import { cvsArticles } from "@/lib/cvs-catalogs-imported";
 import { normalizeSearch, searchHadronForms, searchHadronOptions } from "@/lib/hadron-options";
 import { cn } from "@/lib/utils";
+
+const priorityOptions: {
+  value: SupportTicket["priority"];
+  label: string;
+  icon: typeof ArrowUp;
+  baseClass: string;
+  activeClass: string;
+  iconWrapClass: string;
+  textClass: string;
+}[] = [
+  {
+    value: "Baixa",
+    label: "Baixa",
+    icon: ChevronDown,
+    baseClass: "border-success/25 bg-success/10 dark:bg-success/15",
+    activeClass:
+      "border-success/70 ring-2 ring-success/40 shadow-sm bg-success/15 dark:bg-success/20",
+    iconWrapClass: "bg-success text-success-foreground",
+    textClass: "text-success",
+  },
+  {
+    value: "Media",
+    label: "Média",
+    icon: Minus,
+    baseClass: "border-warning/30 bg-warning/12 dark:bg-warning/15",
+    activeClass:
+      "border-warning/70 ring-2 ring-warning/40 shadow-sm bg-warning/20 dark:bg-warning/25",
+    iconWrapClass: "bg-warning text-warning-foreground",
+    textClass: "text-warning-foreground",
+  },
+  {
+    value: "Alta",
+    label: "Alta",
+    icon: ArrowUp,
+    baseClass: "border-destructive/25 bg-destructive/10 dark:bg-destructive/15",
+    activeClass:
+      "border-destructive/70 ring-2 ring-destructive/40 shadow-sm bg-destructive/15 dark:bg-destructive/20",
+    iconWrapClass: "bg-destructive text-destructive-foreground",
+    textClass: "text-destructive",
+  },
+];
 
 const types: ClosurePayload["type"][] = [
   "Não definido",
@@ -182,25 +223,36 @@ export function ManualTicketTimelineModal({
               <div
                 role="radiogroup"
                 aria-label="Prioridade"
-                className="mt-1 grid grid-cols-3 gap-1.5"
+                className="mt-1 grid grid-cols-3 gap-2"
               >
-                {(["Baixa", "Media", "Alta"] as const).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    role="radio"
-                    aria-checked={priority === item}
-                    onClick={() => setPriority(item)}
-                    className={cn(
-                      "min-h-9 rounded-lg border px-2 text-xs font-medium",
-                      priority === item
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground",
-                    )}
-                  >
-                    {item === "Media" ? "Média" : item}
-                  </button>
-                ))}
+                {priorityOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={priority === option.value}
+                      onClick={() => setPriority(option.value)}
+                      className={cn(
+                        "relative flex h-11 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border text-xs font-medium transition",
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+                        option.baseClass,
+                        priority === option.value && option.activeClass,
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "grid h-5 w-5 shrink-0 place-items-center rounded-full",
+                          option.iconWrapClass,
+                        )}
+                      >
+                        <Icon className="h-3 w-3" strokeWidth={3} />
+                      </span>
+                      <span className={cn("font-medium", option.textClass)}>{option.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
