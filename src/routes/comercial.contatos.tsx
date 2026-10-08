@@ -141,7 +141,7 @@ function CommercialContactsPage() {
         description="Prospecção, relacionamento e acompanhamento das oportunidades comerciais."
         breadcrumbs={[{ label: "Comercial" }, { label: "Contatos" }]}
         actions={
-          <Button asChild>
+          <Button asChild className="max-xl:h-9 max-xl:px-3 max-xl:text-xs">
             <Link to="/comercial/contatos/novo">
               <Plus className="mr-2 h-4 w-4" />
               Cadastrar empresa
@@ -150,20 +150,20 @@ function CommercialContactsPage() {
         }
       />
 
-      <section className="mb-5 grid gap-3 md:grid-cols-[minmax(240px,360px)_220px_220px]">
-        <label className="relative block">
+      <section className="mb-5 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(240px,360px)_220px_220px]">
+        <label className="relative block min-w-0 sm:col-span-2 xl:col-span-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Empresa, CNPJ, telefone ou e-mail"
-            className="h-9 rounded-lg pl-9 text-sm"
+            className="h-9 min-w-0 rounded-lg pl-9 text-sm max-xl:h-11"
           />
         </label>
         <select
           value={city}
           onChange={(event) => setCity(event.target.value)}
-          className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          className="h-9 w-full min-w-0 rounded-lg border border-input max-xl:h-11 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">Todas as cidades</option>
           {cities.map((item) => (
@@ -175,7 +175,7 @@ function CommercialContactsPage() {
         <select
           value={stage}
           onChange={(event) => setStage(event.target.value)}
-          className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          className="h-9 w-full min-w-0 rounded-lg border border-input max-xl:h-11 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">Todas as etapas</option>
           {visibleStages.map((item) => (
@@ -188,7 +188,7 @@ function CommercialContactsPage() {
 
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1180px] table-fixed text-left text-xs xl:min-w-0">
+          <table className="commercial-contacts-table w-full min-w-[1180px] table-fixed text-left text-xs xl:min-w-0">
             <colgroup>
               <col className="w-[25%]" />
               <col className="w-[24%]" />
@@ -225,7 +225,7 @@ function CommercialContactsPage() {
               ) : (
                 rows.map((lead) => (
                   <tr key={lead.id} className="transition-colors hover:bg-muted/25">
-                    <td className="min-w-0 px-4 py-3">
+                    <td data-label="Empresa" className="min-w-0 px-4 py-3">
                       <Link
                         to="/comercial/contatos/$leadId"
                         params={{ leadId: lead.id }}
@@ -245,7 +245,7 @@ function CommercialContactsPage() {
                         </span>
                       </Link>
                     </td>
-                    <td className="min-w-0 px-4 py-3 text-[12px] text-muted-foreground">
+                    <td data-label="Contato" className="min-w-0 px-4 py-3 text-[12px] text-muted-foreground">
                       {lead.phone && (
                         <span className="flex min-w-0 items-center gap-1.5">
                           <Phone className="h-3.5 w-3.5 shrink-0" />
@@ -264,7 +264,7 @@ function CommercialContactsPage() {
                       )}
                       {!lead.phone && !lead.email && "Não informado"}
                     </td>
-                    <td className="min-w-0 px-4 py-3">
+                    <td data-label="Cidade / UF" className="min-w-0 px-4 py-3">
                       <span className="flex min-w-0 items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <span className="truncate" title={`${lead.city} - ${lead.state}`}>
@@ -272,7 +272,7 @@ function CommercialContactsPage() {
                         </span>
                       </span>
                     </td>
-                    <td className="min-w-0 px-4 py-3">
+                    <td data-label="Atividade" className="min-w-0 px-4 py-3">
                       <span
                         className="block truncate text-[12px]"
                         title={lead.cnae_description || "Não informada"}
@@ -281,10 +281,10 @@ function CommercialContactsPage() {
                       </span>
                       <span className="text-[11px] text-muted-foreground">{lead.cnae_code}</span>
                     </td>
-                    <td className="px-5 py-3 text-[12px]">
+                    <td data-label="Etapa" className="px-5 py-3 text-[12px]">
                       {stages.find((item) => item.value === lead.stage)?.label || lead.stage}
                     </td>
-                    <td className="px-2 py-3 text-center">
+                    <td data-label="Ações" className="px-2 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <Link
                           to="/comercial/contatos/$leadId"

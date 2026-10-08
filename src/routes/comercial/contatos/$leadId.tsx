@@ -151,7 +151,7 @@ export function LeadDetailsPage() {
       <AppShell fullWidth>
         <div className="p-8 space-y-4">
           <Skeleton className="h-12 w-1/3" />
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6">
             <Skeleton className="h-[600px] rounded-xl" />
             <Skeleton className="h-[400px] rounded-xl" />
           </div>
@@ -306,7 +306,7 @@ export function LeadDetailsPage() {
         </Dialog>
 
         <main className="p-6">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
             {/* Coluna Principal - Timeline e Dados */}
             <div className="flex min-w-0 flex-col gap-6">
               {/* Timeline de Atividades */}
@@ -330,7 +330,7 @@ export function LeadDetailsPage() {
                     Dados da Empresa
                   </h3>
                 </div>
-                <div className="p-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="p-4 sm:p-6 grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-3">
                   <InfoItem label="Razão Social" value={lead.legal_name} />
                   <InfoItem label="Nome Fantasia" value={lead.trade_name} />
                   <InfoItem label="CNPJ" value={lead.cnpj} />
@@ -362,7 +362,7 @@ export function LeadDetailsPage() {
                     Localização e Contato
                   </h3>
                 </div>
-                <div className="p-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="p-4 sm:p-6 grid gap-4 sm:gap-6 sm:grid-cols-2 xl:grid-cols-3">
                   <InfoItem label="Endereço" value={lead.address} />
                   <InfoItem label="Bairro" value={lead.neighborhood} />
                   <InfoItem label="Cidade / UF" value={`${lead.city} - ${lead.state}`} />
@@ -483,7 +483,7 @@ function Field({
   textarea?: boolean;
 }) {
   return (
-    <label className={cn("grid gap-1.5", textarea && "sm:col-span-2 lg:col-span-3")}>
+    <label className={cn("grid min-w-0 gap-1.5", textarea && "sm:col-span-2 lg:col-span-3")}>
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {textarea ? (
         <Textarea value={value} onChange={(event) => onChange(event.target.value)} />
@@ -528,7 +528,7 @@ function FieldSelect({
 
 function SideInfoItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex min-w-0 flex-col gap-0.5 break-words">
       <span className="text-[10px] font-bold uppercase text-muted-foreground">{label}</span>
       <span className="text-sm font-medium">{value}</span>
     </div>
