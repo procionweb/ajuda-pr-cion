@@ -958,3 +958,17 @@ main th[data-auto-sortable="true"] {
 @media (min-width:640px) and (max-width:1279px) {
   section .kanban-menu-actions { grid-template-columns:repeat(3,minmax(0,1fr)); }
 }
+
+/* Board controls use complete rows rather than squeezing the search. */
+@media (max-width:1279px) {
+  .kanban-board-header { min-width:0; padding:12px; }
+  .kanban-board-controls { justify-content:flex-start; gap:8px; width:100%; }
+  .kanban-board-controls .kanban-board-search { order:-2; flex:0 0 100%; width:100%; min-width:0; max-width:none; height:44px; }
+  .kanban-board-search input { font-size:16px; }
+  .kanban-board-search > svg:last-child { display:none; }
+  .kanban-board-search input { padding-right:12px; }
+  .kanban-board-controls .kanban-board-views { order:-1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); flex:0 0 100%; width:100%; height:auto; }
+  .kanban-board-views button { width:100%; height:40px; min-width:0; }
+  .kanban-board-controls > button { height:44px; width:44px; }
+  .kanban-board-controls .kanban-board-members { order:1; flex:0 0 100%; padding-top:4px; }
+}

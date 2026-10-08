@@ -976,13 +976,13 @@ function KanbanPage() {
       >
         <div
           className={cn(
-            "mb-3 flex flex-col gap-3 rounded-xl border px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between",
+            "kanban-board-header mb-3 flex flex-col gap-3 rounded-xl border px-4 py-3 shadow-sm xl:flex-row xl:items-center xl:justify-between",
             hasBgImage
               ? "border-white/20 bg-white/70 backdrop-blur-md dark:border-white/10 dark:bg-slate-900/55"
               : "border-slate-300 bg-slate-50 dark:border-white/8 dark:bg-[#1e2633]",
           )}
         >
-          <div className="flex min-w-0 shrink-0 items-center gap-3 lg:max-w-[360px]">
+          <div className="flex min-w-0 shrink-0 items-center gap-3 xl:max-w-[360px]">
             <div className="min-w-0">
               <Link
                 to="/kanban"
@@ -991,14 +991,14 @@ function KanbanPage() {
                 <ArrowLeft className="h-3.5 w-3.5" />
                 Meus quadros
               </Link>
-              <h1 className="truncate text-base font-semibold text-slate-900 dark:text-white">
+              <h1 className="truncate text-base font-semibold text-slate-900 dark:text-white max-xl:whitespace-normal max-xl:break-words">
                 {boardName || "Kanban Prócion"}
               </h1>
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 lg:flex-nowrap">
-            <div className="relative h-9 min-w-[170px] flex-1 lg:max-w-[280px]">
+          <div className="kanban-board-controls flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 xl:flex-nowrap">
+            <div className="kanban-board-search relative h-9 min-w-[170px] flex-1 xl:max-w-[280px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
               <input
                 value={query}
@@ -1178,7 +1178,7 @@ function KanbanPage() {
               <span className="sr-only">Templates</span>
             </button>
 
-            <div className="inline-flex h-9 shrink-0 items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 dark:border-white/8 dark:bg-white/[0.035]">
+            <div className="kanban-board-views inline-flex h-9 shrink-0 items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5 dark:border-white/8 dark:bg-white/[0.035]">
               <ViewToggleButton
                 active={viewMode === "kanban"}
                 onClick={() => setViewMode("kanban")}
@@ -1206,7 +1206,7 @@ function KanbanPage() {
             </div>
 
             {headerMembers.length > 0 && (
-              <div className="flex shrink-0 items-center -space-x-2" aria-label="Pessoas no quadro">
+              <div className="kanban-board-members flex shrink-0 items-center -space-x-2" aria-label="Pessoas no quadro">
                 {headerMembers.slice(0, 4).map((member) => (
                   <Avatar
                     key={member.id}
