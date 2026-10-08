@@ -814,11 +814,7 @@ main th[data-auto-sortable="true"] {
   .prospecting-search-actions > button { grid-column:span 2; height:44px; width:100%; }
   .prospecting-search-actions > button[type="submit"] { grid-column:1/-1; }
   .prospecting-results { display:block; min-width:0; font-size:13px; }
-  .prospecting-results thead { display:block; padding:.5rem; border-bottom:1px solid var(--border); }
-  .prospecting-results thead tr { display:flex; flex-wrap:wrap; gap:.5rem; }
-  .prospecting-results th { display:block; min-width:0; max-width:none; padding:0; }
-  .prospecting-results th:not(:has(button)) { display:none; }
-  .prospecting-results th button { min-height:36px; padding:.25rem .5rem; border:1px solid var(--border); border-radius:.5rem; font-size:10px; }
+  .prospecting-results thead { display:none; }
   .prospecting-results tbody { display:grid; gap:.75rem; padding:.75rem; background:var(--background); }
   .prospecting-results tbody tr { display:grid; grid-template-columns:minmax(0,1fr); gap:.75rem; padding:1rem; border:1px solid var(--border); border-radius:.75rem; background:var(--card); }
   .prospecting-results td { display:block; min-width:0; max-width:none; padding:0; white-space:normal; overflow-wrap:anywhere; }
@@ -839,3 +835,4 @@ main th[data-auto-sortable="true"] {
   .prospecting-filters > label:nth-child(3),
   .prospecting-filters > label:nth-child(4) { grid-column:1/-1; }
 }
+

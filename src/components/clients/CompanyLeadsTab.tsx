@@ -822,7 +822,7 @@ export function CompanyLeadsTab() {
               )}
             </Button>
           </DialogTrigger>
-          <DialogContent className="flex max-h-[min(760px,calc(100vh-32px))] max-w-2xl flex-col gap-0 overflow-hidden p-0">
+          <DialogContent autoFooter={false} className="flex max-h-[min(760px,calc(100vh-32px))] max-w-2xl flex-col gap-0 overflow-hidden p-0">
             <DialogHeader className="shrink-0 border-b border-border px-5 py-4 text-left">
               <DialogTitle>Filtros de prospecção</DialogTitle>
               <DialogDescription>
@@ -1063,7 +1063,7 @@ export function CompanyLeadsTab() {
         </Dialog>
 
         <div className="prospecting-search-actions grid w-[190px] gap-2">
-          <Popover>
+          <Popover modal>
             <PopoverTrigger asChild>
               <Button
                 type="button"
@@ -1081,9 +1081,9 @@ export function CompanyLeadsTab() {
               sideOffset={8}
               collisionPadding={16}
               avoidCollisions
-              className="flex max-h-[calc(100vh-120px)] w-[min(260px,calc(100vw-32px))] flex-col p-0"
+              className="max-h-[min(420px,var(--radix-popover-content-available-height))] w-[min(260px,calc(100vw-32px))] overflow-y-auto overscroll-contain touch-pan-y p-0"
             >
-              <div className="shrink-0 border-b border-border px-3 py-2.5">
+              <div className="sticky top-0 z-10 border-b border-border bg-popover px-3 py-2.5">
                 <p className="text-sm font-semibold">Colunas visíveis</p>
               </div>
               <div className="hide-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
