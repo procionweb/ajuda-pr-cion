@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import {
@@ -118,12 +119,13 @@ function CommercialContactsPage() {
   useEffect(() => {
     let active = true;
     const loadCities = async () => {
-      const { data, error } = await supabase.rpc("company_lead_cities" as never);
-      const values = Array.isArray(data) ? data.map((item) => typeof item === "string" ? item.trim() : String(item?.city || "").trim()).filter(Boolean) : [];
+      const commercialDb = supabase as SupabaseClient;
+      const { data, error } = await commercialDb.rpc("company_lead_cities");
+      const values = Array.isArray(data) ? data.map((item: unknown) => typeof item === "string" ? item.trim() : item && typeof item === "object" && "city" in item ? String(item.city || "").trim() : "").filter(Boolean) : [];
       if (!error && values.length) { if (active) setCities([...new Set(values)].sort((a, b) => a.localeCompare(b, "pt-BR"))); return; }
       const unique = new Set<string>();
       for (let offset = 0; active; offset += 1000) {
-        const result = await supabase.from("company_leads").select("city").or("stage.neq.novo,source.in.(crm-manual,crm-import)").in("stage", visibleStages.map((item) => item.value)).order("id").range(offset, offset + 999);
+        const result = await commercialDb.from("company_leads").select("city").or("stage.neq.novo,source.in.(crm-manual,crm-import)").in("stage", visibleStages.map((item) => item.value)).order("id").range(offset, offset + 999);
         if (result.error) { toast.error("Não foi possível carregar as cidades dos contatos."); return; }
         for (const row of result.data || []) if (row.city?.trim()) unique.add(row.city.trim());
         if ((result.data?.length || 0) < 1000) break;
