@@ -896,3 +896,40 @@ main th[data-auto-sortable="true"] {
 @media (max-width:639px) {
   .hadron-tab-filters input { font-size:16px; }
 }
+
+/* Hádron viewing and editing dialogs on phones and tablets. */
+@media (max-width:1279px) {
+  .hadron-modal { display:flex; flex-direction:column; width:calc(100vw - 1rem); max-width:calc(100vw - 1rem); max-height:calc(100dvh - 1rem); min-width:0; gap:0; overflow:hidden; }
+  .hadron-modal > .overflow-y-auto, .hadron-modal-body { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+  .hadron-modal > form { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+  .hadron-modal .grid[class*="grid-cols"]:not([role="radiogroup"]) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .hadron-modal .grid > * { min-width:0; max-width:100%; overflow-wrap:anywhere; }
+  .hadron-modal .grid[class*="grid-cols"]:not([role="radiogroup"]) > * { grid-column:auto; }
+  .hadron-modal .grid > [class*="col-span-6"], .hadron-modal .grid > :has([contenteditable="true"]), .hadron-modal .grid > :has(textarea) { grid-column:1/-1 !important; }
+  .hadron-modal input:not([type="checkbox"]):not([type="radio"]), .hadron-modal select, .hadron-modal [role="combobox"] { min-width:0; max-width:100%; min-height:44px; }
+  .hadron-modal input[type="date"], .hadron-modal input[type="datetime-local"] { width:100%; }
+  .hadron-modal textarea { min-width:0; max-width:100%; }
+  .hadron-modal .overflow-y-auto { overscroll-behavior:contain; }
+  .hadron-modal [role="tablist"], .hadron-option-detail [role="tablist"] { display:flex; flex-wrap:wrap; height:auto; gap:.25rem; max-width:100%; }
+  .hadron-modal [role="tab"], .hadron-option-detail [role="tab"] { min-height:44px; white-space:normal; }
+  .hadron-modal-footer, .hadron-modal > .sticky:last-child { flex-shrink:0; display:flex; flex-wrap:wrap; gap:.5rem; padding:1rem; }
+  .hadron-modal-footer > button, .hadron-modal > .sticky:last-child > button { flex:1; min-height:44px; margin:0; white-space:normal; }
+  .hadron-modal .hadron-detail-layout, .hadron-modal .hadron-detail-layout.grid[class*="grid-cols"] { grid-template-columns:minmax(0,1fr); min-height:0; }
+  .hadron-detail-layout > aside { min-height:0; border-right:0; border-bottom:1px solid var(--border); padding-right:0; padding-bottom:1rem; }
+  .hadron-modal .truncate, .hadron-option-detail .truncate { white-space:normal; overflow-wrap:anywhere; }
+  .hadron-rich-content { min-width:0; max-width:100%; overflow-wrap:anywhere; overflow-x:auto; }
+  .hadron-rich-content img, .hadron-modal [contenteditable] img { max-width:100%; height:auto; }
+  .hadron-option-detail { min-width:0; }
+  .hadron-option-detail header > .flex > *, .hadron-option-detail .grid > * { min-width:0; }
+  .hadron-option-detail header > .flex > .flex:last-child { flex-wrap:wrap; }
+  .hadron-option-detail header button { min-height:44px; }
+  .hadron-option-detail .hadron-tab-filters { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:639px) {
+  .hadron-modal .grid[class*="grid-cols"]:not([role="radiogroup"]) { grid-template-columns:minmax(0,1fr); }
+  .hadron-modal .grid[class*="grid-cols"]:not([role="radiogroup"]) > * { grid-column:1/-1; }
+  .hadron-modal input, .hadron-modal textarea, .hadron-modal [contenteditable="true"] { font-size:16px; }
+  .hadron-modal .px-6, .hadron-modal .px-5 { padding-left:1rem; padding-right:1rem; }
+  .hadron-modal [role="tablist"] { margin-left:1rem; margin-right:1rem; }
+  .hadron-modal-footer > button { min-width:calc(50% - .5rem); }
+}

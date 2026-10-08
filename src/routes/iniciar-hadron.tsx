@@ -459,6 +459,7 @@ function HadronPage() {
       <Dialog open={!!detail} onOpenChange={(open) => !open && setDetail(null)}>
         <DialogContent
           className={cn(
+            "hadron-modal",
             detail?.release ? "max-w-5xl" : "max-w-2xl",
             "flex flex-col gap-0 overflow-hidden bg-card p-0 [&>button]:hidden",
           )}
@@ -814,7 +815,7 @@ function HadronOccurrenceRows({rows,onOpen,empty,variant="review"}: {
 
 function OverviewOccurrencePreview({option,onClose}: {option:HadronOption | null;onClose:() => void}) {
   return <Dialog open={Boolean(option)} onOpenChange={(open) => { if (!open) onClose(); }}>
-    <DialogContent className="flex max-h-[88vh] max-w-4xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+    <DialogContent className="hadron-modal flex max-h-[88vh] max-w-4xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
       {option && <><DialogTitle className="sr-only">Ocorrências</DialogTitle><DetailModalHeader icon={ScanEye} title="Ocorrências" meta={`Opção: ${option.option}`} onClose={onClose} /><div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4"><OptionImportedOccurrences option={option} unresolved /></div></>}
     </DialogContent>
   </Dialog>;
@@ -1619,7 +1620,7 @@ function OptionsTable({ query, onDetailChange }: TableProps & { onDetailChange: 
         open={!!deactivatingOption}
         onOpenChange={(open) => !open && setDeactivatingOption(null)}
       >
-        <DialogContent className="max-w-md" autoFooter={false}>
+        <DialogContent className="hadron-modal max-w-md" autoFooter={false}>
           <DialogTitle>Desativar opção?</DialogTitle>
           <p className="text-sm leading-6 text-muted-foreground">
             A opção{" "}
@@ -1749,7 +1750,7 @@ function HadronOptionPage({
     return () => window.removeEventListener("hadron-option-log-created", reloadLogs);
   }, [option.id]);
   return (
-    <section className="space-y-4">
+    <section className="hadron-option-detail space-y-4">
       <header className="rounded-md border border-sky-200 bg-sky-50/70 p-4 shadow-sm dark:border-sky-900 dark:bg-sky-950/25">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
@@ -1990,7 +1991,7 @@ function HadronOptionPage({
         </aside>
       </div>
       <Dialog open={newOccurrenceOpen} onOpenChange={setNewOccurrenceOpen}>
-        <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden [&>div:last-child]:shrink-0 [&>div:last-child]:pb-6">
+        <DialogContent className="hadron-modal flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden [&>div:last-child]:shrink-0 [&>div:last-child]:pb-6">
           <DialogTitle className="sr-only">Nova ocorrência</DialogTitle>
           <DetailModalHeader icon={Bug} title="Nova ocorrência" protocol={`Opção ${option.option}`} meta={option.description} onClose={() => setNewOccurrenceOpen(false)} accentClassName="bg-rose-500" iconWrapClassName="bg-rose-500 text-white" />
           <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 py-5 md:grid-cols-2 lg:grid-cols-4">
@@ -2009,11 +2010,11 @@ function HadronOptionPage({
             </div>
             <div className="space-y-1 text-sm md:col-span-2 lg:col-span-4"><span>Descreva a ocorrência</span><span className="block text-xs text-muted-foreground">Caso necessário, inclua os detalhes e imagens que permitam reproduzir o problema.</span><RichTextEditor value={occurrenceDraft.occurrence} onChange={(occurrence) => setOccurrenceDraft({...occurrenceDraft, occurrence})} minHeight={220} /></div>
           </div>
-          <DialogFooter className="border-t px-5 py-4"><Button disabled={savingOccurrence} onClick={async () => { if (!occurrenceDraft.baseAddress.trim() || !occurrenceDraft.occurrence.trim()) { toast.error("Informe a base e descreva a ocorrência."); return; } setSavingOccurrence(true); try { await createHadronOccurrence({optionLegacyId:option.id,...occurrenceDraft}); setNewOccurrenceOpen(false); setOccurrenceDraft({...occurrenceDraft,baseAddress:"",occurrence:""}); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Ocorrência criada com sucesso."); } catch(error) { toast.error(error instanceof Error ? error.message : "Não foi possível criar a ocorrência."); } finally { setSavingOccurrence(false); } }}>{savingOccurrence ? "Salvando..." : "Salvar"}</Button></DialogFooter>
+          <DialogFooter className="hadron-modal-footer border-t px-5 py-4"><Button disabled={savingOccurrence} onClick={async () => { if (!occurrenceDraft.baseAddress.trim() || !occurrenceDraft.occurrence.trim()) { toast.error("Informe a base e descreva a ocorrência."); return; } setSavingOccurrence(true); try { await createHadronOccurrence({optionLegacyId:option.id,...occurrenceDraft}); setNewOccurrenceOpen(false); setOccurrenceDraft({...occurrenceDraft,baseAddress:"",occurrence:""}); window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed")); toast.success("Ocorrência criada com sucesso."); } catch(error) { toast.error(error instanceof Error ? error.message : "Não foi possível criar a ocorrência."); } finally { setSavingOccurrence(false); } }}>{savingOccurrence ? "Salvando..." : "Salvar"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
       <Dialog open={newReleaseOpen} onOpenChange={setNewReleaseOpen}>
-        <DialogContent className="flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+        <DialogContent className="hadron-modal flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">Novo release</DialogTitle>
           <DetailModalHeader icon={Rocket} title="Novo release" protocol={`Opção ${option.option}`} meta={option.description} onClose={() => setNewReleaseOpen(false)} accentClassName="bg-amber-500" iconWrapClassName="bg-amber-500 text-white" />
           <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto px-5 py-4 lg:grid-cols-[minmax(0,2fr)_minmax(240px,1fr)]">
@@ -2050,7 +2051,7 @@ function HadronOptionPage({
               </div>
             </section>
           </div>
-          <DialogFooter className="shrink-0 border-t bg-card px-5 py-4"><Button disabled={savingRelease} onClick={async () => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const saved = await trySaveCrmCatalog("releases", [{id:crypto.randomUUID(),optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}]); setSavingRelease(false); if (!saved) return; setNewReleaseOpen(false); toast.success("Release criado no banco."); }}>Salvar</Button></DialogFooter>
+          <DialogFooter className="hadron-modal-footer shrink-0 border-t bg-card px-5 py-4"><Button disabled={savingRelease} onClick={async () => { if (!releaseDraft.title.trim() || !releaseDraft.description.trim()) { toast.error("Informe a descrição e os detalhes do release."); return; } setSavingRelease(true); const saved = await trySaveCrmCatalog("releases", [{id:crypto.randomUUID(),optionId:option.id,option:option.option,form:option.form,owner:currentUser.operator,tester:option.tester,clicks:0,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:"",exclusive:"",...releaseDraft}]); setSavingRelease(false); if (!saved) return; setNewReleaseOpen(false); toast.success("Release criado no banco."); }}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
@@ -2158,7 +2159,7 @@ function OptionEditDialog({
   const canEditSecondChecklist = canManageChecklist && draft.status === "8";
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex h-[calc(100vh-2rem)] max-h-[760px] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
+      <DialogContent className="hadron-modal flex h-[calc(100vh-2rem)] max-h-[760px] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
         <DialogTitle className="sr-only">
           {isCreating ? "Criar opção Hádron" : "Alterar opção Hádron"}
         </DialogTitle>
@@ -2331,7 +2332,7 @@ function OptionEditDialog({
             </TabsContent>
           </div>
         </Tabs>
-        <DialogFooter className="shrink-0 gap-2 border-t bg-card px-5 py-2.5 sm:gap-2">
+        <DialogFooter className="hadron-modal-footer shrink-0 gap-2 border-t bg-card px-5 py-2.5 sm:gap-2">
           <Button
             onClick={async () => {
               if (!draft.description.trim() || !draft.option.trim() || !draft.form.trim()) {
@@ -2729,7 +2730,7 @@ function OptionImportedOccurrences({
         }}
       />
       <Dialog open={Boolean(editingOccurrence)} onOpenChange={(open) => !open && setEditingOccurrence(null)}>
-        <DialogContent className="flex max-h-[calc(100vh-2rem)] max-w-4xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+        <DialogContent className="hadron-modal flex max-h-[calc(100vh-2rem)] max-w-4xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">Editar ocorrência</DialogTitle>
           {editingOccurrence && <>
             <DetailModalHeader icon={Pencil} title="Editar ocorrência" protocol={`Ocorrência ${editingOccurrence.id}`} meta={option.description} onClose={() => setEditingOccurrence(null)} />
@@ -2741,7 +2742,7 @@ function OptionImportedOccurrences({
               </div>
               <div className="space-y-1 text-sm"><span>Descreva a ocorrência</span><RichTextEditor value={editingOccurrence.occurrenceHtml || editingOccurrence.occurrenceText} onChange={(occurrenceHtml) => setEditingOccurrence({...editingOccurrence,occurrenceHtml})} minHeight={240} /></div>
             </div>
-            <DialogFooter className="border-t px-5 py-4"><Button onClick={async () => { await updateHadronOccurrence({id:editingOccurrence.id,occurrence:editingOccurrence.occurrenceHtml || editingOccurrence.occurrenceText,operator:currentUser.operator,baseAddress:editingOccurrence.baseAddress,versionLegacyId:editingOccurrence.versionLegacyId,priority:editingOccurrence.priority}); setEditingOccurrence(null);setReloadKey((value) => value + 1);toast.success("Ocorrência atualizada no banco."); }}>Salvar</Button></DialogFooter>
+            <DialogFooter className="hadron-modal-footer border-t px-5 py-4"><Button onClick={async () => { await updateHadronOccurrence({id:editingOccurrence.id,occurrence:editingOccurrence.occurrenceHtml || editingOccurrence.occurrenceText,operator:currentUser.operator,baseAddress:editingOccurrence.baseAddress,versionLegacyId:editingOccurrence.versionLegacyId,priority:editingOccurrence.priority}); setEditingOccurrence(null);setReloadKey((value) => value + 1);toast.success("Ocorrência atualizada no banco."); }}>Salvar</Button></DialogFooter>
           </>}
         </DialogContent>
       </Dialog>
@@ -3003,7 +3004,7 @@ function HadronSolutionDialog({
   };
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
+      <DialogContent className="hadron-modal flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[940px] flex-col gap-0 overflow-hidden rounded-2xl border bg-card p-0 shadow-[0_30px_80px_rgba(0,0,0,0.35)] [&>button]:hidden">
         <DialogTitle className="sr-only">Informar solução</DialogTitle>
         <DetailModalHeader
           dense
@@ -3029,7 +3030,7 @@ function HadronSolutionDialog({
             <RichTextEditor value={solution} onChange={setSolution} minHeight={240} />
           </div>
         </div>
-        <DialogFooter className="shrink-0 gap-2 border-t bg-card px-5 py-3 sm:gap-2">
+        <DialogFooter className="hadron-modal-footer shrink-0 gap-2 border-t bg-card px-5 py-3 sm:gap-2">
           <Button onClick={() => void save()} disabled={saving || !solution.trim()}>
             <Wrench className="mr-2 h-4 w-4" />
             {saving ? "Salvando..." : "Salvar solução"}
@@ -3078,7 +3079,7 @@ function OptionOccurrencesPreviewDialog({
 }) {
   return (
     <Dialog open={!!option} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[88vh] max-w-3xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+      <DialogContent className="hadron-modal flex max-h-[88vh] max-w-3xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
         {option && (
           <>
             <DialogTitle className="sr-only">Ocorrências</DialogTitle>
@@ -4190,7 +4191,7 @@ function createReleaseDetail(
 
 function ReleaseDetailView({ release }: { release: ReleaseDetail }) {
   return (
-    <div className="grid gap-5 lg:min-h-[56vh] lg:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="hadron-detail-layout grid gap-5 lg:min-h-[56vh] lg:grid-cols-[220px_minmax(0,1fr)]">
       <aside className="h-full space-y-4 lg:border-r lg:pr-5">
         <ReleaseMeta label="Opção/Formulário" value={`${release.option}/${release.form}`} />
         <ReleaseMeta label="Data do release" value={formatVersionDate(release.date.split(/[T ]/)[0])} />
@@ -4227,7 +4228,7 @@ function ReleaseMeta({ label, value }: { label: string; value: string }) {
 function LegacyRichContent({ value }: { value: string }) {
   return (
     <div
-      className="space-y-3 text-sm leading-6 text-foreground [&_a]:break-all [&_a]:text-primary [&_a]:underline [&_img]:my-4 [&_img]:max-h-[720px] [&_img]:w-auto [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:bg-white [&_img]:object-contain [&_li]:ml-5 [&_ol]:list-decimal [&_p]:min-h-4 [&_ul]:list-disc"
+      className="hadron-rich-content space-y-3 text-sm leading-6 text-foreground [&_a]:break-all [&_a]:text-primary [&_a]:underline [&_img]:my-4 [&_img]:max-h-[720px] [&_img]:w-auto [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:bg-white [&_img]:object-contain [&_li]:ml-5 [&_ol]:list-decimal [&_p]:min-h-4 [&_ul]:list-disc"
       dangerouslySetInnerHTML={{ __html: sanitizeLegacyHtml(value) }}
     />
   );
@@ -4480,10 +4481,10 @@ function ParametersTable({ query, onOpen }: TableProps) {
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-5xl">
+        <DialogContent className="hadron-modal max-h-[90vh] overflow-y-auto p-0 sm:max-w-5xl">
           <DialogTitle className="sr-only">Editar parâmetro</DialogTitle>
           <DetailModalHeader icon={SlidersHorizontal} title="Editar parâmetro" onClose={() => setEditing(null)} />
-          {editing && <div className="space-y-4 px-5 py-4">
+          {editing && <div className="hadron-modal-body space-y-4 px-5 py-4">
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-1 text-sm"><span>Título</span><Input value={editing.title} onChange={(event) => setEditing({ ...editing, title: event.target.value })} /></label>
               <label className="space-y-1 text-sm"><span>Descrição</span><Input value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} /></label>
@@ -4496,7 +4497,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
             </div>)}
             <Button variant="outline" size="icon" title="Adicionar legenda" onClick={() => setEditing({ ...editing, legends: [...editing.legends, { title: "", caption: "" }] })}><Plus className="h-4 w-4" /></Button>
           </div>}
-          <DialogFooter className="border-t px-5 py-4"><Button onClick={async () => { if (!editing?.title.trim()) { toast.error("Informe o título."); return; } if (!await trySaveCrmCatalog("parameters", [{ ...editing, updatedAt: parameterDisplayDate(new Date().toISOString().replace("T", " ")) }])) return; setEditing(null); toast.success("Parâmetro salvo no banco."); }}>Salvar</Button></DialogFooter>
+          <DialogFooter className="hadron-modal-footer border-t px-5 py-4"><Button onClick={async () => { if (!editing?.title.trim()) { toast.error("Informe o título."); return; } if (!await trySaveCrmCatalog("parameters", [{ ...editing, updatedAt: parameterDisplayDate(new Date().toISOString().replace("T", " ")) }])) return; setEditing(null); toast.success("Parâmetro salvo no banco."); }}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </>
@@ -4669,7 +4670,7 @@ function ModulesTable({ query, onOpen }: TableProps) {
         }}
       />
     <Dialog open={Boolean(draft)} onOpenChange={(open) => { if (!open && !savingModule) setDraft(null); }}>
-      <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
+      <DialogContent className="hadron-modal max-w-2xl gap-0 overflow-hidden p-0">
         <div className="border-b px-5 py-4"><DialogTitle>{draft?.kind === "module" ? "Editar módulo" : draft?.originalId ? "Editar submódulo" : "Novo submódulo"}</DialogTitle></div>
         {draft && <form onSubmit={async (event) => {
           event.preventDefault();
@@ -4690,7 +4691,7 @@ function ModulesTable({ query, onOpen }: TableProps) {
             {draft.kind === "submodule" && <><label className="space-y-1 text-sm">Módulo<Input value={`${draft.moduleId} - ${catalog.find((module) => module.id === draft.moduleId)?.nome}`} readOnly /></label><label className="space-y-1 text-sm">ID<Input value={draft.id} readOnly={Boolean(draft.originalId)} onChange={(event) => setDraft({...draft,id:event.target.value})} /></label></>}
             <label className="space-y-1 text-sm sm:col-span-2">Nome<Input autoFocus value={draft.name} onChange={(event) => setDraft({...draft,name:event.target.value})} /></label>
           </div>
-          <DialogFooter className="border-t px-5 py-4">{draft.kind === "module" && <Button type="button" variant="outline" className="mr-auto text-destructive" disabled={!catalogReady || savingModule} onClick={() => setConfirmModuleRemoval(true)}><Trash2 className="mr-2 h-4 w-4" />Excluir</Button>}<Button type="submit" disabled={!catalogReady || savingModule}>{savingModule ? "Salvando..." : "Salvar"}</Button></DialogFooter>
+          <DialogFooter className="hadron-modal-footer border-t px-5 py-4">{draft.kind === "module" && <Button type="button" variant="outline" className="mr-auto text-destructive" disabled={!catalogReady || savingModule} onClick={() => setConfirmModuleRemoval(true)}><Trash2 className="mr-2 h-4 w-4" />Excluir</Button>}<Button type="submit" disabled={!catalogReady || savingModule}>{savingModule ? "Salvando..." : "Salvar"}</Button></DialogFooter>
         </form>}
       </DialogContent>
     </Dialog>
@@ -4831,7 +4832,7 @@ function SerialsTable({ query }: TableProps) {
         onPageSizeChange={(value) => { setPageSize(value); setPage(1); }}
       />
       <Dialog open={Boolean(editingSerial)} onOpenChange={(open) => !open && setEditingSerial(null)}>
-        <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+        <DialogContent className="hadron-modal flex max-h-[calc(100dvh-2rem)] max-w-xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">{creatingSerial ? "Novo número de série" : "Editar número de série"}</DialogTitle>
           <DetailModalHeader icon={creatingSerial ? Plus : Pencil} title={creatingSerial ? "Novo número de série" : "Editar número de série"} onClose={() => setEditingSerial(null)} />
           {editingSerial && <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -4839,7 +4840,7 @@ function SerialsTable({ query }: TableProps) {
             <label className="space-y-1 text-sm"><span>Descrição / operador</span><Input value={editingSerial.operador} onChange={(e) => setEditingSerial({...editingSerial,operador:e.target.value})} /></label>
             <label className="space-y-1 text-sm"><span>Sigla</span><Input value={editingSerial.cliente} onChange={(e) => setEditingSerial({...editingSerial,cliente:e.target.value.toUpperCase()})} /></label>
           </div>}
-          <DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={saveSerial}>Salvar</Button></DialogFooter>
+          <DialogFooter className="hadron-modal-footer shrink-0 border-t px-5 py-4"><Button onClick={saveSerial}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
       <AlertDialog open={Boolean(removingSerial)} onOpenChange={(open) => !open && setRemovingSerial(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir serial?</AlertDialogTitle><AlertDialogDescription>Remover o número de série {removingSerial?.numero_serie}?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={async () => {if (!removingSerial || !await trySaveCrmCatalog("serials", [removingSerial], true)) return;setRemovingSerial(null);setPage(1);toast.success("Serial removido no banco.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
@@ -5015,7 +5016,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden p-0 sm:max-w-5xl [&>div:last-child]:shrink-0">
+        <DialogContent className="hadron-modal flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden p-0 sm:max-w-5xl [&>div:last-child]:shrink-0">
           <DialogTitle className="sr-only">{editing?.[0]?.[0].startsWith("novo-") ? "Criar checklist" : "Alterar checklist"}</DialogTitle>
           <DetailModalHeader
             icon={ClipboardCheck}
@@ -5121,7 +5122,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
               <Plus className="h-4 w-4" />Adicionar item
             </Button>
           </div>
-          <DialogFooter className="border-t px-5 py-4">
+          <DialogFooter className="hadron-modal-footer border-t px-5 py-4">
             <Button
               onClick={async () => {
                 if (!editing || editing.some((row) => !row[2].trim())) {
@@ -5474,7 +5475,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
         open={Boolean(editingRelease)}
         onOpenChange={(open) => !open && setEditingRelease(null)}
       >
-        <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden [&>div:last-child]:shrink-0 [&>div:last-child]:pb-6">
+        <DialogContent className="hadron-modal flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden [&>div:last-child]:shrink-0 [&>div:last-child]:pb-6">
           <DialogTitle className="sr-only">Editar release</DialogTitle>
           <DetailModalHeader
             icon={Rocket}
@@ -5604,7 +5605,7 @@ function ReleasesTable({ query, onOpen }: TableProps) {
               </div>
             </div>
           )}
-          <DialogFooter className="border-t px-5 py-4">
+          <DialogFooter className="hadron-modal-footer border-t px-5 py-4">
             <Button
               onClick={async () => {
                 if (!editingRelease) return;
@@ -5743,7 +5744,7 @@ function VersionsTable({ query, onOpen }: TableProps) {
       <div className="overflow-x-auto"><table className="hadron-responsive-table w-full min-w-[900px] text-left text-xs"><thead className="border-b bg-muted/25 text-left font-normal text-primary [&_th]:font-normal"><tr><th className="px-4 py-3">Versão</th>{dateFields.map(([field,label]) => <th key={field} className="px-4 py-3">{label}</th>)}<th className="w-24 px-4 py-3 text-center">Ações</th></tr></thead><tbody className="divide-y">{rows.slice((currentPage-1)*pageSize,currentPage*pageSize).map(version => <tr key={version.id} className="hover:bg-muted/20"><td data-label="Versão" className="px-4 py-3 font-medium">{version.versao}</td>{dateFields.map(([field,label]) => <td data-label={label} key={field} className="px-4 py-3">{formatVersionDate(version[field])}</td>)}<td data-label="Ações" className="px-4 py-3"><div className="flex justify-center gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" title="Editar versão" onClick={() => setDraft({...version})}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" title="Excluir versão" onClick={() => setRemoving(version)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}{!rows.length && <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">Nenhuma versão encontrada.</td></tr>}</tbody></table></div>
     </section>
     <TablePagination noun="versões" page={currentPage} pageCount={pageCount} pageSize={pageSize} total={rows.length} onPageChange={setPage} onPageSizeChange={value => {setPageSize(value);setPage(1);}} />
-    <Dialog open={Boolean(draft)} onOpenChange={open => !open && setDraft(null)}><DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden"><DialogTitle className="sr-only">{creating ? "Criar versão" : "Editar versão"}</DialogTitle><DetailModalHeader icon={creating ? Plus : Pencil} title={creating ? "Criar versão" : "Editar versão"} onClose={() => setDraft(null)} />{draft && <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-2 lg:grid-cols-6"><label className="space-y-1 text-sm"><span>Versão</span><Input value={draft.versao} onChange={e => setDraft({...draft,versao:e.target.value})} /></label>{dateFields.map(([field,label]) => <label key={field} className="min-w-0 space-y-1 text-sm"><span>{label}</span><Input type="date" value={draft[field]} onChange={e => setDraft({...draft,[field]:e.target.value})} /></label>)}</div>}<DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={save}>Salvar</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={Boolean(draft)} onOpenChange={open => !open && setDraft(null)}><DialogContent className="hadron-modal flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden"><DialogTitle className="sr-only">{creating ? "Criar versão" : "Editar versão"}</DialogTitle><DetailModalHeader icon={creating ? Plus : Pencil} title={creating ? "Criar versão" : "Editar versão"} onClose={() => setDraft(null)} />{draft && <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-2 lg:grid-cols-6"><label className="space-y-1 text-sm"><span>Versão</span><Input value={draft.versao} onChange={e => setDraft({...draft,versao:e.target.value})} /></label>{dateFields.map(([field,label]) => <label key={field} className="min-w-0 space-y-1 text-sm"><span>{label}</span><Input type="date" value={draft[field]} onChange={e => setDraft({...draft,[field]:e.target.value})} /></label>)}</div>}<DialogFooter className="hadron-modal-footer shrink-0 border-t px-5 py-4"><Button onClick={save}>Salvar</Button></DialogFooter></DialogContent></Dialog>
     <AlertDialog open={Boolean(removing)} onOpenChange={open => !open && setRemoving(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir versão?</AlertDialogTitle><AlertDialogDescription>Remover a versão {removing?.versao} de {formatVersionDate(removing?.data_versao || "")}?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={async () => {if (!removing || !await trySaveCrmCatalog("versions", [removing], true)) return;setRemoving(null);setPage(1);toast.success("Versão removida no banco.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
   </>;
 }
@@ -6035,11 +6036,11 @@ function articleStatusLabel(value: string) {
 function ArticleViewDialog({ article, onClose }: { article: ArticleDraft | null; onClose: () => void }) {
   return (
     <Dialog open={Boolean(article)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+      <DialogContent className="hadron-modal flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
         <DialogTitle className="sr-only">Visualizar artigo</DialogTitle>
         <DetailModalHeader icon={BookOpenText} title={article?.title || "Artigo"} protocol={article ? `Artigo ${article.id}` : undefined} meta={article ? `${articleCategoryLabel(article.category)} · ${article.owner}` : undefined} onClose={onClose} accentClassName="bg-sky-600" iconWrapClassName="bg-sky-600 text-white" />
         {article && (
-          <div className="grid min-h-0 flex-1 overflow-y-auto px-5 py-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-5">
+          <div className="hadron-detail-layout grid min-h-0 flex-1 overflow-y-auto px-5 py-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-5">
             <aside className="space-y-4 border-b pb-4 lg:min-h-[58vh] lg:border-b-0 lg:border-r lg:pr-5">
               <ReleaseMeta label="Categoria" value={articleCategoryLabel(article.category)} />
               <ReleaseMeta label="Permissão" value={article.permission === "1" ? "Clientes" : article.permission === "2" ? "Empresa" : "Público"} />
@@ -6068,7 +6069,7 @@ function ArticleEditDialog({ article, onClose, onSave }: { article: ArticleDraft
   const submodules = releaseSubmoduleSelectItems(draft.moduleId);
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
+      <DialogContent className="hadron-modal flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden">
         <DialogTitle className="sr-only">{draft.id.startsWith("novo-") ? "Criar artigo" : "Editar artigo"}</DialogTitle>
         <DetailModalHeader icon={draft.id.startsWith("novo-") ? Plus : FilePenLine} title={draft.id.startsWith("novo-") ? "Criar artigo" : "Editar artigo"} protocol={draft.id.startsWith("novo-") ? undefined : `Artigo ${draft.id}`} meta={draft.title} onClose={onClose} accentClassName="bg-sky-600" iconWrapClassName="bg-sky-600 text-white" />
         <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-5 py-4 text-foreground md:grid-cols-6 [&_label]:text-foreground [&_span]:text-foreground">
@@ -6084,7 +6085,7 @@ function ArticleEditDialog({ article, onClose, onSave }: { article: ArticleDraft
           <div className="md:col-span-3"><RelationPicker label="Artigos relacionados" value={draft.relatedArticleIds} onChange={(value) => update("relatedArticleIds", value)} items={cvsArticles.filter((item) => item.id !== draft.id).map((item) => [item.id, `${item.id} - ${item.title}`])} /></div>
           <div className="md:col-span-3"><RelationPicker label="Releases relacionados" value={draft.relatedReleaseIds} onChange={(value) => update("relatedReleaseIds", value)} items={hadronReleases.map((item) => [item.id, `${item.id} - ${item.title}`])} /></div>
         </div>
-        <DialogFooter className="shrink-0 border-t px-5 py-4"><Button onClick={() => { if (!draft.title.trim()) { toast.error("Informe o título do artigo."); return; } onSave({ ...draft, id: draft.id.startsWith("novo-") ? crypto.randomUUID() : draft.id, updatedAt: new Date().toISOString() }); }}>Salvar</Button></DialogFooter>
+        <DialogFooter className="hadron-modal-footer shrink-0 border-t px-5 py-4"><Button onClick={() => { if (!draft.title.trim()) { toast.error("Informe o título do artigo."); return; } onSave({ ...draft, id: draft.id.startsWith("novo-") ? crypto.randomUUID() : draft.id, updatedAt: new Date().toISOString() }); }}>Salvar</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
