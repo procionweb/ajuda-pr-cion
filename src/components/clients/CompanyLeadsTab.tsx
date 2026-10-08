@@ -1068,7 +1068,7 @@ export function CompanyLeadsTab() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-9 gap-2"
+                className="hidden h-9 gap-2 xl:inline-flex"
                 title="Escolher colunas"
               >
                 <TableProperties className="h-4 w-4" />

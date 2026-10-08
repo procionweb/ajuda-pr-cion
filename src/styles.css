@@ -809,7 +809,7 @@ main th[data-auto-sortable="true"] {
   .prospecting-filters > label:first-child { grid-column:span 3; }
   .prospecting-filters > label:nth-child(2) { grid-column:span 1; }
   .prospecting-filters input, .prospecting-filters select { min-width:0; height:44px; font-size:16px; }
-  .prospecting-filters > button { grid-column:span 2; height:44px; width:100%; }
+  .prospecting-filters > button { grid-column:1/-1; height:44px; width:100%; }
   .prospecting-search-actions { display:contents; }
   .prospecting-search-actions > button { grid-column:span 2; height:44px; width:100%; }
   .prospecting-search-actions > button[type="submit"] { grid-column:1/-1; }
@@ -835,4 +835,3 @@ main th[data-auto-sortable="true"] {
   .prospecting-filters > label:nth-child(3),
   .prospecting-filters > label:nth-child(4) { grid-column:1/-1; }
 }
-
