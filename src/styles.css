@@ -835,3 +835,36 @@ main th[data-auto-sortable="true"] {
   .prospecting-filters > label:nth-child(3),
   .prospecting-filters > label:nth-child(4) { grid-column:1/-1; }
 }
+
+/* Hádron overview adapts fixed desktop columns to compact screens. */
+@media (max-width: 1279px) {
+  .hadron-page, .hadron-page > [data-slot="tabs"], .hadron-overview, .hadron-overview section { min-width:0; max-width:100%; }
+  .hadron-main-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); overflow:visible; }
+  .hadron-main-tabs.hidden { display:none; }
+  .hadron-main-tabs [role="tab"] { min-width:0; min-height:44px; padding:.5rem; gap:.375rem; font-size:12px; white-space:normal; }
+  .hadron-main-tabs [role="tab"] svg { flex-shrink:0; }
+  .hadron-overview-row-heading { display:none; }
+  .hadron-overview-occurrence-row { width:calc(100% - 1rem); }
+  .hadron-overview > .grid > div { min-width:0; overflow-wrap:anywhere; }
+  .hadron-overview .grid > section { min-width:0; }
+  .hadron-overview section > div:first-child { flex-wrap:wrap; }
+  .hadron-overview-option-row, .hadron-overview-release-row, .hadron-overview-occurrence-row { min-width:0; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; margin:.5rem; padding:.75rem; border:1px solid var(--border); border-radius:.5rem; }
+  .hadron-overview-option-row > *, .hadron-overview-release-row > *, .hadron-overview-occurrence-row > * { min-width:0; overflow-wrap:anywhere; }
+  .hadron-overview-option-row > :nth-child(2) { text-align:right; }
+  .hadron-overview-option-row > :nth-child(3) { grid-column:1/-1; }
+  .hadron-overview-option-row > :last-child { justify-self:end; }
+  .hadron-overview-release-row > :nth-child(2), .hadron-overview-occurrence-row > :nth-child(2) { text-align:right; }
+  .hadron-overview-release-row > :nth-child(3), .hadron-overview-occurrence-row > :nth-child(3), .hadron-overview-occurrence-row > :nth-child(4) { grid-column:1/-1; }
+  .hadron-overview-release-row > :last-child { grid-column:1/-1; border-top:1px solid var(--border); padding-top:.5rem; }
+  .hadron-overview-occurrence-row > :last-child { justify-self:end; height:44px; width:44px; }
+  .hadron-overview .truncate { white-space:normal; overflow-wrap:anywhere; }
+  .hadron-overview .line-clamp-2 { display:block; overflow:visible; -webkit-line-clamp:unset; }
+  .hadron-overview button.h-8, .hadron-overview a.h-7, .hadron-overview button.h-7 { height:44px; width:44px; }
+  .hadron-overview .overflow-y-auto { overscroll-behavior:contain; touch-action:pan-y; }
+}
+@media (min-width:640px) and (max-width:767px) {
+  .hadron-main-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media (min-width:768px) and (max-width:1279px) {
+  .hadron-main-tabs { grid-template-columns:repeat(5,minmax(0,1fr)); }
+}

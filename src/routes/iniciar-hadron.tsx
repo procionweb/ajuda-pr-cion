@@ -385,7 +385,7 @@ function HadronPage() {
           />
         ) : (
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className={cn("h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg border bg-card p-1", optionDetailOpen && "hidden")}>
+            <TabsList className={cn("hadron-main-tabs h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg border bg-card p-1", optionDetailOpen && "hidden")}>
               {[
                 ["visao-geral", "Visao geral", Rocket],
                 ["opcoes", "Opcoes", ListChecks],
@@ -581,7 +581,7 @@ function Overview({
     ],
   ] as const;
   return (
-    <div className="mt-5 space-y-4">
+    <div className="hadron-overview mt-5 min-w-0 space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map(([label, value, Icon, color]) => (
           <div key={label} className="min-h-20 rounded-md border bg-card px-4 py-3 shadow-sm">
@@ -601,7 +601,7 @@ function Overview({
             <h2 className="text-base font-medium">Opções</h2>
             <span className="text-[10px] text-primary">Exceto Hádron</span>
           </div>
-          <div className="grid grid-cols-[118px_64px_minmax(190px,1fr)_92px_44px] border-b px-5 pb-2 text-[11px] text-muted-foreground">
+          <div className="hadron-overview-row-heading grid grid-cols-[118px_64px_minmax(190px,1fr)_92px_44px] border-b px-5 pb-2 text-[11px] text-muted-foreground">
             <span>Status</span>
             <span>Opção</span>
             <span>Descrição</span>
@@ -614,7 +614,7 @@ function Overview({
               return (
                 <div
                   key={option.id}
-                  className="grid min-h-9 grid-cols-[118px_64px_minmax(190px,1fr)_92px_44px] items-center border-b bg-background px-2 text-xs transition-colors hover:bg-muted/40"
+                  className="hadron-overview-option-row grid min-h-9 grid-cols-[118px_64px_minmax(190px,1fr)_92px_44px] items-center border-b bg-background px-2 text-xs transition-colors hover:bg-muted/40"
                 >
                   <span className="flex items-center gap-1">
                     <Badge className="h-5 rounded-sm bg-rose-500 px-1.5 text-[9px] text-white hover:bg-rose-500">
@@ -682,7 +682,7 @@ function Overview({
           />
         </HadronDashboardPanel>
         <HadronDashboardPanel title="Releases" subtitle="Últimos releases">
-          <div className="grid grid-cols-[28px_92px_minmax(180px,1fr)_118px_90px_68px] gap-2 border-b bg-muted/25 px-3 py-2 text-[10px] uppercase text-muted-foreground">
+          <div className="hadron-overview-row-heading grid grid-cols-[28px_92px_minmax(180px,1fr)_118px_90px_68px] gap-2 border-b bg-muted/25 px-3 py-2 text-[10px] uppercase text-muted-foreground">
             <span>Tipo</span>
             <span>Opç./Form.</span>
             <span>Descrição</span>
@@ -700,7 +700,7 @@ function Overview({
               return (
                 <div
                   key={release.id}
-                  className="grid min-h-12 grid-cols-[28px_92px_minmax(180px,1fr)_118px_90px_68px] items-center gap-2 border-b px-3 py-2 text-[11px] hover:bg-muted/40"
+                  className="hadron-overview-release-row grid min-h-12 grid-cols-[28px_92px_minmax(180px,1fr)_118px_90px_68px] items-center gap-2 border-b px-3 py-2 text-[11px] hover:bg-muted/40"
                 >
                   <Sparkles className="h-4 w-4 text-amber-500" />
                   <span className="truncate">
@@ -797,10 +797,10 @@ function HadronOccurrenceRows({rows,onOpen,empty,variant="review"}: {
 }) {
   if (!rows.length) return <p className="p-6 text-center text-xs text-muted-foreground">{empty}</p>;
   return <div className="overflow-x-auto">
-    <div className="grid min-w-[640px] grid-cols-[28px_84px_minmax(120px,1fr)_minmax(160px,1.5fr)_100px_32px] gap-2 border-b bg-muted/25 px-3 py-2 text-[10px] uppercase text-muted-foreground"><span>Tipo</span><span>Opção/Form.</span><span>Descrição</span><span>Ocorrência</span><span>{variant === "review" ? "Solução" : "Operador"}</span><span /></div>
+    <div className="hadron-overview-row-heading grid min-w-[640px] grid-cols-[28px_84px_minmax(120px,1fr)_minmax(160px,1.5fr)_100px_32px] gap-2 border-b bg-muted/25 px-3 py-2 text-[10px] uppercase text-muted-foreground"><span>Tipo</span><span>Opção/Form.</span><span>Descrição</span><span>Ocorrência</span><span>{variant === "review" ? "Solução" : "Operador"}</span><span /></div>
     {rows.map((occurrence) => {
       const option = hadronOptionsById.get(occurrence.optionLegacyId);
-      return <button key={occurrence.id} type="button" onClick={() => openImportedOccurrence(occurrence,option,onOpen)} className="grid min-w-[640px] w-full grid-cols-[28px_84px_minmax(120px,1fr)_minmax(160px,1.5fr)_100px_32px] items-center gap-2 border-b px-3 py-2 text-left text-[11px] hover:bg-muted/40">
+      return <button key={occurrence.id} type="button" onClick={() => openImportedOccurrence(occurrence,option,onOpen)} className="hadron-overview-occurrence-row grid min-w-[640px] w-full grid-cols-[28px_84px_minmax(120px,1fr)_minmax(160px,1.5fr)_100px_32px] items-center gap-2 border-b px-3 py-2 text-left text-[11px] hover:bg-muted/40">
         <ImportedOccurrenceTypeIcon occurrence={occurrence} />
         <span className="font-medium">{option ? `${option.option}/${option.form || option.option}` : occurrence.optionLegacyId}</span>
         <span className="line-clamp-2 font-medium">{option?.description || "Descrição não informada"}</span>
