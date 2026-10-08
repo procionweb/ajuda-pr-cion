@@ -2747,7 +2747,7 @@ function OptionImportedOccurrences({
         </DialogContent>
       </Dialog>
       <AlertDialog open={Boolean(removingOccurrence)} onOpenChange={(open) => !open && setRemovingOccurrence(null)}>
-        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir ocorrência?</AlertDialogTitle><AlertDialogDescription>Esta ocorrência será removida permanentemente.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={async () => { if (!removingOccurrence) return; await deleteHadronOccurrence(removingOccurrence.id);setRemovingOccurrence(null);setReloadKey((value) => value + 1);window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed"));toast.success("Ocorrência excluída do banco."); }}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir ocorrência?</AlertDialogTitle><AlertDialogDescription>Esta ocorrência será removida permanentemente.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => { if (!removingOccurrence) return; await deleteHadronOccurrence(removingOccurrence.id);setRemovingOccurrence(null);setReloadKey((value) => value + 1);window.dispatchEvent(new CustomEvent("hadron-occurrence-reviewed"));toast.success("Ocorrência excluída do banco."); }}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
       <AlertDialog
         open={Boolean(reviewOccurrence)}
@@ -4381,7 +4381,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
               setDateTo(end);
             }}
           />
-          <Button type="button" className="cursor-pointer px-8">
+          <Button type="button" className="hidden cursor-pointer px-8 xl:inline-flex">
             Buscar
           </Button>
         <Button
@@ -4477,7 +4477,7 @@ function ParametersTable({ query, onOpen }: TableProps) {
       <AlertDialog open={Boolean(removingId)} onOpenChange={(open) => !open && setRemovingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Excluir parâmetro?</AlertDialogTitle><AlertDialogDescription>Confirme a remoção deste registro da listagem.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={async () => { const item = parameters.find((row) => row.id === removingId); if (!item || !await trySaveCrmCatalog("parameters", [item], true)) return; setRemovingId(null); setPage(1); toast.success("Registro excluído no banco."); }}>Excluir</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => { const item = parameters.find((row) => row.id === removingId); if (!item || !await trySaveCrmCatalog("parameters", [item], true)) return; setRemovingId(null); setPage(1); toast.success("Registro excluído no banco."); }}>Excluir</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
@@ -4843,7 +4843,7 @@ function SerialsTable({ query }: TableProps) {
           <DialogFooter className="hadron-modal-footer shrink-0 border-t px-5 py-4"><Button onClick={saveSerial}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-      <AlertDialog open={Boolean(removingSerial)} onOpenChange={(open) => !open && setRemovingSerial(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir serial?</AlertDialogTitle><AlertDialogDescription>Remover o número de série {removingSerial?.numero_serie}?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={async () => {if (!removingSerial || !await trySaveCrmCatalog("serials", [removingSerial], true)) return;setRemovingSerial(null);setPage(1);toast.success("Serial removido no banco.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={Boolean(removingSerial)} onOpenChange={(open) => !open && setRemovingSerial(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir serial?</AlertDialogTitle><AlertDialogDescription>Remover o número de série {removingSerial?.numero_serie}?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {if (!removingSerial || !await trySaveCrmCatalog("serials", [removingSerial], true)) return;setRemovingSerial(null);setPage(1);toast.success("Serial removido no banco.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </>
   );
 }
@@ -5012,7 +5012,7 @@ function ChecklistTable({ query, onOpen }: TableProps) {
       <AlertDialog open={Boolean(removingId)} onOpenChange={(open) => !open && setRemovingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Excluir checklist?</AlertDialogTitle><AlertDialogDescription>Confirme a remoção deste registro da listagem.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={async () => { const item = items.find((row) => row[0] === removingId); if (!item || !await trySaveCrmCatalog("checklist", [item], true)) return; setRemovingId(null); setPage(1); toast.success("Registro excluído no banco."); }}>Excluir</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => { const item = items.find((row) => row[0] === removingId); if (!item || !await trySaveCrmCatalog("checklist", [item], true)) return; setRemovingId(null); setPage(1); toast.success("Registro excluído no banco."); }}>Excluir</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
@@ -5745,7 +5745,7 @@ function VersionsTable({ query, onOpen }: TableProps) {
     </section>
     <TablePagination noun="versões" page={currentPage} pageCount={pageCount} pageSize={pageSize} total={rows.length} onPageChange={setPage} onPageSizeChange={value => {setPageSize(value);setPage(1);}} />
     <Dialog open={Boolean(draft)} onOpenChange={open => !open && setDraft(null)}><DialogContent className="hadron-modal flex max-h-[calc(100dvh-2rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0 [&>button]:hidden"><DialogTitle className="sr-only">{creating ? "Criar versão" : "Editar versão"}</DialogTitle><DetailModalHeader icon={creating ? Plus : Pencil} title={creating ? "Criar versão" : "Editar versão"} onClose={() => setDraft(null)} />{draft && <div className="grid min-h-0 gap-4 overflow-y-auto px-5 py-5 sm:grid-cols-2 lg:grid-cols-6"><label className="space-y-1 text-sm"><span>Versão</span><Input value={draft.versao} onChange={e => setDraft({...draft,versao:e.target.value})} /></label>{dateFields.map(([field,label]) => <label key={field} className="min-w-0 space-y-1 text-sm"><span>{label}</span><Input type="date" value={draft[field]} onChange={e => setDraft({...draft,[field]:e.target.value})} /></label>)}</div>}<DialogFooter className="hadron-modal-footer shrink-0 border-t px-5 py-4"><Button onClick={save}>Salvar</Button></DialogFooter></DialogContent></Dialog>
-    <AlertDialog open={Boolean(removing)} onOpenChange={open => !open && setRemoving(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir versão?</AlertDialogTitle><AlertDialogDescription>Remover a versão {removing?.versao} de {formatVersionDate(removing?.data_versao || "")}?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={async () => {if (!removing || !await trySaveCrmCatalog("versions", [removing], true)) return;setRemoving(null);setPage(1);toast.success("Versão removida no banco.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+    <AlertDialog open={Boolean(removing)} onOpenChange={open => !open && setRemoving(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Excluir versão?</AlertDialogTitle><AlertDialogDescription>Remover a versão {removing?.versao} de {formatVersionDate(removing?.data_versao || "")}?</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async () => {if (!removing || !await trySaveCrmCatalog("versions", [removing], true)) return;setRemoving(null);setPage(1);toast.success("Versão removida no banco.");}}>Excluir</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
   </>;
 }
 
