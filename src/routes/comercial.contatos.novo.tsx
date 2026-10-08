@@ -587,6 +587,7 @@ function CreateCommercialCompany() {
             </Button>
           </div>
         </div>
+        <div className="hidden xl:block">
         <RegistrationSummary
           title={form.name || "Nome da empresa"}
           subtitle={form.legal_name || form.trade_name || "Contato comercial"}
@@ -614,6 +615,7 @@ function CreateCommercialCompany() {
             Prioridade {form.priority}
           </span>
         </RegistrationSummary>
+        </div>
       </form>
     </AppShell>
   );

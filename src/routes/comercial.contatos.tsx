@@ -116,9 +116,22 @@ function CommercialContactsPage() {
   useEffect(() => setPage(0), [city, search, stage]);
 
   useEffect(() => {
-    void supabase
-      .rpc("company_lead_cities" as never)
-      .then(({ data }) => setCities(Array.isArray(data) ? data.map(String) : []));
+    let active = true;
+    const loadCities = async () => {
+      const { data, error } = await supabase.rpc("company_lead_cities" as never);
+      const values = Array.isArray(data) ? data.map((item) => typeof item === "string" ? item.trim() : String(item?.city || "").trim()).filter(Boolean) : [];
+      if (!error && values.length) { if (active) setCities([...new Set(values)].sort((a, b) => a.localeCompare(b, "pt-BR"))); return; }
+      const unique = new Set<string>();
+      for (let offset = 0; active; offset += 1000) {
+        const result = await supabase.from("company_leads").select("city").or("stage.neq.novo,source.in.(crm-manual,crm-import)").in("stage", visibleStages.map((item) => item.value)).order("id").range(offset, offset + 999);
+        if (result.error) { toast.error("Não foi possível carregar as cidades dos contatos."); return; }
+        for (const row of result.data || []) if (row.city?.trim()) unique.add(row.city.trim());
+        if ((result.data?.length || 0) < 1000) break;
+      }
+      if (active) setCities([...unique].sort((a, b) => a.localeCompare(b, "pt-BR")));
+    };
+    void loadCities().catch(() => { if (active) toast.error("Não foi possível carregar as cidades dos contatos."); });
+    return () => { active = false; };
   }, []);
 
   async function changeStage(lead: CompanyLead, next: CompanyLeadStage) {

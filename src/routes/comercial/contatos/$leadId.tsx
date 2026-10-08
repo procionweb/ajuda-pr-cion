@@ -176,7 +176,7 @@ export function LeadDetailsPage() {
 
   return (
     <AppShell fullWidth>
-      <div className="min-h-screen bg-background">
+      <div className="commercial-lead-detail min-h-0 bg-background xl:min-h-screen">
         <DetailModalHeader
           icon={Briefcase}
           title={lead.trade_name || lead.legal_name}
@@ -203,7 +203,7 @@ export function LeadDetailsPage() {
             </>
           }
           trailing={
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
               <Button size="sm" asChild variant="outline" className="h-8 text-xs gap-1.5">
                 <a href={googleMapsAddressUrl(lead)} target="_blank" rel="noreferrer">
                   <MapPinned className="h-3.5 w-3.5" />
@@ -305,10 +305,10 @@ export function LeadDetailsPage() {
           </DialogContent>
         </Dialog>
 
-        <main className="p-6">
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <main className="min-w-0 px-0 py-4 sm:p-4 xl:p-6">
+          <div className="grid min-w-0 grid-cols-1 gap-4 xl:gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
             {/* Coluna Principal - Timeline e Dados */}
-            <div className="flex min-w-0 flex-col gap-6">
+            <div className="flex min-w-0 flex-col gap-4 xl:gap-6">
               {/* Timeline de Atividades */}
               <section className="rounded-xl border bg-card shadow-sm overflow-hidden flex-shrink-0">
                 <div className="border-b px-5 py-3 bg-muted/30">
@@ -317,7 +317,7 @@ export function LeadDetailsPage() {
                     Timeline de Atividades
                   </h3>
                 </div>
-                <div className="p-6">
+                <div className="p-3 sm:p-4 xl:p-6">
                   <Timeline lead={lead} fallbackActor={currentOperator} />
                 </div>
               </section>
@@ -341,7 +341,7 @@ export function LeadDetailsPage() {
                     label="CNAE Principal"
                     value={`${lead.cnae_code} - ${lead.cnae_description}`}
                   />
-                  <div className="sm:col-span-2 lg:col-span-3">
+                  <div className="sm:col-span-2 xl:col-span-3">
                     <dt className="text-[10px] font-bold uppercase text-muted-foreground mb-1">
                       Quadro Societário
                     </dt>
@@ -376,7 +376,7 @@ export function LeadDetailsPage() {
             </div>
 
             {/* Painel Lateral */}
-            <aside>
+            <aside className="min-w-0">
               <div className="flex flex-col gap-6">
                 <section className="rounded-xl border bg-card p-5 shadow-sm space-y-6">
                   <h3 className="text-xs font-bold uppercase text-muted-foreground tracking-wider border-b pb-2">
@@ -453,7 +453,7 @@ function InfoItem({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="min-w-0">
       <dt className="text-[10px] font-bold uppercase text-muted-foreground mb-1">{label}</dt>
-      <dd className="text-sm font-medium truncate" title={value || "Não informado"}>
+      <dd className="text-sm font-medium max-xl:break-words xl:truncate" title={value || "Não informado"}>
         {value || "Não informado"}
       </dd>
     </div>
