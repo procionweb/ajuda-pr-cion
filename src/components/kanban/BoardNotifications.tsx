@@ -1,3 +1,4 @@
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { useEffect, useMemo, useState } from "react";
 import { Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export function BoardNotifications({
   cards: KanbanCard[];
   onOpenCard: (card: KanbanCard) => void;
 }) {
+  const compactScreen = useIsMobileOrTablet();
   const [open, setOpen] = useState(false);
   const [readIds, setReadIds] = useState<string[]>([]);
   const storageKey = `procion.kanban.notifications.${boardId}`;
@@ -59,7 +61,7 @@ export function BoardNotifications({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -75,8 +77,8 @@ export function BoardNotifications({
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[min(380px,calc(100vw-16px))] p-0">
-        <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+      <PopoverContent align="end" side="bottom" sideOffset={8} collisionPadding={12} avoidCollisions={!compactScreen} className="app-scrollbar max-h-[min(420px,var(--radix-popover-content-available-height))] w-[min(380px,calc(100vw-24px))] overflow-y-auto overscroll-contain touch-pan-y p-0">
+        <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 border-b bg-popover px-4 py-3">
           <div>
             <p className="text-sm font-semibold">Notificações do quadro</p>
             <p className="text-xs text-muted-foreground">{unread} não lidas</p>
@@ -90,7 +92,7 @@ export function BoardNotifications({
             <Check className="mr-1 h-4 w-4" /> Marcar todas
           </Button>
         </div>
-        <div className="app-scrollbar max-h-[min(60vh,420px)] overflow-y-auto">
+        <div className="min-w-0">
           {events.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
               Nenhuma atividade registrada.

@@ -1,3 +1,4 @@
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import {
   forwardRef,
   useCallback,
@@ -307,6 +308,7 @@ function KanbanPage() {
   const drawerRef = useRef<DrawerHandle>(null);
   const defaultColumnIdRef = useRef<ColumnId>("a-fazer");
   const [mobileColumn, setMobileColumn] = useState<ColumnId>("a-fazer");
+  const compactScreen = useIsMobileOrTablet();
   const [desktopBoard, setDesktopBoard] = useState(false);
   useEffect(() => {
     const root = document.documentElement;
@@ -1010,7 +1012,7 @@ function KanbanPage() {
               <Search className="absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             </div>
 
-            <Popover>
+            <Popover modal>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -1027,11 +1029,12 @@ function KanbanPage() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent
-                className="app-scrollbar w-80 max-w-[calc(100vw-24px)] overflow-y-scroll p-0"
+                className="app-scrollbar w-80 max-w-[calc(100vw-24px)] overflow-y-auto overscroll-contain touch-pan-y p-0"
                 align="end"
                 side="bottom"
                 sideOffset={6}
                 collisionPadding={12}
+                avoidCollisions={!compactScreen}
                 style={{ maxHeight: "min(620px, var(--radix-popover-content-available-height))" }}
               >
                 <div className="mb-3 flex items-center justify-between">

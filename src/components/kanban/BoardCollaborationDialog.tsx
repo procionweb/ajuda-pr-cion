@@ -195,6 +195,7 @@ export function BoardCollaborationDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        autoFooter={false}
         className="flex max-h-[88vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl [&>button]:hidden"
         onInteractOutside={(event) => event.preventDefault()}
       >
