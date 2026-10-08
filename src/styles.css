@@ -801,3 +801,41 @@ main th[data-auto-sortable="true"] {
  .commercial-appointments-table td[colspan] { height:auto; padding:2rem 0; }
  .commercial-appointments-table .truncate { white-space:normal; overflow-wrap:anywhere; }
 }
+
+/* Prospecting filters and company cards on phones and tablets. */
+@media (max-width: 1279px) {
+  .prospecting-filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); align-items:end; }
+  .prospecting-filters > label { min-width:0; width:auto; grid-column:span 2; }
+  .prospecting-filters > label:first-child { grid-column:span 3; }
+  .prospecting-filters > label:nth-child(2) { grid-column:span 1; }
+  .prospecting-filters input, .prospecting-filters select { min-width:0; height:44px; font-size:16px; }
+  .prospecting-filters > button { grid-column:span 2; height:44px; width:100%; }
+  .prospecting-search-actions { display:contents; }
+  .prospecting-search-actions > button { grid-column:span 2; height:44px; width:100%; }
+  .prospecting-search-actions > button[type="submit"] { grid-column:1/-1; }
+  .prospecting-results { display:block; min-width:0; font-size:13px; }
+  .prospecting-results thead { display:block; padding:.5rem; border-bottom:1px solid var(--border); }
+  .prospecting-results thead tr { display:flex; flex-wrap:wrap; gap:.5rem; }
+  .prospecting-results th { display:block; min-width:0; max-width:none; padding:0; }
+  .prospecting-results th:not(:has(button)) { display:none; }
+  .prospecting-results th button { min-height:36px; padding:.25rem .5rem; border:1px solid var(--border); border-radius:.5rem; font-size:10px; }
+  .prospecting-results tbody { display:grid; gap:.75rem; padding:.75rem; background:var(--background); }
+  .prospecting-results tbody tr { display:grid; grid-template-columns:minmax(0,1fr); gap:.75rem; padding:1rem; border:1px solid var(--border); border-radius:.75rem; background:var(--card); }
+  .prospecting-results td { display:block; min-width:0; max-width:none; padding:0; white-space:normal; overflow-wrap:anywhere; }
+  .prospecting-results td[data-label]::before { content:attr(data-label); display:block; margin-bottom:.25rem; font-size:10px; opacity:.65; text-transform:uppercase; }
+  .prospecting-results td[data-column="company"] { grid-column:1/-1; grid-row:1; }
+  .prospecting-results td[data-column="company"] > div { flex-wrap:wrap; }
+  .prospecting-results td[data-column="actions"] { grid-column:1/-1; order:1; border-top:1px solid var(--border); padding-top:.75rem; }
+  .prospecting-results td[data-column="actions"] > div { display:block; }
+  .prospecting-results td[colspan] { grid-column:1/-1; padding:2rem 0; }
+  .prospecting-results .truncate, .prospecting-results .whitespace-nowrap { white-space:normal; overflow-wrap:anywhere; }
+  .prospecting-results [role="combobox"] { width:100%; min-width:0; height:44px; }
+}
+@media (min-width:640px) and (max-width:1279px) {
+  .prospecting-results tbody tr { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width: 639px) {
+  .prospecting-filters > label:nth-child(3),
+  .prospecting-filters > label:nth-child(4) { grid-column:1/-1; }
+}

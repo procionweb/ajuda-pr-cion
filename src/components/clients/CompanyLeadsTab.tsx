@@ -754,7 +754,7 @@ export function CompanyLeadsTab() {
   return (
     <div className="space-y-4">
       <form
-        className="flex flex-wrap items-end gap-3"
+        className="prospecting-filters flex flex-wrap items-end gap-3"
         onSubmit={(event) => {
           event.preventDefault();
           if (searching) return;
@@ -1062,7 +1062,7 @@ export function CompanyLeadsTab() {
           </DialogContent>
         </Dialog>
 
-        <div className="grid w-[190px] gap-2">
+        <div className="prospecting-search-actions grid w-[190px] gap-2">
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -1168,7 +1168,7 @@ export function CompanyLeadsTab() {
         <div className="overflow-x-auto">
           <table
             className={cn(
-              "w-full min-w-[980px] table-auto",
+              "prospecting-results w-full min-w-[980px] table-auto",
               columns.length > 10 ? "text-[11px]" : "text-xs",
             )}
           >
@@ -1211,23 +1211,27 @@ export function CompanyLeadsTab() {
               {!loading &&
                 leads.map((lead) => (
                   <tr key={lead.id} className="hover:bg-primary/[0.03]">
-                    <td className="px-2.5 py-1.5">
+                    <td data-column="actions" className="px-2.5 py-1.5">
                       <div className="flex items-center gap-1">
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
                           title="Ver detalhes da empresa"
+                          aria-label="Ver detalhes da empresa"
                           onClick={() => void openDetails(lead)}
-                          className="h-8 w-8"
+                          className="h-8 w-8 max-xl:h-11 max-xl:w-full max-xl:gap-2 max-xl:border max-xl:border-border"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4 shrink-0" />
+                          <span className="xl:hidden">Ver empresa</span>
                         </Button>
                       </div>
                     </td>
                     {columns.map((column) => (
                       <td
                         key={column.key}
+                        data-column={column.key}
+                        data-label={column.label}
                         title={cellTitle(column, lead)}
                         className={cn("px-2.5 py-1.5 align-middle", column.className)}
                       >
