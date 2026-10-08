@@ -101,8 +101,8 @@ function CommercialActivitiesPage() {
         }
       />
 
-      <section className="mb-5 grid gap-3 xl:grid-cols-[minmax(220px,1fr)_180px_170px_220px_96px]">
-        <label className="relative">
+      <section className="mb-5 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_170px_220px_96px]">
+        <label className="relative min-w-0 sm:col-span-2 xl:col-span-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -158,7 +158,7 @@ function CommercialActivitiesPage() {
 
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] table-fixed text-left text-[13px] text-foreground">
+          <table className="commercial-activities-table w-full min-w-[1100px] table-fixed text-left text-[13px] text-foreground">
             <colgroup>
               <col className="w-[3%]" />
               <col className="w-[5%]" />
@@ -249,7 +249,7 @@ function ActivityRow({ activity, onSaved }: { activity: CommercialActivity; onSa
               : CalendarDays;
   return (
     <tr className="transition-colors hover:bg-muted/25">
-      <td className="px-3 py-3">
+      <td data-label="Prioridade" className="px-3 py-3">
         <span
           className={cn(
             "block h-3 w-3 rounded-full",
@@ -261,15 +261,15 @@ function ActivityRow({ activity, onSaved }: { activity: CommercialActivity; onSa
           )}
         />
       </td>
-      <td className="px-3 py-3">
+      <td data-label="Tipo" className="px-3 py-3">
         <TypeIcon className="h-4 w-4 text-primary" />
       </td>
-      <td className="whitespace-nowrap px-3 py-3">
+      <td data-label="Data / Operador" className="whitespace-nowrap px-3 py-3">
         <span className="block">{formatDate(activity.date)}</span>
         <span className="text-[10px] text-muted-foreground">{activity.operator}</span>
       </td>
-      <td className="px-3 py-3">{activity.returnAt ? formatDate(activity.returnAt) : "—"}</td>
-      <td className="min-w-0 px-3 py-3">
+      <td data-label="Retorno" className="px-3 py-3">{activity.returnAt ? formatDate(activity.returnAt) : "—"}</td>
+      <td data-label="Empresa" className="min-w-0 px-3 py-3">
         <span className="block truncate font-normal" title={activity.company}>
           {activity.leadId ? (
             <Link
@@ -285,15 +285,15 @@ function ActivityRow({ activity, onSaved }: { activity: CommercialActivity; onSa
         </span>
         <span className="block truncate text-[11px] text-muted-foreground">{activity.subject}</span>
       </td>
-      <td className="min-w-0 px-3 py-3">
+      <td data-label="Observação" className="min-w-0 px-3 py-3">
         <span className="block truncate" title={activity.note}>
           {activity.note}
         </span>
       </td>
-      <td className="whitespace-nowrap px-3 py-3">
+      <td data-label="Cidade / UF" className="whitespace-nowrap px-3 py-3">
         {activity.city} - {activity.state}
       </td>
-      <td className="whitespace-nowrap px-3 py-3">
+      <td data-label="Status" className="whitespace-nowrap px-3 py-3">
         <span
           className={cn(
             "inline-flex h-7 w-32 items-center justify-center rounded-md px-2 text-[11px] font-medium",

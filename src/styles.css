@@ -759,3 +759,21 @@ main th[data-auto-sortable="true"] {
   .commercial-contacts-table td[data-label="Ações"] > div { justify-content: flex-end; gap: 0.5rem; }
   .commercial-contacts-table td[data-label="Ações"] a { height: 44px; width: 44px; border: 1px solid var(--border); }
 }
+
+@media (max-width: 1279px) {
+  .commercial-activities-table { display: block; min-width: 0; }
+  .commercial-activities-table colgroup, .commercial-activities-table thead { display: none; }
+  .commercial-activities-table tbody { display: block; }
+  .commercial-activities-table tr { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0.75rem; padding: 1rem; }
+  .commercial-activities-table td { display: block; min-width: 0; padding: 0; white-space: normal; overflow-wrap: anywhere; }
+  .commercial-activities-table td[data-label="Empresa"],
+  .commercial-activities-table td[data-label="Observação"],
+  .commercial-activities-table td[data-label="Status"],
+  .commercial-activities-table td[colspan] { grid-column: 1 / -1; }
+  .commercial-activities-table td[data-label="Empresa"] { grid-row: 1; }
+  .commercial-activities-table td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 0.25rem; font-size: 10px; opacity: 0.65; text-transform: uppercase; }
+  .commercial-activities-table .truncate { white-space: normal; overflow-wrap: anywhere; }
+  .commercial-activities-table td[data-label="Status"] > div { flex-wrap: wrap; }
+  .commercial-activities-table button { min-height: 44px; }
+  .commercial-activities-table td[colspan] { display: grid; place-items: center; }
+}
