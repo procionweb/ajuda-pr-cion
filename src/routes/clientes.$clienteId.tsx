@@ -346,7 +346,7 @@ function ClientDetailPage() {
             </TabsList>
           </div>
 
-          <div className="min-w-0 bg-muted/10 p-3 sm:p-4 xl:p-6">
+          <div className="client-detail-content min-w-0 bg-muted/10 p-3 sm:p-4 xl:p-6">
             <TabsContent
               value="cliente"
               className="m-0 space-y-5 text-[12px] [&_.text-sm]:text-[12px]"

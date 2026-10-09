@@ -4616,7 +4616,7 @@ function DataTable({ headers, rows }: { headers: string[]; rows: ReactNode[][] }
           {rows.map((row, i) => (
             <tr key={i}>
               {row.map((cell, j) => (
-                <td key={j} className="px-4 py-4">
+                <td key={j} data-label={headers[j]} className="px-4 py-4">
                   {cell}
                 </td>
               ))}
@@ -4752,7 +4752,7 @@ function SortableDataTable<T>({
           {sorted.map((row, i) => (
             <tr key={i}>
               {columns.map((column) => (
-                <td key={column.key} className={`${cellPad} ${column.cellClassName ?? ""}`}>
+                <td key={column.key} data-label={column.label} className={`${cellPad} ${column.cellClassName ?? ""}`}>
                   {column.render(row)}
                 </td>
               ))}

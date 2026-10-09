@@ -1008,3 +1008,26 @@ main th[data-auto-sortable="true"] {
 @media (max-width:639px) {
   .clients-list-filters input { font-size:16px; }
 }
+
+/* Client detail tabs fit their lists and controls to compact viewports. */
+@media (max-width:1279px) {
+  .clients-list-table thead { display:none; }
+  .client-detail-content, .client-detail-content [role="tabpanel"], .client-detail-content .grid > * { min-width:0; max-width:100%; overflow-wrap:anywhere; }
+  .client-detail-content .flex { flex-wrap:wrap; }
+  .client-detail-content input:not([type="checkbox"]):not([type="radio"]), .client-detail-content select, .client-detail-content [role="combobox"] { min-width:0; max-width:100%; min-height:44px; }
+  .client-detail-content table { display:block; min-width:0; width:100%; }
+  .client-detail-content thead { display:block; padding:.5rem; }
+  .client-detail-content thead tr { display:flex; flex-wrap:wrap; gap:.5rem; }
+  .client-detail-content th { display:block; padding:.5rem; font-size:10px; min-width:0; border:1px solid var(--border); border-radius:.5rem; }
+  .client-detail-content tbody { display:grid; gap:.75rem; padding:.75rem; background:var(--background); }
+  .client-detail-content tbody tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; padding:1rem; border:1px solid var(--border); border-radius:.75rem; background:var(--card); }
+  .client-detail-content td { display:block; min-width:0; max-width:none; padding:0; white-space:normal; overflow-wrap:anywhere; }
+  .client-detail-content td[data-label]::before { content:attr(data-label); display:block; margin-bottom:.25rem; font-size:10px; opacity:.65; text-transform:uppercase; }
+  .client-detail-content td[data-label="Descrição"], .client-detail-content td[data-label="Nome"], .client-detail-content td[data-label="Mensagem"], .client-detail-content td[data-label="Ações"], .client-detail-content td[colspan] { grid-column:1/-1; }
+  .client-detail-content .truncate, .client-detail-content .whitespace-nowrap { white-space:normal; overflow-wrap:anywhere; }
+  .client-detail-content img { max-width:100%; }
+}
+@media (max-width:639px) {
+  .client-detail-content input:not([type="checkbox"]):not([type="radio"]) { font-size:16px; }
+  .client-detail-content tbody tr { grid-template-columns:minmax(0,1fr); }
+}
