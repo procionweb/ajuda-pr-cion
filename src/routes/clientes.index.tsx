@@ -592,7 +592,7 @@ function ClientVersionCell({ client }: { client: ClientRow }) {
     "rounded-md border border-red-200 bg-red-50 px-1.5 py-0.5 text-red-700 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300";
 
   return (
-    <td className="whitespace-nowrap px-4 py-4">
+    <td data-label="Versão / setup" className="whitespace-nowrap px-4 py-4">
       <div className="inline-flex flex-col items-start gap-1">
         <div className="flex items-center gap-1.5 text-[11px] font-normal">
           <span className={cn((status.isMissing || status.isLegacy) && warningClass)}>
@@ -979,7 +979,7 @@ function ClientsPage() {
             </Button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="clients-list-filters flex flex-wrap items-center gap-2">
             <span className="shrink-0 text-xs font-medium text-muted-foreground">Filtros:</span>
 
             {chips.map((chip) => (
@@ -1062,7 +1062,7 @@ function ClientsPage() {
         <div>
           <div className="overflow-hidden rounded-md border bg-card">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="clients-list-table w-full text-sm">
                 <thead className="bg-muted/35 text-xs uppercase text-muted-foreground">
                   <tr>
                     {[
@@ -1118,16 +1118,16 @@ function ClientsPage() {
                       }
                       className="cursor-pointer transition-colors hover:bg-primary/[0.04]"
                     >
-                      <td className="whitespace-nowrap px-2.5 py-4 text-muted-foreground">
+                      <td data-label="Cadastro" className="whitespace-nowrap px-2.5 py-4 text-muted-foreground">
                         {client.registered}
                       </td>
-                      <td className="whitespace-nowrap px-2.5 py-4">
+                      <td data-label="Sigla" className="whitespace-nowrap px-2.5 py-4">
                         <div className="font-medium text-primary">{client.acronym}</div>
                         <div className="text-xs text-muted-foreground">
                           {client.group || "Sem grupo"}
                         </div>
                       </td>
-                      <td className="min-w-[240px] px-2.5 py-4">
+                      <td data-label="Nome / perfil" className="min-w-[240px] px-2.5 py-4">
                         <div className="text-[12px] font-normal leading-[1.2] [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden">
                           {client.name}
                         </div>
@@ -1139,7 +1139,7 @@ function ClientsPage() {
                         </div>
                       </td>
                       <ClientVersionCell client={client} />
-                      <td className="whitespace-nowrap px-2.5 py-4">
+                      <td data-label="Cidade / UF" className="whitespace-nowrap px-2.5 py-4">
                         <div className="flex flex-col items-start">
                           <span>{normalizeCityUf(client.city)}</span>
                           {client.cep && client.cep.replace(/\D+/g, "").length > 0 && (
@@ -1149,10 +1149,10 @@ function ClientsPage() {
                           )}
                         </div>
                       </td>
-                      <td className="whitespace-nowrap px-2.5 py-4 text-muted-foreground">
+                      <td data-label="CNPJ" className="whitespace-nowrap px-2.5 py-4 text-muted-foreground">
                         <ClientCnpjCell client={client} />
                       </td>
-                      <td className="px-2.5 py-4">
+                      <td data-label="Status" className="px-2.5 py-4">
                         <div className="flex flex-col items-start gap-1">
                           <Badge
                             className={cn(

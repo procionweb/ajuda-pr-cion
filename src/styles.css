@@ -972,3 +972,39 @@ main th[data-auto-sortable="true"] {
   .kanban-board-controls > button { height:44px; width:44px; }
   .kanban-board-controls .kanban-board-members { order:1; flex:0 0 100%; padding-top:4px; }
 }
+
+/* Client list and detail navigation on phones and tablets. */
+@media (max-width:1279px) {
+  .clients-list-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .clients-list-filters > span { grid-column:1/-1; white-space:normal; }
+  .clients-list-filters > label { width:100%; min-width:0; }
+  .clients-list-filters > label:has(input[type="search"][placeholder="Pesquisa geral"]) { grid-column:1/-1; }
+  .clients-list-filters input, .clients-list-filters select { height:44px; min-width:0; }
+  .clients-list-table { display:block; min-width:0; }
+  .clients-list-table thead { display:block; padding:.5rem; }
+  .clients-list-table thead tr { display:flex; flex-wrap:wrap; gap:.5rem; }
+  .clients-list-table th { display:block; padding:.5rem; font-size:10px; border:1px solid var(--border); border-radius:.5rem; }
+  .clients-list-table tbody { display:grid; gap:.75rem; padding:.75rem; background:var(--background); }
+  .clients-list-table tbody tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; padding:1rem; border:1px solid var(--border); border-radius:.75rem; background:var(--card); }
+  .clients-list-table td { display:block; min-width:0; padding:0; white-space:normal; overflow-wrap:anywhere; }
+  .clients-list-table td[data-label]::before { content:attr(data-label); display:block; margin-bottom:.25rem; font-size:10px; opacity:.65; text-transform:uppercase; }
+  .clients-list-table td[data-label="Nome / perfil"], .clients-list-table td[data-label="Status"], .clients-list-table td[colspan] { grid-column:1/-1; }
+  .clients-list-table td[data-label="Nome / perfil"] { grid-row:1; }
+  .clients-list-table td[data-label="Nome / perfil"] > div { display:block; overflow:visible; -webkit-line-clamp:unset; }
+  .clients-list-table .truncate, .clients-list-table .whitespace-nowrap { white-space:normal; overflow-wrap:anywhere; }
+  .clients-list-table td[colspan] { padding:2rem 0; }
+  .client-header-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; gap:.75rem; }
+  .client-header-summary > * { min-width:0; flex-wrap:wrap; overflow-wrap:anywhere; }
+  .client-detail-header > .flex { gap:1rem; }
+  .client-detail-header > .flex > .flex { width:100%; min-width:0; }
+  .client-detail-header h2, .client-detail-header p { overflow-wrap:anywhere; }
+  .client-detail-header a { max-width:100%; min-height:44px; height:auto; white-space:normal; padding-top:.5rem; padding-bottom:.5rem; }
+  .client-detail-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; }
+  .client-detail-tabs [role="tab"] { min-width:0; min-height:44px; padding:.5rem; font-size:12px; white-space:normal; }
+}
+@media (min-width:640px) and (max-width:1279px) {
+  .client-detail-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media (max-width:639px) {
+  .clients-list-filters input { font-size:16px; }
+}

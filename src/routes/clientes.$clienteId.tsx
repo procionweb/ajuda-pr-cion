@@ -192,7 +192,7 @@ function ClientDetailPage() {
   const breadcrumbGroupLabel = groupCode || client.acronym;
   return (
     <AppShell>
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2 max-xl:[&_a]:min-h-11">
         <Button asChild variant="outline" size="sm" className="h-8 cursor-pointer rounded-lg">
           <Link to="/clientes" aria-label="Voltar para Clientes">
             <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
@@ -227,7 +227,7 @@ function ClientDetailPage() {
           ]}
         />
 
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-1.5">
+        <div className="client-header-summary flex min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-1.5">
           <MiniSummary
             label="Atendimento"
             value={normalizeCityUf(client.city) || "Não informado"}
@@ -260,7 +260,7 @@ function ClientDetailPage() {
       </div>
 
       <Card className="overflow-hidden border-border bg-card p-0 shadow-sm dark:border-border">
-        <header className="border-b border-border px-4 py-4 sm:px-5 xl:px-7 xl:py-5 dark:border-border">
+        <header className="client-detail-header border-b border-border px-4 py-4 sm:px-5 xl:px-7 xl:py-5 dark:border-border">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div className="flex min-w-0 max-w-full gap-3 xl:gap-4">
               <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-primary text-base font-semibold text-primary-foreground shadow-sm">
@@ -316,7 +316,7 @@ function ClientDetailPage() {
 
         <Tabs value={currentTab} onValueChange={setTab} className="flex flex-col">
           <div className="min-w-0 overflow-x-auto border-b border-border px-2 sm:px-4 xl:px-7">
-            <TabsList className="h-auto w-max justify-start gap-1 rounded-none border-0 bg-transparent p-0">
+            <TabsList className="client-detail-tabs h-auto w-max justify-start gap-1 rounded-none border-0 bg-transparent p-0">
               {[
                 ["cliente", "Cliente", Building2],
                 ["hadron", "Hádron", HadronMenuIcon],
