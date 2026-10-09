@@ -41,9 +41,22 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const [confirmedError, setConfirmedError] = useState<Error | null>(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setConfirmedError(error), 3000);
+    return () => window.clearTimeout(timer);
+  }, [error]);
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+
+  if (confirmedError !== error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4" role="status" aria-live="polite">
+        <p className="text-sm text-muted-foreground">Carregando…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
