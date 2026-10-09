@@ -48,7 +48,7 @@ const fakeFetch = async (url, init) => {
   sends++;
   return new Response(null, { status: 201 });
 };
-const source = fs.readFileSync('src/lib/push-dispatch.server.ts', 'utf8');
+const source = fs.readFileSync('src/lib/push-dispatch-runtime.mjs', 'utf8');
 const code = ts.transpile(source, { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true });
 const exported = {};
 vm.runInNewContext(code, { exports: exported, require: name => name === 'web-push' ? webpush : { supabaseUrl: 'https://crm.supabase.co', supabasePublishableKey: 'public' }, URL, Response, AbortSignal, fetch: fakeFetch });
