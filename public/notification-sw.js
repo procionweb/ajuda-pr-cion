@@ -6,7 +6,7 @@ self.addEventListener('push', (event) => {
   const href = typeof payload.href === 'string' && payload.href.startsWith('/') && !payload.href.startsWith('//') ? payload.href : '/';
   event.waitUntil(self.registration.showNotification(payload.title || 'CRM Prócion', {
     body: payload.body || 'Você tem uma nova notificação no CRM.',
-    tag: payload.tag, icon: '/favicon.ico', data: { href },
+    tag: payload.tag, icon: '/icons/icon-192.png', data: { href },
   }));
 });
 
