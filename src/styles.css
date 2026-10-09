@@ -1031,3 +1031,28 @@ main th[data-auto-sortable="true"] {
   .client-detail-content input:not([type="checkbox"]):not([type="radio"]) { font-size:16px; }
   .client-detail-content tbody tr { grid-template-columns:minmax(0,1fr); }
 }
+
+/* Compact client tabs omit column menus; accountant lists use readable cards. */
+@media (max-width:1279px) {
+  .client-detail-content thead { display:none; }
+  .accountants-page { min-width:0; overflow-wrap:anywhere; }
+  .accountants-page input { min-width:0; max-width:100%; min-height:44px; }
+  .accountants-page button { min-height:44px; white-space:normal; }
+  .accountants-page .grid > * { min-width:0; }
+  .accountants-table { display:block; width:100%; }
+  .accountants-table thead { display:none; }
+  .accountants-table tbody { display:grid; gap:.75rem; padding:.75rem; background:var(--background); }
+  .accountants-table tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; padding:1rem; border:1px solid var(--border); border-radius:.75rem; background:var(--card); }
+  .accountants-table td { display:block; min-width:0; padding:0; white-space:normal; overflow-wrap:anywhere; text-align:left; }
+  .accountants-table td[data-label]::before { content:attr(data-label); display:block; margin-bottom:.25rem; font-size:10px; opacity:.65; text-transform:uppercase; }
+  .accountants-table td[data-label="Contador"], .accountants-table td[data-label="Escritório"], .accountants-table td[data-label="Contato"], .accountants-table td[data-label="Ações"] { grid-column:1/-1; }
+  .accountants-table td[data-label="Contador"] { grid-row:1; }
+  .accountants-table td[data-label="Ações"] { border-top:1px solid var(--border); padding-top:.5rem; text-align:right; }
+  .accountant-linked-client { flex-wrap:wrap; }
+  .accountant-linked-client > .ml-auto { margin-left:0; width:100%; flex-shrink:1; justify-content:flex-start; padding-left:2.75rem; }
+  .accountants-page .grid[class*="md:grid-cols-3"] { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:639px) {
+  .accountants-page input { font-size:16px; }
+  .accountants-page .grid[class*="md:grid-cols"] { grid-template-columns:minmax(0,1fr); }
+}

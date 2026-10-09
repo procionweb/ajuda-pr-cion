@@ -216,7 +216,7 @@ function AccountantsPage() {
       />
     );
   return (
-    <AppShell fullWidth>
+    <AppShell fullWidth><div className="accountants-page min-w-0">
       <PageHeader
         title="Contadores"
         description="Cadastre contadores e organize os clientes vinculados."
@@ -258,7 +258,7 @@ function AccountantsPage() {
       </div>
       <section>
         <div className="overflow-hidden rounded-md border bg-card">
-          <table className="w-full text-xs">
+          <table className="accountants-table w-full text-xs">
             <thead className="border-b bg-muted/35 text-left text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Código</th>
@@ -285,19 +285,19 @@ function AccountantsPage() {
                   }}
                   tabIndex={0}
                 >
-                  <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">
+                  <td data-label="Código" className="px-4 py-3 font-mono text-[11px] text-muted-foreground">
                     CTR-{r.id.slice(0, 8).toUpperCase()}
                   </td>
-                  <td className="px-4 py-3 font-normal">{r.name}</td>
-                  <td className="px-4 py-3">{r.office || "—"}</td>
-                  <td className="px-4 py-3">{r.email || r.phone || "—"}</td>
-                  <td className="px-4 py-3">
+                  <td data-label="Contador" className="px-4 py-3 font-normal">{r.name}</td>
+                  <td data-label="Escritório" className="px-4 py-3">{r.office || "—"}</td>
+                  <td data-label="Contato" className="px-4 py-3">{r.email || r.phone || "—"}</td>
+                  <td data-label="Clientes" className="px-4 py-3">
                     <span className="inline-flex items-center gap-1 text-muted-foreground">
                       <UsersRound className="size-4" />
                       {r.clientCount ?? 0} clientes
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td data-label="Ações" className="px-4 py-3 text-right">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -551,7 +551,7 @@ function AccountantsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AppShell>
+    </div></AppShell>
   );
 }
 
@@ -640,7 +640,7 @@ function AccountantCreateScreen({
     ["UF", "state"],
   ];
   return (
-    <AppShell fullWidth>
+    <AppShell fullWidth><div className="accountants-page min-w-0">
       <PageHeader
         title={editing ? "Editar contador" : "Cadastrar contador"}
         description={
@@ -914,7 +914,7 @@ function AccountantCreateScreen({
           </div>
         </RegistrationSummary>
       </div>
-    </AppShell>
+    </div></AppShell>
   );
 }
 
@@ -938,7 +938,7 @@ function AccountantDetail({
     ? detail.clients
     : detail.clientIds.map((id: string) => ({ id }));
   return (
-    <AppShell fullWidth>
+    <AppShell fullWidth><div className="accountants-page min-w-0">
       <PageHeader
         title={detail.name}
         description="Detalhes do contador e empresas vinculadas."
@@ -957,7 +957,7 @@ function AccountantDetail({
       />
       <section className="rounded-xl border bg-card p-5 shadow-sm">
         <h2 className="mb-5 text-base font-medium">Dados do contador e responsabilidade</h2>
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 xl:grid-cols-3">
           <div className="border-border/60 lg:border-r lg:pr-6">
             <p className="mb-4 text-xs uppercase tracking-wide text-muted-foreground">
               Responsável pelo escritório
@@ -1053,7 +1053,7 @@ function AccountantDetail({
           {linkedClients.length ? (
             <div>
               {linkedClients.map((client: any, index: number) => (
-                <div className="flex items-start gap-3 px-5 py-4" key={client.id}>
+                <div className="accountant-linked-client flex items-start gap-3 px-5 py-4" key={client.id}>
                   <span className="grid size-8 place-items-center rounded-md bg-muted text-[11px] text-muted-foreground">
                     {index + 1}
                   </span>
@@ -1097,6 +1097,6 @@ function AccountantDetail({
           )}
         </section>
       </div>
-    </AppShell>
+    </div></AppShell>
   );
 }
