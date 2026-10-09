@@ -1,3 +1,5 @@
+import { findRoomConflict } from "@/lib/room-availability";
+import { RoomAvailabilitySelect } from "@/components/calendar/RoomAvailabilitySelect";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Building2, CalendarDays, Car, Check, Laptop, Link2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -231,6 +233,13 @@ export function CreateEventDialog({
         const from = new Date(conflict.startAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
         const until = new Date(conflict.endAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
         toast.error("Carro reservado", { description: `Reservado de ${from} às ${until}.` });
+        return;
+      }
+    }
+    if (type === "Reunião na Prócion") {
+      const conflict = findRoomConflict({ events: existingEvents, room, date, startTime, endTime, ignoreEventId: editingEvent?.id });
+      if (conflict) {
+        toast.error("Sala indisponível", { description: `${room} está reservada das ${conflict.time} às ${conflict.end}.` });
         return;
       }
     }
@@ -499,7 +508,7 @@ export function CreateEventDialog({
                 onReasonChange={setMeetingReason}
               />
               <NewField label="Sala">
-                <SelectNative value={room} onChange={setRoom} options={ROOM_OPTIONS} />
+                <RoomAvailabilitySelect value={room} onChange={setRoom} events={existingEvents} date={date} startTime={startTime} endTime={endTime} ignoreEventId={editingEvent?.id} />
               </NewField>
               <NewField label="Responsável">
                 <CollaboratorSelect value={responsible} onChange={setResponsible} />

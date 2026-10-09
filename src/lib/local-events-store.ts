@@ -83,7 +83,7 @@ export function addLocalEvent(event: Omit<CalendarEvent, "id"> & { id?: string |
   void saveCrmCalendarEvent(created).catch((error) => {
     write(read().filter((item) => String(item.id) !== String(created.id)));
     console.error("[calendar] Nao foi possivel salvar o agendamento no Supabase.", error);
-    toast.error("Nao foi possivel salvar o agendamento no banco.");
+    toast.error(error?.code === "23P01" ? "Sala indisponível no horário selecionado. Escolha outra sala ou horário." : "Nao foi possivel salvar o agendamento no banco.");
   });
 
   if (created.needsDisplacement && !getUsageByAppointment(created.id)) {
@@ -145,7 +145,7 @@ export function updateLocalEvent(
   void saveCrmCalendarEvent(updated).catch((error) => {
     write(current);
     console.error("[calendar] Nao foi possivel atualizar o agendamento no Supabase.", error);
-    toast.error("Nao foi possivel atualizar o agendamento no banco.");
+    toast.error(error?.code === "23P01" ? "Sala indisponível no horário selecionado. Escolha outra sala ou horário." : "Nao foi possivel atualizar o agendamento no banco.");
   });
   if (updated.status !== "Concluído") {
     removeFleetRecordsForAppointments([id]);

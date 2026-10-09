@@ -1,3 +1,6 @@
+import { findRoomConflict } from "@/lib/room-availability";
+import { RoomAvailabilitySelect } from "@/components/calendar/RoomAvailabilitySelect";
+import { ROOM_OPTIONS } from "@/lib/calendar-events";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CalendarClock, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -64,6 +67,7 @@ export function ScheduleEventModal({
   const [responsible, setResponsible] = useState("");
   const [guests, setGuests] = useState<CollaboratorGuest[]>([]);
   const [vehicleId, setVehicleId] = useState(NO_VEHICLE);
+  const [room, setRoom] = useState(ROOM_OPTIONS[0]);
   const [module, setModule] = useState(defaults.module);
   const [submodule, setSubmodule] = useState(defaults.submodule);
   const [description, setDescription] = useState("");
@@ -121,6 +125,7 @@ export function ScheduleEventModal({
     setResponsible("");
     setGuests([]);
     setVehicleId(NO_VEHICLE);
+    setRoom(ROOM_OPTIONS[0]);
     setModule(defaults.module);
     setSubmodule(defaults.submodule);
     setDescription("");
@@ -155,6 +160,13 @@ export function ScheduleEventModal({
     if (endTime <= startTime) {
       toast.error("O horário final deve ser posterior ao inicial.");
       return;
+    }
+    if (type === "Reunião PRC") {
+      const conflict = findRoomConflict({ events: calendarEvents, room, date, startTime, endTime });
+      if (conflict) {
+        toast.error("Sala indisponível", { description: "Selecione outra sala ou horário. A sala já está reservada." });
+        return;
+      }
     }
     if (!ignoreGuestConflicts) {
       const conflicts = findGuestConflicts({
@@ -245,6 +257,7 @@ export function ScheduleEventModal({
       time: startTime,
       end: endTime,
       type: calendarType,
+      room: calendarType === "Reunião na Prócion" ? room : undefined,
       origin: "Suporte",
       operator: responsible,
       responsible,
@@ -319,6 +332,11 @@ export function ScheduleEventModal({
             </Field>
           </div>
 
+          {type === "Reunião PRC" && (
+            <Field label="Sala" required>
+              <RoomAvailabilitySelect value={room} onChange={setRoom} events={calendarEvents} date={date} startTime={startTime} endTime={endTime} />
+            </Field>
+          )}
           <div className="grid gap-2.5 sm:grid-cols-2">
             <Field label="Módulo" required>
               <Select value={module} onValueChange={changeModule}>
