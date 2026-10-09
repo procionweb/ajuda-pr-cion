@@ -11,9 +11,11 @@ import {
   useNotifications,
 } from "@/lib/notifications-store";
 import { cn } from "@/lib/utils";
-import { showBrowserNotification } from "@/lib/browser-notification";
+import { enableBackgroundPush } from "@/lib/background-push";
+import { useState } from "react";
 
 export function NotificationsPopover() {
+  const [enablingPush, setEnablingPush] = useState(false);
   const navigate = useNavigate();
   const items = useNotifications();
   const visibleItems = items.filter((item) => !item.read);
@@ -30,29 +32,13 @@ export function NotificationsPopover() {
   };
 
   const enableDesktopNotifications = async () => {
-    if (!("Notification" in window)) {
-      toast.error("Este navegador não oferece notificações no computador.");
-      return;
-    }
-    const permission =
-      Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
-    if (permission !== "granted") {
-      toast.error("Permissão de notificações não concedida neste navegador.");
-      return;
-    }
-    const sent = await showBrowserNotification(
-      "Teste de notificação do CRM",
-      "Os avisos de reuniões, agendamentos e Kanban devem aparecer neste dispositivo.",
-      `procion-notification-test:${Date.now()}`,
-      window.location.href,
-    );
-    if (sent) {
-      toast.success(
-        "Teste enviado ao navegador. Se não apareceu no computador, verifique as notificações do navegador no Windows.",
-      );
-    } else {
-      toast.error("O navegador não conseguiu enviar a notificação de teste.");
-    }
+    setEnablingPush(true);
+    try {
+      await enableBackgroundPush();
+      toast.success("Notificações ativadas neste dispositivo, inclusive com o CRM fechado. Um aviso de teste será enviado pelo servidor.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível ativar as notificações.");
+    } finally { setEnablingPush(false); }
   };
 
   return (
@@ -136,9 +122,10 @@ export function NotificationsPopover() {
           <button
             type="button"
             onClick={enableDesktopNotifications}
+            disabled={enablingPush}
             className="inline-flex cursor-pointer items-center gap-1 text-xs text-primary hover:underline"
           >
-            <MonitorUp className="h-3.5 w-3.5" /> Testar aviso no computador
+            <MonitorUp className="h-3.5 w-3.5" /> {enablingPush ? "Ativando..." : "Ativar / testar notificações"}
           </button>
         </div>
       </PopoverContent>

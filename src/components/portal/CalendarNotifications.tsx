@@ -8,6 +8,7 @@ import { useLocalEvents } from "@/lib/local-events-store";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { supabase } from "@/lib/supabase";
 import { showBrowserNotification } from "@/lib/browser-notification";
+import { hasBackgroundPush } from "@/lib/background-push";
 
 const REMINDER_WINDOW_MS = 30 * 60 * 1000;
 
@@ -31,6 +32,7 @@ export function CalendarNotifications() {
     let active = true;
 
     const check = async () => {
+      if (hasBackgroundPush(session.user.id)) return;
       try {
         const events = await listCrmCalendarEvents();
         if (!active) return;

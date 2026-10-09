@@ -1,3 +1,4 @@
+import { disconnectBackgroundPush } from "@/lib/background-push";
 import { Link } from "@tanstack/react-router";
 import { LogOut, UserCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -62,7 +63,7 @@ export function UserMenu() {
         <DropdownMenuItem
           className="text-destructive focus:text-destructive"
           onSelect={() => {
-            void supabase.auth.signOut().then(() => {
+            void disconnectBackgroundPush().catch(() => {}).then(() => supabase.auth.signOut()).then(() => {
               toast.success("Sessão encerrada.");
               window.location.assign("/login");
             });

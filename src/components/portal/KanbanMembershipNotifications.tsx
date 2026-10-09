@@ -5,6 +5,7 @@ import { usePortalAuth } from "@/lib/portal-auth";
 import { addNotification } from "@/lib/notifications-store";
 import { supabase } from "@/lib/supabase";
 import { showBrowserNotification } from "@/lib/browser-notification";
+import { hasBackgroundPush } from "@/lib/background-push";
 
 const DESKTOP_SEEN_KEY = "procion.kanban.desktop-seen.v1";
 const ALERT_SEEN_KEY = "procion.kanban.alert-seen.v1";
@@ -37,17 +38,8 @@ export function KanbanMembershipNotifications() {
         .from("notifications")
         .select("id, title, body, link, created_at")
         .eq("profile_id", userId)
-        .in("title", [
-          "Você foi adicionado a uma área",
-          "Você foi removido de uma área",
-          "Você foi adicionado a um quadro",
-          "Você foi removido de um quadro",
-          "Você foi adicionado a um cartão",
-          "Você foi removido de um cartão",
-          "Você foi adicionado a um agendamento",
-        ])
         .order("created_at", { ascending: false })
-        .limit(30);
+        .limit(100);
       if (error || !active) return;
       for (const row of [...(data ?? [])].reverse() as Array<{
         id: string;
@@ -85,6 +77,7 @@ export function KanbanMembershipNotifications() {
           });
         }
         if (
+          !hasBackgroundPush(userId) &&
           !desktopSeen.has(row.id) &&
           createdAt >= startedAt
         ) {

@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "CRM Prócion",
+  "short_name": "Prócion",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#141a2b",
+  "theme_color": "#141a2b",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

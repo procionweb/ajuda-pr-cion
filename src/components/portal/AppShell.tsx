@@ -5,6 +5,7 @@ import { Breadcrumbs, type Crumb } from "./Breadcrumbs";
 import { FleetActionModals } from "@/components/fleet/FleetActionModals";
 import { useSidebarCollapsed } from "@/lib/sidebar-store";
 import { cn } from "@/lib/utils";
+import { BackgroundPushRegistration } from "./BackgroundPushRegistration";
 import { CalendarNotifications } from "./CalendarNotifications";
 import { KanbanMembershipNotifications } from "./KanbanMembershipNotifications";
 import { useAutoTableSort } from "@/lib/use-auto-table-sort";
@@ -29,6 +30,7 @@ export function AppShell({ children, fullWidth = false }: { children: ReactNode;
         </main>
       </div>
       <FleetActionModals />
+      <BackgroundPushRegistration />
       <CalendarNotifications />
       <KanbanMembershipNotifications />
     </div>

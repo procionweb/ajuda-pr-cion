@@ -45,6 +45,7 @@ import { Route as FrotaIndexRouteImport } from './routes/frota.index'
 import { Route as FrotaVehicleIdRouteImport } from './routes/frota.$vehicleId'
 import { Route as KanbanBoardIdRouteImport } from './routes/kanban.$boardId'
 import { Route as SuporteAgendamentosRouteImport } from './routes/suporte.agendamentos'
+import { Route as ApiNotificationsDispatchRouteImport } from './routes/api/notifications/dispatch'
 import { Route as ApiPublicTestPlacesRouteImport } from './routes/api/public/test-places'
 import { Route as ClientesContadoresAccountantIdRouteImport } from './routes/clientes.contadores.$accountantId'
 import { Route as ComercialContatoLeadIdRouteImport } from './routes/comercial.contato.$leadId'
@@ -238,6 +239,12 @@ const SuporteAgendamentosRoute = SuporteAgendamentosRouteImport.update({
   path: '/suporte/agendamentos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiNotificationsDispatchRoute =
+  ApiNotificationsDispatchRouteImport.update({
+    id: '/api/notifications/dispatch',
+    path: '/api/notifications/dispatch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicTestPlacesRoute = ApiPublicTestPlacesRouteImport.update({
   id: '/api/public/test-places',
   path: '/api/public/test-places',
@@ -319,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/base-de-conhecimento/': typeof BaseDeConhecimentoIndexRoute
   '/clientes/': typeof ClientesIndexRoute
   '/frota/': typeof FrotaIndexRoute
+  '/api/notifications/dispatch': typeof ApiNotificationsDispatchRoute
   '/api/public/test-places': typeof ApiPublicTestPlacesRoute
   '/clientes/contadores/$accountantId': typeof ClientesContadoresAccountantIdRoute
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
@@ -363,6 +371,7 @@ export interface FileRoutesByTo {
   '/base-de-conhecimento': typeof BaseDeConhecimentoIndexRoute
   '/clientes': typeof ClientesIndexRoute
   '/frota': typeof FrotaIndexRoute
+  '/api/notifications/dispatch': typeof ApiNotificationsDispatchRoute
   '/api/public/test-places': typeof ApiPublicTestPlacesRoute
   '/clientes/contadores/$accountantId': typeof ClientesContadoresAccountantIdRoute
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
@@ -410,6 +419,7 @@ export interface FileRoutesById {
   '/base-de-conhecimento/': typeof BaseDeConhecimentoIndexRoute
   '/clientes/': typeof ClientesIndexRoute
   '/frota/': typeof FrotaIndexRoute
+  '/api/notifications/dispatch': typeof ApiNotificationsDispatchRoute
   '/api/public/test-places': typeof ApiPublicTestPlacesRoute
   '/clientes/contadores/$accountantId': typeof ClientesContadoresAccountantIdRoute
   '/comercial/contato/$leadId': typeof ComercialContatoLeadIdRoute
@@ -458,6 +468,7 @@ export interface FileRouteTypes {
     | '/base-de-conhecimento/'
     | '/clientes/'
     | '/frota/'
+    | '/api/notifications/dispatch'
     | '/api/public/test-places'
     | '/clientes/contadores/$accountantId'
     | '/comercial/contato/$leadId'
@@ -502,6 +513,7 @@ export interface FileRouteTypes {
     | '/base-de-conhecimento'
     | '/clientes'
     | '/frota'
+    | '/api/notifications/dispatch'
     | '/api/public/test-places'
     | '/clientes/contadores/$accountantId'
     | '/comercial/contato/$leadId'
@@ -548,6 +560,7 @@ export interface FileRouteTypes {
     | '/base-de-conhecimento/'
     | '/clientes/'
     | '/frota/'
+    | '/api/notifications/dispatch'
     | '/api/public/test-places'
     | '/clientes/contadores/$accountantId'
     | '/comercial/contato/$leadId'
@@ -589,6 +602,7 @@ export interface RootRouteChildren {
   ConfiguracoesLogsRoute: typeof ConfiguracoesLogsRoute
   SuporteAgendamentosRoute: typeof SuporteAgendamentosRoute
   ClientesIndexRoute: typeof ClientesIndexRoute
+  ApiNotificationsDispatchRoute: typeof ApiNotificationsDispatchRoute
   ApiPublicTestPlacesRoute: typeof ApiPublicTestPlacesRoute
   ComercialContatoLeadIdRoute: typeof ComercialContatoLeadIdRoute
   ComercialEditarContatoLeadIdRoute: typeof ComercialEditarContatoLeadIdRoute
@@ -849,6 +863,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuporteAgendamentosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/notifications/dispatch': {
+      id: '/api/notifications/dispatch'
+      path: '/api/notifications/dispatch'
+      fullPath: '/api/notifications/dispatch'
+      preLoaderRoute: typeof ApiNotificationsDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/test-places': {
       id: '/api/public/test-places'
       path: '/api/public/test-places'
@@ -1013,6 +1034,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesLogsRoute: ConfiguracoesLogsRoute,
   SuporteAgendamentosRoute: SuporteAgendamentosRoute,
   ClientesIndexRoute: ClientesIndexRoute,
+  ApiNotificationsDispatchRoute: ApiNotificationsDispatchRoute,
   ApiPublicTestPlacesRoute: ApiPublicTestPlacesRoute,
   ComercialContatoLeadIdRoute: ComercialContatoLeadIdRoute,
   ComercialEditarContatoLeadIdRoute: ComercialEditarContatoLeadIdRoute,

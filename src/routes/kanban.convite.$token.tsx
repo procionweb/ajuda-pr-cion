@@ -1,3 +1,4 @@
+import { disconnectBackgroundPush } from "@/lib/background-push";
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { acceptBoardInvite, getBoardInviteInfo, type BoardInviteInfo } from "@/lib/kanban-api";
@@ -38,7 +39,10 @@ function AcceptInvitePage() {
 
   const goToLogin = async () => {
     sessionStorage.setItem("post_login_redirect", `/kanban/convite/${token}`);
-    if (session) await supabase.auth.signOut();
+    if (session) {
+      await disconnectBackgroundPush().catch(() => {});
+      await supabase.auth.signOut();
+    }
     await navigate({ to: "/login", replace: true });
   };
 
