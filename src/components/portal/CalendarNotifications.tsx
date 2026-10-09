@@ -7,6 +7,7 @@ import { addNotification } from "@/lib/notifications-store";
 import { useLocalEvents } from "@/lib/local-events-store";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { supabase } from "@/lib/supabase";
+import { showBrowserNotification } from "@/lib/browser-notification";
 
 const REMINDER_WINDOW_MS = 30 * 60 * 1000;
 
@@ -73,16 +74,12 @@ export function CalendarNotifications() {
               duration: 10000,
               position: "bottom-right",
             });
-            if ("Notification" in window && Notification.permission === "granted") {
-              const desktopNotification = new Notification(title, {
-                body: description,
-                tag: `calendar:${event.id}`,
-              });
-              desktopNotification.onclick = () => {
-                window.focus();
-                window.location.assign(`/calendario?evento=${encodeURIComponent(String(event.id))}`);
-              };
-            }
+            void showBrowserNotification(
+              title,
+              description,
+              `calendar:${event.id}`,
+              `/calendario?evento=${encodeURIComponent(String(event.id))}`,
+            );
           }
         });
       } catch {

@@ -25,7 +25,9 @@ export async function showBrowserNotification(
 
   if ("serviceWorker" in navigator) {
     try {
-      const registration = await navigator.serviceWorker.register("/notification-sw.js");
+      await navigator.serviceWorker.register("/notification-sw.js");
+      // O registro inicial pode ainda estar instalando; aguarde a ativação.
+      const registration = await navigator.serviceWorker.ready;
       await registration.showNotification(title, { body, tag, data: { href } });
       return true;
     } catch {

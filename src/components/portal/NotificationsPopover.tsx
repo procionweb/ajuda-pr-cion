@@ -42,7 +42,7 @@ export function NotificationsPopover() {
     }
     const sent = await showBrowserNotification(
       "Teste de notificação do CRM",
-      "Os avisos do Kanban devem aparecer no computador.",
+      "Os avisos de reuniões, agendamentos e Kanban devem aparecer neste dispositivo.",
       `procion-notification-test:${Date.now()}`,
       window.location.href,
     );
