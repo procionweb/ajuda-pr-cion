@@ -55,7 +55,9 @@ export function evaluateVehicle(
   const reservations = getActiveReservationsByVehicle(vehicle.id).filter(
     (reservation) => String(reservation.eventId ?? "") !== String(ignoreEventId ?? ""),
   );
-  if (reservations.length === 0) return { key: "disponivel", label: "Disponível" };
+  if (reservations.length === 0 && (!windowStart || !windowEnd)) {
+    return { key: "disponivel", label: "Disponível" };
+  }
   if (!windowStart || !windowEnd) {
     return { key: "pre_agendado", label: "Pré-agendado", conflict: false };
   }

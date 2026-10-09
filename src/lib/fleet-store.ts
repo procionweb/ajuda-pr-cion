@@ -650,10 +650,20 @@ export function hasReservationConflict(
   endAt: string,
   ignoreReservationId?: string,
 ): VehicleReservation | undefined {
-  return getActiveReservationsByVehicle(vehicleId).find((r) => {
-    if (r.id === ignoreReservationId) return false;
+  hydrateRuntimeRecords();
+  return reservations.find((r) => {
+    if (r.vehicleId !== vehicleId || r.id === ignoreReservationId) return false;
+    const linkedUsage = r.eventId == null ? undefined : usages.find(
+      (usage) => String(usage.appointmentId ?? "") === String(r.eventId),
+    );
+    // A devolução também mantém o intervalo de retorno; cancelamentos não bloqueiam.
+    if (linkedUsage?.status === "cancelado") return false;
+    if (r.status === "cancelada" && linkedUsage?.status !== "devolvido") return false;
     const reservedFrom = new Date(r.startAt).getTime() - VEHICLE_RESERVATION_BUFFER_MS;
-    const reservedUntil = new Date(r.endAt).getTime() + VEHICLE_RETURN_BUFFER_MS;
+    const reservedUntil = Math.max(
+      new Date(r.endAt).getTime(),
+      linkedUsage?.returnedAt ? new Date(linkedUsage.returnedAt).getTime() : 0,
+    ) + VEHICLE_RETURN_BUFFER_MS;
     const requestedFrom = new Date(startAt).getTime();
     const requestedUntil = new Date(endAt).getTime();
     return requestedFrom < reservedUntil && requestedUntil > reservedFrom;

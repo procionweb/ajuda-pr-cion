@@ -115,7 +115,7 @@ export function CreateEventDialog({
   }, [open, initialDate, editingEvent]);
 
   useEffect(() => {
-    if (lockedClient || type !== "Reunião na Prócion" || !procionClient) return;
+    if (lockedClient || !["Reunião na Prócion", "Reunião remota"].includes(type) || !procionClient) return;
     if (meetingTarget === "Empresa" && client?.id !== procionClient.id) {
       setClient(procionClient);
     }
