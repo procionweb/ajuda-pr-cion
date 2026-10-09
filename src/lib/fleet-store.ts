@@ -292,7 +292,7 @@ export function getUsageReturnRef(u: VehicleUsage) {
 // -----------------------------------------------------------------------------
 let vehicles: Vehicle[] = [
   {
-    id: "corolla",
+    id: "gol-g4",
     model: "Volkswagen Gol G4",
     plate: "ABC-1234",
     category: "Hatch",
@@ -333,7 +333,7 @@ let vehicles: Vehicle[] = [
     },
   },
   {
-    id: "tracker",
+    id: "celta",
     model: "Chevrolet Celta",
     plate: "PRC-2026",
     category: "Hatch",
@@ -374,7 +374,7 @@ let vehicles: Vehicle[] = [
     },
   },
   {
-    id: "onix",
+    id: "mobi",
     model: "Fiat Mobi",
     plate: "HAD-1908",
     category: "Hatch",
@@ -415,7 +415,7 @@ let vehicles: Vehicle[] = [
     },
   },
   {
-    id: "strada",
+    id: "saveiro-g5",
     model: "Volkswagen Saveiro G5",
     plate: "WEB-4580",
     category: "Utilitário",

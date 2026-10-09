@@ -17,6 +17,7 @@ function run(name, args, command = process.execPath) {
 for (const [name, file, database] of [
   ['Chamados e timeline', 'scripts/crm-bot/ticket-lifecycle.mjs', true],
   ['Catálogos: criar, editar, excluir, restaurar e permissões', 'scripts/test-crm-catalog-database.mjs', true],
+  ['Veículos: IDs e preservação dos vínculos', 'scripts/test-fleet-vehicle-ids.mjs', true],
   ['Reserva e conflito de salas', 'scripts/test-room-availability.mjs', true],
   ['Notificações: banco e fila', 'scripts/test-background-push.mjs', true],
   ['Notificações com navegador fechado', 'scripts/test-background-push-browser.mjs', false],
