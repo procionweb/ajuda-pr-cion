@@ -1048,8 +1048,8 @@ main th[data-auto-sortable="true"] {
   .accountants-table td[data-label="Contador"], .accountants-table td[data-label="Escritório"], .accountants-table td[data-label="Contato"], .accountants-table td[data-label="Ações"] { grid-column:1/-1; }
   .accountants-table td[data-label="Contador"] { grid-row:1; }
   .accountants-table td[data-label="Ações"] { border-top:1px solid var(--border); padding-top:.5rem; text-align:right; }
-  .accountant-linked-client { display:grid; grid-template-columns:32px minmax(0,1fr); gap:.75rem; margin:.75rem; padding:1rem; border:1px solid var(--border); border-radius:.75rem; background:var(--card); }
-  .accountant-linked-client > span { width:32px; height:32px; }
+  .accountant-linked-client { display:grid; grid-template-columns:minmax(0,1fr); gap:.75rem; margin:.75rem; padding:1rem; border:1px solid var(--border); border-radius:.75rem; background:var(--card); }
+  .accountant-linked-client > span { display:none; }
   .accountant-linked-client > .min-w-0 { width:100%; overflow-wrap:anywhere; }
   .accountant-linked-client > .min-w-0 > div:first-child { margin-top:0; font-size:13px; line-height:1.4; font-weight:500; }
   .accountant-linked-client > .ml-auto { display:grid; grid-template-columns:minmax(0,1fr); grid-column:1/-1; margin-left:0; width:100%; gap:.5rem; padding-left:0; padding-top:.75rem; border-top:1px solid var(--border); overflow-wrap:anywhere; }
