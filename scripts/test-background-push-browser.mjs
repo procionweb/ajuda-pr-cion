@@ -55,9 +55,10 @@ vm.runInNewContext(code, { exports: exported, require: name => name === 'web-pus
 assert(!exported.isBrowserPushEndpoint('https://fcm.googleapis.com.evil.test/send'));
 assert(!exported.isBrowserPushEndpoint('http://fcm.googleapis.com/send'));
 assert(!exported.isBrowserPushEndpoint('https://user:pass@fcm.googleapis.com/send'));
-const bad = await exported.dispatchPushNotifications(new Request('https://crm.example/api/notifications/dispatch', { method: 'POST', body: JSON.stringify({ token: 'invalid' }) }));
+const backendConfig = { supabaseUrl: 'https://crm.supabase.co', supabasePublishableKey: 'public' };
+const bad = await exported.dispatchPushNotifications(new Request('https://crm.example/api/notifications/dispatch', { method: 'POST', body: JSON.stringify({ token: 'invalid' }) }), backendConfig);
 assert.equal(bad.status, 403);
-const ok = await exported.dispatchPushNotifications(new Request('https://crm.example/api/notifications/dispatch', { method: 'POST', body: JSON.stringify({ token: 'a'.repeat(64) }) }));
+const ok = await exported.dispatchPushNotifications(new Request('https://crm.example/api/notifications/dispatch', { method: 'POST', body: JSON.stringify({ token: 'a'.repeat(64) }) }), backendConfig);
 assert.equal(ok.status, 200);
 assert.equal(sends, 1);
 assert.equal(results.find(r => r.p_id === 'one').p_status, 201);

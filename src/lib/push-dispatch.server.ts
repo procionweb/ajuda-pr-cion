@@ -1,5 +1,5 @@
 import webpush from 'web-push';
-import { supabaseUrl, supabasePublishableKey } from 'virtual:crm-supabase-config';
+type PushBackendConfig = { supabaseUrl: string; supabasePublishableKey: string };
 
 type PushJob = {
   id: string; leaseId: string;
@@ -16,9 +16,9 @@ export function isBrowserPushEndpoint(endpoint: string) {
   } catch { return false; }
 }
 
-async function rpc(name: string, args: Record<string, unknown>) {
-  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`, {
-    method: 'POST', headers: { apikey: supabasePublishableKey, 'Content-Type': 'application/json' },
+async function rpc(config: PushBackendConfig, name: string, args: Record<string, unknown>) {
+  const response = await fetch(`${config.supabaseUrl}/rest/v1/rpc/${name}`, {
+    method: 'POST', headers: { apikey: config.supabasePublishableKey, 'Content-Type': 'application/json' },
     body: JSON.stringify(args), signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? 'Unauthorized' : 'Push queue unavailable');
@@ -26,7 +26,7 @@ async function rpc(name: string, args: Record<string, unknown>) {
   return body ? JSON.parse(body) : null;
 }
 
-export async function dispatchPushNotifications(request: Request) {
+export async function dispatchPushNotifications(request: Request, config: PushBackendConfig) {
   const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
   let token: string;
   try {
@@ -36,7 +36,7 @@ export async function dispatchPushNotifications(request: Request) {
   } catch { return json({ error: 'Invalid request' }, 400); }
   try {
     // Only the private scheduler token can lease messages or access the VAPID private key.
-    const batch = await rpc('claim_crm_push_deliveries', { p_token: token }) as {
+    const batch = await rpc(config, 'claim_crm_push_deliveries', { p_token: token }) as {
       publicKey: string; privateKey: string; jobs: PushJob[];
     };
     let sent = 0;
@@ -61,7 +61,7 @@ export async function dispatchPushNotifications(request: Request) {
       } catch {
         // Retry from the queue; payloads, keys and subscription URLs never enter logs.
       }
-      await rpc('finish_crm_push_delivery', {
+      await rpc(config, 'finish_crm_push_delivery', {
         p_token: token, p_id: job.id, p_lease_id: job.leaseId, p_status: status,
       });
     }));
