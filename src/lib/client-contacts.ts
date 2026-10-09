@@ -179,7 +179,10 @@ export async function fetchClientGroupCompanies(
   groupCode: string | null;
 }> {
   // Garante cache de clientes carregado para resolver membros do grupo.
-  const allClients = await loadClients().catch(() => [] as ClientRow[]);
+  const [allClients, groupResult] = await Promise.all([
+    loadClients().catch(() => [] as ClientRow[]),
+    supabase.rpc("get_crm_client_group_companies", { client_acronym: client.acronym }),
+  ]);
   const groupCode = resolveGroupCode(client, allClients);
 
   // Lista de siglas a consultar (sempre inclui o próprio cliente).
@@ -215,6 +218,27 @@ export async function fetchClientGroupCompanies(
       if (seen.has(key)) continue;
       seen.add(key);
       companies.push(co);
+    }
+  }
+
+  // A consulta do cadastro inclui também membros do grupo sem client_companies.
+  // Esses registros não aparecem nos bundles individuais.
+  if (groupResult.error) {
+    console.warn("[client-contacts] falha ao carregar empresas do grupo", groupResult.error);
+  } else if (Array.isArray(groupResult.data)) {
+    const rowsByClient = new Map<string, RawCompany[]>();
+    for (const raw of groupResult.data as (RawCompany & { client_acronym?: string })[]) {
+      const acronym = String(raw.client_acronym || client.acronym).trim().toUpperCase();
+      rowsByClient.set(acronym, [...(rowsByClient.get(acronym) ?? []), raw]);
+    }
+    for (const [acronym, rows] of rowsByClient) {
+      const owner = allClients.find((item) => item.acronym.trim().toUpperCase() === acronym);
+      const ownerId = owner?.id || (acronym === client.acronym.trim().toUpperCase() ? selfBundle?.clientId : null);
+      for (const company of mapCompanies(rows, ownerId ?? null, acronym)) {
+        if (seen.has("id:" + company.id)) continue;
+        seen.add("id:" + company.id);
+        companies.push(company);
+      }
     }
   }
 

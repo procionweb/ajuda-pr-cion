@@ -496,7 +496,7 @@ function NewTicketPage() {
     toast.success(existingTicket ? "Registro adicionado à timeline" : "Chamado criado", {
       description: existingTicket ? `Registro salvo no chamado ${ticket.protocol}.` : `${ticket.protocol} foi adicionado na fila de suporte.`,
     });
-    void navigate({ to: "/chamados", search: { ticket: ticket.id } });
+    void navigate({ to: "/chamados", search: {} });
   };
 
   return (
