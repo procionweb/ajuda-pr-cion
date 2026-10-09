@@ -33,3 +33,8 @@ scripts/downdetector-extension/collector-config.local.js
 *.njsproj
 *.sln
 *.sw?
+
+# Bot CRM: relatórios e credenciais
+crm-bot-report/
+.env.crm-bot.local
+playwright/.auth/
