@@ -383,7 +383,7 @@ export function mapDatabaseClient(c: DatabaseClient): ClientRow {
     name: String(c.name || c.trade_name || c.legal_name || ""),
     razaoSocial: String(c.legal_name || c.name || c.acronym || ""),
     fantasia: String(c.trade_name || c.name || ""),
-    segment: labelFromCode(c.industry, industryLabels),
+    segment: !c.industry || String(c.industry) === "0" ? "Ramo não preenchido" : labelFromCode(c.industry, industryLabels),
     size: labelFromCode(c.size, sizeLabels),
     version: String(c.version || ""),
     versionDate: date(c.version_released_at),

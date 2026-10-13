@@ -988,7 +988,7 @@ main th[data-auto-sortable="true"] {
   .clients-list-table tbody tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; padding:1rem; border:1px solid var(--border); border-radius:.75rem; background:var(--card); }
   .clients-list-table td { display:block; min-width:0; padding:0; white-space:normal; overflow-wrap:anywhere; }
   .clients-list-table td[data-label]::before { content:attr(data-label); display:block; margin-bottom:.25rem; font-size:10px; opacity:.65; text-transform:uppercase; }
-  .clients-list-table td[data-label="Nome / perfil"], .clients-list-table td[data-label="Status"], .clients-list-table td[colspan] { grid-column:1/-1; }
+  .clients-list-table td[data-label="Nome / perfil"], .clients-list-table td[data-label="Status"], .clients-list-table td[data-label="Ações"], .clients-list-table td[colspan] { grid-column:1/-1; }
   .clients-list-table td[data-label="Nome / perfil"] { grid-row:1; }
   .clients-list-table td[data-label="Nome / perfil"] > div { display:block; overflow:visible; -webkit-line-clamp:unset; }
   .clients-list-table .truncate, .clients-list-table .whitespace-nowrap { white-space:normal; overflow-wrap:anywhere; }

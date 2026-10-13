@@ -1,7 +1,11 @@
-import { createFileRoute, Link, useNavigate, notFound } from "@tanstack/react-router";
+import { useState } from "react";
+import { ClientEditDialog } from "@/components/clients/ClientEditDialog";
+import { usePortalAuth } from "@/lib/portal-auth";
+import { createFileRoute, Link, useNavigate, useRouter, notFound } from "@tanstack/react-router";
 import { z } from "zod";
 import {
   ArrowLeft,
+  Pencil,
   Building2,
   History,
   Monitor,
@@ -141,6 +145,10 @@ function ClientDetailPage() {
   } = Route.useLoaderData() as ClientDetail;
   const { tab, from, ticketId } = Route.useSearch();
   const navigate = useNavigate();
+  const router = useRouter();
+  const { role, department } = usePortalAuth();
+  const [editing, setEditing] = useState(false);
+  const canEdit = role === "s_admin" || department === "admin" || department === "commercial";
   const showReturnToTicket = from === "chamado" && !!ticketId;
   const { clients: allClients } = useClients({ onlyActive: false });
   const showInternet =
@@ -192,6 +200,15 @@ function ClientDetailPage() {
   const breadcrumbGroupLabel = groupCode || client.acronym;
   return (
     <AppShell>
+      {editing && (
+        <ClientEditDialog
+          acronym={client.acronym}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            void router.invalidate();
+          }}
+        />
+      )}
       <div className="mb-3 flex flex-wrap items-center gap-2 max-xl:[&_a]:min-h-11">
         <Button asChild variant="outline" size="sm" className="h-8 cursor-pointer rounded-lg">
           <Link to="/clientes" aria-label="Voltar para Clientes">
@@ -200,6 +217,12 @@ function ClientDetailPage() {
           </Link>
         </Button>
 
+        {canEdit && (
+          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Editar cliente
+          </Button>
+        )}
         {showReturnToTicket && (
           <Button
             asChild

@@ -1,0 +1,102 @@
+[
+  {
+    "opcao": "1",
+    "modulo": "Faturamento",
+    "horder": "0"
+  },
+  {
+    "opcao": "3",
+    "modulo": "Compras",
+    "horder": "1"
+  },
+  {
+    "opcao": "4",
+    "modulo": "Contas a Receber",
+    "horder": "2"
+  },
+  {
+    "opcao": "5",
+    "modulo": "Contas a Pagar",
+    "horder": "3"
+  },
+  {
+    "opcao": "7",
+    "modulo": "Estoque",
+    "horder": "4"
+  },
+  {
+    "opcao": "8",
+    "modulo": "Folha de Pgto",
+    "horder": "5"
+  },
+  {
+    "opcao": "9",
+    "modulo": "Livros Fiscais - SPED's",
+    "horder": "6"
+  },
+  {
+    "opcao": "11",
+    "modulo": "Ordens de Serviço",
+    "horder": "7"
+  },
+  {
+    "opcao": "12",
+    "modulo": "Frente de Loja",
+    "horder": "8"
+  },
+  {
+    "opcao": "13",
+    "modulo": "Outros",
+    "horder": "9"
+  },
+  {
+    "opcao": "14",
+    "modulo": "Contabilidade",
+    "horder": "10"
+  },
+  {
+    "opcao": "15",
+    "modulo": "Ativo Imobilizado",
+    "horder": "11"
+  },
+  {
+    "opcao": "16",
+    "modulo": "Bovinos",
+    "horder": "12"
+  },
+  {
+    "opcao": "10",
+    "modulo": "Transportes",
+    "horder": "13"
+  },
+  {
+    "opcao": "17",
+    "modulo": "Mobile",
+    "horder": "14"
+  },
+  {
+    "opcao": "18",
+    "modulo": "Integrações Hádron Web",
+    "horder": "15"
+  },
+  {
+    "opcao": "19",
+    "modulo": "SAC",
+    "horder": "16"
+  },
+  {
+    "opcao": "20",
+    "modulo": "Controle de Solicitações",
+    "horder": "17"
+  },
+  {
+    "opcao": "21",
+    "modulo": "Ordens de Produção",
+    "horder": "18"
+  },
+  {
+    "opcao": "22",
+    "modulo": "Fluxo de Caixa",
+    "horder": "19"
+  }
+]

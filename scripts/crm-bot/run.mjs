@@ -15,6 +15,8 @@ function run(name, args, command = process.execPath) {
   console.log(`${name}: ${results.at(-1).status}`);
 }
 for (const [name, file, database] of [
+  ['Clientes: filtros e limite de versão', 'scripts/test-client-listing-rules.mjs', false],
+  ['Clientes: edição e permissões', 'scripts/test-client-listing-edit.mjs', true],
   ['Chamados e timeline', 'scripts/crm-bot/ticket-lifecycle.mjs', true],
   ['Catálogos: criar, editar, excluir, restaurar e permissões', 'scripts/test-crm-catalog-database.mjs', true],
   ['Veículos: IDs e preservação dos vínculos', 'scripts/test-fleet-vehicle-ids.mjs', true],

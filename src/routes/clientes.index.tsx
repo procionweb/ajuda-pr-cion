@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { z } from "zod";
 import {
   Activity,
@@ -41,6 +41,8 @@ import {
   Landmark,
   LockKeyhole,
   Eye,
+  Pencil,
+  Briefcase,
   History,
   Phone,
   Printer,
@@ -90,6 +92,20 @@ import type {
 } from "@/lib/clients-api";
 import { normalizeCityUf } from "@/lib/br-city";
 import { supabase } from "@/lib/supabase";
+import { ClientEditDialog } from "@/components/clients/ClientEditDialog";
+import { usePortalAuth } from "@/lib/portal-auth";
+import { loadClientListingContext } from "@/lib/client-edit-api";
+import {
+  companyModuleOptions,
+  clientDatePeriods,
+  matchesCompany,
+  matchesPeriod,
+  industryLabel,
+  clientStatusLabel,
+  sizeLabel,
+  type ExtraClientFilters,
+  type ListingContext,
+} from "@/lib/client-listing-rules";
 import hadronIconUrl from "@/assets/menu-hadron-solid.png";
 
 export function HadronMenuIcon({ className }: { className?: string }) {
@@ -368,7 +384,7 @@ const QUICK_STATUS_OPTIONS: StatusFilter[] = [
   "Todos",
 ];
 
-type Filters = {
+type Filters = ExtraClientFilters & {
   sigla: string;
   siglaGrupo: string;
   nome: string;
@@ -398,6 +414,10 @@ const emptyFilters: Filters = {
   uf: "",
   cnpj: "",
   status: "Todos",
+  periods: {},
+  hasBoletos: "",
+  billing: "",
+  companyModules: [],
   dateStart: undefined,
   dateEnd: undefined,
 };
@@ -434,6 +454,10 @@ function countActive(f: Filters): number {
   if (f.cnpj.trim()) n++;
   // Status é controlado na barra rápida; não conta como filtro avançado.
   if (f.dateStart || f.dateEnd) n++;
+  n += Object.values(f.periods ?? {}).filter((p) => p.start || p.end).length;
+  if (f.hasBoletos) n++;
+  if (f.billing) n++;
+  if (f.companyModules?.length) n++;
   return n;
 }
 
@@ -623,6 +647,38 @@ function ClientVersionCell({ client }: { client: ClientRow }) {
 }
 
 function ClientsPage() {
+  const { role, department, session } = usePortalAuth();
+  const canEdit = role === "s_admin" || department === "admin" || department === "commercial";
+  const [editingClient, setEditingClient] = useState<string | null>(null);
+  const [listingContext, setListingContext] = useState<ListingContext[] | null>(null);
+  const [contextFailed, setContextFailed] = useState(false);
+  const contextByAcronym = useMemo(
+    () => new Map((listingContext ?? []).map((c) => [c.acronym.toUpperCase(), c])),
+    [listingContext],
+  );
+  const reloadListingContext = () =>
+    loadClientListingContext().then((rows) => {
+      setListingContext(rows);
+      setContextFailed(false);
+    });
+  useEffect(() => {
+    if (!session) return;
+    let active = true;
+    loadClientListingContext()
+      .then((rows) => {
+        if (active) {
+          setListingContext(rows);
+          setContextFailed(false);
+        }
+      })
+      .catch(() => {
+        if (active) setContextFailed(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [session?.user.id]);
+
   const loaderData = Route.useLoaderData() as { clients: ClientRow[]; loadFailed?: boolean };
   const [clients, setClients] = useState<ClientRow[]>(loaderData.clients);
   const [clientsLoading, setClientsLoading] = useState(Boolean(loaderData.loadFailed));
@@ -784,9 +840,51 @@ function ClientsPage() {
     };
     const acronymQuery = quickAcronym.trim();
     const searchSource = quick ? (companySearchResults ?? []) : clients;
-    return searchSource.filter((c) => {
+    const uniqueSource = [...new Map(searchSource.map((c) => [c.id, c])).values()].map((c) => {
+      const matrix =
+        c.group && c.group.toUpperCase() !== c.acronym.toUpperCase()
+          ? clients.find((parent) => parent.acronym.toUpperCase() === c.group.toUpperCase())
+          : undefined;
+      return matrix
+        ? {
+            ...c,
+            versionDate: matrix.versionDate || c.versionDate,
+            versionUpdatedAt: matrix.versionUpdatedAt || c.versionUpdatedAt,
+          }
+        : c;
+    });
+    return uniqueSource.filter((c) => {
+      const context = contextByAcronym.get(c.acronym.toUpperCase());
+      const hasCompanyFilter = Boolean(
+        filters.razaoSocial ||
+        filters.fantasia ||
+        filters.porte ||
+        filters.ramo ||
+        filters.cep ||
+        filters.cidade ||
+        filters.uf ||
+        filters.cnpj ||
+        filters.hasBoletos ||
+        filters.billing ||
+        filters.companyModules?.length,
+      );
+      if (hasCompanyFilter && !context) return false;
+      if (context?.companies.length) {
+        if (!context.companies.some((company) => matchesCompany(company, filters))) return false;
+      } else if (filters.hasBoletos || filters.billing || filters.companyModules?.length)
+        return false;
+      for (const [key, period] of Object.entries(filters.periods ?? {})) {
+        const value =
+          key === "version"
+            ? c.versionDate
+            : key === "setup"
+              ? c.versionUpdatedAt
+              : context?.source[key];
+        if (!matchesPeriod(value, period)) return false;
+      }
+
       if (acronymQuery && !normalize(c.acronym).includes(normalize(acronymQuery))) return false;
-      if (!quickMatches(c)) return false;
+      if (!companySearchResults && !quickMatches(c)) return false;
 
       if (filters.sigla && !normalize(c.acronym).includes(normalize(filters.sigla))) return false;
       if (filters.siglaGrupo) {
@@ -797,17 +895,37 @@ function ClientsPage() {
         if (!matchesGroup && !matchesRoot) return false;
       }
       if (filters.nome && !normalize(c.name).includes(normalize(filters.nome))) return false;
-      if (filters.razaoSocial && !normalize(c.razaoSocial).includes(normalize(filters.razaoSocial)))
+      if (!context?.companies.length) {
+        if (
+          filters.razaoSocial &&
+          !normalize(c.razaoSocial).includes(normalize(filters.razaoSocial))
+        )
+          return false;
+        if (filters.fantasia && !normalize(c.fantasia).includes(normalize(filters.fantasia)))
+          return false;
+        if (filters.porte && c.size !== filters.porte) return false;
+        if (filters.ramo && c.segment !== filters.ramo) return false;
+        if (filters.cep && !digits(c.cep).includes(digits(filters.cep))) return false;
+        if (filters.cidade && !normalize(c.city).includes(normalize(filters.cidade))) return false;
+        if (filters.uf && c.uf !== filters.uf) return false;
+        if (filters.cnpj && !digits(c.cnpj).includes(digits(filters.cnpj))) return false;
+      }
+      const actualStatus = String(context?.source.cli_status ?? (c.status === "Ativo" ? "1" : "0"));
+      if (filters.status === "Aviso do Cliente" && !String(context?.source.cli_aviso ?? "").trim())
         return false;
-      if (filters.fantasia && !normalize(c.fantasia).includes(normalize(filters.fantasia)))
+      if (
+        filters.status === "Mensagem no Hádron" &&
+        !String(context?.source.cli_msg_hadron ?? "").trim()
+      )
         return false;
-      if (filters.porte && c.size !== filters.porte) return false;
-      if (filters.ramo && c.segment !== filters.ramo) return false;
-      if (filters.cep && !digits(c.cep).includes(digits(filters.cep))) return false;
-      if (filters.cidade && !normalize(c.city).includes(normalize(filters.cidade))) return false;
-      if (filters.uf && c.uf !== filters.uf) return false;
-      if (filters.cnpj && !digits(c.cnpj).includes(digits(filters.cnpj))) return false;
-      if (filters.status !== "Todos" && c.status !== filters.status) return false;
+      const statusCodes: Record<string, string> = {
+        Ativo: "1",
+        Inativo: "0",
+        Pendente: "2",
+        Bloqueado: "9",
+      };
+      if (statusCodes[filters.status] && actualStatus !== statusCodes[filters.status]) return false;
+
       if (filters.dateStart || filters.dateEnd) {
         const d = parseBRDate(c.registered);
         const day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -824,19 +942,43 @@ function ClientsPage() {
       }
       return true;
     });
-  }, [clients, companySearchResults, filters, quickQuery, quickAcronym]);
+  }, [clients, companySearchResults, filters, quickQuery, quickAcronym, contextByAcronym]);
 
-  const sizes = useMemo(() => Array.from(new Set(clients.map((c) => c.size))).sort(), [clients]);
+  const sizes = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...clients.map((c) => c.size),
+          ...(listingContext ?? []).flatMap((c) => c.companies.map((e) => sizeLabel(e.size))),
+        ]),
+      )
+        .filter(Boolean)
+        .sort(),
+    [clients, listingContext],
+  );
   const segments = useMemo(
-    () => Array.from(new Set(clients.map((c) => c.segment))).sort(),
-    [clients],
+    () =>
+      Array.from(
+        new Set([
+          ...clients.map((c) => c.segment),
+          ...(listingContext ?? []).flatMap((c) =>
+            c.companies.map((e) => industryLabel(e.industry)),
+          ),
+        ]),
+      ).sort(),
+    [clients, listingContext],
   );
   const ufs = useMemo(
     () =>
-      Array.from(new Set(clients.map((c) => c.uf)))
+      Array.from(
+        new Set([
+          ...clients.map((c) => c.uf),
+          ...(listingContext ?? []).flatMap((c) => c.companies.map((e) => e.state)),
+        ]),
+      )
         .filter(Boolean)
         .sort(),
-    [clients],
+    [clients, listingContext],
   );
 
   const activeCount = countActive(filters);
@@ -927,6 +1069,31 @@ function ClientsPage() {
     chips.push({ key: "date", label: `Cadastro: ${s} – ${e}`, onRemove: clearDates });
   }
 
+  for (const [key, period] of Object.entries(filters.periods ?? {}))
+    if (period.start || period.end)
+      chips.push({
+        key: `period-${key}`,
+        label: `${clientDatePeriods.find((p) => p[0] === key)?.[1] ?? key}: ${period.start || "…"} – ${period.end || "…"}`,
+        onRemove: () => setFilters((f) => ({ ...f, periods: { ...f.periods, [key]: {} } })),
+      });
+  if (filters.hasBoletos)
+    chips.push({
+      key: "hasBoletos",
+      label: `Boletos: ${filters.hasBoletos === "yes" ? "Sim" : "Não"}`,
+      onRemove: () => removeChip("hasBoletos"),
+    });
+  if (filters.billing)
+    chips.push({
+      key: "billing",
+      label: `Cobrança: ${filters.billing}`,
+      onRemove: () => removeChip("billing"),
+    });
+  if (filters.companyModules?.length)
+    chips.push({
+      key: "companyModules",
+      label: `Módulos: ${filters.companyModules.map((code) => companyModuleOptions.find((m) => m.opcao === code)?.modulo ?? code).join(", ")}`,
+      onRemove: () => setFilters((f) => ({ ...f, companyModules: [] })),
+    });
   return (
     <AppShell>
       {grupoParam && (
@@ -1104,6 +1271,7 @@ function ClientsPage() {
                         </th>
                       );
                     })}
+                    <th className="px-2.5 py-3 text-left">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -1118,7 +1286,10 @@ function ClientsPage() {
                       }
                       className="cursor-pointer transition-colors hover:bg-primary/[0.04]"
                     >
-                      <td data-label="Cadastro" className="whitespace-nowrap px-2.5 py-4 text-muted-foreground">
+                      <td
+                        data-label="Cadastro"
+                        className="whitespace-nowrap px-2.5 py-4 text-muted-foreground"
+                      >
                         {client.registered}
                       </td>
                       <td data-label="Sigla" className="whitespace-nowrap px-2.5 py-4">
@@ -1135,7 +1306,10 @@ function ClientsPage() {
                           {client.razaoSocial}
                         </div>
                         <div className="text-[11px] font-normal text-muted-foreground">
-                          {client.segment} - Porte: {client.size}
+                          {!client.segment || client.segment === "0"
+                            ? "Ramo não preenchido"
+                            : client.segment}{" "}
+                          - Porte: {client.size}
                         </div>
                       </td>
                       <ClientVersionCell client={client} />
@@ -1149,24 +1323,98 @@ function ClientsPage() {
                           )}
                         </div>
                       </td>
-                      <td data-label="CNPJ" className="whitespace-nowrap px-2.5 py-4 text-muted-foreground">
+                      <td
+                        data-label="CNPJ"
+                        className="whitespace-nowrap px-2.5 py-4 text-muted-foreground"
+                      >
                         <ClientCnpjCell client={client} />
                       </td>
                       <td data-label="Status" className="px-2.5 py-4">
                         <div className="flex flex-col items-start gap-1">
                           <Badge
                             className={cn(
-                              client.status === "Ativo"
+                              clientStatusLabel(
+                                contextByAcronym.get(client.acronym.toUpperCase())?.source
+                                  .cli_status,
+                                client.status,
+                              ) === "Ativo"
                                 ? "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
                                 : "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
                             )}
                           >
-                            {client.status}
+                            {clientStatusLabel(
+                              contextByAcronym.get(client.acronym.toUpperCase())?.source.cli_status,
+                              client.status,
+                            )}
                           </Badge>
                           <div className="flex items-center gap-1 whitespace-nowrap text-[11px] text-muted-foreground">
                             <RefreshCw className="h-3 w-3 shrink-0" />
                             <span>{client.updatedAt}</span>
                           </div>
+                        </div>
+                      </td>
+                      <td
+                        data-label="Ações"
+                        className="px-2.5 py-4"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <div className="flex items-center gap-1">
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9"
+                            title="Visualizar cliente"
+                          >
+                            <Link
+                              to="/clientes/$clienteId"
+                              params={{ clienteId: client.id }}
+                              aria-label={"Visualizar cliente " + client.acronym}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9"
+                              title="Editar cliente"
+                              aria-label={"Editar cliente " + client.acronym}
+                              onClick={() => setEditingClient(client.acronym)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canEdit && (
+                            <Button
+                              asChild={Boolean(
+                                contextByAcronym.get(client.acronym.toUpperCase())?.commercialId,
+                              )}
+                              disabled={
+                                !contextByAcronym.get(client.acronym.toUpperCase())?.commercialId
+                              }
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9"
+                              title="Ver contato comercial"
+                              aria-label={"Ver contato comercial " + client.acronym}
+                            >
+                              {contextByAcronym.get(client.acronym.toUpperCase())?.commercialId ? (
+                                <Link
+                                  to="/comercial/contatos/$leadId"
+                                  params={{
+                                    leadId: contextByAcronym.get(client.acronym.toUpperCase())!
+                                      .commercialId!,
+                                  }}
+                                >
+                                  <Briefcase className="h-4 w-4" />
+                                </Link>
+                              ) : (
+                                <Briefcase className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1175,7 +1423,7 @@ function ClientsPage() {
                   {clientsLoading && (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         className="px-4 py-10 text-center text-sm text-muted-foreground"
                       >
                         Carregando todos os clientes...
@@ -1186,7 +1434,7 @@ function ClientsPage() {
                   {!clientsLoading && filtered.length === 0 && (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         className="px-4 py-10 text-center text-sm text-muted-foreground"
                       >
                         Nenhum cliente encontrado com os filtros atuais.
@@ -1214,6 +1462,18 @@ function ClientsPage() {
           )}
         </div>
 
+        {editingClient && (
+          <ClientEditDialog
+            acronym={editingClient}
+            onClose={() => setEditingClient(null)}
+            onSaved={() => {
+              void listClients()
+                .then(setClients)
+                .catch(() => toast.error("Não foi possível atualizar a listagem."));
+              void reloadListingContext().catch(() => setContextFailed(true));
+            }}
+          />
+        )}
         <FiltersPanel
           open={filtersOpen}
           onOpenChange={setFiltersOpen}
@@ -1223,6 +1483,21 @@ function ClientsPage() {
           segments={segments}
           ufs={ufs}
           onApply={() => {
+            if (!listingContext) {
+              toast.error(
+                contextFailed
+                  ? "Não foi possível carregar os dados das empresas. Tente novamente."
+                  : "Aguarde o carregamento dos dados das empresas.",
+              );
+              if (contextFailed) void reloadListingContext().catch(() => setContextFailed(true));
+              return;
+            }
+            for (const period of Object.values(draft.periods ?? {})) {
+              if (period.start && period.end && period.start > period.end) {
+                toast.error("A data inicial não pode ser posterior à data final.");
+                return;
+              }
+            }
             setFilters(draft);
             setFiltersOpen(false);
           }}
@@ -1263,7 +1538,7 @@ function FiltersPanel({
         <SheetHeader className="border-b border-border px-6 py-4">
           <SheetTitle className="text-lg font-semibold">Filtros de clientes</SheetTitle>
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-3">
               <FieldText
@@ -1385,6 +1660,75 @@ function FiltersPanel({
               </div>
             </div>
 
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="text-sm font-medium">Períodos do cliente</h3>
+              {clientDatePeriods.map(([key, label]) => (
+                <div key={key} className="space-y-1.5">
+                  <p className="text-xs font-medium">{label}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(["start", "end"] as const).map((side) => (
+                      <label key={side} className="min-w-0">
+                        <span className="sr-only">
+                          {label} · {side === "start" ? "De" : "Até"}
+                        </span>
+                        <Input
+                          aria-label={label + " · " + (side === "start" ? "De" : "Até")}
+                          type="date"
+                          className="w-full min-w-0"
+                          value={draft.periods?.[key]?.[side] ?? ""}
+                          onChange={(event) =>
+                            update("periods", {
+                              ...draft.periods,
+                              [key]: { ...draft.periods?.[key], [side]: event.target.value },
+                            })
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="text-sm font-medium">Empresas vinculadas</h3>
+              <label className="block space-y-1.5">
+                <span className="text-xs">Possui boletos?</span>
+                <select
+                  aria-label="Possui boletos?"
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                  value={draft.hasBoletos ?? ""}
+                  onChange={(event) => update("hasBoletos", event.target.value)}
+                >
+                  <option value="">Todos</option>
+                  <option value="yes">Sim</option>
+                  <option value="no">Não</option>
+                </select>
+              </label>
+              <FieldText
+                label="Cobrança (boletos)"
+                value={draft.billing ?? ""}
+                onChange={(value) => update("billing", value)}
+              />
+              <p className="text-xs font-medium">Módulos</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {companyModuleOptions.map((module) => (
+                  <label key={module.opcao} className="flex items-center gap-2 text-xs">
+                    <Checkbox
+                      checked={draft.companyModules?.includes(module.opcao)}
+                      onCheckedChange={(checked) =>
+                        update(
+                          "companyModules",
+                          checked
+                            ? [...(draft.companyModules ?? []), module.opcao]
+                            : (draft.companyModules ?? []).filter((code) => code !== module.opcao),
+                        )
+                      }
+                    />
+                    {module.modulo}
+                  </label>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2">
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                 Período de cadastro
@@ -1446,6 +1790,7 @@ function FieldText({
         {label}
       </p>
       <input
+        aria-label={label}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -2253,6 +2598,10 @@ function CompaniesSummaryCard({
   onOpen?: () => void;
 }) {
   void _onOpen;
+  const router = useRouter();
+  const { role, department } = usePortalAuth();
+  const canEdit = role === "s_admin" || department === "admin" || department === "commercial";
+  const [editingCompany, setEditingCompany] = useState<ClientCompany | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const isPrincipal = (co: ClientCompany) => {
     if (co.groupPosition === "001") return true;
@@ -2339,6 +2688,14 @@ function CompaniesSummaryCard({
                     )}
                   />
                 </button>
+                {canEdit && (
+                  <div className="px-4 pb-3">
+                    <Button variant="outline" size="sm" onClick={() => setEditingCompany(company)}>
+                      <Pencil className="mr-2 h-3.5 w-3.5" />
+                      Editar empresa vinculada
+                    </Button>
+                  </div>
+                )}
                 {expanded && (
                   <div className="border-t border-border bg-muted/10 px-4 py-4 dark:border-border">
                     <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -2359,6 +2716,16 @@ function CompaniesSummaryCard({
             );
           })}
         </div>
+      )}
+      {editingCompany && (
+        <ClientEditDialog
+          acronym={editingCompany.clientAcronym}
+          companyId={editingCompany.id}
+          onClose={() => setEditingCompany(null)}
+          onSaved={() => {
+            void router.invalidate();
+          }}
+        />
       )}
     </Section>
   );
@@ -4752,7 +5119,11 @@ function SortableDataTable<T>({
           {sorted.map((row, i) => (
             <tr key={i}>
               {columns.map((column) => (
-                <td key={column.key} data-label={column.label} className={`${cellPad} ${column.cellClassName ?? ""}`}>
+                <td
+                  key={column.key}
+                  data-label={column.label}
+                  className={`${cellPad} ${column.cellClassName ?? ""}`}
+                >
                   {column.render(row)}
                 </td>
               ))}
