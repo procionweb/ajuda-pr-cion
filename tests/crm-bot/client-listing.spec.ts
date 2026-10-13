@@ -139,3 +139,61 @@ test("Clientes: modais de cliente e empresa com dados simulados, sem gravação"
   await modal.getByRole("button", { name: "Cancelar", exact: true }).click();
   await expect(modal).not.toBeVisible();
 });
+
+test("Clientes: abertura imediata e listagem sem rolagem horizontal", async ({ page }) => {
+  test.skip(
+    !process.env.CRM_BOT_OPERATOR || !process.env.CRM_BOT_PASSWORD,
+    "Conta de testes não configurada",
+  );
+  test.setTimeout(120000);
+  await page.route("**/*", async (route) => {
+    const req = route.request();
+    const url = new URL(req.url());
+    const rpc = url.pathname.match(/\/rpc\/([^/]+)/)?.[1];
+    if (rpc === "get_crm_client") {
+      const acronym = req.postDataJSON().client_acronym;
+      await new Promise((resolve) => setTimeout(resolve, 8000));
+      return route.fulfill({
+        json: {
+          client: {
+            acronym,
+            name: "Teste de abertura",
+            legal_name: "Teste de abertura",
+            active: true,
+          },
+          companies: [],
+          contacts: [],
+        },
+      });
+    }
+    if (
+      !["GET", "HEAD", "OPTIONS"].includes(req.method()) &&
+      !url.pathname.endsWith("/auth/v1/token") &&
+      !(rpc && /^(get_|list_|search_|resolve_|support_load_)/.test(rpc))
+    )
+      return route.abort("blockedbyclient");
+    await route.continue();
+  });
+  await page.goto("/login");
+  await page.locator("#login-email").fill(process.env.CRM_BOT_OPERATOR!);
+  await page.locator("#login-password").fill(process.env.CRM_BOT_PASSWORD!);
+  await page.getByRole("button", { name: "Entrar", exact: true }).click();
+  await expect(page).not.toHaveURL(/\/login/, { timeout: 30000 });
+  await page.goto("/clientes");
+  const table = page.locator(".clients-list-table");
+  await expect(table.locator("tbody tr").first()).toBeVisible();
+  expect(await page.getByRole("link", { name: /^Visualizar cliente / }).count()).toBe(0);
+  expect(
+    await table.evaluate((t) => t.parentElement!.scrollWidth <= t.parentElement!.clientWidth + 2),
+  ).toBe(true);
+  await table.locator("tbody tr").first().locator('td[data-label="Nome / perfil"]').click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Carregando detalhes do cliente..." }),
+  ).toBeVisible({ timeout: 3000 });
+  await expect(
+    page.getByRole("status").filter({ hasText: "Carregando detalhes do cliente..." }),
+  ).not.toBeVisible({ timeout: 20000 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 3)).toBe(
+    true,
+  );
+});

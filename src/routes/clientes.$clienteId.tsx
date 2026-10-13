@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ClientEditDialog } from "@/components/clients/ClientEditDialog";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { createFileRoute, Link, useNavigate, useRouter, notFound } from "@tanstack/react-router";
@@ -65,7 +65,7 @@ function MiniSummary({
   );
 }
 
-import { getClientDetail, type ClientDetail } from "@/lib/clients-api";
+import { getClientDetail, getClientDetailPreview, type ClientDetail } from "@/lib/clients-api";
 import { normalizeCityUf } from "@/lib/br-city";
 import { getClientErpVersionStatus } from "@/lib/erp-versions";
 import { useClients, resolveGroupCode, getGroupMembers } from "@/lib/clients-store";
@@ -96,6 +96,8 @@ export const Route = createFileRoute("/clientes/$clienteId")({
   }),
   validateSearch: searchSchema,
   loader: async ({ params }) => {
+    const preview = getClientDetailPreview(params.clienteId);
+    if (preview) return { ...preview, deferred: true };
     const detail = await getClientDetail(params.clienteId);
     if (!detail) throw notFound();
     return detail;
@@ -127,6 +129,31 @@ export const Route = createFileRoute("/clientes/$clienteId")({
 });
 
 function ClientDetailPage() {
+  const initial = Route.useLoaderData() as ClientDetail & { deferred?: boolean };
+  const [hydrated, setHydrated] = useState<ClientDetail | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reload, setReload] = useState(0);
+  const loaded = hydrated?.client.id === initial.client.id ? hydrated : null;
+  const loadingDetails = Boolean(initial.deferred && !loaded);
+  useEffect(() => {
+    setHydrated(null);
+    setLoadError(false);
+    if (!initial.deferred) return;
+    let cancelled = false;
+    getClientDetail(initial.client.acronym)
+      .then((value) => {
+        if (cancelled) return;
+        if (value) setHydrated(value);
+        else setLoadError(true);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initial.client, initial.deferred, reload]);
+
   const {
     client,
     contacts,
@@ -142,7 +169,7 @@ function ClientDetailPage() {
     activities,
     parameters,
     logs,
-  } = Route.useLoaderData() as ClientDetail;
+  } = loaded ?? initial;
   const { tab, from, ticketId } = Route.useSearch();
   const navigate = useNavigate();
   const router = useRouter();
@@ -272,9 +299,9 @@ function ClientDetailPage() {
           />
           <MiniSummary
             label="Dispositivos"
-            value={deviceUsage.label}
+            value={loadingDetails ? "…" : deviceUsage.label}
             title={
-              deviceUsage.limit
+              loadingDetails ? "Carregando dispositivos" : deviceUsage.limit
                 ? `${deviceUsage.active} dispositivos ativos de ${deviceUsage.limit} contratados`
                 : `${deviceUsage.active} dispositivos ativos`
             }
@@ -338,8 +365,8 @@ function ClientDetailPage() {
         </header>
 
         <Tabs value={currentTab} onValueChange={setTab} className="flex flex-col">
-          <div className="min-w-0 overflow-x-auto border-b border-border px-2 sm:px-4 xl:px-7">
-            <TabsList className="client-detail-tabs h-auto w-max justify-start gap-1 rounded-none border-0 bg-transparent p-0">
+          <div className="min-w-0 border-b border-border px-2 sm:px-4 xl:px-7">
+            <TabsList className="client-detail-tabs h-auto w-full flex-wrap justify-start gap-1 rounded-none border-0 bg-transparent p-0">
               {[
                 ["cliente", "Cliente", Building2],
                 ["hadron", "Hádron", HadronMenuIcon],
@@ -370,72 +397,94 @@ function ClientDetailPage() {
           </div>
 
           <div className="client-detail-content min-w-0 bg-muted/10 p-3 sm:p-4 xl:p-6">
-            <TabsContent
-              value="cliente"
-              className="m-0 space-y-5 text-[12px] [&_.text-sm]:text-[12px]"
-            >
-              <ClientTab
-                client={client}
-                contacts={contacts}
-                companies={companies}
-                terminals={terminals}
-                tickets={tickets}
-                events={events}
-                activities={activities}
-                onOpenCompanies={() => setTab("empresas")}
-              />
-            </TabsContent>
-            <TabsContent
-              value="hadron"
-              className="m-0 space-y-5 text-[12px] [&_.text-sm]:text-[12px]"
-            >
-              <ClientHadronTab
-                client={client}
-                companies={companies}
-                modules={modules}
-                terminals={terminals}
-              />
-            </TabsContent>
-            {showInternet && (
-              <TabsContent
-                value="internet"
-                className="m-0 space-y-5 text-[12px] [&_.text-sm]:text-[12px]"
-              >
-                <ClientInternetTab client={client} internet={internet} />
-              </TabsContent>
+            {loadingDetails ? (
+              <div className="p-6" role="status">
+                {loadError ? (
+                  <div className="space-y-3">
+                    <p>Não foi possível carregar os detalhes do cliente.</p>
+                    <Button variant="outline" onClick={() => setReload((n) => n + 1)}>
+                      Tentar novamente
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Carregando detalhes do cliente...
+                    </p>
+                    <div className="h-32 animate-pulse rounded-lg bg-muted" />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <TabsContent
+                  value="cliente"
+                  className="m-0 space-y-5 text-[12px] [&_.text-sm]:text-[12px]"
+                >
+                  <ClientTab
+                    client={client}
+                    contacts={contacts}
+                    companies={companies}
+                    terminals={terminals}
+                    tickets={tickets}
+                    events={events}
+                    activities={activities}
+                    onOpenCompanies={() => setTab("empresas")}
+                  />
+                </TabsContent>
+                <TabsContent
+                  value="hadron"
+                  className="m-0 space-y-5 text-[12px] [&_.text-sm]:text-[12px]"
+                >
+                  <ClientHadronTab
+                    client={client}
+                    companies={companies}
+                    modules={modules}
+                    terminals={terminals}
+                  />
+                </TabsContent>
+                {showInternet && (
+                  <TabsContent
+                    value="internet"
+                    className="m-0 space-y-5 text-[12px] [&_.text-sm]:text-[12px]"
+                  >
+                    <ClientInternetTab client={client} internet={internet} />
+                  </TabsContent>
+                )}
+                {showDevices && (
+                  <TabsContent
+                    value="dispositivos"
+                    className="m-0 space-y-5 text-[12px] [&_.text-sm]:text-[12px]"
+                  >
+                    <ClientDevicesTab internet={internet} />
+                  </TabsContent>
+                )}
+                {showParameters && (
+                  <TabsContent value="parametros" className="m-0">
+                    <ClientParametersTab parameters={parameters} />
+                  </TabsContent>
+                )}
+                <TabsContent value="usuarios" className="m-0">
+                  <ClientUsersTab users={users} />
+                </TabsContent>
+                <TabsContent value="logs" className="m-0">
+                  <ClientLogsTab logs={logs.logs} />
+                </TabsContent>
+                <TabsContent value="logs-externos" className="m-0">
+                  <ClientExternalLogsTab logs={logs.externalLogs} />
+                </TabsContent>
+                <TabsContent value="terminais" className="m-0">
+                  <ClientTerminalsTab terminals={terminals} />
+                </TabsContent>
+                <TabsContent value="empresas" className="m-0">
+                  <ClientTechnicalCompaniesTab
+                    client={client}
+                    terminals={terminals}
+                    hadronInfo={hadronInfo}
+                  />
+                </TabsContent>
+              </>
             )}
-            {showDevices && (
-              <TabsContent
-                value="dispositivos"
-                className="m-0 space-y-5 text-[12px] [&_.text-sm]:text-[12px]"
-              >
-                <ClientDevicesTab internet={internet} />
-              </TabsContent>
-            )}
-            {showParameters && (
-              <TabsContent value="parametros" className="m-0">
-                <ClientParametersTab parameters={parameters} />
-              </TabsContent>
-            )}
-            <TabsContent value="usuarios" className="m-0">
-              <ClientUsersTab users={users} />
-            </TabsContent>
-            <TabsContent value="logs" className="m-0">
-              <ClientLogsTab logs={logs.logs} />
-            </TabsContent>
-            <TabsContent value="logs-externos" className="m-0">
-              <ClientExternalLogsTab logs={logs.externalLogs} />
-            </TabsContent>
-            <TabsContent value="terminais" className="m-0">
-              <ClientTerminalsTab terminals={terminals} />
-            </TabsContent>
-            <TabsContent value="empresas" className="m-0">
-              <ClientTechnicalCompaniesTab
-                client={client}
-                terminals={terminals}
-                hadronInfo={hadronInfo}
-              />
-            </TabsContent>
           </div>
         </Tabs>
       </Card>

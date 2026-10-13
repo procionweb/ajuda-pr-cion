@@ -383,7 +383,10 @@ export function mapDatabaseClient(c: DatabaseClient): ClientRow {
     name: String(c.name || c.trade_name || c.legal_name || ""),
     razaoSocial: String(c.legal_name || c.name || c.acronym || ""),
     fantasia: String(c.trade_name || c.name || ""),
-    segment: !c.industry || String(c.industry) === "0" ? "Ramo não preenchido" : labelFromCode(c.industry, industryLabels),
+    segment:
+      !c.industry || String(c.industry) === "0"
+        ? "Ramo não preenchido"
+        : labelFromCode(c.industry, industryLabels),
     size: labelFromCode(c.size, sizeLabels),
     version: String(c.version || ""),
     versionDate: date(c.version_released_at),
@@ -401,6 +404,38 @@ export function mapDatabaseClient(c: DatabaseClient): ClientRow {
   };
 }
 
+// Apenas os dados básicos já exibidos na listagem; detalhes e permissões não são compartilhados.
+const listedClientOverviews = new Map<string, ClientRow>();
+export function rememberListedClients(rows: ClientRow[]) {
+  rows.forEach((row) => listedClientOverviews.set(row.id.toLowerCase(), row));
+}
+export function getClientDetailPreview(acronym: string): ClientDetail | null {
+  const client = listedClientOverviews.get(acronym.toLowerCase());
+  if (!client) return null;
+  return {
+    client,
+    contacts: [],
+    companies: [],
+    groupCompanies: [],
+    users: [],
+    terminals: [],
+    hadronInfo: [],
+    modules: [],
+    internet: {
+      hasActiveContract: false,
+      hasDevices: false,
+      devices: [],
+      contracts: [],
+      applications: [],
+    },
+    tickets: [],
+    events: [],
+    activities: [],
+    parameters: [],
+    logs: { authorized: false, logs: [], externalLogs: [] },
+  };
+}
+
 export async function listClients(): Promise<ClientRow[]> {
   const rows: DatabaseClient[] = [];
   for (let offset = 0; ; offset += 500) {
@@ -412,7 +447,9 @@ export async function listClients(): Promise<ClientRow[]> {
     rows.push(...((data || []) as DatabaseClient[]));
     if (!data || data.length < 500) break;
   }
-  return rows.map(mapDatabaseClient);
+  const mapped = rows.map(mapDatabaseClient);
+  rememberListedClients(mapped);
+  return mapped;
 }
 
 export async function searchClientsByCompanies(query: string): Promise<ClientRow[]> {

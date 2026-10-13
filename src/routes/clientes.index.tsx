@@ -75,7 +75,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { listClients, searchClientsByCompanies } from "@/lib/clients-api";
+import { listClients, searchClientsByCompanies, rememberListedClients } from "@/lib/clients-api";
 import type {
   ClientCompany,
   ClientContact,
@@ -91,7 +91,6 @@ import type {
   ClientTicketActivity,
 } from "@/lib/clients-api";
 import { normalizeCityUf } from "@/lib/br-city";
-import { supabase } from "@/lib/supabase";
 import { ClientEditDialog } from "@/components/clients/ClientEditDialog";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { loadClientListingContext } from "@/lib/client-edit-api";
@@ -485,101 +484,24 @@ function formatCnpjDisplay(v: string): { text: string; incomplete: boolean; raw:
   return { text: "CNPJ incompleto", incomplete: true, raw };
 }
 
-type CnpjInfo = { text: string; incomplete: boolean; raw: string; missing?: boolean };
-
-const cnpjResolveCache = new Map<string, CnpjInfo>();
-const cnpjResolvePending = new Map<string, Promise<CnpjInfo>>();
-
-function formatCnpjDigits(d: string) {
-  return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
-}
-
-async function resolveClientCnpj(client: ClientRow, initial: CnpjInfo): Promise<CnpjInfo> {
-  const key = client.acronym || client.id;
-  const cached = cnpjResolveCache.get(key);
-  if (cached) return cached;
-  const pending = cnpjResolvePending.get(key);
-  if (pending) return pending;
-  const promise = (async () => {
-    try {
-      const { data, error } = await supabase.rpc("get_crm_client", {
-        client_acronym: client.acronym,
-      });
-      if (error) throw error;
-      const candidates: unknown[] = [];
-      const clientDoc = (data as { client?: { document?: unknown } } | null)?.client?.document;
-      if (clientDoc) candidates.push(clientDoc);
-      const companies =
-        (data as { companies?: Array<{ document?: unknown }> } | null)?.companies || [];
-      for (const co of companies) if (co?.document) candidates.push(co.document);
-      for (const raw of candidates) {
-        const d = String(raw ?? "").replace(/\D+/g, "");
-        if (d.length === 14) {
-          const result: CnpjInfo = {
-            text: formatCnpjDigits(d),
-            incomplete: false,
-            raw: String(raw),
-          };
-          cnpjResolveCache.set(key, result);
-          return result;
-        }
-      }
-    } catch {
-      /* silencioso; mostraremos "CNPJ não informado" */
-    }
-    const result: CnpjInfo = {
-      text: "CNPJ não informado",
-      incomplete: true,
-      missing: true,
-      raw: initial.raw,
-    };
-    cnpjResolveCache.set(key, result);
-    return result;
-  })();
-  cnpjResolvePending.set(key, promise);
-  try {
-    return await promise;
-  } finally {
-    cnpjResolvePending.delete(key);
-  }
-}
-
-function ClientCnpjCell({ client }: { client: ClientRow }) {
-  const initial = useMemo(() => formatCnpjDisplay(client.cnpj), [client.cnpj]);
-  const [info, setInfo] = useState<CnpjInfo>(() =>
-    initial.incomplete ? (cnpjResolveCache.get(client.acronym || client.id) ?? initial) : initial,
+function ClientCnpjCell({
+  client,
+  companies,
+}: {
+  client: ClientRow;
+  companies?: ListingContext["companies"];
+}) {
+  const candidates = [client.cnpj, ...(companies ?? []).map((company) => company.document)];
+  const valid = candidates.map(formatCnpjDisplay).find((info) => !info.incomplete);
+  if (valid) return <span title={valid.raw}>{valid.text}</span>;
+  return (
+    <span
+      className="text-[12px] italic text-muted-foreground/80"
+      title={client.cnpj || "CNPJ não informado"}
+    >
+      {companies ? "CNPJ não informado" : "…"}
+    </span>
   );
-
-  useEffect(() => {
-    if (!initial.incomplete) {
-      setInfo(initial);
-      return;
-    }
-    const cached = cnpjResolveCache.get(client.acronym || client.id);
-    if (cached) {
-      setInfo(cached);
-      return;
-    }
-    let cancelled = false;
-    resolveClientCnpj(client, initial).then((result) => {
-      if (!cancelled) setInfo(result);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [client, initial]);
-
-  if (info.incomplete) {
-    return (
-      <span
-        className="text-[12px] italic text-muted-foreground/80"
-        title={info.raw ? `Valor original: ${info.raw}` : "CNPJ não informado"}
-      >
-        {info.missing ? "CNPJ não informado" : initial.raw ? "…" : "CNPJ não informado"}
-      </span>
-    );
-  }
-  return <span title={info.raw}>{info.text}</span>;
 }
 
 type SortKey = "registered" | "acronym" | "name" | "version" | "city" | "cnpj" | "status";
@@ -681,6 +603,7 @@ function ClientsPage() {
 
   const loaderData = Route.useLoaderData() as { clients: ClientRow[]; loadFailed?: boolean };
   const [clients, setClients] = useState<ClientRow[]>(loaderData.clients);
+  useEffect(() => rememberListedClients(clients), [clients]);
   const [clientsLoading, setClientsLoading] = useState(Boolean(loaderData.loadFailed));
   const [companySearchResults, setCompanySearchResults] = useState<ClientRow[] | null>(null);
   const { grupo, origem, q, sigla: siglaParam, status: statusParam } = Route.useSearch();
@@ -1228,8 +1151,8 @@ function ClientsPage() {
 
         <div>
           <div className="overflow-hidden rounded-md border bg-card">
-            <div className="overflow-x-auto">
-              <table className="clients-list-table w-full text-sm">
+            <div className="min-w-0">
+              <table className="clients-list-table w-full table-fixed text-sm">
                 <thead className="bg-muted/35 text-xs uppercase text-muted-foreground">
                   <tr>
                     {[
@@ -1278,12 +1201,13 @@ function ClientsPage() {
                   {pageRows.map((client) => (
                     <tr
                       key={client.id}
-                      onClick={() =>
+                      onClick={() => {
+                        rememberListedClients([client]);
                         navigate({
                           to: "/clientes/$clienteId",
                           params: { clienteId: client.id },
-                        })
-                      }
+                        });
+                      }}
                       className="cursor-pointer transition-colors hover:bg-primary/[0.04]"
                     >
                       <td
@@ -1300,7 +1224,17 @@ function ClientsPage() {
                       </td>
                       <td data-label="Nome / perfil" className="min-w-[240px] px-2.5 py-4">
                         <div className="text-[12px] font-normal leading-[1.2] [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden">
-                          {client.name}
+                          <Link
+                            to="/clientes/$clienteId"
+                            params={{ clienteId: client.id }}
+                            className="hover:text-primary"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              rememberListedClients([client]);
+                            }}
+                          >
+                            {client.name}
+                          </Link>
                         </div>
                         <div className="mt-1 truncate text-[11px] font-normal leading-[1.2] text-foreground/80">
                           {client.razaoSocial}
@@ -1327,7 +1261,10 @@ function ClientsPage() {
                         data-label="CNPJ"
                         className="whitespace-nowrap px-2.5 py-4 text-muted-foreground"
                       >
-                        <ClientCnpjCell client={client} />
+                        <ClientCnpjCell
+                          client={client}
+                          companies={contextByAcronym.get(client.acronym.toUpperCase())?.companies}
+                        />
                       </td>
                       <td data-label="Status" className="px-2.5 py-4">
                         <div className="flex flex-col items-start gap-1">
@@ -1359,21 +1296,6 @@ function ClientsPage() {
                         onClick={(event) => event.stopPropagation()}
                       >
                         <div className="flex items-center gap-1">
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9"
-                            title="Visualizar cliente"
-                          >
-                            <Link
-                              to="/clientes/$clienteId"
-                              params={{ clienteId: client.id }}
-                              aria-label={"Visualizar cliente " + client.acronym}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
                           {canEdit && (
                             <Button
                               variant="ghost"

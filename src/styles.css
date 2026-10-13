@@ -1059,3 +1059,19 @@ main th[data-auto-sortable="true"] {
   .accountants-page input { font-size:16px; }
   .accountants-page .grid[class*="md:grid-cols"] { grid-template-columns:minmax(0,1fr); }
 }
+
+/* Keep client columns inside the available width without hiding data. */
+@media (min-width:1280px) {
+  .clients-list-table th, .clients-list-table td { min-width:0; white-space:normal; overflow-wrap:anywhere; padding-left:.4rem; padding-right:.4rem; }
+  .clients-list-table th:nth-child(1) { width:8%; }
+  .clients-list-table th:nth-child(2) { width:7%; }
+  .clients-list-table th:nth-child(3) { width:24%; }
+  .clients-list-table th:nth-child(4) { width:17%; }
+  .clients-list-table th:nth-child(5) { width:13%; }
+  .clients-list-table th:nth-child(6) { width:13%; }
+  .clients-list-table th:nth-child(7) { width:10%; }
+  .clients-list-table th:nth-child(8) { width:8%; }
+  .clients-list-table td .whitespace-nowrap { white-space:normal; }
+  .clients-list-table td .truncate { white-space:normal; overflow-wrap:anywhere; }
+  .clients-list-table td[data-label="Ações"] > div { flex-wrap:wrap; gap:0; }
+}
