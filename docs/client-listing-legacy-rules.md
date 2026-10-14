@@ -32,3 +32,7 @@ Aplicações web seguem o contrato da sigla do cliente, como no legado. A interf
 ## Edição: Internet, CEP e contador
 
 O editar cliente oferece as abas Cliente e Internet. Internet altera status, quantidade de dispositivos e aplicações do contrato, sem expor chaves ou alterar outras configurações. O editar empresa mantém as aplicações e agora reutiliza o cabeçalho padrão, assim como o editar cliente. Ambos os CEPs usam 00000-000 e consultam ViaCEP ao completar oito dígitos, preservando número e complemento. O seletor de contadores cadastrados preenche nome, escritório, telefone e e-mail; mantém os dados antigos até uma seleção explícita.
+
+## Carregamento dos detalhes
+
+A consulta `get_crm_client` busca usuários, contratos e dispositivos diretamente pelo cliente no MySQL e normaliza somente esses registros. Preserva IDs, dados e aplicações do retorno anterior. Os logs são carregados ao abrir sua aba. Consultas temporariamente indisponíveis têm até três tentativas; erros de permissão não são repetidos. Uma falha secundária exibe aviso e permite recarregar os dados, sem derrubar os demais detalhes. A rota reaproveita o resultado por 30 segundos ao trocar abas e pode ser invalidada após edição.

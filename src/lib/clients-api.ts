@@ -1,3 +1,4 @@
+import { readClientResource } from "@/lib/client-loading";
 import { supabase } from "@/lib/supabase";
 import { normalizeCityName } from "@/lib/br-city";
 import type { ClientRow } from "@/routes/clientes.index";
@@ -266,6 +267,7 @@ export type ClientLogs = {
 };
 
 export type ClientDetail = {
+  loadIssues?: string[];
   client: ClientRow;
   contacts: ClientContact[];
   companies: ClientCompany[];
@@ -506,9 +508,9 @@ function mapClientLogs(logData: unknown): ClientLogs {
 }
 
 export async function getClientLogs(acronym: string): Promise<ClientLogs> {
-  const { data, error } = await supabase.rpc("get_crm_client_logs", {
-    client_acronym: acronym,
-  });
+  const { data, error } = await readClientResource<unknown>(() =>
+    supabase.rpc("get_crm_client_logs" as never, { client_acronym: acronym } as never),
+  );
   if (error) throw error;
   return mapClientLogs(data);
 }
@@ -519,25 +521,37 @@ export async function getClientDetail(acronym: string): Promise<ClientDetail | n
     { data: activityData, error: activityError },
     { data: parameterData, error: parameterError },
     { data: clientEventData, error: clientEventError },
-    { data: logData, error: logError },
     { data: groupCompanyData, error: groupCompanyError },
     { data: hadronInfoData, error: hadronInfoError },
   ] = await Promise.all([
-    supabase.rpc("get_crm_client", { client_acronym: acronym }),
-    supabase.rpc("get_crm_client_ticket_activity", { client_acronym: acronym }),
-    supabase.rpc("get_crm_client_params", { client_acronym: acronym }),
-    supabase.rpc("get_crm_client_events", { client_acronym: acronym }),
-    supabase.rpc("get_crm_client_logs", { client_acronym: acronym }),
-    supabase.rpc("get_crm_client_group_companies", { client_acronym: acronym }),
-    supabase.rpc("get_crm_client_hadron_info", { client_acronym: acronym }),
+    readClientResource<DatabaseClient>(() =>
+      supabase.rpc("get_crm_client" as never, { client_acronym: acronym } as never),
+    ),
+    readClientResource<unknown>(() =>
+      supabase.rpc("get_crm_client_ticket_activity" as never, { client_acronym: acronym } as never),
+    ),
+    readClientResource<unknown>(() =>
+      supabase.rpc("get_crm_client_params" as never, { client_acronym: acronym } as never),
+    ),
+    readClientResource<unknown>(() =>
+      supabase.rpc("get_crm_client_events" as never, { client_acronym: acronym } as never),
+    ),
+    readClientResource<unknown>(() =>
+      supabase.rpc("get_crm_client_group_companies" as never, { client_acronym: acronym } as never),
+    ),
+    readClientResource<unknown>(() =>
+      supabase.rpc("get_crm_client_hadron_info" as never, { client_acronym: acronym } as never),
+    ),
   ]);
   if (error) throw error;
-  if (activityError) throw activityError;
-  if (parameterError) throw parameterError;
-  if (clientEventError) throw clientEventError;
-  if (logError && logError.code !== "PGRST202") throw logError;
-  if (groupCompanyError && groupCompanyError.code !== "PGRST202") throw groupCompanyError;
-  if (hadronInfoError && hadronInfoError.code !== "PGRST202") throw hadronInfoError;
+  const loadIssues = [
+    ...(Array.isArray(data?.loadIssues) ? data.loadIssues : []),
+    ...(activityError ? ["Histórico de atendimentos"] : []),
+    ...(parameterError ? ["Parâmetros"] : []),
+    ...(clientEventError ? ["Agendamentos"] : []),
+    ...(groupCompanyError ? ["Empresas do grupo"] : []),
+    ...(hadronInfoError ? ["Informações do Hádron"] : []),
+  ];
   if (!data?.client) return null;
 
   const contacts = (Array.isArray(data.contacts) ? data.contacts : []).map(
@@ -870,10 +884,12 @@ export async function getClientDetail(acronym: string): Promise<ClientDetail | n
     },
   );
 
-  const logs = mapClientLogs(logData);
+  // Os logs remotos são consultados somente ao abrir suas abas.
+  const logs = mapClientLogs(null);
 
   return {
-    client: mapDatabaseClient(data.client),
+    loadIssues,
+    client: mapDatabaseClient(data.client as DatabaseClient),
     contacts,
     companies,
     groupCompanies,

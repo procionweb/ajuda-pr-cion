@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ClientEditDialog } from "@/components/clients/ClientEditDialog";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { createFileRoute, Link, useNavigate, useRouter, notFound } from "@tanstack/react-router";
@@ -65,7 +65,13 @@ function MiniSummary({
   );
 }
 
-import { getClientDetail, getClientDetailPreview, type ClientDetail } from "@/lib/clients-api";
+import {
+  getClientLogs,
+  type ClientLogs,
+  getClientDetail,
+  getClientDetailPreview,
+  type ClientDetail,
+} from "@/lib/clients-api";
 import { normalizeCityUf } from "@/lib/br-city";
 import { getClientErpVersionStatus } from "@/lib/erp-versions";
 import { useClients, resolveGroupCode, getGroupMembers } from "@/lib/clients-store";
@@ -95,6 +101,7 @@ export const Route = createFileRoute("/clientes/$clienteId")({
     meta: [{ title: `Cliente ${params.clienteId.toUpperCase()} - Portal Procion` }],
   }),
   validateSearch: searchSchema,
+  staleTime: 30000,
   loader: async ({ params }) => {
     const preview = getClientDetailPreview(params.clienteId);
     if (preview) return { ...preview, deferred: true };
@@ -115,24 +122,45 @@ export const Route = createFileRoute("/clientes/$clienteId")({
       </div>
     </AppShell>
   ),
-  errorComponent: ({ reset }) => (
-    <AppShell>
-      <div className="mx-auto max-w-md py-16 text-center">
-        <h1 className="text-2xl font-medium">Erro ao carregar cliente</h1>
-        <Button onClick={reset} className="mt-6 cursor-pointer">
-          Tentar novamente
-        </Button>
-      </div>
-    </AppShell>
-  ),
+  errorComponent: ClientLoadError,
   component: ClientDetailPage,
 });
 
+function ClientLoadError({ reset }: { reset: () => void }) {
+  const router = useRouter();
+  return (
+    <AppShell>
+      <div className="mx-auto max-w-md py-16 text-center">
+        <h1 className="text-2xl font-medium">Erro ao carregar cliente</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Não foi possível concluir a consulta. Tente novamente.
+        </p>
+        <Button
+          className="mt-6"
+          onClick={() => {
+            void router.invalidate();
+            reset();
+          }}
+        >
+          Tentar novamente
+        </Button>
+        <Button asChild variant="outline" className="ml-2 mt-6">
+          <Link to="/clientes">Voltar para Clientes</Link>
+        </Button>
+      </div>
+    </AppShell>
+  );
+}
 function ClientDetailPage() {
   const initial = Route.useLoaderData() as ClientDetail & { deferred?: boolean };
   const [hydrated, setHydrated] = useState<ClientDetail | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [reload, setReload] = useState(0);
+  const detailRequest = useRef<{
+    initial: typeof initial;
+    reload: number;
+    promise: Promise<ClientDetail | null>;
+  } | null>(null);
   const loaded = hydrated?.client.id === initial.client.id ? hydrated : null;
   const loadingDetails = Boolean(initial.deferred && !loaded);
   useEffect(() => {
@@ -140,7 +168,9 @@ function ClientDetailPage() {
     setLoadError(false);
     if (!initial.deferred) return;
     let cancelled = false;
-    getClientDetail(initial.client.acronym)
+    if (detailRequest.current?.initial !== initial || detailRequest.current.reload !== reload)
+      detailRequest.current = { initial, reload, promise: getClientDetail(initial.client.acronym) };
+    detailRequest.current.promise
       .then((value) => {
         if (cancelled) return;
         if (value) setHydrated(value);
@@ -152,7 +182,7 @@ function ClientDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [initial.client, initial.deferred, reload]);
+  }, [initial, reload]);
 
   const {
     client,
@@ -168,7 +198,8 @@ function ClientDetailPage() {
     events,
     activities,
     parameters,
-    logs,
+    logs: initialLogs,
+    loadIssues,
   } = loaded ?? initial;
   const { tab, from, ticketId } = Route.useSearch();
   const navigate = useNavigate();
@@ -213,6 +244,39 @@ function ClientDetailPage() {
     (requestedTab !== "parametros" || showParameters) &&
     (requestedTab !== "internet" || showInternet);
   const currentTab: TabValue = tabAllowed ? (requestedTab as TabValue) : "cliente";
+  const [logsResult, setLogsResult] = useState<{ acronym: string; data: ClientLogs } | null>(null);
+  const [logsError, setLogsError] = useState(false);
+  const [logsRetry, setLogsRetry] = useState(0);
+  const logsRequest = useRef<{
+    acronym: string;
+    retry: number;
+    promise: Promise<ClientLogs>;
+  } | null>(null);
+  const logs = logsResult?.acronym === client.acronym ? logsResult.data : initialLogs;
+  const logsPending =
+    (currentTab === "logs" || currentTab === "logs-externos") &&
+    logsResult?.acronym !== client.acronym;
+  useEffect(() => {
+    if (!logsPending) return;
+    let active = true;
+    setLogsError(false);
+    if (logsRequest.current?.acronym !== client.acronym || logsRequest.current.retry !== logsRetry)
+      logsRequest.current = {
+        acronym: client.acronym,
+        retry: logsRetry,
+        promise: getClientLogs(client.acronym),
+      };
+    logsRequest.current.promise
+      .then((data) => {
+        if (active) setLogsResult({ acronym: client.acronym, data });
+      })
+      .catch(() => {
+        if (active) setLogsError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [client.acronym, logsPending, logsRetry]);
 
   const setTab = (value: string) => {
     navigate({
@@ -301,9 +365,11 @@ function ClientDetailPage() {
             label="Dispositivos"
             value={loadingDetails ? "…" : deviceUsage.label}
             title={
-              loadingDetails ? "Carregando dispositivos" : deviceUsage.limit
-                ? `${deviceUsage.active} dispositivos ativos de ${deviceUsage.limit} contratados`
-                : `${deviceUsage.active} dispositivos ativos`
+              loadingDetails
+                ? "Carregando dispositivos"
+                : deviceUsage.limit
+                  ? `${deviceUsage.active} dispositivos ativos de ${deviceUsage.limit} contratados`
+                  : `${deviceUsage.active} dispositivos ativos`
             }
           />
         </div>
@@ -397,6 +463,24 @@ function ClientDetailPage() {
           </div>
 
           <div className="client-detail-content min-w-0 bg-muted/10 p-3 sm:p-4 xl:p-6">
+            {!!loadIssues?.length && (
+              <div
+                role="alert"
+                className="mb-4 space-y-2 rounded-lg border border-amber-400/40 bg-amber-500/5 p-3 text-sm"
+              >
+                <p>Parte dos dados está temporariamente indisponível: {loadIssues.join(", ")}.</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setReload((n) => n + 1);
+                    void router.invalidate();
+                  }}
+                >
+                  Recarregar dados
+                </Button>
+              </div>
+            )}
             {loadingDetails ? (
               <div className="p-6" role="status">
                 {loadError ? (
@@ -468,10 +552,40 @@ function ClientDetailPage() {
                   <ClientUsersTab users={users} />
                 </TabsContent>
                 <TabsContent value="logs" className="m-0">
-                  <ClientLogsTab logs={logs.logs} />
+                  {logsPending ? (
+                    <div role="status">
+                      {logsError ? (
+                        <>
+                          <p>Não foi possível carregar os logs.</p>
+                          <Button variant="outline" onClick={() => setLogsRetry((n) => n + 1)}>
+                            Tentar novamente
+                          </Button>
+                        </>
+                      ) : (
+                        "Carregando logs..."
+                      )}
+                    </div>
+                  ) : (
+                    <ClientLogsTab logs={logs.logs} />
+                  )}
                 </TabsContent>
                 <TabsContent value="logs-externos" className="m-0">
-                  <ClientExternalLogsTab logs={logs.externalLogs} />
+                  {logsPending ? (
+                    <div role="status">
+                      {logsError ? (
+                        <>
+                          <p>Não foi possível carregar os logs.</p>
+                          <Button variant="outline" onClick={() => setLogsRetry((n) => n + 1)}>
+                            Tentar novamente
+                          </Button>
+                        </>
+                      ) : (
+                        "Carregando logs..."
+                      )}
+                    </div>
+                  ) : (
+                    <ClientExternalLogsTab logs={logs.externalLogs} />
+                  )}
                 </TabsContent>
                 <TabsContent value="terminais" className="m-0">
                   <ClientTerminalsTab terminals={terminals} />

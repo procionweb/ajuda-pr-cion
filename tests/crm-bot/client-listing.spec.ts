@@ -284,3 +284,83 @@ test("Clientes: abertura imediata e listagem sem rolagem horizontal", async ({ p
     true,
   );
 });
+
+test("Clientes: recupera falhas temporárias e isola abas indisponíveis", async ({ page }) => {
+  test.skip(
+    !process.env.CRM_BOT_OPERATOR || !process.env.CRM_BOT_PASSWORD,
+    "Conta não configurada",
+  );
+  test.setTimeout(120000);
+  let coreCalls = 0,
+    logsCalls = 0;
+  await page.route("**/*", async (route) => {
+    const req = route.request(),
+      url = new URL(req.url()),
+      rpc = url.pathname.match(/\/rpc\/([^/]+)/)?.[1];
+    if (rpc === "get_crm_client") {
+      coreCalls++;
+      if (coreCalls <= 2)
+        return route.fulfill({
+          status: 503,
+          json: { code: "PGRST001", message: "Temporary connection failure" },
+        });
+      return route.fulfill({
+        json: {
+          client: {
+            acronym: req.postDataJSON().client_acronym,
+            name: "Cliente recuperado",
+            legal_name: "Cliente recuperado",
+            active: true,
+          },
+          contacts: [],
+          companies: [],
+        },
+      });
+    }
+    if (rpc === "get_crm_client_params")
+      return route.fulfill({ status: 500, json: { code: "57014", message: "statement timeout" } });
+    if (rpc === "get_crm_client_logs") {
+      logsCalls++;
+      if (logsCalls === 1)
+        return route.fulfill({
+          status: 503,
+          json: { code: "PGRST001", message: "Temporary connection failure" },
+        });
+      return route.fulfill({ json: { authorized: true, logs: [], external_logs: [] } });
+    }
+    if (rpc?.startsWith("get_crm_client_") && rpc !== "get_crm_client_listing_context")
+      return route.fulfill({ json: [] });
+    if (
+      !["GET", "HEAD", "OPTIONS"].includes(req.method()) &&
+      !url.pathname.endsWith("/auth/v1/token") &&
+      !(rpc && /^(get_|list_|search_|resolve_|support_load_)/.test(rpc))
+    )
+      return route.abort("blockedbyclient");
+    await route.continue();
+  });
+  await page.goto("/login");
+  await page.locator("#login-email").fill(process.env.CRM_BOT_OPERATOR!);
+  await page.locator("#login-password").fill(process.env.CRM_BOT_PASSWORD!);
+  await page.getByRole("button", { name: "Entrar", exact: true }).click();
+  await expect(page).not.toHaveURL(/\/login/, { timeout: 30000 });
+  await page.goto("/clientes");
+  await page
+    .locator(".clients-list-table tbody tr")
+    .first()
+    .locator('td[data-label="Nome / perfil"]')
+    .click();
+  await expect(page.getByRole("alert").filter({ hasText: "Parte dos dados" })).toBeVisible({
+    timeout: 30000,
+  });
+  await expect(page.getByText("Cliente recuperado", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Erro ao carregar cliente", { exact: true })).not.toBeVisible();
+  expect(coreCalls).toBe(3);
+  expect(logsCalls).toBe(0);
+  await page.getByRole("tab", { name: "Logs", exact: true }).click();
+  await expect(page.getByText("Carregando logs...", { exact: true })).not.toBeVisible({
+    timeout: 10000,
+  });
+  expect(logsCalls).toBe(2);
+  await page.getByRole("tab", { name: "Cliente", exact: true }).click();
+  expect(coreCalls).toBe(3);
+});
