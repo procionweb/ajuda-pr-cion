@@ -169,6 +169,9 @@ test("Clientes: cliente e empresa têm campos separados, com gravação simulada
   expect(await modal.getByLabel("Cadastro para editar").count()).toBe(0);
   expect(await modal.getByText("Aplicações web", { exact: true }).count()).toBe(0);
   await expect(modal.getByLabel("Atividades")).toHaveValue("Atividades do cliente");
+  const clientInputStyle = await modal
+    .getByLabel("Nome (apelido)", { exact: true })
+    .evaluate((e) => ({ height: getComputedStyle(e).height, font: getComputedStyle(e).fontSize }));
   await modal.getByLabel("Campinas", { exact: true }).check();
   await modal.getByRole("button", { name: "Adicionar telefone", exact: true }).click();
   await modal.getByLabel("Telefone 1", { exact: true }).fill("11999999999");
@@ -225,6 +228,12 @@ test("Clientes: cliente e empresa têm campos separados, com gravação simulada
   expect(saved[1].p_company_id).toBe(fixture.companies[0].id);
   expect(saved[1].p_contacts).toBeNull();
   expect(saved[1].p_web_apps).toEqual(["MOB"]);
+  await page.getByRole("button", { name: "Novo evento", exact: true }).click();
+  const calendar = page.getByRole("dialog", { name: "Novo agendamento", exact: true });
+  const calendarInputStyle = await calendar
+    .getByPlaceholder("Informe o título do agendamento")
+    .evaluate((e) => ({ height: getComputedStyle(e).height, font: getComputedStyle(e).fontSize }));
+  expect(clientInputStyle).toEqual(calendarInputStyle);
 });
 
 test("Clientes: abertura imediata e listagem sem rolagem horizontal", async ({ page }) => {
@@ -473,6 +482,11 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
     .locator("..");
   await expect(support.locator("li")).toHaveCount(3);
   await expect(support.getByText("Atendimento real 6", { exact: true })).toBeVisible();
+  if (info.project.name !== "mobile") {
+    const agendaList = await agenda.locator("ul").boundingBox(),
+      supportList = await support.locator("ul").boundingBox();
+    expect(Math.abs(agendaList!.height - supportList!.height)).toBeLessThan(3);
+  }
   await expect(support.getByText("not_defined", { exact: true })).not.toBeVisible();
   const actions = page.getByRole("button", { name: "Editar cliente", exact: true });
   const devices = page.locator(".client-header-summary");

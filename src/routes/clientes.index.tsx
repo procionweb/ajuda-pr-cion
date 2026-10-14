@@ -2355,12 +2355,15 @@ function ClientAttendancesCard({ tickets }: { tickets: ClientTicket[] }) {
   const visibleItems = items.slice(0, 3);
 
   return (
-    <Section title="Atendimentos" icon={Activity}>
+    <Section title="Atendimentos" icon={Activity} className="flex flex-col">
       {items.length ? (
-        <>
-          <ul className="space-y-2.5">
+        <div className="flex flex-1 flex-col">
+          <ul className="grid flex-1 auto-rows-fr gap-2">
             {visibleItems.map((item) => (
-              <li key={item.id} className="flex min-w-0 items-start gap-2">
+              <li
+                key={item.id}
+                className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card px-3 py-2"
+              >
                 <span
                   className={cn(
                     "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
@@ -2380,7 +2383,7 @@ function ClientAttendancesCard({ tickets }: { tickets: ClientTicket[] }) {
               variant="ghost"
               size="sm"
               onClick={() => setDialogOpen(true)}
-              className="mt-3 h-8 cursor-pointer px-3 text-xs text-primary"
+              className="mt-3 h-8 cursor-pointer self-start px-3 text-xs text-primary"
             >
               Ver todos
             </Button>
@@ -2411,7 +2414,7 @@ function ClientAttendancesCard({ tickets }: { tickets: ClientTicket[] }) {
               </ul>
             </DialogContent>
           </Dialog>
-        </>
+        </div>
       ) : (
         <p className="text-sm text-muted-foreground">
           Nenhum atendimento registrado para este cliente.
@@ -2776,7 +2779,7 @@ function ClientNextEvent({
   );
 
   return (
-    <Section title="Próximo evento" icon={CalendarDays} accent="purple">
+    <Section title="Próximo evento" icon={CalendarDays} accent="purple" className="flex flex-col">
       {event ? (
         <div className="rounded-md border border-border p-4 dark:border-border">
           <div className="flex items-center justify-between gap-3">
@@ -2810,7 +2813,7 @@ function ClientNextEvent({
           </p>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-primary/5 px-4 py-6 text-center dark:border-border dark:bg-transparent">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-primary/5 px-4 py-6 text-center dark:border-border dark:bg-transparent">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary">
             <CalendarDays className="h-5 w-5" />
           </span>

@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export function AccountantSelect({
+  compact = false,
   value,
   name,
   office,
   onChange,
 }: {
+  compact?: boolean;
   value: string;
   name: string;
   office: string;
@@ -66,7 +68,10 @@ export function AccountantSelect({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="mt-4 h-11 w-full cursor-pointer justify-between rounded-xl text-sm font-normal"
+            className={
+              "mt-4 w-full cursor-pointer justify-between text-sm font-normal " +
+              (compact ? "h-9 rounded-md" : "h-11 rounded-xl")
+            }
           >
             <span className="truncate">
               {name || "Buscar contador por nome, escritório ou documento..."}

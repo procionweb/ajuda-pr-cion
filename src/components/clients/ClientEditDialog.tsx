@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { usePortalAuth } from "@/lib/portal-auth";
 import { parsedLegacy } from "@/lib/client-listing-rules";
@@ -59,7 +60,7 @@ function fieldIcon(label: string) {
 function FieldLabel({ label }: { label: string }) {
   const Icon = fieldIcon(label);
   return (
-    <span className="flex items-center gap-2 text-xs font-medium">
+    <span className="flex items-center gap-2 text-[12.5px] font-medium">
       <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-primary" />
       {label}
     </span>
@@ -190,7 +191,7 @@ export function ClientEditDialog({
         aria-label={label}
         value={String(value ?? "")}
         onChange={(e) => change(e.target.value)}
-        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
       >
         <option value="">Não informado</option>
         {!options.some(([code]) => code === String(value ?? "")) && String(value ?? "") && (
@@ -239,7 +240,9 @@ export function ClientEditDialog({
     return (
       <div className="min-w-0 space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h4 className="text-xs font-medium">{kind === "phone" ? "Telefones" : "E-mails"}</h4>
+          <h4 className="text-[12.5px] font-medium">
+            {kind === "phone" ? "Telefones" : "E-mails"}
+          </h4>
           <Button type="button" variant="outline" size="sm" onClick={() => addContact(kind)}>
             <Plus className="mr-1 h-3.5 w-3.5" />
             Adicionar {kind === "phone" ? "telefone" : "e-mail"}
@@ -542,7 +545,7 @@ export function ClientEditDialog({
                   (v) => update("size", v, "porte"),
                 )}
                 <fieldset className="space-y-2 sm:col-span-2">
-                  <legend className="text-xs font-medium">Regime de apuração</legend>
+                  <legend className="text-[12.5px] font-medium">Regime de apuração</legend>
                   <div className="flex flex-wrap gap-4">
                     {[
                       ["0", "Simples"],
@@ -635,6 +638,7 @@ export function ClientEditDialog({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <AccountantSelect
+                      compact
                       value={String(source.accountant_id ?? "")}
                       name={String(
                         source.accountant_name || nestedValue("tcl_contador", "cli_ctd_res") || "",
@@ -846,10 +850,10 @@ export function ClientEditDialog({
                   )}
                   {section(
                     "Atividades",
-                    <textarea
+                    <Textarea
                       aria-label="Atividades"
                       rows={4}
-                      className="w-full rounded-md border bg-background p-3 text-sm"
+                      className="w-full bg-background"
                       value={String(source.cli_obs ?? "").replace(/<[^>]*>/g, "")}
                       onChange={(e) => setSource((s) => ({ ...s, cli_obs: e.target.value }))}
                     />,
