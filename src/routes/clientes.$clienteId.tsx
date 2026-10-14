@@ -344,7 +344,7 @@ function ClientDetailPage() {
         <div className="client-header-summary flex min-w-0 flex-wrap items-center justify-end gap-x-5 gap-y-1.5">
           <MiniSummary
             label="Atendimento"
-            value={normalizeCityUf(client.city) || "Não informado"}
+            value={loadingDetails ? "…" : client.serviceUnit || "Não informado"}
           />
           <MiniSummary
             label="Status"

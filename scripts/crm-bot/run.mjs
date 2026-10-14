@@ -18,6 +18,7 @@ for (const [name, file, database] of [
   ['Clientes: formulários separados e contatos', 'scripts/test-separate-client-forms.mjs', true],
   ['Clientes: Internet e contrato', 'scripts/test-client-internet-editor.mjs', true],
   ['Clientes: carregamento e dados preservados', 'scripts/test-client-detail-loading.mjs', true],
+  ['Clientes: unidade de atendimento', 'scripts/test-client-service-unit.mjs', true],
   ['Clientes: recuperação de consultas', 'scripts/test-client-loading-retry.mjs', false],
   ['Clientes: filtros e limite de versão', 'scripts/test-client-listing-rules.mjs', false],
   ['Clientes: edição e permissões', 'scripts/test-client-listing-edit.mjs', true],

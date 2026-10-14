@@ -36,3 +36,7 @@ O editar cliente oferece as abas Cliente e Internet. Internet altera status, qua
 ## Carregamento dos detalhes
 
 A consulta `get_crm_client` busca usuários, contratos e dispositivos diretamente pelo cliente no MySQL e normaliza somente esses registros. Preserva IDs, dados e aplicações do retorno anterior. Os logs são carregados ao abrir sua aba. Consultas temporariamente indisponíveis têm até três tentativas; erros de permissão não são repetidos. Uma falha secundária exibe aviso e permite recarregar os dados, sem derrubar os demais detalhes. A rota reaproveita o resultado por 30 segundos ao trocar abas e pode ser invalidada após edição.
+
+## Resumo do cliente e unidade de atendimento
+
+Atendimento usa `procionw_prcsac.empresas.emp_cidade`, com `emp_id` correspondente a `source_payload.empresa_id_emp`. IDs vazios ou zero usam a unidade 1, como no CRM antigo; não se usa a cidade do cliente como unidade. Contatos, próximo evento, agendamentos e atendimentos compartilham a mesma linha em telas grandes e se empilham em telas menores. Agendamentos exibem cinco eventos; atendimentos exibem cinco atividades de atendimento (ou chamados quando não há atividades), com acesso a todos. Dados da empresa e responsável/contabilidade ficam no collapse da empresa vinculada. O modal de evento vindo do cliente não oferece o tipo Pessoal.

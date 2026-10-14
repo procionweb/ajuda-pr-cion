@@ -242,6 +242,7 @@ export type ClientRow = {
   versionUpdatedAt: string; // data/hora em que a versão foi instalada no cliente
   updated: string;
   updatedAt: string; // última alteração do cadastro no CRM
+  serviceUnit?: string; // empresas.emp_cidade da unidade de atendimento
   city: string; // "Cidade - UF"
   uf: string;
   cep: string;
@@ -2266,135 +2267,23 @@ export function ClientTab({
   activities: ClientTicketActivity[];
   onOpenCompanies?: () => void;
 }) {
-  const router = useRouter();
-  const { role, department } = usePortalAuth();
-  const canEditCompany =
-    role === "s_admin" || department === "admin" || department === "commercial";
-  const [editingPrimaryCompany, setEditingPrimaryCompany] = useState(false);
   const clientLocalEvents = useLocalEventsForClient(client.id);
   const eventsWithLocal = useMemo(
     () => [...events, ...localToClientEvents(clientLocalEvents)],
     [events, clientLocalEvents],
   );
-
-  const company = companies[0];
-  const companyCityUf = normalizeCityUf(
-    [company?.city || client.city, company?.state].filter(Boolean).join(" - "),
-  );
-  const companyCep = company?.postalCode || client.cep || "";
-  const empresaFields: Array<[string, string]> = [
-    ["Nome fantasia", company?.tradeName || client.fantasia || ""],
-    ["CNPJ", company?.document || client.cnpj || ""],
-    ["Inscrição estadual", company?.stateRegistration || ""],
-    ["CNAE", company?.cnae || ""],
-    ["Setor", company?.industry || client.segment || ""],
-    ["Porte", company?.size || client.size || ""],
-    ["Regime de apuração", company?.taxRegime || ""],
-    ["Endereço", company?.address || ""],
-    ["Cidade / UF", companyCityUf || ""],
-    ["CEP", companyCep || ""],
-  ];
   void onOpenCompanies;
-
-  const responsibleFields: Array<[string, string]> = [
-    ["Nome", company?.responsibleName || ""],
-    ["CPF", company?.responsibleDocument || ""],
-    ["RG", company?.responsibleRg || ""],
-  ].filter(([, v]) => Boolean(v)) as Array<[string, string]>;
-
-  const respAddressCityUf = normalizeCityUf(
-    [company?.responsibleCity, company?.responsibleState].filter(Boolean).join(" - "),
-  );
-  const respStreetAndNumber = [company?.responsibleAddress, company?.responsibleNumber]
-    .filter(Boolean)
-    .join(", ");
-  const respNeighborhoodOrComplement =
-    company?.responsibleNeighborhood || company?.responsibleComplement || "";
-  const addressFields: Array<[string, string]> = [
-    ["Logradouro e número", respStreetAndNumber],
-    ["Bairro / complemento", respNeighborhoodOrComplement],
-    ["Cidade / UF", respAddressCityUf || ""],
-    ["CEP", company?.responsiblePostalCode || ""],
-  ].filter(([, v]) => Boolean(v)) as Array<[string, string]>;
-
-  const accountingFields: Array<[string, string]> = [
-    ["Escritório", company?.accountantOffice || ""],
-    ["Contador responsável", company?.accountantName || ""],
-    ["Telefone", company?.accountantPhone ? formatPhoneBR(company.accountantPhone) : ""],
-    ["E-mail", company?.accountantEmail || ""],
-  ].filter(([, v]) => Boolean(v)) as Array<[string, string]>;
-
   return (
     <div className="space-y-5">
-      {editingPrimaryCompany && company && (
-        <ClientEditDialog
-          acronym={client.acronym}
-          companyId={company.id}
-          onClose={() => setEditingPrimaryCompany(false)}
-          onSaved={() => {
-            void router.invalidate();
-          }}
-        />
-      )}
-      {/* Linha 1: Dados da empresa + Contatos */}
-      <div className="grid gap-5 items-stretch lg:grid-cols-2">
-        <Section
-          title="Dados da empresa"
-          icon={Building2}
-          action={
-            company && canEditCompany ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                title="Editar empresa"
-                aria-label="Editar dados da empresa"
-                onClick={() => setEditingPrimaryCompany(true)}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-            ) : undefined
-          }
-        >
-          <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
-            {empresaFields.map(([label, value]) => (
-              <Field key={label} label={label} value={value || "Não informado"} />
-            ))}
-          </div>
-        </Section>
+      <div className="grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-4">
         <ContactsCard contacts={contacts} client={client} />
-      </div>
-
-      {/* Linha 2: Empresas vinculadas (100%) */}
-      <CompaniesSummaryCard companies={companies} />
-
-      {/* Linha 3: Responsável e contabilidade (100%) */}
-      <Section title="Responsável e contabilidade">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 lg:divide-x lg:divide-border">
-          <ResponsibleGroup title="Responsável" icon={CircleUserRound} fields={responsibleFields} />
-          <ResponsibleGroup
-            title="Endereço do responsável"
-            icon={MapPin}
-            fields={addressFields}
-            className="lg:pl-6"
-          />
-          <ResponsibleGroup
-            title="Contabilidade"
-            icon={CircleDollarSign}
-            fields={accountingFields}
-            className="lg:pl-6"
-            emailField="E-mail"
-          />
-        </div>
-      </Section>
-
-      {/* Linha 4: Próximo evento + Histórico + Atividade recente */}
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         <ClientNextEvent client={client} events={eventsWithLocal} tickets={tickets} />
-        <Section title="Agendamentos e atendimentos" icon={HardDrive}>
-          <SupportRowsCompact tickets={tickets} events={eventsWithLocal} />
+        <Section title="Agendamentos" icon={CalendarDays}>
+          <SupportRowsCompact events={eventsWithLocal} />
         </Section>
-        <RecentActivityCard activities={activities} events={eventsWithLocal} />
+        <RecentActivityCard activities={activities} tickets={tickets} />
       </div>
+      <CompaniesSummaryCard companies={companies} />
     </div>
   );
 }
@@ -2454,10 +2343,10 @@ function ResponsibleGroup({
 
 function RecentActivityCard({
   activities,
-  events,
+  tickets,
 }: {
   activities: ClientTicketActivity[];
-  events: ClientEvent[];
+  tickets: ClientTicket[];
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const items = [
@@ -2468,18 +2357,18 @@ function RecentActivityCard({
       timestamp: activity.occurredAtIso,
       ticketActivity: activity.eventType === "created",
     })),
-    ...events.map((event) => ({
-      id: `event-${event.id}`,
-      title: event.title,
-      detail: [event.operator, event.startsAt].filter(Boolean).join(" · "),
-      timestamp: event.startsAtIso,
+    ...(activities.length ? [] : tickets).map((ticket) => ({
+      id: `ticket-${ticket.id}`,
+      title: ticket.subject,
+      detail: [ticket.protocol, ticket.operator, ticket.createdAt].filter(Boolean).join(" · "),
+      timestamp: ticket.createdAtIso,
       ticketActivity: false,
     })),
   ].sort((left, right) => String(right.timestamp).localeCompare(String(left.timestamp)));
-  const visibleItems = items.slice(0, 3);
+  const visibleItems = items.slice(0, 5);
 
   return (
-    <Section title="Atividade recente" icon={Activity}>
+    <Section title="Atendimentos" icon={Activity}>
       {items.length ? (
         <>
           <ul className="space-y-2.5">
@@ -2498,7 +2387,7 @@ function RecentActivityCard({
               </li>
             ))}
           </ul>
-          {items.length > 3 && (
+          {items.length > 5 && (
             <Button
               type="button"
               variant="ghost"
@@ -2512,7 +2401,7 @@ function RecentActivityCard({
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Atividade recente</DialogTitle>
+                <DialogTitle>Atendimentos</DialogTitle>
               </DialogHeader>
               <ul className="space-y-3">
                 {items.map((item) => (
@@ -2537,7 +2426,9 @@ function RecentActivityCard({
           </Dialog>
         </>
       ) : (
-        <p className="text-sm text-muted-foreground">Sem atividade recente.</p>
+        <p className="text-sm text-muted-foreground">
+          Nenhum atendimento registrado para este cliente.
+        </p>
       )}
     </Section>
   );
@@ -2592,15 +2483,6 @@ function CompaniesSummaryCard({
                 normalizeCityUf([company.city, company.state].filter(Boolean).join(" - ")) || "",
               ],
               ["CEP", company.postalCode || ""],
-              ["Responsável", company.responsibleName || ""],
-              ["CPF do responsável", company.responsibleDocument || ""],
-              ["Escritório de contabilidade", company.accountantOffice || ""],
-              ["Contador responsável", company.accountantName || ""],
-              [
-                "Telefone do contador",
-                company.accountantPhone ? formatPhoneBR(company.accountantPhone) : "",
-              ],
-              ["E-mail do contador", company.accountantEmail || ""],
             ].filter(([, v]) => Boolean(v)) as Array<[string, string]>;
             return (
               <div
@@ -2680,6 +2562,61 @@ function CompaniesSummaryCard({
                         </div>
                       ))}
                     </div>
+                    <div className="mt-5 grid gap-6 border-t pt-5 md:grid-cols-2 xl:grid-cols-3">
+                      <ResponsibleGroup
+                        title="Responsável"
+                        icon={CircleUserRound}
+                        fields={
+                          [
+                            ["Nome", company.responsibleName],
+                            ["CPF", company.responsibleDocument],
+                            ["RG", company.responsibleRg],
+                          ].filter(([, v]) => Boolean(v)) as Array<[string, string]>
+                        }
+                      />
+                      <ResponsibleGroup
+                        title="Endereço do responsável"
+                        icon={MapPin}
+                        fields={
+                          [
+                            [
+                              "Logradouro e número",
+                              [company.responsibleAddress, company.responsibleNumber]
+                                .filter(Boolean)
+                                .join(", "),
+                            ],
+                            [
+                              "Bairro / complemento",
+                              [company.responsibleNeighborhood, company.responsibleComplement]
+                                .filter(Boolean)
+                                .join(" · "),
+                            ],
+                            [
+                              "Cidade / UF",
+                              normalizeCityUf(
+                                [company.responsibleCity, company.responsibleState]
+                                  .filter(Boolean)
+                                  .join(" - "),
+                              ),
+                            ],
+                            ["CEP", company.responsiblePostalCode],
+                          ].filter(([, v]) => Boolean(v)) as Array<[string, string]>
+                        }
+                      />
+                      <ResponsibleGroup
+                        title="Contabilidade"
+                        icon={CircleDollarSign}
+                        emailField="E-mail"
+                        fields={
+                          [
+                            ["Escritório", company.accountantOffice],
+                            ["Contador responsável", company.accountantName],
+                            ["Telefone", formatPhoneBR(company.accountantPhone)],
+                            ["E-mail", company.accountantEmail],
+                          ].filter(([, v]) => Boolean(v)) as Array<[string, string]>
+                        }
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -2712,59 +2649,26 @@ function plainText(value: string) {
     .trim();
 }
 
-function SupportRowsCompact({
-  tickets,
-  events,
-}: {
-  tickets: ClientTicket[];
-  events: ClientEvent[];
-}) {
+function SupportRowsCompact({ events }: { events: ClientEvent[] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const pastEvents = events.filter(
-    (event) => event.startsAtIso && new Date(event.startsAtIso).getTime() < Date.now(),
-  );
-  if (!tickets.length && !pastEvents.length) {
+  if (!events.length)
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-primary/5 px-4 py-6 text-center dark:border-border dark:bg-transparent">
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-primary/10 text-primary">
-          <MessageCircle className="h-5 w-5" />
-        </span>
-        <p className="text-xs text-muted-foreground">
-          Nenhum agendamento ou atendimento registrado para este cliente.
-        </p>
-        <Button
-          asChild
-          size="sm"
-          className="h-8 cursor-pointer rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          <Link to="/chamados/novo" search={() => ({ cliente: undefined, empresa: undefined })}>
-            Novo chamado
-          </Link>
-        </Button>
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Nenhum agendamento registrado para este cliente.
+      </p>
     );
-  }
-  const rows = [
-    ...tickets.map((ticket) => ({
-      id: `ticket-${ticket.id}`,
-      title: ticket.subject,
-      detail: [ticket.module, ticket.submodule].filter(Boolean).join(" · "),
-      operator: ticket.operator,
-      date: ticket.createdAt,
-      timestamp: ticket.createdAtIso,
-      type: "Atendimento",
-    })),
-    ...pastEvents.map((event) => ({
-      id: `event-${event.id}`,
+  const rows = events
+    .map((event) => ({
+      id: "event-" + event.id,
       title: event.title,
       detail: plainText(event.description),
       operator: event.operator,
       date: event.startsAt,
       timestamp: event.startsAtIso,
-      type: event.legacyTicketId ? "Atendimento agendado" : "Agendamento",
-    })),
-  ].sort((left, right) => right.timestamp.localeCompare(left.timestamp));
-  const visibleRows = rows.slice(0, 2);
+      type: "Agendamento",
+    }))
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  const visibleRows = rows.slice(0, 5);
 
   return (
     <>
@@ -2790,7 +2694,7 @@ function SupportRowsCompact({
           </li>
         ))}
       </ul>
-      {rows.length > 2 && (
+      {rows.length > 5 && (
         <Button
           type="button"
           variant="ghost"
@@ -2804,7 +2708,7 @@ function SupportRowsCompact({
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[80vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Agendamentos e atendimentos</DialogTitle>
+            <DialogTitle>Agendamentos</DialogTitle>
           </DialogHeader>
           <ul className="space-y-2">
             {rows.map((row) => (

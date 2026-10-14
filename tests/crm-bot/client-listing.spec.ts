@@ -192,7 +192,7 @@ test("Clientes: cliente e empresa têm campos separados, com gravação simulada
     .first()
     .locator('td[data-label="Nome / perfil"]')
     .click();
-  const companyEdit = page.getByRole("button", { name: "Editar dados da empresa", exact: true });
+  const companyEdit = page.getByRole("button", { name: /^Editar empresa vinculada / });
   await expect(companyEdit).toBeVisible({ timeout: 30000 });
   await companyEdit.click();
   await expect(modal.getByLabel("CNPJ", { exact: true })).toHaveValue("12345678000190");
@@ -363,4 +363,124 @@ test("Clientes: recupera falhas temporárias e isola abas indisponíveis", async
   expect(logsCalls).toBe(2);
   await page.getByRole("tab", { name: "Cliente", exact: true }).click();
   expect(coreCalls).toBe(3);
+});
+
+test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", async ({
+  page,
+}, info) => {
+  test.skip(
+    !process.env.CRM_BOT_OPERATOR || !process.env.CRM_BOT_PASSWORD,
+    "Conta não configurada",
+  );
+  test.setTimeout(120000);
+  if (info.project.name === "desktop") await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.route("**/*", async (route) => {
+    const req = route.request(),
+      url = new URL(req.url()),
+      rpc = url.pathname.match(/\/rpc\/([^/]+)/)?.[1];
+    if (rpc === "get_crm_client")
+      return route.fulfill({
+        json: {
+          client: {
+            acronym: req.postDataJSON().client_acronym,
+            name: "Cliente resumo",
+            legal_name: "Cliente resumo",
+            active: true,
+            city: "Curitiba",
+            state: "PR",
+            service_unit: "São Carlos",
+          },
+          contacts: [],
+          companies: [
+            {
+              id: "00000000-0000-4000-8000-000000000002",
+              legal_name: "Empresa vinculada teste",
+              industry: "0",
+              responsible_name: "Responsável da filial",
+              source_payload: {
+                tcl_contador:
+                  '{"cli_ctd_nome":"Escritório da filial","cli_ctd_res":"Contador da filial"}',
+              },
+            },
+          ],
+        },
+      });
+    if (rpc === "get_crm_client_events")
+      return route.fulfill({
+        json: Array.from({ length: 7 }, (_, i) => ({
+          id: "event" + i,
+          title: "Agendamento fixture " + i,
+          starts_at: "2026-01-0" + (i + 1) + "T09:00:00Z",
+          status: "completed",
+        })),
+      });
+    if (rpc === "get_crm_client_ticket_activity")
+      return route.fulfill({
+        json: Array.from({ length: 7 }, (_, i) => ({
+          id: "activity" + i,
+          title: "Atendimento fixture " + i,
+          occurred_at: "2026-01-0" + (i + 1) + "T09:00:00Z",
+          event_type: "created",
+        })),
+      });
+    if (rpc?.startsWith("get_crm_client_") && rpc !== "get_crm_client_listing_context")
+      return route.fulfill({ json: [] });
+    if (
+      !["GET", "HEAD", "OPTIONS"].includes(req.method()) &&
+      !url.pathname.endsWith("/auth/v1/token") &&
+      !(rpc && /^(get_|list_|search_|resolve_|support_load_)/.test(rpc))
+    )
+      return route.abort("blockedbyclient");
+    await route.continue();
+  });
+  await page.goto("/login");
+  await page.locator("#login-email").fill(process.env.CRM_BOT_OPERATOR!);
+  await page.locator("#login-password").fill(process.env.CRM_BOT_PASSWORD!);
+  await page.getByRole("button", { name: "Entrar", exact: true }).click();
+  await expect(page).not.toHaveURL(/\/login/, { timeout: 30000 });
+  await page.goto("/clientes");
+  await page
+    .locator(".clients-list-table tbody tr")
+    .first()
+    .locator('td[data-label="Nome / perfil"]')
+    .click();
+  const agenda = page
+    .getByRole("heading", { name: "Agendamentos", exact: true })
+    .locator("..")
+    .locator("..");
+  await expect(agenda).toBeVisible();
+  await expect(agenda.locator("li")).toHaveCount(5);
+  if (info.project.name === "desktop") {
+    const cards = agenda.locator("..").locator(":scope > div");
+    const bounds = await cards.evaluateAll((elements) =>
+      elements.map((e) => e.getBoundingClientRect().top),
+    );
+    expect(bounds.length).toBe(4);
+    expect(Math.max(...bounds) - Math.min(...bounds)).toBeLessThan(2);
+  }
+  const support = page
+    .getByRole("heading", { name: "Atendimentos", exact: true })
+    .locator("..")
+    .locator("..");
+  await expect(support.locator("li")).toHaveCount(5);
+  await expect(
+    page.getByRole("heading", { name: "Dados da empresa", exact: true }),
+  ).not.toBeVisible();
+  await expect(
+    page.locator(".client-header-summary").getByText("São Carlos", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Contador da filial", { exact: true })).not.toBeVisible();
+  await page.getByRole("button", { name: "Empresa vinculada teste", exact: true }).click();
+  await expect(page.getByText("Contador da filial", { exact: true })).toBeVisible();
+  await expect(page.getByText("Responsável da filial", { exact: true })).toBeVisible();
+  await expect(page.getByText("Ramo não preenchido", { exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("resumo-cliente.png"), fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 3)).toBe(
+    true,
+  );
+  await page.getByRole("button", { name: "Novo evento", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Novo agendamento", exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Pessoal", exact: true })).not.toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Reunião remota", exact: true })).toBeVisible();
 });

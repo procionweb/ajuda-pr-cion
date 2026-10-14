@@ -117,7 +117,8 @@ export function CreateEventDialog({
   }, [open, initialDate, editingEvent]);
 
   useEffect(() => {
-    if (lockedClient || !["Reunião na Prócion", "Reunião remota"].includes(type) || !procionClient) return;
+    if (lockedClient || !["Reunião na Prócion", "Reunião remota"].includes(type) || !procionClient)
+      return;
     if (meetingTarget === "Empresa" && client?.id !== procionClient.id) {
       setClient(procionClient);
     }
@@ -230,16 +231,31 @@ export function CreateEventDialog({
         ownReservation?.id,
       );
       if (conflict) {
-        const from = new Date(conflict.startAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-        const until = new Date(conflict.endAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const from = new Date(conflict.startAt).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const until = new Date(conflict.endAt).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
         toast.error("Carro reservado", { description: `Reservado de ${from} às ${until}.` });
         return;
       }
     }
     if (type === "Reunião na Prócion") {
-      const conflict = findRoomConflict({ events: existingEvents, room, date, startTime, endTime, ignoreEventId: editingEvent?.id });
+      const conflict = findRoomConflict({
+        events: existingEvents,
+        room,
+        date,
+        startTime,
+        endTime,
+        ignoreEventId: editingEvent?.id,
+      });
       if (conflict) {
-        toast.error("Sala indisponível", { description: `${room} está reservada das ${conflict.time} às ${conflict.end}.` });
+        toast.error("Sala indisponível", {
+          description: `${room} está reservada das ${conflict.time} às ${conflict.end}.`,
+        });
         return;
       }
     }
@@ -255,10 +271,7 @@ export function CreateEventDialog({
     if (!ignoreGuestConflicts) {
       const conflicts = findGuestConflicts({
         events: existingEvents,
-        guests: [
-          ...guests,
-          ...(responsible ? [{ acronym: responsible, name: responsible }] : []),
-        ],
+        guests: [...guests, ...(responsible ? [{ acronym: responsible, name: responsible }] : [])],
         date,
         startTime,
         endTime,
@@ -283,10 +296,7 @@ export function CreateEventDialog({
           ? client.fantasia || client.name || client.razaoSocial || client.acronym
           : undefined,
       clientId:
-        lockedClient?.id ??
-        (type === "Visita presencial" || isMeeting
-          ? client?.id
-          : undefined),
+        lockedClient?.id ?? (type === "Visita presencial" || isMeeting ? client?.id : undefined),
       description:
         isMeeting && meetingTarget === "Cliente"
           ? meetingReason.trim()
@@ -346,32 +356,39 @@ export function CreateEventDialog({
           />
 
           <NewField label="Tipo de agendamento" required>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {typeCards.map((opt) => {
-                const Icon = opt.icon;
-                const active = type === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      setType(opt.value);
-                      if (opt.value === "Pessoal" && !PERSONAL_EVENT_OPTIONS.includes(title)) {
-                        setTitle(PERSONAL_EVENT_OPTIONS[0]);
-                      }
-                    }}
-                    className={cn(
-                      "flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-[13px] transition",
-                      active
-                        ? "border-primary bg-primary/10 text-primary shadow-sm"
-                        : "border-input bg-background text-foreground hover:border-primary/40 hover:bg-accent",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {opt.value}
-                  </button>
-                );
-              })}
+            <div
+              className={cn(
+                "grid grid-cols-2 gap-2",
+                lockedClient ? "sm:grid-cols-3" : "sm:grid-cols-4",
+              )}
+            >
+              {typeCards
+                .filter((opt) => !lockedClient || opt.value !== "Pessoal")
+                .map((opt) => {
+                  const Icon = opt.icon;
+                  const active = type === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setType(opt.value);
+                        if (opt.value === "Pessoal" && !PERSONAL_EVENT_OPTIONS.includes(title)) {
+                          setTitle(PERSONAL_EVENT_OPTIONS[0]);
+                        }
+                      }}
+                      className={cn(
+                        "flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-[13px] transition",
+                        active
+                          ? "border-primary bg-primary/10 text-primary shadow-sm"
+                          : "border-input bg-background text-foreground hover:border-primary/40 hover:bg-accent",
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {opt.value}
+                    </button>
+                  );
+                })}
             </div>
           </NewField>
 
@@ -508,7 +525,15 @@ export function CreateEventDialog({
                 onReasonChange={setMeetingReason}
               />
               <NewField label="Sala">
-                <RoomAvailabilitySelect value={room} onChange={setRoom} events={existingEvents} date={date} startTime={startTime} endTime={endTime} ignoreEventId={editingEvent?.id} />
+                <RoomAvailabilitySelect
+                  value={room}
+                  onChange={setRoom}
+                  events={existingEvents}
+                  date={date}
+                  startTime={startTime}
+                  endTime={endTime}
+                  ignoreEventId={editingEvent?.id}
+                />
               </NewField>
               <NewField label="Responsável">
                 <CollaboratorSelect value={responsible} onChange={setResponsible} />

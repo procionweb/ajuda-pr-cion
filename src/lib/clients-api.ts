@@ -402,6 +402,7 @@ export function mapDatabaseClient(c: DatabaseClient): ClientRow {
     cep: String(c.postal_code || ""),
     cnpj: formatCnpj(c.document),
     status: c.active ? "Ativo" : "Inativo",
+    serviceUnit: normalizeCityName(String(c.service_unit ?? "")),
     sourcePayload: parseJsonField(c.source_payload),
   };
 }
@@ -591,7 +592,11 @@ export async function getClientDetail(acronym: string): Promise<ClientDetail | n
         company.municipal_registration || payload.tcl_insc_municipal || payload.tcl_im || "",
       ),
       cnae: String(company.cnae || payload.tcl_cnae || ""),
-      industry: labelFromCode(company.industry ?? payload.tcl_setor, industryLabels),
+      industry:
+        !String(company.industry ?? payload.tcl_setor ?? "").trim() ||
+        String(company.industry ?? payload.tcl_setor) === "0"
+          ? "Ramo não preenchido"
+          : labelFromCode(company.industry ?? payload.tcl_setor, industryLabels),
       size: labelFromCode(company.size ?? payload.tcl_porte, sizeLabels),
       taxRegime: optionalLabel(regimeCode, taxRegimeLabels),
       address: String(company.address || payload.tcl_endereco || ""),
