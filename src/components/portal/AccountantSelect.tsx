@@ -54,13 +54,20 @@ export function AccountantSelect({
   );
   return (
     <section className="rounded-2xl border bg-card p-5">
-      <h2 className="flex items-center gap-3 text-base font-medium">
+      <h2
+        className={
+          "flex items-center gap-3 " +
+          (compact ? "text-[13px] font-normal" : "text-base font-medium")
+        }
+      >
         <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
           <UserRound className="size-5" />
         </span>
         Contabilidade
       </h2>
-      <p className="mt-3 text-sm text-muted-foreground">Selecione um contador já cadastrado.</p>
+      <p className={"mt-3 text-muted-foreground " + (compact ? "text-[12.5px]" : "text-sm")}>
+        Selecione um contador já cadastrado.
+      </p>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -69,8 +76,8 @@ export function AccountantSelect({
             role="combobox"
             aria-expanded={open}
             className={
-              "mt-4 w-full cursor-pointer justify-between text-sm font-normal " +
-              (compact ? "h-9 rounded-md" : "h-11 rounded-xl")
+              "mt-4 w-full cursor-pointer justify-between font-normal " +
+              (compact ? "h-9 rounded-md text-[13px]" : "h-11 rounded-xl text-sm")
             }
           >
             <span className="truncate">
@@ -85,7 +92,7 @@ export function AccountantSelect({
             <Input
               aria-label="Buscar contador"
               placeholder="Digite para buscar..."
-              className="pl-9"
+              className={compact ? "pl-9 text-[13px] md:text-[13px]" : "pl-9"}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -121,7 +128,14 @@ export function AccountantSelect({
                 >
                   <UserRound className="size-5 shrink-0 text-primary" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{row.name}</span>
+                    <span
+                      className={
+                        "block truncate " +
+                        (compact ? "text-[13px] font-normal" : "text-sm font-medium")
+                      }
+                    >
+                      {row.name}
+                    </span>
                     <span className="block truncate text-xs text-muted-foreground">
                       {[row.office, row.email].filter(Boolean).join(" · ")}
                     </span>
@@ -136,7 +150,13 @@ export function AccountantSelect({
       {(name || value) && (
         <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border p-3">
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{name || "Contador selecionado"}</p>
+            <p
+              className={
+                "truncate " + (compact ? "text-[13px] font-normal" : "text-sm font-medium")
+              }
+            >
+              {name || "Contador selecionado"}
+            </p>
             {office && <p className="truncate text-xs text-muted-foreground">{office}</p>}
           </div>
           <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>

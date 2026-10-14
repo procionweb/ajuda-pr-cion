@@ -233,7 +233,8 @@ test("Clientes: cliente e empresa têm campos separados, com gravação simulada
   const calendarInputStyle = await calendar
     .getByPlaceholder("Informe o título do agendamento")
     .evaluate((e) => ({ height: getComputedStyle(e).height, font: getComputedStyle(e).fontSize }));
-  expect(clientInputStyle).toEqual(calendarInputStyle);
+  expect(clientInputStyle.height).toEqual(calendarInputStyle.height);
+  expect(clientInputStyle.font).toBe("13px");
 });
 
 test("Clientes: abertura imediata e listagem sem rolagem horizontal", async ({ page }) => {

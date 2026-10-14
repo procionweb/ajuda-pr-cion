@@ -60,7 +60,7 @@ function fieldIcon(label: string) {
 function FieldLabel({ label }: { label: string }) {
   const Icon = fieldIcon(label);
   return (
-    <span className="flex items-center gap-2 text-[12.5px] font-medium">
+    <span className="flex items-center gap-2 text-[12.5px] font-normal">
       <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-primary" />
       {label}
     </span>
@@ -175,7 +175,7 @@ export function ClientEditDialog({
         type={type}
         value={String(value ?? "")}
         onChange={(e) => change(e.target.value)}
-        className="min-w-0 w-full"
+        className="min-w-0 w-full text-[13px] font-normal md:text-[13px]"
       />
     </label>
   );
@@ -191,7 +191,7 @@ export function ClientEditDialog({
         aria-label={label}
         value={String(value ?? "")}
         onChange={(e) => change(e.target.value)}
-        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+        className="h-9 w-full rounded-md border border-input bg-background px-3 text-[13px] font-normal shadow-sm"
       >
         <option value="">Não informado</option>
         {!options.some(([code]) => code === String(value ?? "")) && String(value ?? "") && (
@@ -207,7 +207,7 @@ export function ClientEditDialog({
   );
   const section = (title: string, children: React.ReactNode) => (
     <section className="space-y-4 border-t pt-5">
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+      <h3 className="flex items-center gap-2 text-[13px] font-normal text-foreground">
         {(() => {
           const Icon = fieldIcon(title);
           return <Icon aria-hidden="true" className="h-4 w-4 text-primary" />;
@@ -240,7 +240,7 @@ export function ClientEditDialog({
     return (
       <div className="min-w-0 space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h4 className="text-[12.5px] font-medium">
+          <h4 className="text-[12.5px] font-normal">
             {kind === "phone" ? "Telefones" : "E-mails"}
           </h4>
           <Button type="button" variant="outline" size="sm" onClick={() => addContact(kind)}>
@@ -545,14 +545,17 @@ export function ClientEditDialog({
                   (v) => update("size", v, "porte"),
                 )}
                 <fieldset className="space-y-2 sm:col-span-2">
-                  <legend className="text-[12.5px] font-medium">Regime de apuração</legend>
+                  <legend className="text-[12.5px] font-normal">Regime de apuração</legend>
                   <div className="flex flex-wrap gap-4">
                     {[
                       ["0", "Simples"],
                       ["1", "Presumido"],
                       ["2", "Lucro Real"],
                     ].map(([value, label]) => (
-                      <label key={value} className="flex items-center gap-2 text-sm">
+                      <label
+                        key={value}
+                        className="flex items-center gap-2 text-[13px] font-normal"
+                      >
                         <input
                           type="radio"
                           name="company-tax-regime"
@@ -711,7 +714,10 @@ export function ClientEditDialog({
                 "Aplicações web",
                 <div className="flex flex-wrap gap-4">
                   {(data?.applications?.length ? data.applications : applications).map((app) => (
-                    <label key={app.type} className="flex items-center gap-2 text-sm">
+                    <label
+                      key={app.type}
+                      className="flex items-center gap-2 text-[13px] font-normal"
+                    >
                       <input
                         type="checkbox"
                         checked={webApps.includes(app.type)}
@@ -782,7 +788,10 @@ export function ClientEditDialog({
                     <div className="flex flex-wrap gap-4">
                       {(data?.applications?.length ? data.applications : applications).map(
                         (app) => (
-                          <label key={app.type} className="flex items-center gap-2 text-sm">
+                          <label
+                            key={app.type}
+                            className="flex items-center gap-2 text-[13px] font-normal"
+                          >
                             <input
                               type="checkbox"
                               checked={webApps.includes(app.type)}
@@ -836,7 +845,10 @@ export function ClientEditDialog({
                     "Unidade de atendimento",
                     <div className="flex flex-wrap gap-4">
                       {units.map(([value, label]) => (
-                        <label key={value} className="flex items-center gap-2 text-sm">
+                        <label
+                          key={value}
+                          className="flex items-center gap-2 text-[13px] font-normal"
+                        >
                           <input
                             type="radio"
                             name="client-service-unit"
@@ -853,7 +865,7 @@ export function ClientEditDialog({
                     <Textarea
                       aria-label="Atividades"
                       rows={4}
-                      className="w-full bg-background"
+                      className="w-full bg-background text-[13px] font-normal md:text-[13px]"
                       value={String(source.cli_obs ?? "").replace(/<[^>]*>/g, "")}
                       onChange={(e) => setSource((s) => ({ ...s, cli_obs: e.target.value }))}
                     />,
