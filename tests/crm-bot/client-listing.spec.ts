@@ -489,6 +489,27 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
     expect(Math.abs(agendaList!.height - supportList!.height)).toBeLessThan(3);
   }
   await expect(support.getByText("not_defined", { exact: true })).not.toBeVisible();
+  for (const [card, title] of [
+    [support, "Atendimentos"],
+    [agenda, "Agendamentos"],
+  ] as const) {
+    await card.getByRole("button", { name: "Ver todos", exact: true }).click();
+    const listDialog = page.getByRole("dialog", { name: title, exact: true });
+    await expect(listDialog.locator("li")).toHaveCount(7);
+    await listDialog.locator("li").last().scrollIntoViewIfNeeded();
+    const last = await listDialog.locator("li").last().boundingBox(),
+      close = await listDialog.getByRole("button", { name: "Fechar", exact: true }).boundingBox();
+    expect(last!.y + last!.height).toBeLessThanOrEqual(close!.y);
+    await expect(listDialog.getByRole("button", { name: "Fechar", exact: true })).toBeVisible();
+    expect(
+      await listDialog
+        .locator("li p")
+        .first()
+        .evaluate((e) => getComputedStyle(e).fontSize),
+    ).toBe("13px");
+    await listDialog.getByRole("button", { name: "Fechar", exact: true }).click();
+  }
+
   const actions = page.getByRole("button", { name: "Editar cliente", exact: true });
   const devices = page.locator(".client-header-summary");
   const actionBounds = await actions.boundingBox(),

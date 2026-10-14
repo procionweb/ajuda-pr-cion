@@ -69,7 +69,8 @@ import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ClientDetailDialogContent } from "@/components/clients/ClientDetailDialogContent";
+import { Dialog, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -2138,7 +2139,10 @@ function AllContactsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-0 overflow-hidden bg-card p-0">
+      <ClientDetailDialogContent
+        bodyClassName="gap-0 p-0 sm:p-0"
+        className="flex max-h-[85vh] w-full max-w-3xl flex-col gap-0 overflow-hidden bg-card p-0"
+      >
         <DialogHeader className="border-b border-border p-5 text-left">
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
@@ -2187,7 +2191,7 @@ function AllContactsDialog({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
           {sortedPhones.length + sortedEmails.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               Nenhum contato encontrado.
@@ -2213,7 +2217,7 @@ function AllContactsDialog({
             </div>
           )}
         </div>
-      </DialogContent>
+      </ClientDetailDialogContent>
     </Dialog>
   );
 }
@@ -2389,7 +2393,7 @@ function ClientAttendancesCard({ tickets }: { tickets: ClientTicket[] }) {
             </Button>
           )}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
+            <ClientDetailDialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Atendimentos</DialogTitle>
               </DialogHeader>
@@ -2412,7 +2416,7 @@ function ClientAttendancesCard({ tickets }: { tickets: ClientTicket[] }) {
                   </li>
                 ))}
               </ul>
-            </DialogContent>
+            </ClientDetailDialogContent>
           </Dialog>
         </div>
       ) : (
@@ -2696,7 +2700,7 @@ function SupportRowsCompact({ events }: { events: ClientEvent[] }) {
         </Button>
       )}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[80vh] max-w-3xl overflow-y-auto">
+        <ClientDetailDialogContent className="max-h-[80vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Agendamentos</DialogTitle>
           </DialogHeader>
@@ -2717,7 +2721,7 @@ function SupportRowsCompact({ events }: { events: ClientEvent[] }) {
               </li>
             ))}
           </ul>
-        </DialogContent>
+        </ClientDetailDialogContent>
       </Dialog>
     </>
   );
@@ -3830,7 +3834,7 @@ export function ClientParametersTab({ parameters }: { parameters: ClientParamete
         open={selectedParameter !== null}
         onOpenChange={(open) => !open && setSelectedParameter(null)}
       >
-        <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
+        <ClientDetailDialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
           {selectedParameter && (
             <>
               <DialogHeader>
@@ -3872,7 +3876,7 @@ export function ClientParametersTab({ parameters }: { parameters: ClientParamete
               </div>
             </>
           )}
-        </DialogContent>
+        </ClientDetailDialogContent>
       </Dialog>
     </>
   );
@@ -4220,7 +4224,10 @@ export function ClientInternetTab({
       </Section>
 
       <Dialog open={configOpen} onOpenChange={setConfigOpen}>
-        <DialogContent className="max-h-[92vh] max-w-6xl overflow-y-auto p-0">
+        <ClientDetailDialogContent
+          bodyClassName="gap-0 p-0 sm:p-0"
+          className="max-h-[92vh] max-w-6xl overflow-y-auto p-0"
+        >
           <DialogHeader className="border-b border-border bg-muted/30 px-6 py-5">
             <DialogTitle className="flex items-center gap-3 text-xl">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
@@ -4376,7 +4383,7 @@ export function ClientInternetTab({
               </Button>
             </div>
           </div>
-        </DialogContent>
+        </ClientDetailDialogContent>
       </Dialog>
     </div>
   );
