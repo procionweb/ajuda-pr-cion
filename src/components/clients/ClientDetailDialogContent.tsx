@@ -7,10 +7,12 @@ export function ClientDetailDialogContent({
   children,
   className,
   bodyClassName,
+  footer,
 }: {
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
+  footer?: ReactNode;
 }) {
   return (
     <DialogContent
@@ -28,7 +30,9 @@ export function ClientDetailDialogContent({
       >
         {children}
       </div>
-      <DialogFooter className="static shrink-0 border-t border-border px-4 py-3 [&_button]:text-[13px]" />
+      <DialogFooter className="static shrink-0 border-t border-border px-4 py-3 [&_button]:text-[13px]">
+        {footer}
+      </DialogFooter>
     </DialogContent>
   );
 }

@@ -3229,7 +3229,13 @@ function ModuleColumn({ items }: { items: ClientModule[] }) {
                 item.contracted ? "text-emerald-600" : "text-muted-foreground",
               )}
             />
-            <span className="min-w-0 flex-1 truncate text-sm text-foreground" title={item.name}>
+            <span
+              className={cn(
+                "min-w-0 flex-1 truncate text-sm",
+                item.contracted ? "text-foreground" : "text-red-600 dark:text-red-400",
+              )}
+              title={item.name}
+            >
               {item.name}
             </span>
             {item.contracted ? (
@@ -3238,7 +3244,10 @@ function ModuleColumn({ items }: { items: ClientModule[] }) {
                 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
               />
             ) : (
-              <X aria-label="Não contratado" className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <X
+                aria-label="Não contratado"
+                className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
+              />
             )}
           </li>
         );
@@ -4125,10 +4134,16 @@ export function ClientInternetTab({
                       <Field label="URL / Domínio" value={contractUrl || "Não informada"} />
                     </HadronDetail>
                     <HadronDetail icon={CalendarDays}>
-                      <Field label="Início" value={contract.startsAt || "Não informado"} />
+                      <Field
+                        label="Início do contrato"
+                        value={contract.startsAt || "Não informado"}
+                      />
                     </HadronDetail>
                     <HadronDetail icon={Clock3}>
-                      <Field label="Expira em" value={contract.expiresAt || "Não informado"} />
+                      <Field
+                        label="Vencimento do contrato"
+                        value={contract.expiresAt || "Não informado"}
+                      />
                     </HadronDetail>
                   </div>
                 </div>
@@ -4166,7 +4181,9 @@ export function ClientInternetTab({
                 <p className={cn("truncate", app.contracted && "font-medium")}>{app.label}</p>
                 {(app.version || app.updatedAt) && (
                   <p className="truncate text-[11px] text-muted-foreground">
-                    {[app.version, app.updatedAt].filter(Boolean).join(" · ")}
+                    {[app.version, app.updatedAt ? `Atualizado em ${app.updatedAt}` : ""]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 )}
               </div>
@@ -4190,7 +4207,7 @@ export function ClientInternetTab({
               Outras aplicações ({otherApps.length})
             </p>
             <DataTable
-              headers={["Aplicativo", "Tipo", "Versão", "Situação", "Atualização"]}
+              headers={["Aplicativo", "Tipo", "Versão", "Situação", "Atualização do aplicativo"]}
               rows={otherApps.map((app) => [
                 app.name || "-",
                 app.appType || "-",
@@ -4205,6 +4222,16 @@ export function ClientInternetTab({
 
       <Dialog open={configOpen} onOpenChange={setConfigOpen}>
         <ClientDetailDialogContent
+          footer={
+            <Button
+              disabled
+              title="Disponível após ativar a autenticação administrativa"
+              className="gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Salvar
+            </Button>
+          }
           bodyClassName="gap-0 p-0 sm:p-0"
           className="max-h-[92vh] max-w-6xl overflow-y-auto p-0"
         >
@@ -4220,6 +4247,21 @@ export function ClientInternetTab({
           </DialogHeader>
 
           <div className="space-y-6 px-6 pb-7">
+            <div>
+              <h3 className="mb-4 border-b border-border bg-muted/60 px-4 py-3 text-sm font-medium">
+                Status
+              </h3>
+              <label className="flex w-fit cursor-pointer items-center gap-3">
+                <Switch
+                  checked={config.active}
+                  onCheckedChange={(checked) => updateConfig("active", checked)}
+                />
+                <span className="text-sm font-medium">
+                  {config.active ? "Ativado" : "Desativado"}
+                </span>
+              </label>
+            </div>
+
             <div>
               <h3 className="mb-5 border-b border-border bg-muted/60 px-4 py-3 text-sm font-medium">
                 Dados do cliente
@@ -4335,32 +4377,6 @@ export function ClientInternetTab({
                   </label>
                 </HadronDetail>
               </div>
-            </div>
-
-            <div>
-              <h3 className="mb-4 border-b border-border bg-muted/60 px-4 py-3 text-sm font-medium">
-                Status
-              </h3>
-              <label className="flex w-fit cursor-pointer items-center gap-3">
-                <Switch
-                  checked={config.active}
-                  onCheckedChange={(checked) => updateConfig("active", checked)}
-                />
-                <span className="text-sm font-medium">
-                  {config.active ? "Ativado" : "Desativado"}
-                </span>
-              </label>
-            </div>
-
-            <div className="flex justify-end border-t border-border pt-5">
-              <Button
-                disabled
-                title="Disponível após ativar a autenticação administrativa"
-                className="gap-2"
-              >
-                <Save className="h-4 w-4" />
-                Salvar
-              </Button>
             </div>
           </div>
         </ClientDetailDialogContent>
