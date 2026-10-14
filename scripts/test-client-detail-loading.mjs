@@ -2,7 +2,7 @@ import fs from "node:fs";
 import pg from "pg";
 import assert from "node:assert/strict";
 const sql = fs.readFileSync(
-  "supabase/migrations/20261014190000_client_service_unit.sql",
+  "supabase/migrations/20261014200000_client_all_device_dates.sql",
   "utf8",
 );
 const db = new pg.Client({

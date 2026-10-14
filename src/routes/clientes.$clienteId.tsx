@@ -540,7 +540,7 @@ function ClientDetailPage() {
                     value="dispositivos"
                     className="m-0 space-y-5 text-[12px] [&_.text-sm]:text-[12px]"
                   >
-                    <ClientDevicesTab internet={internet} />
+                    <ClientDevicesTab internet={internet} client={client} />
                   </TabsContent>
                 )}
                 {showParameters && (

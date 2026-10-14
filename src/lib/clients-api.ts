@@ -138,6 +138,8 @@ export type ClientInternetDevice = {
   dbVersion: string;
   lastCheckedAt: string;
   updatedAt: string;
+  createdAt?: string;
+  contractKey?: string;
 };
 
 export type ClientInternetContract = {
@@ -170,6 +172,7 @@ export type ClientInternetApplication = {
 };
 
 export type ClientInternet = {
+  allDevices?: ClientInternetDevice[];
   hasActiveContract: boolean;
   hasDevices: boolean;
   devices: ClientInternetDevice[];
@@ -759,12 +762,16 @@ export async function getClientDetail(acronym: string): Promise<ClientDetail | n
     type: String(device.tipo || ""),
     system: String(device.sistema || ""),
     status: String(device.status || ""),
-    active: device.active !== false,
+    active: /^[01259]$/.test(String(device.status))
+      ? String(device.status) === "1"
+      : device.active !== false,
     appType: String(device.app_type || ""),
     buildVersion: String(device.build_version || ""),
     dbVersion: String(device.db_version || ""),
-    lastCheckedAt: date(device.last_checked_at, true),
-    updatedAt: date(device.updated_at, true),
+    contractKey: String(device.contract_key || ""),
+    createdAt: legacyDate(device.created_at, true),
+    lastCheckedAt: legacyDate(device.last_checked_at, true),
+    updatedAt: legacyDate(device.updated_at, true),
   });
 
   const contracts = (Array.isArray(internetData.contracts) ? internetData.contracts : []).map(
@@ -815,6 +822,9 @@ export async function getClientDetail(acronym: string): Promise<ClientDetail | n
 
   const anyActiveContract = contracts.some((c) => c.active);
   const internet: ClientInternet = {
+    allDevices: Array.isArray(internetData.all_devices)
+      ? internetData.all_devices.map((d) => mapInternetDevice(d))
+      : devices,
     hasActiveContract: internetData.has_active_contract === true || anyActiveContract,
     hasDevices: internetData.has_devices === true || devices.length > 0,
     devices,

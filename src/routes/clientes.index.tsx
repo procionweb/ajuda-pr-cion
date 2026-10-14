@@ -3226,7 +3226,7 @@ function ModuleColumn({ items }: { items: ClientModule[] }) {
             <Icon
               className={cn(
                 "h-4 w-4 shrink-0",
-                item.contracted ? "text-emerald-600" : "text-muted-foreground",
+                item.contracted ? "text-emerald-600" : "text-red-600 dark:text-red-400",
               )}
             />
             <span
@@ -3873,88 +3873,169 @@ export function ClientParametersTab({ parameters }: { parameters: ClientParamete
 
 const deviceTypeLabel: Record<string, string> = {
   M: "Mobile",
-  S: "Servidor",
-  T: "Terminal",
+  S: "Celular",
+  T: "Tablet",
 };
 
-export function ClientDevicesTab({ internet }: { internet: ClientInternet }) {
+export function ClientDevicesTab({
+  internet,
+  client,
+}: {
+  internet: ClientInternet;
+  client?: ClientRow;
+}) {
+  const [allOpen, setAllOpen] = useState(false);
   const devices = internet.devices.length
     ? internet.devices
     : internet.contracts.flatMap((contract) => contract.devices);
 
   type DeviceRow = (typeof devices)[number];
+  const allDevices = internet.allDevices ?? devices;
+  const statusLabel = (d: DeviceRow) =>
+    (
+      ({
+        "0": "Inativo",
+        "1": "Ativo",
+        "2": "Bloqueado",
+        "5": "Pendente",
+        "9": "Remover",
+        active: "Ativo",
+        inactive: "Inativo",
+        blocked: "Bloqueado",
+        pending: "Pendente",
+      }) as Record<string, string>
+    )[d.status.toLowerCase()] ||
+    d.status ||
+    (d.active ? "Ativo" : "Inativo");
+  const renderTable = (rows: DeviceRow[]) => (
+    <SortableDataTable<DeviceRow>
+      rows={rows}
+      dense
+      minWidthClass="min-w-[900px]"
+      initialSort={{ key: "added", dir: "desc" }}
+      columns={[
+        {
+          key: "contract",
+          label: "Sigla / chave",
+          value: (d) =>
+            [
+              client?.acronym,
+              d.contractKey ||
+                internet.contracts.find((c) => c.legacyId === d.contractLegacyId)?.contractKey,
+            ]
+              .filter(Boolean)
+              .join(" | "),
 
+          render: (d) =>
+            [
+              client?.acronym,
+              d.contractKey ||
+                internet.contracts.find((c) => c.legacyId === d.contractLegacyId)?.contractKey,
+            ]
+              .filter(Boolean)
+              .join(" | "),
+        },
+        {
+          key: "representative",
+          label: "Representante",
+          value: (d) => d.representativeCode || "",
+          render: (d) => d.representativeCode || "-",
+        },
+        {
+          key: "user",
+          label: "Utilizador",
+          value: (d) => d.user || "",
+          render: (d) => d.user || "-",
+        },
+        {
+          key: "type",
+          label: "Tipo",
+          value: (d) => deviceTypeLabel[d.type] || d.type || "",
+          render: (d) => deviceTypeLabel[d.type] || d.type || "-",
+        },
+        {
+          key: "system",
+          label: "Sistema",
+          value: (d) => d.system || "",
+          render: (d) => d.system || "-",
+        },
+        {
+          key: "app",
+          label: "App",
+          value: (d) => d.appType || "",
+          render: (d) => d.appType || "-",
+        },
+        {
+          key: "build",
+          label: "Build",
+          value: (d) => d.buildVersion || "",
+          render: (d) => d.buildVersion || "-",
+        },
+        {
+          key: "db",
+          label: "Banco",
+          value: (d) => d.dbVersion || "",
+          render: (d) => d.dbVersion || "-",
+        },
+        {
+          key: "status",
+          label: "Status",
+          value: (d) => statusLabel(d),
+          render: (d) => statusLabel(d),
+        },
+        {
+          key: "uuid",
+          label: "UUID",
+          value: (d) => d.deviceUuid || "",
+          cellClassName: "font-mono text-[11.5px] leading-snug break-all whitespace-normal",
+          render: (d) => d.deviceUuid || "-",
+        },
+        {
+          key: "added",
+          label: "Datas",
+          value: (d) => parseBrDateValue(d.createdAt || ""),
+          cellClassName: "whitespace-nowrap",
+          render: (d) => (
+            <div className="space-y-1">
+              <p>Adicionado em: {d.createdAt || "Não informado"}</p>
+              <p>Última verificação: {d.lastCheckedAt || "Não informada"}</p>
+              <p>Atualizado em: {d.updatedAt || "Não informado"}</p>
+            </div>
+          ),
+        },
+      ]}
+    />
+  );
   return (
-    <Section title={`Dispositivos (${devices.length})`} icon={Monitor}>
-      {devices.length ? (
-        <SortableDataTable<DeviceRow>
-          rows={devices}
-          dense
-          minWidthClass="min-w-[900px]"
-          initialSort={{ key: "lastChecked", dir: "desc" }}
-          columns={[
-            {
-              key: "user",
-              label: "Utilizador",
-              value: (d) => d.user || "",
-              render: (d) => d.user || "-",
-            },
-            {
-              key: "type",
-              label: "Tipo",
-              value: (d) => deviceTypeLabel[d.type] || d.type || "",
-              render: (d) => deviceTypeLabel[d.type] || d.type || "-",
-            },
-            {
-              key: "system",
-              label: "Sistema",
-              value: (d) => d.system || "",
-              render: (d) => d.system || "-",
-            },
-            {
-              key: "app",
-              label: "App",
-              value: (d) => d.appType || "",
-              render: (d) => d.appType || "-",
-            },
-            {
-              key: "build",
-              label: "Build",
-              value: (d) => d.buildVersion || "",
-              render: (d) => d.buildVersion || "-",
-            },
-            {
-              key: "db",
-              label: "Banco",
-              value: (d) => d.dbVersion || "",
-              render: (d) => d.dbVersion || "-",
-            },
-            {
-              key: "status",
-              label: "Status",
-              value: (d) => (d.active ? "Ativo" : d.status || "Inativo"),
-              render: (d) => (d.active ? "Ativo" : d.status || "Inativo"),
-            },
-            {
-              key: "uuid",
-              label: "UUID",
-              value: (d) => d.deviceUuid || "",
-              cellClassName: "font-mono text-[11.5px] leading-snug break-all whitespace-normal",
-              render: (d) => d.deviceUuid || "-",
-            },
-            {
-              key: "lastChecked",
-              label: "Última verificação",
-              value: (d) => parseBrDateValue(d.lastCheckedAt || d.updatedAt),
-              cellClassName: "whitespace-nowrap",
-              render: (d) => d.lastCheckedAt || d.updatedAt || "-",
-            },
-          ]}
-        />
-      ) : (
-        <EmptyState text="Nenhum dispositivo vinculado aos contratos ativos." />
-      )}
-    </Section>
+    <>
+      <Section
+        title={`Dispositivos (${devices.length})`}
+        icon={Monitor}
+        action={
+          <Button size="sm" variant="ghost" onClick={() => setAllOpen(true)}>
+            Ver todos
+          </Button>
+        }
+      >
+        {devices.length ? (
+          renderTable(devices)
+        ) : (
+          <EmptyState text="Nenhum dispositivo vinculado aos contratos ativos." />
+        )}
+      </Section>
+      <Dialog open={allOpen} onOpenChange={setAllOpen}>
+        <ClientDetailDialogContent className="max-w-6xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle>Dispositivos Mobile</DialogTitle>
+          </DialogHeader>
+          {allDevices.length ? (
+            renderTable(allDevices)
+          ) : (
+            <EmptyState text="Nenhum dispositivo cadastrado para este cliente." />
+          )}
+        </ClientDetailDialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -4175,7 +4256,7 @@ export function ClientInternetTab({
               {app.contracted ? (
                 <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <X className="h-4 w-4 shrink-0" />
+                <X className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
               )}
               <div className="min-w-0">
                 <p className={cn("truncate", app.contracted && "font-medium")}>{app.label}</p>

@@ -407,6 +407,50 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
             operator: "PRC",
             created_at: "2026-01-0" + (i + 1) + "T09:00:00Z",
           })),
+          internet: {
+            has_active_contract: true,
+            devices: [
+              {
+                id: "older",
+                utilizador: "Mais antigo",
+                tipo: "T",
+                status: "2",
+                created_at: "2024-01-01T09:00:00Z",
+                last_checked_at: "2026-10-14T09:00:00Z",
+              },
+              {
+                id: "newer",
+                utilizador: "Mais novo",
+                tipo: "S",
+                status: "1",
+                created_at: "2025-01-01T09:00:00Z",
+                last_checked_at: "2025-01-01T09:00:00Z",
+              },
+            ],
+            all_devices: [
+              {
+                id: "older",
+                utilizador: "Mais antigo",
+                tipo: "T",
+                status: "2",
+                created_at: "2024-01-01T09:00:00Z",
+              },
+              {
+                id: "newer",
+                utilizador: "Mais novo",
+                tipo: "S",
+                status: "1",
+                created_at: "2025-01-01T09:00:00Z",
+              },
+              {
+                id: "inactive",
+                utilizador: "Inativo histórico",
+                tipo: "S",
+                status: "0",
+                created_at: "2023-01-01T09:00:00Z",
+              },
+            ],
+          },
           modules: Array.from({ length: 20 }, (_, i) => ({
             id: "module" + i,
             name: "Módulo fixture " + i,
@@ -555,4 +599,15 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
     await expect(columns.nth(i).locator('[aria-label="Contratado"]')).toHaveCount(5);
     await expect(columns.nth(i).locator('[aria-label="Não contratado"]')).toHaveCount(5);
   }
+  await page.getByRole("tab", { name: "Dispositivos", exact: true }).click();
+  const deviceTable = page.getByRole("tabpanel").getByRole("table");
+  await expect(deviceTable.getByText("Bloqueado", { exact: true })).toBeVisible();
+  await expect(deviceTable.getByText("Tablet", { exact: true })).toBeVisible();
+  await expect(deviceTable.getByText("Celular", { exact: true })).toBeVisible();
+  await expect(deviceTable.locator("tbody tr").first()).toContainText("Mais novo");
+  await page.getByRole("tabpanel").getByRole("button", { name: "Ver todos", exact: true }).click();
+  const full = page.getByRole("dialog", { name: "Dispositivos Mobile", exact: true });
+  await expect(full.getByText("Inativo histórico", { exact: true })).toBeVisible();
+  await expect(full.getByText("Inativo", { exact: true })).toBeVisible();
+  await expect(full.getByRole("columnheader", { name: /Datas/ })).toBeVisible();
 });
