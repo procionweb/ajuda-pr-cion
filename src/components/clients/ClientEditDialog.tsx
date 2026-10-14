@@ -1,5 +1,21 @@
 import { useEffect, useState, useRef } from "react";
-import { Pencil, Plus, Trash2, Loader2 } from "lucide-react";
+import {
+  Pencil,
+  Plus,
+  Trash2,
+  Loader2,
+  Building2,
+  MapPin,
+  UserRound,
+  BriefcaseBusiness,
+  Phone,
+  Mail,
+  Globe,
+  FileText,
+  Hash,
+  Monitor,
+  Activity,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -27,6 +43,28 @@ const formatCep = (value: unknown) =>
     .replace(/\D/g, "")
     .slice(0, 8)
     .replace(/^(\d{5})(\d)/, "$1-$2");
+function fieldIcon(label: string) {
+  if (/e-mail/i.test(label)) return Mail;
+  if (/telefone/i.test(label)) return Phone;
+  if (/CEP|Endereço|Cidade|UF|Bairro|Unidade/i.test(label)) return MapPin;
+  if (/contador|contabilidade/i.test(label)) return BriefcaseBusiness;
+  if (/responsável|apelido|Contatos/i.test(label)) return UserRound;
+  if (/Internet|Site|web/i.test(label)) return Globe;
+  if (/dispositivos/i.test(label)) return Monitor;
+  if (/CNPJ|CPF|RG|Inscrição|CNAE/i.test(label)) return FileText;
+  if (/Número|Sigla/i.test(label)) return Hash;
+  if (/Atividades|Status/i.test(label)) return Activity;
+  return Building2;
+}
+function FieldLabel({ label }: { label: string }) {
+  const Icon = fieldIcon(label);
+  return (
+    <span className="flex items-center gap-2 text-xs font-medium">
+      <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-primary" />
+      {label}
+    </span>
+  );
+}
 type Field = [string, string, string?];
 const companyFields: Field[] = [
   ["Razão social", "legal_name", "razao_social"],
@@ -130,7 +168,7 @@ export function ClientEditDialog({
     }));
   const input = (label: string, value: unknown, change: (value: string) => void, type = "text") => (
     <label key={label} className="block min-w-0 space-y-1.5">
-      <span className="text-xs font-medium">{label}</span>
+      <FieldLabel label={label} />
       <Input
         aria-label={label}
         type={type}
@@ -147,7 +185,7 @@ export function ClientEditDialog({
     change: (value: string) => void,
   ) => (
     <label key={label} className="space-y-1.5">
-      <span className="text-xs font-medium">{label}</span>
+      <FieldLabel label={label} />
       <select
         aria-label={label}
         value={String(value ?? "")}
@@ -168,7 +206,13 @@ export function ClientEditDialog({
   );
   const section = (title: string, children: React.ReactNode) => (
     <section className="space-y-4 border-t pt-5">
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        {(() => {
+          const Icon = fieldIcon(title);
+          return <Icon aria-hidden="true" className="h-4 w-4 text-primary" />;
+        })()}
+        {title}
+      </h3>
       {children}
     </section>
   );

@@ -2607,18 +2607,35 @@ function CompaniesSummaryCard({
                 key={company.id}
                 className="overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/40 dark:border-border"
               >
-                <button
-                  type="button"
-                  onClick={() => setOpenId(expanded ? null : company.id)}
-                  aria-expanded={expanded}
-                  className="grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/5"
-                >
+                <div className="grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
                     <Server className="h-4 w-4" />
                   </span>
                   <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="font-mono text-[11px] text-muted-foreground">{number}</span>
-                    <span className="truncate text-sm font-medium text-foreground">{title}</span>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setOpenId(expanded ? null : company.id)}
+                        aria-expanded={expanded}
+                        className="min-w-0 cursor-pointer truncate text-left text-sm font-medium text-foreground"
+                      >
+                        {title}
+                      </button>
+                      {canEdit && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0 text-primary"
+                          aria-label={"Editar empresa vinculada " + title}
+                          title="Editar empresa vinculada"
+                          onClick={() => setEditingCompany(company)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </span>
                     <span className="truncate text-xs text-muted-foreground">
                       {company.document || "CNPJ não informado"}
                     </span>
@@ -2634,21 +2651,21 @@ function CompaniesSummaryCard({
                       {principal ? "Principal" : "Filial"}
                     </Badge>
                   </span>
-                  <ChevronRight
-                    className={cn(
-                      "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-                      expanded ? "rotate-90" : "rotate-0",
-                    )}
-                  />
-                </button>
-                {canEdit && (
-                  <div className="px-4 pb-3">
-                    <Button variant="outline" size="sm" onClick={() => setEditingCompany(company)}>
-                      <Pencil className="mr-2 h-3.5 w-3.5" />
-                      Editar empresa vinculada
-                    </Button>
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    aria-label={expanded ? "Recolher empresa" : "Expandir empresa"}
+                    aria-expanded={expanded}
+                    onClick={() => setOpenId(expanded ? null : company.id)}
+                    className="cursor-pointer rounded-md p-1 hover:bg-primary/10"
+                  >
+                    <ChevronRight
+                      className={cn(
+                        "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                        expanded ? "rotate-90" : "rotate-0",
+                      )}
+                    />
+                  </button>
+                </div>
                 {expanded && (
                   <div className="border-t border-border bg-muted/10 px-4 py-4 dark:border-border">
                     <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
