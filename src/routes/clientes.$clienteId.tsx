@@ -300,7 +300,7 @@ function ClientDetailPage() {
           }}
         />
       )}
-      <div className="mb-3 flex flex-wrap items-center gap-2 max-xl:[&_a]:min-h-11">
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-2 max-xl:[&_a]:min-h-11">
         <Button asChild variant="outline" size="sm" className="h-8 cursor-pointer rounded-lg">
           <Link to="/clientes" aria-label="Voltar para Clientes">
             <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />

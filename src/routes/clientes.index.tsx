@@ -2255,7 +2255,7 @@ export function ClientTab({
   terminals: _terminals,
   tickets,
   events,
-  activities,
+  activities: _activities,
   onOpenCompanies,
 }: {
   client: ClientRow;
@@ -2275,13 +2275,13 @@ export function ClientTab({
   void onOpenCompanies;
   return (
     <div className="space-y-5">
-      <div className="grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid items-stretch gap-5 md:grid-cols-2">
         <ContactsCard contacts={contacts} client={client} />
         <ClientNextEvent client={client} events={eventsWithLocal} tickets={tickets} />
         <Section title="Agendamentos" icon={CalendarDays}>
           <SupportRowsCompact events={eventsWithLocal} />
         </Section>
-        <RecentActivityCard activities={activities} tickets={tickets} />
+        <ClientAttendancesCard tickets={tickets} />
       </div>
       <CompaniesSummaryCard companies={companies} />
     </div>
@@ -2341,31 +2341,18 @@ function ResponsibleGroup({
   );
 }
 
-function RecentActivityCard({
-  activities,
-  tickets,
-}: {
-  activities: ClientTicketActivity[];
-  tickets: ClientTicket[];
-}) {
+function ClientAttendancesCard({ tickets }: { tickets: ClientTicket[] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const items = [
-    ...activities.map((activity) => ({
-      id: `ticket-${activity.id}`,
-      title: activity.title || activity.subject,
-      detail: [activity.protocol, activity.actor, activity.occurredAt].filter(Boolean).join(" · "),
-      timestamp: activity.occurredAtIso,
-      ticketActivity: activity.eventType === "created",
-    })),
-    ...(activities.length ? [] : tickets).map((ticket) => ({
-      id: `ticket-${ticket.id}`,
-      title: ticket.subject,
+  const items = tickets
+    .map((ticket) => ({
+      id: ticket.id,
+      title: ticket.subject || "Atendimento sem assunto",
       detail: [ticket.protocol, ticket.operator, ticket.createdAt].filter(Boolean).join(" · "),
       timestamp: ticket.createdAtIso,
-      ticketActivity: false,
-    })),
-  ].sort((left, right) => String(right.timestamp).localeCompare(String(left.timestamp)));
-  const visibleItems = items.slice(0, 5);
+      ticketActivity: true,
+    }))
+    .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+  const visibleItems = items.slice(0, 3);
 
   return (
     <Section title="Atendimentos" icon={Activity}>
@@ -2387,7 +2374,7 @@ function RecentActivityCard({
               </li>
             ))}
           </ul>
-          {items.length > 5 && (
+          {items.length > 3 && (
             <Button
               type="button"
               variant="ghost"
@@ -2668,7 +2655,7 @@ function SupportRowsCompact({ events }: { events: ClientEvent[] }) {
       type: "Agendamento",
     }))
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-  const visibleRows = rows.slice(0, 5);
+  const visibleRows = rows.slice(0, 3);
 
   return (
     <>
@@ -2694,7 +2681,7 @@ function SupportRowsCompact({ events }: { events: ClientEvent[] }) {
           </li>
         ))}
       </ul>
-      {rows.length > 5 && (
+      {rows.length > 3 && (
         <Button
           type="button"
           variant="ghost"

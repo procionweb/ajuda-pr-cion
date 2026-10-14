@@ -390,6 +390,13 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
             state: "PR",
             service_unit: "São Carlos",
           },
+          tickets: Array.from({ length: 7 }, (_, i) => ({
+            id: "ticket" + i,
+            protocol: "PRC-TESTE-" + i,
+            subject: "Atendimento real " + i,
+            operator: "PRC",
+            created_at: "2026-01-0" + (i + 1) + "T09:00:00Z",
+          })),
           contacts: [],
           companies: [
             {
@@ -418,7 +425,7 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
       return route.fulfill({
         json: Array.from({ length: 7 }, (_, i) => ({
           id: "activity" + i,
-          title: "Atendimento fixture " + i,
+          title: "not_defined",
           occurred_at: "2026-01-0" + (i + 1) + "T09:00:00Z",
           event_type: "created",
         })),
@@ -449,20 +456,33 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
     .locator("..")
     .locator("..");
   await expect(agenda).toBeVisible();
-  await expect(agenda.locator("li")).toHaveCount(5);
+  await expect(agenda.locator("li")).toHaveCount(3);
   if (info.project.name === "desktop") {
     const cards = agenda.locator("..").locator(":scope > div");
     const bounds = await cards.evaluateAll((elements) =>
       elements.map((e) => e.getBoundingClientRect().top),
     );
     expect(bounds.length).toBe(4);
-    expect(Math.max(...bounds) - Math.min(...bounds)).toBeLessThan(2);
+    expect(Math.abs(bounds[0] - bounds[1])).toBeLessThan(2);
+    expect(Math.abs(bounds[2] - bounds[3])).toBeLessThan(2);
+    expect(bounds[2]).toBeGreaterThan(bounds[0]);
   }
   const support = page
     .getByRole("heading", { name: "Atendimentos", exact: true })
     .locator("..")
     .locator("..");
-  await expect(support.locator("li")).toHaveCount(5);
+  await expect(support.locator("li")).toHaveCount(3);
+  await expect(support.getByText("Atendimento real 6", { exact: true })).toBeVisible();
+  await expect(support.getByText("not_defined", { exact: true })).not.toBeVisible();
+  const actions = page.getByRole("button", { name: "Editar cliente", exact: true });
+  const devices = page.locator(".client-header-summary");
+  const actionBounds = await actions.boundingBox(),
+    deviceBounds = await devices.boundingBox();
+  expect(actionBounds!.y + actionBounds!.height).toBeLessThanOrEqual(deviceBounds!.y);
+  if (info.project.name === "desktop")
+    expect(
+      Math.abs(actionBounds!.x + actionBounds!.width - deviceBounds!.x - deviceBounds!.width),
+    ).toBeLessThan(3);
   await expect(
     page.getByRole("heading", { name: "Dados da empresa", exact: true }),
   ).not.toBeVisible();
