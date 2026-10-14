@@ -407,6 +407,11 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
             operator: "PRC",
             created_at: "2026-01-0" + (i + 1) + "T09:00:00Z",
           })),
+          modules: Array.from({ length: 20 }, (_, i) => ({
+            id: "module" + i,
+            name: "Módulo fixture " + i,
+            contracted: i % 2 === 0,
+          })),
           contacts: [],
           companies: [
             {
@@ -525,6 +530,8 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
   await expect(
     page.locator(".client-header-summary").getByText("São Carlos", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("Contador da filial", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Empresa vinculada teste", exact: true }).click();
   await expect(page.getByText("Contador da filial", { exact: true })).not.toBeVisible();
   await page.getByRole("button", { name: "Empresa vinculada teste", exact: true }).click();
   await expect(page.getByText("Contador da filial", { exact: true })).toBeVisible();
@@ -539,4 +546,13 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Pessoal", exact: true })).not.toBeVisible();
   await expect(dialog.getByRole("button", { name: "Reunião remota", exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await page.getByRole("tab", { name: "Hádron", exact: true }).click();
+  const columns = page.getByRole("tabpanel").locator("ul").filter({ hasText: "Módulo fixture" });
+  await expect(columns).toHaveCount(2, { timeout: 30000 });
+  for (let i = 0; i < 2; i++) {
+    await expect(columns.nth(i).locator("li")).toHaveCount(10);
+    await expect(columns.nth(i).locator('[aria-label="Contratado"]')).toHaveCount(5);
+    await expect(columns.nth(i).locator('[aria-label="Não contratado"]')).toHaveCount(5);
+  }
 });

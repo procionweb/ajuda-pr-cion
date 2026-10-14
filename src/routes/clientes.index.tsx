@@ -2440,7 +2440,7 @@ function CompaniesSummaryCard({
   const { role, department } = usePortalAuth();
   const canEdit = role === "s_admin" || department === "admin" || department === "commercial";
   const [editingCompany, setEditingCompany] = useState<ClientCompany | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null | undefined>(undefined);
   const isPrincipal = (co: ClientCompany) => {
     if (co.groupPosition === "001") return true;
     const digits = (co.document || "").replace(/\D+/g, "");
@@ -2461,7 +2461,7 @@ function CompaniesSummaryCard({
               (company.companyNumber != null
                 ? String(company.companyNumber).padStart(3, "0")
                 : company.clientAcronym || "—");
-            const expanded = openId === company.id;
+            const expanded = (openId === undefined ? companies[0]?.id : openId) === company.id;
             const details: Array<[string, string]> = [
               ["Nome fantasia", company.tradeName || ""],
               ["Razão social", company.legalName || ""],
@@ -3216,53 +3216,34 @@ function moduleIcon(name: string): ComponentType<{ className?: string }> {
   return found ? found[1] : Server;
 }
 
-function ModuleColumn({
-  title,
-  items,
-  contracted = false,
-}: {
-  title: string;
-  items: ClientModule[];
-  contracted?: boolean;
-}) {
-  const StatusIcon = contracted ? CheckCircle2 : MinusCircle;
-  const accent = contracted ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground";
+function ModuleColumn({ items }: { items: ClientModule[] }) {
   return (
-    <div className="rounded-lg border border-border bg-card/40">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-        <StatusIcon className={cn("h-4 w-4 shrink-0", accent)} />
-        <span className="text-sm font-medium text-foreground">{title}</span>
-        <Badge
-          variant="secondary"
-          className={cn(
-            "ml-auto rounded-full px-2 py-0 text-[11px] font-medium",
-            contracted && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-          )}
-        >
-          {items.length}
-        </Badge>
-      </div>
-      {items.length ? (
-        <ul className="divide-y divide-border/60">
-          {items.map((item) => {
-            const Icon = moduleIcon(item.name);
-            return (
-              <li key={item.id} className="flex items-center gap-2.5 px-4 py-2">
-                <Icon className={cn("h-4 w-4 shrink-0", accent)} />
-                <span className="min-w-0 flex-1 truncate text-sm text-foreground">{item.name}</span>
-                {contracted ? (
-                  <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                ) : (
-                  <X className="h-4 w-4 shrink-0 text-muted-foreground" />
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <p className="px-4 py-3 text-xs text-muted-foreground">Nenhum módulo nesta lista.</p>
-      )}
-    </div>
+    <ul className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border">
+      {items.map((item) => {
+        const Icon = moduleIcon(item.name);
+        return (
+          <li key={item.id} className="flex items-center gap-2.5 px-4 py-2">
+            <Icon
+              className={cn(
+                "h-4 w-4 shrink-0",
+                item.contracted ? "text-emerald-600" : "text-muted-foreground",
+              )}
+            />
+            <span className="min-w-0 flex-1 truncate text-sm text-foreground" title={item.name}>
+              {item.name}
+            </span>
+            {item.contracted ? (
+              <Check
+                aria-label="Contratado"
+                className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+              />
+            ) : (
+              <X aria-label="Não contratado" className="h-4 w-4 shrink-0 text-muted-foreground" />
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -3278,8 +3259,6 @@ export function ClientHadronTab({
   terminals: ClientTerminal[];
 }) {
   const [openCompanyId, setOpenCompanyId] = useState<string | null | undefined>(undefined);
-  const contracted = modules.filter((item) => item.contracted);
-  const unavailable = modules.filter((item) => !item.contracted);
   const payload = client.sourcePayload || {};
   const text = (key: string) => String(payload[key] ?? "").trim();
   const parseLegacyValue = (key: string): unknown => {
@@ -3385,9 +3364,10 @@ export function ClientHadronTab({
       </div>
 
       {modules.length ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ModuleColumn title="Contratados" items={contracted} contracted />
-          <ModuleColumn title="Não contratados" items={unavailable} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          {Array.from({ length: Math.ceil(modules.length / 10) }, (_, index) => (
+            <ModuleColumn key={index} items={modules.slice(index * 10, index * 10 + 10)} />
+          ))}
         </div>
       ) : (
         <EmptyState text="Nenhum módulo cadastrado para este cliente." />
