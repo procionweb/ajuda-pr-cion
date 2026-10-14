@@ -15,6 +15,7 @@ function run(name, args, command = process.execPath) {
   console.log(`${name}: ${results.at(-1).status}`);
 }
 for (const [name, file, database] of [
+  ['Prospecção: CNPJ ausente em Catanduva', 'scripts/test-prospecting-null-cnpj.mjs', true],
   ['Clientes: formulários separados e contatos', 'scripts/test-separate-client-forms.mjs', true],
   ['Clientes: Internet e contrato', 'scripts/test-client-internet-editor.mjs', true],
   ['Clientes: carregamento e dados preservados', 'scripts/test-client-detail-loading.mjs', true],

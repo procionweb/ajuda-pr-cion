@@ -207,8 +207,8 @@ const scoreTone = (score: number) =>
       ? "bg-amber-500/12 text-amber-700 dark:text-amber-300"
       : "bg-muted text-muted-foreground";
 
-const formatCnpj = (value: string) =>
-  value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+const formatCnpj = (value: string | null | undefined) =>
+  value ? value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : "—";
 
 const formatPhone = (value: string | null) => {
   if (!value) return "—";
@@ -822,7 +822,10 @@ export function CompanyLeadsTab() {
               )}
             </Button>
           </DialogTrigger>
-          <DialogContent autoFooter={false} className="flex max-h-[min(760px,calc(100vh-32px))] max-w-2xl flex-col gap-0 overflow-hidden p-0">
+          <DialogContent
+            autoFooter={false}
+            className="flex max-h-[min(760px,calc(100vh-32px))] max-w-2xl flex-col gap-0 overflow-hidden p-0"
+          >
             <DialogHeader className="shrink-0 border-b border-border px-5 py-4 text-left">
               <DialogTitle>Filtros de prospecção</DialogTitle>
               <DialogDescription>
