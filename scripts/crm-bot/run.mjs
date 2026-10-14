@@ -19,6 +19,7 @@ for (const [name, file, database] of [
   ['Clientes: formulários separados e contatos', 'scripts/test-separate-client-forms.mjs', true],
   ['Clientes: Internet e contrato', 'scripts/test-client-internet-editor.mjs', true],
   ['Clientes: carregamento e dados preservados', 'scripts/test-client-detail-loading.mjs', true],
+  ['Clientes: parâmetros completos', 'scripts/test-client-parameter-catalog.mjs', true],
   ['Clientes: dispositivos e datas', 'scripts/test-client-device-dates.mjs', true],
   ['Clientes: unidade de atendimento', 'scripts/test-client-service-unit.mjs', true],
   ['Clientes: recuperação de consultas', 'scripts/test-client-loading-retry.mjs', false],

@@ -234,6 +234,9 @@ export type ClientParameter = {
   operator: string;
   createdAt: string;
   updatedAt: string;
+  title?: string;
+  description?: string;
+  text?: string;
 };
 
 export type ClientHadronLog = {
@@ -887,6 +890,9 @@ export async function getClientDetail(acronym: string): Promise<ClientDetail | n
         id: String(parameter.id || ""),
         legacyId: String(parameter.legacy_id || ""),
         parameterLegacyId: String(parameter.parameter_legacy_id || ""),
+        title: String(parameter.title || ""),
+        description: String(parameter.description || ""),
+        text: String(parameter.text || ""),
         optionLegacyId: String(parameter.option_legacy_id || ""),
         signature: String(parameter.signature || ""),
         optionData: String(optionData.raw || parameter.option_data || ""),

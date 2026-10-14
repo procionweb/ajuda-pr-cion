@@ -489,6 +489,22 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
           event_type: "created",
         })),
       });
+    if (rpc === "get_crm_client_params")
+      return route.fulfill({
+        json: [
+          {
+            id: "param1",
+            parameter_legacy_id: "1",
+            signature: "0",
+            title: "Cálculo ICMS",
+            description: "Descrição completa do parâmetro",
+            text: "Texto integral ICMS. DECLARAÇÃO: responsabilidade da empresa.",
+            option_data: "Digitação manual",
+            created_at: "2026-01-01T09:00:00Z",
+            updated_at: "2026-01-02T09:00:00Z",
+          },
+        ],
+      });
     if (rpc?.startsWith("get_crm_client_") && rpc !== "get_crm_client_listing_context")
       return route.fulfill({ json: [] });
     if (
@@ -610,4 +626,20 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
   await expect(full.getByText("Inativo histórico", { exact: true })).toBeVisible();
   await expect(full.getByText("Inativo", { exact: true })).toBeVisible();
   await expect(full.getByRole("columnheader", { name: /Datas/ })).toBeVisible();
+  await expect(full.getByText("Ativo", { exact: true })).toHaveClass(/bg-emerald/);
+  await expect(full.getByText("Inativo", { exact: true })).toHaveClass(/bg-amber/);
+  await full.getByRole("button", { name: "Fechar", exact: true }).click();
+  await page.getByRole("tab", { name: "Parâmetros", exact: true }).click();
+  const params = page.getByRole("tabpanel");
+  await expect(params.getByText("Cálculo ICMS", { exact: true })).toBeVisible();
+  await expect(params.locator('[title="Data de assinatura"]')).toBeVisible();
+  await expect(params.locator('[title="Data de atualização"]')).toBeVisible();
+  await params.getByRole("button").last().click();
+  const parameterDialog = page.getByRole("dialog", { name: "Parâmetro", exact: true });
+  await expect(parameterDialog.getByText(/Texto integral ICMS/)).toBeVisible();
+  await expect(parameterDialog.getByText("Digitação manual", { exact: true })).toBeVisible();
+  await expect(
+    parameterDialog.getByText("Descrição completa do parâmetro", { exact: true }),
+  ).toBeVisible();
+  await parameterDialog.getByRole("button", { name: "Fechar", exact: true }).click();
 });

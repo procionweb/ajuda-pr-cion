@@ -3118,7 +3118,11 @@ function HadronCompanyDetails({
                   entry.active ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground",
                 )}
               >
-                {entry.active ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                {entry.active ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+                )}
                 <span className={cn(entry.active && "font-medium")}>{entry.label}</span>
                 {entry.detail ? (
                   <span className="text-xs text-muted-foreground">({entry.detail})</span>
@@ -3157,7 +3161,11 @@ function HadronCompanyDetails({
                       active ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground",
                     )}
                   >
-                    {active ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                    {active ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    )}
                     {label}
                   </span>
                 );
@@ -3410,7 +3418,7 @@ export function ClientHadronTab({
                   {entry.active ? (
                     <Check className="h-4 w-4 shrink-0" />
                   ) : (
-                    <X className="h-4 w-4 shrink-0" />
+                    <X className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
                   )}
                   <span className={cn(entry.active && "font-medium")}>{entry.label}</span>
                   {entry.detail ? (
@@ -3451,7 +3459,7 @@ export function ClientHadronTab({
                       {active ? (
                         <Check className="h-4 w-4 shrink-0" />
                       ) : (
-                        <X className="h-4 w-4 shrink-0" />
+                        <X className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
                       )}
                       {label}
                     </span>
@@ -3781,9 +3789,16 @@ export function ClientExternalLogsTab({ logs }: { logs: ClientLogs["externalLogs
 export function ClientParametersTab({ parameters }: { parameters: ClientParameter[] }) {
   const [selectedParameter, setSelectedParameter] = useState<ClientParameter | null>(null);
   const parameterTitle = (parameter: ClientParameter) =>
-    parameter.parameterLegacyId === "2"
-      ? "Automatização B2C de procedimento de Cadastro de Clientes (e-commerce)"
-      : `Parâmetro ${parameter.parameterLegacyId || parameter.signature}`;
+    parameter.title || "Parâmetro " + (parameter.parameterLegacyId || parameter.signature);
+  const plainText = (value: string) =>
+    value
+      .replace(/<br\s*\/?\s*>/gi, "\n")
+      .replace(/<\/(p|div|li)>/gi, "\n\n")
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&quot;/gi, '"')
+      .trim();
 
   return (
     <>
@@ -3794,10 +3809,21 @@ export function ClientParametersTab({ parameters }: { parameters: ClientParamete
             rows={parameters.map((parameter) => [
               parameter.signature || "-",
               parameter.signedBy || parameter.operator || "Não informado",
-              parameterTitle(parameter),
+              <div title={plainText(parameter.description || "")}>
+                <p>{parameterTitle(parameter)}</p>
+                {parameter.description && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {plainText(parameter.description)}
+                  </p>
+                )}
+              </div>,
               <span className="space-y-0.5 text-xs">
-                <span className="block">{parameter.createdAt || "-"}</span>
-                <span className="block">{parameter.updatedAt || "-"}</span>
+                <span className="block" title="Data de assinatura">
+                  {parameter.createdAt || "-"}
+                </span>
+                <span className="block" title="Data de atualização">
+                  {parameter.updatedAt || "-"}
+                </span>
               </span>,
               <Button
                 type="button"
@@ -3830,35 +3856,24 @@ export function ClientParametersTab({ parameters }: { parameters: ClientParamete
                   <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-6">
-                <div className="border-b border-border pb-4">
-                  <p className="text-sm font-medium">{selectedParameter.signature || "-"}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {selectedParameter.optionData || "Descrição não informada."}
+              <div className="space-y-5">
+                <div className="space-y-2 border-b pb-4">
+                  <p>{selectedParameter.signature || "0"}</p>
+                  <p className="text-muted-foreground">
+                    {plainText(selectedParameter.optionData || "Descrição da opção não informada.")}
                   </p>
-                  <p className="mt-4 text-xs text-muted-foreground">Web</p>
                 </div>
-
+                <div className="space-y-2 border-b pb-4">
+                  <p>{parameterTitle(selectedParameter)}</p>
+                  <p className="whitespace-pre-wrap text-muted-foreground">
+                    {plainText(selectedParameter.description || "")}
+                  </p>
+                </div>
                 <div>
-                  <h4 className="mb-2 text-sm font-medium">Texto</h4>
-                  {selectedParameter.parameterLegacyId === "2" ? (
-                    <div className="space-y-4 text-sm leading-6 text-muted-foreground">
-                      <p>
-                        Este parâmetro tem a função de estabelecer a forma de automatização na
-                        operação do Cadastro de Clientes quando estes são manipulados externamente
-                        através dos sites de e-commerce.
-                      </p>
-                      <p>
-                        A definição da forma de automatização é de responsabilidade exclusiva da
-                        empresa que utiliza o ERP Hádron, eximindo a Prócion por eventuais erros de
-                        cadastro oriundos de digitação incorreta por parte do usuário do e-commerce.
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      {selectedParameter.optionData || "Texto não informado."}
-                    </p>
-                  )}
+                  <h4 className="mb-2 text-[13px] font-normal">Texto</h4>
+                  <p className="whitespace-pre-wrap break-words text-[13px] leading-6 text-muted-foreground">
+                    {plainText(selectedParameter.text || "Texto não informado no catálogo.")}
+                  </p>
                 </div>
               </div>
             </>
@@ -3905,6 +3920,20 @@ export function ClientDevicesTab({
     )[d.status.toLowerCase()] ||
     d.status ||
     (d.active ? "Ativo" : "Inativo");
+  const renderStatus = (d: DeviceRow) => (
+    <Badge
+      variant="outline"
+      className={
+        d.status === "1"
+          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+          : d.status === "0"
+            ? "border-amber-500/30 bg-amber-500/10 text-amber-600"
+            : "border-red-500/30 bg-red-500/10 text-red-600"
+      }
+    >
+      {statusLabel(d)}
+    </Badge>
+  );
   const renderTable = (rows: DeviceRow[]) => (
     <SortableDataTable<DeviceRow>
       rows={rows}
@@ -3979,7 +4008,7 @@ export function ClientDevicesTab({
           key: "status",
           label: "Status",
           value: (d) => statusLabel(d),
-          render: (d) => statusLabel(d),
+          render: (d) => renderStatus(d),
         },
         {
           key: "uuid",
@@ -4051,18 +4080,7 @@ export function ClientDevicesTab({
                       <span>Adicionado em: {d.createdAt || "Não informado"}</span>
                     </div>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={
-                      d.status === "1"
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
-                        : d.status === "0"
-                          ? "border-amber-500/30 bg-amber-500/10 text-amber-600"
-                          : "border-red-500/30 bg-red-500/10 text-red-600"
-                    }
-                  >
-                    {statusLabel(d)}
-                  </Badge>
+                  {renderStatus(d)}
                 </li>
               ))}
           </ul>
@@ -4823,7 +4841,11 @@ function ClientHadronInfoCards({ rows }: { rows: ClientHadronInfo[] }) {
         active ? "text-emerald-600" : "text-muted-foreground",
       )}
     >
-      {active ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+      {active ? (
+        <Check className="h-4 w-4" />
+      ) : (
+        <X className="h-4 w-4 text-red-600 dark:text-red-400" />
+      )}
       {active ? "Sim" : "Não"}
     </span>
   );
