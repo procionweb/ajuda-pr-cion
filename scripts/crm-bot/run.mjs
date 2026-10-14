@@ -16,6 +16,7 @@ function run(name, args, command = process.execPath) {
 }
 for (const [name, file, database] of [
   ['Clientes: formulários separados e contatos', 'scripts/test-separate-client-forms.mjs', true],
+  ['Clientes: Internet e contrato', 'scripts/test-client-internet-editor.mjs', true],
   ['Clientes: filtros e limite de versão', 'scripts/test-client-listing-rules.mjs', false],
   ['Clientes: edição e permissões', 'scripts/test-client-listing-edit.mjs', true],
   ['Chamados e timeline', 'scripts/crm-bot/ticket-lifecycle.mjs', true],

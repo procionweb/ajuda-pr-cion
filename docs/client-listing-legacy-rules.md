@@ -28,3 +28,7 @@ O lápis em Dados da empresa e o editar da empresa vinculada abrem somente o cad
 Aplicações web seguem o contrato da sigla do cliente, como no legado. A interface mostra apenas os tipos selecionados e o catálogo de aplicações; não expõe chaves do contrato. A gravação mantém a autorização de edição e utiliza a tabela estrangeira privada do contrato.
 
 `node --env-file=.env.local scripts/test-separate-client-forms.mjs` testa os contatos, os campos separados, preservação, permissões e aplicações com uma tabela local substituindo a escrita MySQL durante a transação. Não altera contratos remotos no teste. `--apply` aplica somente a migração após as verificações.
+
+## Edição: Internet, CEP e contador
+
+O editar cliente oferece as abas Cliente e Internet. Internet altera status, quantidade de dispositivos e aplicações do contrato, sem expor chaves ou alterar outras configurações. O editar empresa mantém as aplicações e agora reutiliza o cabeçalho padrão, assim como o editar cliente. Ambos os CEPs usam 00000-000 e consultam ViaCEP ao completar oito dígitos, preservando número e complemento. O seletor de contadores cadastrados preenche nome, escritório, telefone e e-mail; mantém os dados antigos até uma seleção explícita.

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Pencil, Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePortalAuth } from "@/lib/portal-auth";
@@ -12,6 +12,8 @@ import {
   type ClientEditData,
   type EditableRow,
 } from "@/lib/client-edit-api";
+import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
+import { AccountantSelect } from "@/components/portal/AccountantSelect";
 import { loadClients } from "@/lib/clients-store";
 
 function object(value: unknown): Record<string, unknown> {
@@ -20,6 +22,11 @@ function object(value: unknown): Record<string, unknown> {
     ? (parsed as Record<string, unknown>)
     : {};
 }
+const formatCep = (value: unknown) =>
+  String(value ?? "")
+    .replace(/\D/g, "")
+    .slice(0, 8)
+    .replace(/^(\d{5})(\d)/, "$1-$2");
 type Field = [string, string, string?];
 const companyFields: Field[] = [
   ["Razão social", "legal_name", "razao_social"],
@@ -66,6 +73,10 @@ export function ClientEditDialog({
   const [source, setSource] = useState<Record<string, unknown>>({});
   const [contacts, setContacts] = useState<EditableRow[]>([]);
   const [webApps, setWebApps] = useState<string[]>([]);
+  const [tab, setTab] = useState("client");
+  const [internet, setInternet] = useState({ status: 1, devices: "" });
+  const cepRequests = useRef<Record<string, AbortController>>({});
+  useEffect(() => () => Object.values(cepRequests.current).forEach((c) => c.abort()), []);
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState("");
@@ -89,6 +100,10 @@ export function ClientEditDialog({
         setSource({ ...record.source_payload });
         setContacts(d.contacts);
         setWebApps(d.webApps ?? []);
+        setInternet({
+          status: d.internet?.status ?? 1,
+          devices: String(d.internet?.devices ?? ""),
+        });
       })
       .catch(() => {
         if (active) setError("Não foi possível carregar os dados para edição.");
@@ -231,6 +246,62 @@ export function ClientEditDialog({
       </div>
     );
   };
+  async function changeCep(value: string, responsible = false) {
+    const formatted = formatCep(value);
+    const key = responsible ? "responsible" : "company";
+    cepRequests.current[key]?.abort();
+    if (responsible) nestedChange("tcl_responsavel", "cli_res_cep", formatted);
+    else update("postal_code", formatted, "cep");
+    const digits = formatted.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    const controller = new AbortController();
+    cepRequests.current[key] = controller;
+    try {
+      const response = await fetch("https://viacep.com.br/ws/" + digits + "/json/", {
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error();
+      const address = await response.json();
+      if (controller.signal.aborted) return;
+      if (address.erro) {
+        toast.error("CEP não encontrado. Preencha o endereço manualmente.");
+        return;
+      }
+      if (responsible)
+        setSource((previous) => ({
+          ...previous,
+          tcl_responsavel: JSON.stringify({
+            ...object(previous.tcl_responsavel),
+            cli_res_endereco: address.logradouro,
+            cli_res_cidade: address.localidade,
+            cli_res_uf: address.uf,
+            cli_res_bairro: address.bairro,
+          }),
+        }));
+      else {
+        setRow((previous) =>
+          previous
+            ? {
+                ...previous,
+                address: address.logradouro,
+                city: address.localidade,
+                state: address.uf,
+              }
+            : previous,
+        );
+        setSource((previous) => ({
+          ...previous,
+          tcl_endereco: address.logradouro,
+          tcl_cidade: address.localidade,
+          tcl_uf: address.uf,
+          tcl_bairro: address.bairro,
+        }));
+      }
+    } catch {
+      if (!controller.signal.aborted)
+        toast.error("Não foi possível consultar o CEP. Preencha o endereço manualmente.");
+    }
+  }
   async function checkCnpj() {
     const cnpj = String(row?.document ?? "").replace(/\D/g, "");
     if (cnpj.length !== 14) {
@@ -302,10 +373,17 @@ export function ClientEditDialog({
       toast.error("Confira os e-mails dos contatos.");
       return;
     }
+    if (
+      !isCompany &&
+      internet.devices !== "" &&
+      (!/^\d+$/.test(internet.devices) || Number(internet.devices) > 2147483647)
+    ) {
+      toast.error("Informe uma quantidade de dispositivos válida.");
+      return;
+    }
     setSaving(true);
     try {
       const appsChanged =
-        isCompany &&
         JSON.stringify([...webApps].sort()) !== JSON.stringify([...(data?.webApps ?? [])].sort());
       await saveClientEdit(
         acronym,
@@ -328,6 +406,14 @@ export function ClientEditDialog({
         source,
         isCompany ? undefined : contacts,
         appsChanged ? webApps : undefined,
+        !isCompany &&
+          (internet.status !== (data?.internet?.status ?? 1) ||
+            internet.devices !== String(data?.internet?.devices ?? ""))
+          ? {
+              status: internet.status,
+              devices: internet.devices === "" ? null : Number(internet.devices),
+            }
+          : undefined,
       );
       await loadClients(true).catch(() => undefined);
       toast.success(isCompany ? "Empresa atualizada." : "Cliente atualizado.");
@@ -350,12 +436,15 @@ export function ClientEditDialog({
         autoFooter={false}
         className="flex max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:p-0"
       >
-        <DialogHeader className="shrink-0 border-b p-4 sm:p-6">
-          <DialogTitle className="flex items-center gap-2">
-            <Pencil className="h-5 w-5 text-primary" />
-            {isCompany ? "Editar empresa" : "Editar cliente"} · {acronym}
-          </DialogTitle>
-        </DialogHeader>
+        <DialogTitle className="sr-only">
+          {isCompany ? "Editar empresa" : "Editar cliente"} · {acronym}
+        </DialogTitle>
+        <DetailModalHeader
+          icon={Pencil}
+          title={isCompany ? "Editar empresa" : "Editar cliente"}
+          protocol={acronym}
+          meta={String(row?.legal_name ?? "")}
+        />
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
           {error ? (
             <p role="alert">{error}</p>
@@ -437,8 +526,13 @@ export function ClientEditDialog({
                       label,
                       key === "address"
                         ? (source.tcl_endereco ?? row[key])
-                        : (row[key] ?? source["tcl_" + legacy]),
-                      (v) => update(key, key === "state" ? v.toUpperCase().slice(0, 2) : v, legacy),
+                        : key === "postal_code"
+                          ? formatCep(row[key] ?? source["tcl_" + legacy])
+                          : (row[key] ?? source["tcl_" + legacy]),
+                      (v) =>
+                        key === "postal_code"
+                          ? void changeCep(v)
+                          : update(key, key === "state" ? v.toUpperCase().slice(0, 2) : v, legacy),
                     ),
                   )}
                   {[
@@ -479,8 +573,15 @@ export function ClientEditDialog({
                     ["Endereço do responsável", "endereco"],
                     ["Bairro do responsável", "bairro"],
                   ].map(([label, key]) =>
-                    input(label, nestedValue("tcl_responsavel", "cli_res_" + key), (v) =>
-                      nestedChange("tcl_responsavel", "cli_res_" + key, v),
+                    input(
+                      label,
+                      key === "cep"
+                        ? formatCep(nestedValue("tcl_responsavel", "cli_res_" + key))
+                        : nestedValue("tcl_responsavel", "cli_res_" + key),
+                      (v) =>
+                        key === "cep"
+                          ? void changeCep(v, true)
+                          : nestedChange("tcl_responsavel", "cli_res_" + key, v),
                     ),
                   )}
                 </div>,
@@ -488,6 +589,39 @@ export function ClientEditDialog({
               {section(
                 "Contador da empresa",
                 <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <AccountantSelect
+                      value={String(source.accountant_id ?? "")}
+                      name={String(
+                        source.accountant_name || nestedValue("tcl_contador", "cli_ctd_res") || "",
+                      )}
+                      office={String(nestedValue("tcl_contador", "cli_ctd_nome") ?? "")}
+                      onChange={(accountant) => {
+                        setRow((previous) =>
+                          previous
+                            ? {
+                                ...previous,
+                                accountant_name: accountant?.name ?? "",
+                                accountant_phone: accountant?.phone ?? "",
+                                accountant_email: accountant?.email ?? "",
+                              }
+                            : previous,
+                        );
+                        setSource((previous) => ({
+                          ...previous,
+                          accountant_id: accountant?.id ?? null,
+                          accountant_name: accountant?.name ?? "",
+                          tcl_contador: JSON.stringify({
+                            ...object(previous.tcl_contador),
+                            cli_ctd_nome: accountant?.office ?? "",
+                            cli_ctd_res: accountant?.name ?? "",
+                            cli_ctd_tel: accountant?.phone ?? "",
+                            cli_ctd_email: accountant?.email ?? "",
+                          }),
+                        }));
+                      }}
+                    />
+                  </div>
                   {input(
                     "Escritório de contabilidade",
                     nestedValue("tcl_contador", "cli_ctd_nome") ||
@@ -549,67 +683,141 @@ export function ClientEditDialog({
             </>
           ) : (
             <>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {input("Nome (apelido)", row.name, (v) => update("name", v, "nome"))}
-                {select(
-                  "Status do cliente",
-                  source.cli_status ?? (row.active ? "1" : "0"),
-                  [
-                    ["1", "Ativo"],
-                    ["2", "Pendente"],
-                    ["9", "Bloqueado"],
-                    ["0", "Inativo"],
-                  ],
-                  (v) => {
-                    update("active", v !== "0");
-                    setSource((s) => ({ ...s, cli_status: v }));
-                  },
-                )}
-                {input("Sigla do grupo", row.group_acronym, (v) =>
-                  update("group_acronym", v.toUpperCase(), "sigla_grupo"),
-                )}
-                {input("Aviso do cliente", source.cli_aviso, (v) =>
-                  setSource((s) => ({ ...s, cli_aviso: v })),
-                )}
-                {input("Mensagem do Hádron", source.cli_msg_hadron, (v) =>
-                  setSource((s) => ({ ...s, cli_msg_hadron: v })),
-                )}
-                {input("Razão social", row.legal_name, (v) =>
-                  update("legal_name", v, "razao_social"),
-                )}
+              <div
+                role="tablist"
+                aria-label="Dados do cliente"
+                className="grid grid-cols-2 gap-2 rounded-xl border p-1"
+              >
+                {[
+                  ["client", "Cliente"],
+                  ["internet", "Internet"],
+                ].map(([value, label]) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === value}
+                    variant={tab === value ? "default" : "ghost"}
+                    onClick={() => setTab(value)}
+                  >
+                    {label}
+                  </Button>
+                ))}
               </div>
-              {section(
-                "Unidade de atendimento",
-                <div className="flex flex-wrap gap-4">
-                  {units.map(([value, label]) => (
-                    <label key={value} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name="client-service-unit"
-                        checked={String(source.empresa_id_emp ?? "") === value}
-                        onChange={() => setSource((s) => ({ ...s, empresa_id_emp: value }))}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>,
-              )}
-              {section(
-                "Atividades",
-                <textarea
-                  aria-label="Atividades"
-                  rows={4}
-                  className="w-full rounded-md border bg-background p-3 text-sm"
-                  value={String(source.cli_obs ?? "").replace(/<[^>]*>/g, "")}
-                  onChange={(e) => setSource((s) => ({ ...s, cli_obs: e.target.value }))}
-                />,
-              )}
-              {section(
-                "Contatos",
-                <div className="grid gap-5 lg:grid-cols-2">
-                  {contactSection("phone")}
-                  {contactSection("email")}
-                </div>,
+              {tab === "internet" ? (
+                <div role="tabpanel" className="space-y-5">
+                  {section(
+                    "Hádron Web",
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {select(
+                        "Status da Internet",
+                        internet.status,
+                        [
+                          ["1", "Ativo"],
+                          ["2", "Pendente"],
+                          ["9", "Bloqueado"],
+                          ["0", "Inativo"],
+                        ],
+                        (value) =>
+                          setInternet((previous) => ({ ...previous, status: Number(value) })),
+                      )}
+                      {input(
+                        "Quantidade de dispositivos",
+                        internet.devices,
+                        (value) => setInternet((previous) => ({ ...previous, devices: value })),
+                        "number",
+                      )}
+                    </div>,
+                  )}
+                  {section(
+                    "Aplicações web",
+                    <div className="flex flex-wrap gap-4">
+                      {(data?.applications?.length ? data.applications : applications).map(
+                        (app) => (
+                          <label key={app.type} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={webApps.includes(app.type)}
+                              onChange={(event) =>
+                                setWebApps((previous) =>
+                                  event.target.checked
+                                    ? [...previous, app.type]
+                                    : previous.filter((type) => type !== app.type),
+                                )
+                              }
+                            />
+                            {app.name}
+                          </label>
+                        ),
+                      )}
+                    </div>,
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {input("Nome (apelido)", row.name, (v) => update("name", v, "nome"))}
+                    {select(
+                      "Status do cliente",
+                      source.cli_status ?? (row.active ? "1" : "0"),
+                      [
+                        ["1", "Ativo"],
+                        ["2", "Pendente"],
+                        ["9", "Bloqueado"],
+                        ["0", "Inativo"],
+                      ],
+                      (v) => {
+                        update("active", v !== "0");
+                        setSource((s) => ({ ...s, cli_status: v }));
+                      },
+                    )}
+                    {input("Sigla do grupo", row.group_acronym, (v) =>
+                      update("group_acronym", v.toUpperCase(), "sigla_grupo"),
+                    )}
+                    {input("Aviso do cliente", source.cli_aviso, (v) =>
+                      setSource((s) => ({ ...s, cli_aviso: v })),
+                    )}
+                    {input("Mensagem do Hádron", source.cli_msg_hadron, (v) =>
+                      setSource((s) => ({ ...s, cli_msg_hadron: v })),
+                    )}
+                    {input("Razão social", row.legal_name, (v) =>
+                      update("legal_name", v, "razao_social"),
+                    )}
+                  </div>
+                  {section(
+                    "Unidade de atendimento",
+                    <div className="flex flex-wrap gap-4">
+                      {units.map(([value, label]) => (
+                        <label key={value} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="radio"
+                            name="client-service-unit"
+                            checked={String(source.empresa_id_emp ?? "") === value}
+                            onChange={() => setSource((s) => ({ ...s, empresa_id_emp: value }))}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>,
+                  )}
+                  {section(
+                    "Atividades",
+                    <textarea
+                      aria-label="Atividades"
+                      rows={4}
+                      className="w-full rounded-md border bg-background p-3 text-sm"
+                      value={String(source.cli_obs ?? "").replace(/<[^>]*>/g, "")}
+                      onChange={(e) => setSource((s) => ({ ...s, cli_obs: e.target.value }))}
+                    />,
+                  )}
+                  {section(
+                    "Contatos",
+                    <div className="grid gap-5 lg:grid-cols-2">
+                      {contactSection("phone")}
+                      {contactSection("email")}
+                    </div>,
+                  )}
+                </>
               )}
             </>
           )}

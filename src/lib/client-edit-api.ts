@@ -8,6 +8,7 @@ export type ClientEditData = {
   client: EditableRow;
   companies: EditableRow[];
   contacts: EditableRow[];
+  internet?: { status: number | null; devices: number | null };
   webApps?: string[];
   applications?: Array<{ type: string; name: string }>;
 };
@@ -34,9 +35,10 @@ export async function saveClientEdit(
   source: Record<string, unknown>,
   contacts?: EditableRow[],
   webApps?: string[],
+  internet?: { status: number; devices: number | null },
 ) {
   const { error } = await supabase.rpc(
-    "save_crm_client_edit_v2" as never,
+    "save_crm_client_edit_v3" as never,
     {
       p_acronym: acronym,
       p_company_id: companyId,
@@ -44,6 +46,7 @@ export async function saveClientEdit(
       p_source_patch: source,
       p_contacts: contacts ?? null,
       p_web_apps: webApps ?? null,
+      p_internet: internet ?? null,
     } as never,
   );
   if (error) throw error;

@@ -90,6 +90,7 @@ test("Clientes: cliente e empresa têm campos separados, com gravação simulada
       },
     ],
     contacts: [],
+    internet: { status: 1, devices: 2 },
     webApps: ["MOB", "WEB"],
   };
   const saved: any[] = [];
@@ -97,6 +98,27 @@ test("Clientes: cliente e empresa têm campos separados, com gravação simulada
     const req = route.request();
     const url = new URL(req.url());
     const rpc = url.pathname.match(/\/rpc\/([^/]+)/)?.[1];
+    if (url.hostname === "viacep.com.br")
+      return route.fulfill({
+        json: {
+          logradouro: "Rua CEP automático",
+          localidade: "São Carlos",
+          uf: "SP",
+          bairro: "Centro",
+        },
+      });
+    if (url.pathname.endsWith("/crm_accountants"))
+      return route.fulfill({
+        json: [
+          {
+            id: "00000000-0000-4000-8000-000000000009",
+            name: "Contador cadastrado",
+            office: "Escritório cadastrado",
+            phone: "16999999999",
+            email: "contador@example.invalid",
+          },
+        ],
+      });
     if (rpc === "get_current_portal_access")
       return route.fulfill({
         json: [
@@ -104,7 +126,7 @@ test("Clientes: cliente e empresa têm campos separados, com gravação simulada
         ],
       });
     if (rpc === "get_crm_client_edit_data_v2") return route.fulfill({ json: fixture });
-    if (rpc === "save_crm_client_edit_v2") {
+    if (rpc === "save_crm_client_edit_v3") {
       saved.push(req.postDataJSON());
       return route.fulfill({ json: null });
     }
@@ -141,7 +163,7 @@ test("Clientes: cliente e empresa têm campos separados, com gravação simulada
   const edit = page.getByRole("button", { name: /^Editar cliente / }).first();
   await expect(edit).toBeVisible({ timeout: 30000 });
   await edit.click();
-  const modal = page.getByRole("dialog");
+  const modal = page.getByRole("dialog", { name: /^Editar (cliente|empresa)/ });
   await expect(modal.getByLabel("Nome (apelido)", { exact: true })).toHaveValue("Cliente de teste");
   expect(await modal.getByLabel("CNPJ", { exact: true }).count()).toBe(0);
   expect(await modal.getByLabel("Cadastro para editar").count()).toBe(0);
@@ -154,10 +176,15 @@ test("Clientes: cliente e empresa têm campos separados, com gravação simulada
   await modal.getByRole("button", { name: "Adicionar e-mail", exact: true }).click();
   await modal.getByLabel("E-mail 1", { exact: true }).fill("fixture@example.invalid");
   await modal.getByRole("button", { name: "Remover e-mail 1", exact: true }).click();
+  await modal.getByRole("tab", { name: "Internet", exact: true }).click();
+  await expect(modal.getByLabel("Quantidade de dispositivos")).toHaveValue("2");
+  await modal.getByLabel("Quantidade de dispositivos").fill("5");
+  await modal.getByLabel("Status da Internet").selectOption("2");
   await page.screenshot({ path: info.outputPath("editar-cliente.png") });
   await modal.getByRole("button", { name: "Salvar alterações", exact: true }).click();
   await expect(modal).not.toBeVisible();
   expect(saved[0].p_company_id).toBeNull();
+  expect(saved[0].p_internet).toEqual({ status: 2, devices: 5 });
   expect(saved[0].p_source_patch.empresa_id_emp).toBe("25");
   expect(saved[0].p_contacts.some((c: any) => c.phone === "11999999999")).toBe(true);
   await page
@@ -177,6 +204,14 @@ test("Clientes: cliente e empresa têm campos separados, com gravação simulada
   expect(await modal.getByText("Módulos e cobrança da empresa", { exact: true }).count()).toBe(0);
   await expect(modal.getByRole("checkbox", { name: "Hádron Mobile", exact: true })).toBeChecked();
   await modal.getByRole("checkbox", { name: "Hádron Web", exact: true }).uncheck();
+  await modal.getByLabel("CEP", { exact: true }).fill("13560001");
+  await expect(modal.getByLabel("CEP", { exact: true })).toHaveValue("13560-001");
+  await expect(modal.getByLabel("Endereço", { exact: true })).toHaveValue("Rua CEP automático");
+  await modal.getByRole("combobox").filter({ hasText: "Contador de teste" }).click();
+  await page.getByRole("button", { name: /Contador cadastrado.*Escritório cadastrado/ }).click();
+  await expect(modal.getByLabel("Contador responsável", { exact: true })).toHaveValue(
+    "Contador cadastrado",
+  );
   await page.screenshot({ path: info.outputPath("editar-empresa.png") });
   const bounds = await modal.boundingBox();
   const viewport = page.viewportSize()!;
