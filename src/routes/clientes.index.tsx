@@ -2266,6 +2266,11 @@ export function ClientTab({
   activities: ClientTicketActivity[];
   onOpenCompanies?: () => void;
 }) {
+  const router = useRouter();
+  const { role, department } = usePortalAuth();
+  const canEditCompany =
+    role === "s_admin" || department === "admin" || department === "commercial";
+  const [editingPrimaryCompany, setEditingPrimaryCompany] = useState(false);
   const clientLocalEvents = useLocalEventsForClient(client.id);
   const eventsWithLocal = useMemo(
     () => [...events, ...localToClientEvents(clientLocalEvents)],
@@ -2321,9 +2326,35 @@ export function ClientTab({
 
   return (
     <div className="space-y-5">
+      {editingPrimaryCompany && company && (
+        <ClientEditDialog
+          acronym={client.acronym}
+          companyId={company.id}
+          onClose={() => setEditingPrimaryCompany(false)}
+          onSaved={() => {
+            void router.invalidate();
+          }}
+        />
+      )}
       {/* Linha 1: Dados da empresa + Contatos */}
       <div className="grid gap-5 items-stretch lg:grid-cols-2">
-        <Section title="Dados da empresa" icon={Building2}>
+        <Section
+          title="Dados da empresa"
+          icon={Building2}
+          action={
+            company && canEditCompany ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                title="Editar empresa"
+                aria-label="Editar dados da empresa"
+                onClick={() => setEditingPrimaryCompany(true)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            ) : undefined
+          }
+        >
           <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
             {empresaFields.map(([label, value]) => (
               <Field key={label} label={label} value={value || "Não informado"} />

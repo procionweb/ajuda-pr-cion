@@ -55,7 +55,7 @@ test("Clientes: filtros completos e edição separados sem gravar dados", async 
 });
 
 // Dados e acesso simulados somente no navegador local; o banco mantém suas permissões reais.
-test("Clientes: modais de cliente e empresa com dados simulados, sem gravação", async ({
+test("Clientes: cliente e empresa têm campos separados, com gravação simulada", async ({
   page,
 }, info) => {
   test.skip(
@@ -69,10 +69,8 @@ test("Clientes: modais de cliente e empresa com dados simulados, sem gravação"
       acronym: "BOT",
       name: "Cliente de teste",
       legal_name: "Cliente de teste LTDA",
-      industry: "0",
-      size: "P",
       active: true,
-      source_payload: { cli_status: "1" },
+      source_payload: { cli_status: "1", empresa_id_emp: "1", cli_obs: "Atividades do cliente" },
     },
     companies: [
       {
@@ -80,25 +78,52 @@ test("Clientes: modais de cliente e empresa com dados simulados, sem gravação"
         company_number: 1,
         legal_name: "Empresa de teste LTDA",
         trade_name: "Empresa de teste",
+        document: "12345678000190",
         industry: "1",
         size: "P",
-        source_payload: { tcl_modulos: '{"1":""}', tcl_boleto_dados: "[]" },
+        responsible_name: "Responsável de teste",
+        source_payload: {
+          tcl_responsavel: '{"cli_res_rg":"12345","cli_res_cidade":"São Carlos"}',
+          tcl_contador: '{"cli_ctd_nome":"Escritório de teste","cli_ctd_res":"Contador de teste"}',
+          tcl_modulos: '{"1":""}',
+        },
       },
     ],
     contacts: [],
+    webApps: ["MOB", "WEB"],
   };
+  const saved: any[] = [];
   await page.route("**/*", async (route) => {
     const req = route.request();
     const url = new URL(req.url());
-    if (url.pathname.endsWith("/rpc/get_current_portal_access"))
+    const rpc = url.pathname.match(/\/rpc\/([^/]+)/)?.[1];
+    if (rpc === "get_current_portal_access")
       return route.fulfill({
         json: [
           { portal_profile: "s_admin", collaborator_department: "admin", operator_acronym: "BOT" },
         ],
       });
-    if (url.pathname.endsWith("/rpc/get_crm_client_edit_data"))
-      return route.fulfill({ json: fixture });
-    const rpc = url.pathname.match(/\/rpc\/([^/]+)/)?.[1];
+    if (rpc === "get_crm_client_edit_data_v2") return route.fulfill({ json: fixture });
+    if (rpc === "save_crm_client_edit_v2") {
+      saved.push(req.postDataJSON());
+      return route.fulfill({ json: null });
+    }
+    if (rpc === "get_crm_client") {
+      const acronym = req.postDataJSON().client_acronym;
+      return route.fulfill({
+        json: {
+          client: { ...fixture.client, acronym },
+          contacts: [],
+          companies: fixture.companies.map((c) => ({ ...c, client_acronym: acronym })),
+        },
+      });
+    }
+    if (rpc === "get_crm_client_logs")
+      return route.fulfill({ json: { authorized: true, logs: [], external_logs: [] } });
+    if (rpc === "get_crm_client_ticket_activity")
+      return route.fulfill({ json: { tickets: [], activities: [] } });
+    if (rpc?.startsWith("get_crm_client_") && rpc !== "get_crm_client_listing_context")
+      return route.fulfill({ json: [] });
     if (
       !["GET", "HEAD", "OPTIONS"].includes(req.method()) &&
       !url.pathname.endsWith("/auth/v1/token") &&
@@ -117,27 +142,54 @@ test("Clientes: modais de cliente e empresa com dados simulados, sem gravação"
   await expect(edit).toBeVisible({ timeout: 30000 });
   await edit.click();
   const modal = page.getByRole("dialog");
-  await expect(modal.getByLabel("Nome do cliente", { exact: true })).toHaveValue(
-    "Cliente de teste",
-  );
+  await expect(modal.getByLabel("Nome (apelido)", { exact: true })).toHaveValue("Cliente de teste");
+  expect(await modal.getByLabel("CNPJ", { exact: true }).count()).toBe(0);
+  expect(await modal.getByLabel("Cadastro para editar").count()).toBe(0);
+  expect(await modal.getByText("Aplicações web", { exact: true }).count()).toBe(0);
+  await expect(modal.getByLabel("Atividades")).toHaveValue("Atividades do cliente");
+  await modal.getByLabel("Campinas", { exact: true }).check();
+  await modal.getByRole("button", { name: "Adicionar telefone", exact: true }).click();
+  await modal.getByLabel("Telefone 1", { exact: true }).fill("11999999999");
+  await modal.getByLabel("Contato do telefone 1", { exact: true }).fill("Contato bot");
+  await modal.getByRole("button", { name: "Adicionar e-mail", exact: true }).click();
+  await modal.getByLabel("E-mail 1", { exact: true }).fill("fixture@example.invalid");
+  await modal.getByRole("button", { name: "Remover e-mail 1", exact: true }).click();
   await page.screenshot({ path: info.outputPath("editar-cliente.png") });
-  await modal.getByLabel("Cadastro para editar").selectOption({ index: 1 });
-  await expect(modal.getByText("Módulos e cobrança da empresa", { exact: true })).toBeVisible();
-  await expect(modal.getByLabel("Razão social", { exact: true })).toHaveValue(
-    "Empresa de teste LTDA",
+  await modal.getByRole("button", { name: "Salvar alterações", exact: true }).click();
+  await expect(modal).not.toBeVisible();
+  expect(saved[0].p_company_id).toBeNull();
+  expect(saved[0].p_source_patch.empresa_id_emp).toBe("25");
+  expect(saved[0].p_contacts.some((c: any) => c.phone === "11999999999")).toBe(true);
+  await page
+    .locator(".clients-list-table tbody tr")
+    .first()
+    .locator('td[data-label="Nome / perfil"]')
+    .click();
+  const companyEdit = page.getByRole("button", { name: "Editar dados da empresa", exact: true });
+  await expect(companyEdit).toBeVisible({ timeout: 30000 });
+  await companyEdit.click();
+  await expect(modal.getByLabel("CNPJ", { exact: true })).toHaveValue("12345678000190");
+  await expect(modal.getByLabel("RG do responsável", { exact: true })).toHaveValue("12345");
+  await expect(modal.getByLabel("Escritório de contabilidade", { exact: true })).toHaveValue(
+    "Escritório de teste",
   );
+  expect(await modal.getByLabel("Nome (apelido)", { exact: true }).count()).toBe(0);
+  expect(await modal.getByText("Módulos e cobrança da empresa", { exact: true }).count()).toBe(0);
+  await expect(modal.getByRole("checkbox", { name: "Hádron Mobile", exact: true })).toBeChecked();
+  await modal.getByRole("checkbox", { name: "Hádron Web", exact: true }).uncheck();
   await page.screenshot({ path: info.outputPath("editar-empresa.png") });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 3)).toBe(
-    false,
-  );
   const bounds = await modal.boundingBox();
   const viewport = page.viewportSize()!;
   expect(bounds!.width).toBeLessThanOrEqual(viewport.width);
   expect(bounds!.height).toBeLessThanOrEqual(viewport.height);
-  await modal.getByLabel("Razão social", { exact: true }).fill("Empresa de teste editada");
-  await expect(modal.getByLabel("Cadastro para editar")).toBeDisabled();
-  await modal.getByRole("button", { name: "Cancelar", exact: true }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 3)).toBe(
+    true,
+  );
+  await modal.getByRole("button", { name: "Salvar alterações", exact: true }).click();
   await expect(modal).not.toBeVisible();
+  expect(saved[1].p_company_id).toBe(fixture.companies[0].id);
+  expect(saved[1].p_contacts).toBeNull();
+  expect(saved[1].p_web_apps).toEqual(["MOB"]);
 });
 
 test("Clientes: abertura imediata e listagem sem rolagem horizontal", async ({ page }) => {

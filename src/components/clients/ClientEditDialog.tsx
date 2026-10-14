@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Pencil, Building2, Loader2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePortalAuth } from "@/lib/portal-auth";
-import { companyModuleOptions, moduleCodes, parsedLegacy } from "@/lib/client-listing-rules";
+import { parsedLegacy } from "@/lib/client-listing-rules";
 import {
   loadClientEditData,
   saveClientEdit,
@@ -14,56 +14,39 @@ import {
 } from "@/lib/client-edit-api";
 import { loadClients } from "@/lib/clients-store";
 
-function legacyObject(value: unknown): Record<string, unknown> {
+function object(value: unknown): Record<string, unknown> {
   const parsed = parsedLegacy(value);
   return parsed && typeof parsed === "object" && !Array.isArray(parsed)
     ? (parsed as Record<string, unknown>)
     : {};
 }
 type Field = [string, string, string?];
-const common: Field[] = [
+const companyFields: Field[] = [
   ["Razão social", "legal_name", "razao_social"],
   ["Nome fantasia", "trade_name", "nome_fantasia"],
-  ["CNPJ / CPF", "document", "cnpj"],
   ["Inscrição estadual", "state_registration", "insc_estadual"],
-  ["Inscrição municipal", "municipal_registration", "insc_municipal"],
   ["CNAE", "cnae", "cnae"],
-  ["Cidade", "city", "cidade"],
-  ["UF", "state", "uf"],
+  ["Inscrição municipal", "municipal_registration", "insc_municipal"],
+];
+const addressFields: Field[] = [
   ["CEP", "postal_code", "cep"],
   ["Endereço", "address", "endereco"],
+  ["Cidade", "city", "cidade"],
+  ["UF", "state", "uf"],
 ];
-const clientOnly: Field[] = [
-  ["Nome do cliente", "name", "nome"],
-  ["Sigla do grupo", "group_acronym", "sigla_grupo"],
-  ["Número", "address_number", "numero"],
-  ["Bairro", "neighborhood", "bairro"],
-  ["Complemento", "address_complement", "complemento"],
-  ["Site", "website", "site"],
-  ["Operador responsável", "primary_operator", "operador_resp1"],
-  ["Segundo responsável", "secondary_operator", "operador_resp2"],
+const units = [
+  ["1", "São Carlos"],
+  ["25", "Campinas"],
+  ["26", "São Sebastião do Paraíso"],
 ];
-const companyOnly: Field[] = [
-  ["Responsável", "responsible_name"],
-  ["CPF do responsável", "responsible_document"],
-  ["Contador", "accountant_name"],
-  ["Telefone do contador", "accountant_phone"],
-  ["E-mail do contador", "accountant_email"],
+const applications = [
+  { type: "MOB", name: "Hádron Mobile" },
+  { type: "WEB", name: "Hádron Web" },
+  { type: "B2C", name: "Hádron Commerce" },
+  { type: "B2B", name: "Hádron Portal B2B" },
+  { type: "EXE", name: "Hádron Calc RT" },
 ];
-const legacyFields: Field[] = [
-  ["ANTT", "antt"],
-  ["Quantidade de terminais", "nterminais"],
-  ["Tempo de módulos", "tmp_mod"],
-  ["Início de emissão NFE", "inicio_nfe"],
-];
-const companyLegacy: Field[] = [
-  ["Site", "site"],
-  ["Número", "numero"],
-  ["Bairro", "bairro"],
-  ["Complemento", "complemento"],
-  ["Operador responsável", "operador_resp1"],
-  ["Segundo responsável", "operador_resp2"],
-];
+
 export function ClientEditDialog({
   acronym,
   companyId,
@@ -75,92 +58,279 @@ export function ClientEditDialog({
   onClose: () => void;
   onSaved?: () => void;
 }) {
+  const isCompany = Boolean(companyId);
   const { role, department } = usePortalAuth();
   const allowed = role === "s_admin" || department === "admin" || department === "commercial";
   const [data, setData] = useState<ClientEditData | null>(null);
-  const [selected, setSelected] = useState(companyId ?? "client");
   const [row, setRow] = useState<EditableRow | null>(null);
   const [source, setSource] = useState<Record<string, unknown>>({});
   const [contacts, setContacts] = useState<EditableRow[]>([]);
+  const [webApps, setWebApps] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
-    let cancelled = false;
-    loadClientEditData(acronym)
+    let active = true;
+    setRow(null);
+    setError("");
+    loadClientEditData(acronym, companyId)
       .then((d) => {
-        if (!cancelled) {
-          setData(d);
-          setContacts(d.contacts);
+        if (!active) return;
+        const record = companyId ? d.companies.find((c) => c.id === companyId) : d.client;
+        if (!record) {
+          setError("Empresa vinculada não encontrada.");
+          return;
         }
+        setData(d);
+        setRow({
+          ...record,
+          ...(!companyId ? { name: record.name || record.trade_name || record.legal_name } : {}),
+        });
+        setSource({ ...record.source_payload });
+        setContacts(d.contacts);
+        setWebApps(d.webApps ?? []);
       })
       .catch(() => {
-        if (!cancelled) setError("Não foi possível carregar os dados para edição.");
+        if (active) setError("Não foi possível carregar os dados para edição.");
       });
     return () => {
-      cancelled = true;
+      active = false;
     };
-  }, [acronym]);
-  useEffect(() => {
-    if (!data) return;
-    const value =
-      selected === "client" ? data.client : data.companies.find((c) => c.id === selected);
-    setRow(value ? { ...value } : null);
-    setSource({ ...value?.source_payload });
-  }, [data, selected]);
-  const isClient = selected === "client";
-  const prefix = isClient ? "cli_" : "tcl_";
-  const baseline = isClient ? data?.client : data?.companies.find((c) => c.id === selected);
-  const dirty = Boolean(
-    row &&
-    (JSON.stringify(row) !== JSON.stringify(baseline) ||
-      JSON.stringify(source) !== JSON.stringify(baseline?.source_payload ?? {}) ||
-      (isClient && JSON.stringify(contacts) !== JSON.stringify(data?.contacts))),
-  );
-  const field = (label: string, key: string, value: unknown, onChange: (v: string) => void) => (
-    <label key={key} className="block min-w-0 space-y-1.5">
+  }, [acronym, companyId]);
+  const update = (key: string, value: unknown, legacy?: string) => {
+    setRow((r) => (r ? { ...r, [key]: value } : r));
+    if (legacy) setSource((s) => ({ ...s, [(isCompany ? "tcl_" : "cli_") + legacy]: value }));
+  };
+  const sourceValue = (key: string) => source["tcl_" + key];
+  const sourceChange = (key: string, value: unknown) =>
+    setSource((s) => ({ ...s, ["tcl_" + key]: value }));
+  const nestedValue = (container: string, key: string) => {
+    const values = object(source[container]);
+    return values[key] ?? values[key.replace(/^cli_/, "tcl_")];
+  };
+  const nestedChange = (container: string, key: string, value: unknown) =>
+    setSource((s) => ({
+      ...s,
+      [container]: JSON.stringify({ ...object(s[container]), [key]: value }),
+    }));
+  const input = (label: string, value: unknown, change: (value: string) => void, type = "text") => (
+    <label key={label} className="block min-w-0 space-y-1.5">
       <span className="text-xs font-medium">{label}</span>
       <Input
         aria-label={label}
+        type={type}
         value={String(value ?? "")}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full min-w-0"
+        onChange={(e) => change(e.target.value)}
+        className="min-w-0 w-full"
       />
     </label>
   );
-  const update = (key: string, value: unknown, legacy?: string) => {
-    setRow((r) => (r ? { ...r, [key]: value } : r));
-    if (legacy) setSource((s) => ({ ...s, [prefix + legacy]: value }));
-    if (!isClient) {
-      const fields: Record<string, [string, string]> = {
-        responsible_name: ["tcl_responsavel", "cli_res_nome"],
-        responsible_document: ["tcl_responsavel", "cli_res_cpf"],
-        accountant_name: ["tcl_contador", "cli_ctd_res"],
-        accountant_phone: ["tcl_contador", "cli_ctd_tel"],
-        accountant_email: ["tcl_contador", "cli_ctd_email"],
-      };
-      if (fields[key]) {
-        const [container, nestedKey] = fields[key];
-        setSource((s) => ({
-          ...s,
-          ...(key === "accountant_name" ? { accountant_name: value } : {}),
-          [container]: JSON.stringify({ ...legacyObject(s[container]), [nestedKey]: value }),
-        }));
-      }
-    }
+  const select = (
+    label: string,
+    value: unknown,
+    options: string[][],
+    change: (value: string) => void,
+  ) => (
+    <label key={label} className="space-y-1.5">
+      <span className="text-xs font-medium">{label}</span>
+      <select
+        aria-label={label}
+        value={String(value ?? "")}
+        onChange={(e) => change(e.target.value)}
+        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+      >
+        <option value="">Não informado</option>
+        {!options.some(([code]) => code === String(value ?? "")) && String(value ?? "") && (
+          <option value={String(value)}>{String(value)}</option>
+        )}
+        {options.map(([code, label]) => (
+          <option key={code} value={code}>
+            {label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+  const section = (title: string, children: React.ReactNode) => (
+    <section className="space-y-4 border-t pt-5">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      {children}
+    </section>
+  );
+  const patchContact = (id: string, patch: Record<string, unknown>) =>
+    setContacts((list) => list.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  const addContact = (kind: string) =>
+    setContacts((list) => [
+      ...list,
+      { id: crypto.randomUUID(), name: "", email: "", phone: "", source_payload: {}, _kind: kind },
+    ]);
+  const contactSection = (kind: "phone" | "email") => {
+    const list = contacts
+      .filter((c) => !c._delete)
+      .flatMap((c) => {
+        const fields =
+          kind === "email"
+            ? c.email || c._kind === "email"
+              ? ["email"]
+              : []
+            : ["phone", "mobile", "whatsapp"].filter((field) => c[field]);
+        if (kind === "phone" && !fields.length && c._kind === "phone") fields.push("phone");
+        return fields.map((field) => ({ contact: c, field }));
+      });
+    return (
+      <div className="min-w-0 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="text-xs font-medium">{kind === "phone" ? "Telefones" : "E-mails"}</h4>
+          <Button type="button" variant="outline" size="sm" onClick={() => addContact(kind)}>
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            Adicionar {kind === "phone" ? "telefone" : "e-mail"}
+          </Button>
+        </div>
+        {list.map(({ contact: c, field }, i) => (
+          <div
+            key={c.id + field}
+            className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-lg border p-3"
+          >
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+              {input(
+                `${kind === "phone" ? "Telefone" : "E-mail"} ${i + 1}`,
+                c[field],
+                (v) => patchContact(c.id, { [field]: v }),
+                kind === "phone" ? "tel" : "email",
+              )}
+              {input(
+                `Contato do ${kind === "phone" ? "telefone" : "e-mail"} ${i + 1}`,
+                c.name,
+                (v) => patchContact(c.id, { name: v }),
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="mt-5 h-9 w-9 text-destructive"
+              aria-label={`Remover ${kind === "phone" ? "telefone" : "e-mail"} ${i + 1}`}
+              onClick={() =>
+                patchContact(c.id, {
+                  [field]: "",
+                  _delete: !["phone", "mobile", "whatsapp", "email"].some(
+                    (key) => key !== field && c[key],
+                  ),
+                })
+              }
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        {!list.length && (
+          <p className="text-xs text-muted-foreground">
+            Nenhum {kind === "phone" ? "telefone" : "e-mail"} cadastrado.
+          </p>
+        )}
+      </div>
+    );
   };
+  async function checkCnpj() {
+    const cnpj = String(row?.document ?? "").replace(/\D/g, "");
+    if (cnpj.length !== 14) {
+      toast.error("Informe um CNPJ com 14 dígitos.");
+      return;
+    }
+    setChecking(true);
+    try {
+      const response = await fetch(`https://minhareceita.org/${cnpj}`, {
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) throw new Error();
+      const result = await response.json();
+      const values: Record<string, unknown> = {
+        legal_name: result.razao_social,
+        trade_name: result.nome_fantasia,
+        cnae: result.cnae_fiscal,
+        postal_code: result.cep,
+        address: [result.descricao_tipo_de_logradouro, result.logradouro].filter(Boolean).join(" "),
+        city: result.municipio,
+        state: result.uf,
+      };
+      setRow((r) =>
+        r
+          ? {
+              ...r,
+              ...Object.fromEntries(
+                Object.entries(values).filter(([, v]) => v !== undefined && v !== null),
+              ),
+            }
+          : r,
+      );
+      setSource((s) => ({
+        ...s,
+        tcl_endereco: values.address ?? s.tcl_endereco,
+        tcl_razao_social: values.legal_name ?? s.tcl_razao_social,
+        tcl_nome_fantasia: values.trade_name ?? s.tcl_nome_fantasia,
+        tcl_cnae: values.cnae ?? s.tcl_cnae,
+        tcl_cep: values.postal_code ?? s.tcl_cep,
+        tcl_cidade: values.city ?? s.tcl_cidade,
+        tcl_uf: values.state ?? s.tcl_uf,
+        tcl_numero: result.numero ?? s.tcl_numero,
+        tcl_bairro: result.bairro ?? s.tcl_bairro,
+        tcl_complemento: result.complemento ?? s.tcl_complemento,
+      }));
+      toast.success("Dados do CNPJ encontrados. Confira antes de salvar.");
+    } catch {
+      toast.error("Não foi possível consultar o CNPJ. Você pode preencher os dados manualmente.");
+    } finally {
+      setChecking(false);
+    }
+  }
   async function save() {
     if (!row || !allowed) return;
+    if (!String(row.legal_name ?? "").trim() || (!isCompany && !String(row.name ?? "").trim())) {
+      toast.error("Preencha nome e razão social.");
+      return;
+    }
+    if (
+      !isCompany &&
+      contacts.some(
+        (c) =>
+          !c._delete &&
+          c.email &&
+          c.email !== data?.contacts.find((original) => original.id === c.id)?.email &&
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(c.email)),
+      )
+    ) {
+      toast.error("Confira os e-mails dos contatos.");
+      return;
+    }
     setSaving(true);
     try {
+      const appsChanged =
+        isCompany &&
+        JSON.stringify([...webApps].sort()) !== JSON.stringify([...(data?.webApps ?? [])].sort());
       await saveClientEdit(
         acronym,
-        isClient ? null : selected,
-        row,
+        companyId ?? null,
+        isCompany
+          ? {
+              ...row,
+              address:
+                [
+                  source.tcl_endereco ?? row.address,
+                  source.tcl_numero,
+                  source.tcl_complemento,
+                  source.tcl_bairro,
+                ]
+                  .map((value) => String(value ?? "").trim())
+                  .filter(Boolean)
+                  .join(", ") || row.address,
+            }
+          : row,
         source,
-        isClient ? contacts : undefined,
+        isCompany ? undefined : contacts,
+        appsChanged ? webApps : undefined,
       );
       await loadClients(true).catch(() => undefined);
-      toast.success(isClient ? "Cliente atualizado." : "Empresa vinculada atualizada.");
+      toast.success(isCompany ? "Empresa atualizada." : "Cliente atualizado.");
       onSaved?.();
       onClose();
     } catch (e) {
@@ -178,15 +348,15 @@ export function ClientEditDialog({
     >
       <DialogContent
         autoFooter={false}
-        className="flex max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:p-0"
+        className="flex max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:p-0"
       >
         <DialogHeader className="shrink-0 border-b p-4 sm:p-6">
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="h-5 w-5 text-primary" />
-            {isClient ? "Editar cliente" : "Editar empresa vinculada"} · {acronym}
+            {isCompany ? "Editar empresa" : "Editar cliente"} · {acronym}
           </DialogTitle>
         </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
           {error ? (
             <p role="alert">{error}</p>
           ) : !row ? (
@@ -194,338 +364,261 @@ export function ClientEditDialog({
               <Loader2 className="h-4 w-4 animate-spin" />
               Carregando...
             </p>
-          ) : (
+          ) : isCompany ? (
             <>
-              <label className="mb-5 block space-y-1.5">
-                <span className="text-xs font-medium">Cadastro para editar</span>
-                <select
-                  aria-label="Cadastro para editar"
-                  disabled={saving || dirty}
-                  value={selected}
-                  onChange={(e) => setSelected(e.target.value)}
-                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                >
-                  <option value="client">Cliente · {acronym}</option>
-                  {data?.companies.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      Empresa {String(c.company_number ?? "")} ·{" "}
-                      {String(c.legal_name || c.trade_name || "")}
-                    </option>
-                  ))}
-                </select>
-                {dirty && (
-                  <p className="text-xs text-muted-foreground">
-                    Salve as alterações ou cancele antes de trocar de cadastro.
-                  </p>
-                )}
-              </label>
-              <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
-                {[
-                  ...(isClient ? clientOnly : []),
-                  ...common,
-                  ...(!isClient ? companyOnly : []),
-                ].map(([label, key, legacy]) =>
-                  field(label, key, row[key], (v) =>
-                    update(key, key === "state" ? v.toUpperCase().slice(0, 2) : v, legacy),
-                  ),
-                )}
-                {[
-                  [
-                    "Ramo",
-                    "industry",
-                    "setor",
-                    [
-                      ["0", "Ramo não preenchido"],
-                      ["1", "Comércio"],
-                      ["2", "Serviços"],
-                      ["3", "Serviços"],
-                      ["4", "Indústria"],
-                    ],
-                  ],
-                  [
-                    "Porte",
-                    "size",
-                    "porte",
-                    [
-                      ["", "Porte não preenchido"],
-                      ["P", "Pequeno"],
-                      ["M", "Médio"],
-                      ["G", "Grande"],
-                    ],
-                  ],
-                  [
-                    "Regime de apuração",
-                    "tax_regime",
-                    "regime",
-                    [
-                      ["", "Não informado"],
-                      ["0", "Simples Nacional"],
-                      ["1", "Lucro Presumido"],
-                      ["2", "Lucro Real"],
-                      ["3", "MEI"],
-                    ],
-                  ],
-                ].map(([label, key, legacy, options]) => (
-                  <label key={String(key)} className="space-y-1.5">
-                    <span className="text-xs font-medium">{String(label)}</span>
-                    <select
-                      aria-label={String(label)}
-                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                      value={String(row[String(key)] ?? "")}
-                      onChange={(e) => update(String(key), e.target.value, String(legacy))}
-                    >
-                      {(options as string[][]).some(
-                        ([value]) => value === String(row[String(key)] ?? ""),
-                      ) ? null : (
-                        <option value={String(row[String(key)] ?? "")}>
-                          {String(row[String(key)] ?? "Não informado")}
-                        </option>
-                      )}
-                      {(options as string[][]).map(([value, name]) => (
-                        <option key={value} value={value}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ))}
-                {[...legacyFields, ...(!isClient ? companyLegacy : [])].map(([label, key]) =>
-                  field(label, prefix + key, source[prefix + key], (v) =>
-                    setSource((s) => ({ ...s, [prefix + key]: v })),
-                  ),
-                )}
-                {isClient && (
-                  <>
-                    <label className="block space-y-1.5">
-                      <span className="text-xs font-medium">Status</span>
-                      <select
-                        aria-label="Status"
-                        className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                        value={String(source.cli_status ?? (row.active ? "1" : "0"))}
-                        onChange={(e) => {
-                          update("active", e.target.value !== "0");
-                          setSource((s) => ({ ...s, cli_status: e.target.value }));
-                        }}
-                      >
-                        {[
-                          ["0", "Inativo"],
-                          ["1", "Ativo"],
-                          ["2", "Pendente"],
-                          ["9", "Bloqueado"],
-                        ].map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    {field("Aviso do cliente", "cli_aviso", source.cli_aviso, (v) =>
-                      setSource((s) => ({ ...s, cli_aviso: v })),
-                    )}
-                    {field("Mensagem no Hádron", "cli_msg_hadron", source.cli_msg_hadron, (v) =>
-                      setSource((s) => ({ ...s, cli_msg_hadron: v })),
-                    )}
-                    <label className="space-y-1.5 sm:col-span-2">
-                      <span className="text-xs font-medium">Observações</span>
-                      <textarea
-                        aria-label="Observações"
-                        rows={4}
-                        className="w-full rounded-md border bg-background p-3 text-sm"
-                        value={String(source.cli_obs ?? "")}
-                        onChange={(e) => setSource((s) => ({ ...s, cli_obs: e.target.value }))}
-                      />
-                    </label>
-                  </>
-                )}
-              </div>
-              {!isClient && (
-                <div className="mt-6 grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
-                  <h3 className="text-sm font-medium sm:col-span-2">Responsável e contabilidade</h3>
-                  {field(
-                    "Escritório de contabilidade",
-                    "cli_ctd_nome",
-                    legacyObject(source.tcl_contador).cli_ctd_nome,
-                    (value) =>
-                      setSource((s) => ({
-                        ...s,
-                        tcl_contador: JSON.stringify({
-                          ...legacyObject(s.tcl_contador),
-                          cli_ctd_nome: value,
-                        }),
-                      })),
-                  )}
-                  {[
-                    ["RG do responsável", "rg"],
-                    ["Endereço do responsável", "endereco"],
-                    ["Número do responsável", "numero"],
-                    ["Complemento do responsável", "complemento"],
-                    ["Bairro do responsável", "bairro"],
-                    ["Cidade do responsável", "cidade"],
-                    ["UF do responsável", "uf"],
-                    ["CEP do responsável", "cep"],
-                  ].map(([label, key]) =>
-                    field(
-                      label,
-                      key,
-                      legacyObject(source.tcl_responsavel)["cli_res_" + key],
-                      (value) =>
-                        setSource((s) => ({
-                          ...s,
-                          tcl_responsavel: JSON.stringify({
-                            ...legacyObject(s.tcl_responsavel),
-                            ["cli_res_" + key]: value,
-                          }),
-                        })),
-                    ),
-                  )}
-                  <h3 className="text-sm font-medium sm:col-span-2">Configuração e implantação</h3>
-                  {field(
-                    "Configuração de rede",
-                    "tcl_config_rede",
-                    source.tcl_config_rede,
-                    (value) => setSource((s) => ({ ...s, tcl_config_rede: value })),
-                  )}
-                  <label className="space-y-1.5">
-                    <span className="text-xs font-medium">
-                      Homologação NFE com cliente e contador
-                    </span>
-                    <select
-                      aria-label="Homologação NFE"
-                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                      value={String(source.tcl_homo_nfes ?? "")}
-                      onChange={(event) =>
-                        setSource((s) => ({ ...s, tcl_homo_nfes: event.target.value }))
-                      }
-                    >
-                      <option value="">Não informado</option>
-                      <option value="1">Sim</option>
-                      <option value="0">Não</option>
-                    </select>
-                  </label>
-                  <div className="space-y-2 sm:col-span-2">
-                    <p className="text-xs font-medium">Importação de dados</p>
-                    <div className="flex flex-wrap gap-4">
-                      {[
-                        ["produtos", "Produtos"],
-                        ["terceiros", "Terceiros"],
-                        ["estoque", "Estoque"],
-                      ].map(([key, label]) => (
-                        <label key={key} className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={moduleCodes(source.tcl_import_dados).includes(key)}
-                            onChange={(event) =>
-                              setSource((s) => ({
-                                ...s,
-                                tcl_import_dados: JSON.stringify(
-                                  event.target.checked
-                                    ? [...moduleCodes(s.tcl_import_dados), key]
-                                    : moduleCodes(s.tcl_import_dados).filter(
-                                        (code) => code !== key,
-                                      ),
-                                ),
-                              }))
-                            }
-                          />
-                          {label}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  {input("CNPJ", row.document, (v) => update("document", v, "cnpj"))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={checkCnpj}
+                    disabled={checking}
+                  >
+                    {checking ? "Consultando..." : "Checar CNPJ"}
+                  </Button>
                 </div>
-              )}
-              {!isClient && (
-                <div className="mt-6 space-y-4">
-                  <h3 className="flex items-center gap-2 text-sm font-medium">
-                    <Building2 className="h-4 w-4" />
-                    Módulos e cobrança da empresa
-                  </h3>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {companyModuleOptions.map((m) => (
-                      <label key={m.opcao} className="flex items-center gap-2 text-sm">
+                {companyFields.map(([label, key, legacy]) =>
+                  input(label, row[key] ?? source["tcl_" + legacy], (v) => update(key, v, legacy)),
+                )}
+                {input("Site", sourceValue("site"), (v) => sourceChange("site", v))}
+                {input("ANTT (transportadora)", sourceValue("antt"), (v) =>
+                  sourceChange("antt", v),
+                )}
+                {select(
+                  "Ramo",
+                  row.industry,
+                  [
+                    ["0", "Ramo não preenchido"],
+                    ["1", "Comércio"],
+                    ["2", "Serviços"],
+                    ["3", "Serviços"],
+                    ["4", "Indústria"],
+                  ],
+                  (v) => update("industry", v, "setor"),
+                )}
+                {select(
+                  "Porte",
+                  row.size,
+                  [
+                    ["P", "Pequeno"],
+                    ["M", "Médio"],
+                    ["G", "Grande"],
+                  ],
+                  (v) => update("size", v, "porte"),
+                )}
+                <fieldset className="space-y-2 sm:col-span-2">
+                  <legend className="text-xs font-medium">Regime de apuração</legend>
+                  <div className="flex flex-wrap gap-4">
+                    {[
+                      ["0", "Simples"],
+                      ["1", "Presumido"],
+                      ["2", "Lucro Real"],
+                    ].map(([value, label]) => (
+                      <label key={value} className="flex items-center gap-2 text-sm">
                         <input
-                          type="checkbox"
-                          checked={moduleCodes(source.tcl_modulos).includes(m.opcao)}
-                          onChange={(e) => {
-                            const parsed = parsedLegacy(source.tcl_modulos);
-                            const next: Record<string, unknown> =
-                              parsed && typeof parsed === "object" && !Array.isArray(parsed)
-                                ? { ...parsed }
-                                : Object.fromEntries(moduleCodes(parsed).map((k) => [k, ""]));
-                            if (e.target.checked) next[m.opcao] = "";
-                            else delete next[m.opcao];
-                            setSource((s) => ({ ...s, tcl_modulos: JSON.stringify(next) }));
-                          }}
+                          type="radio"
+                          name="company-tax-regime"
+                          checked={String(row.tax_regime ?? "") === value}
+                          onChange={() => update("tax_regime", value, "regime")}
                         />
-                        {m.modulo}
+                        {label}
                       </label>
                     ))}
                   </div>
-                  <label className="block space-y-1.5">
-                    <span className="text-xs font-medium">
-                      Cobrança (boletos) · um tipo por linha
-                    </span>
-                    <textarea
-                      aria-label="Cobrança (boletos)"
-                      rows={3}
-                      className="w-full rounded-md border bg-background p-3 text-sm"
-                      value={(() => {
-                        const p = parsedLegacy(source.tcl_boleto_dados);
-                        return Array.isArray(p)
-                          ? p.join("\n")
-                          : p && typeof p === "object"
-                            ? Object.values(p).join("\n")
-                            : String(p ?? "");
-                      })()}
-                      onChange={(e) =>
-                        setSource((s) => ({
-                          ...s,
-                          tcl_boleto_dados: JSON.stringify(
-                            e.target.value
-                              .split("\n")
-                              .map((v) => v.trim())
-                              .filter(Boolean),
-                          ),
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
+                </fieldset>
+              </div>
+              {section(
+                "Endereço",
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {addressFields.map(([label, key, legacy]) =>
+                    input(
+                      label,
+                      key === "address"
+                        ? (source.tcl_endereco ?? row[key])
+                        : (row[key] ?? source["tcl_" + legacy]),
+                      (v) => update(key, key === "state" ? v.toUpperCase().slice(0, 2) : v, legacy),
+                    ),
+                  )}
+                  {[
+                    ["Bairro", "bairro"],
+                    ["Número", "numero"],
+                    ["Complemento", "complemento"],
+                  ].map(([label, key]) =>
+                    input(label, sourceValue(key), (v) => sourceChange(key, v)),
+                  )}
+                </div>,
               )}
-              {isClient && contacts.length > 0 && (
-                <div className="mt-6 space-y-3">
-                  <h3 className="text-sm font-medium">Contatos do cliente</h3>
-                  {contacts.map((contact, index) => (
-                    <div
-                      key={contact.id}
-                      className="grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-2"
-                    >
-                      {[
-                        ["Nome", "name"],
-                        ["Departamento", "department"],
-                        ["E-mail", "email"],
-                        ["Telefone", "phone"],
-                        ["Celular", "mobile"],
-                        ["WhatsApp", "whatsapp"],
-                      ].map(([label, key]) =>
-                        field(`${label} · contato ${index + 1}`, key, contact[key], (v) =>
-                          setContacts((list) =>
-                            list.map((c) => (c.id === contact.id ? { ...c, [key]: v } : c)),
-                          ),
-                        ),
-                      )}
-                    </div>
+              {section(
+                "Complemento",
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {input(
+                    "Responsável pela empresa",
+                    row.responsible_name || nestedValue("tcl_responsavel", "cli_res_nome"),
+                    (v) => {
+                      update("responsible_name", v);
+                      nestedChange("tcl_responsavel", "cli_res_nome", v);
+                    },
+                  )}
+                  {input(
+                    "CPF do responsável",
+                    row.responsible_document || nestedValue("tcl_responsavel", "cli_res_cpf"),
+                    (v) => {
+                      update("responsible_document", v);
+                      nestedChange("tcl_responsavel", "cli_res_cpf", v);
+                    },
+                  )}
+                  {[
+                    ["RG do responsável", "rg"],
+                    ["CEP do responsável", "cep"],
+                    ["Cidade do responsável", "cidade"],
+                    ["UF do responsável", "uf"],
+                    ["Número do responsável", "numero"],
+                    ["Complemento do responsável", "complemento"],
+                    ["Endereço do responsável", "endereco"],
+                    ["Bairro do responsável", "bairro"],
+                  ].map(([label, key]) =>
+                    input(label, nestedValue("tcl_responsavel", "cli_res_" + key), (v) =>
+                      nestedChange("tcl_responsavel", "cli_res_" + key, v),
+                    ),
+                  )}
+                </div>,
+              )}
+              {section(
+                "Contador da empresa",
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {input(
+                    "Escritório de contabilidade",
+                    nestedValue("tcl_contador", "cli_ctd_nome") ||
+                      (!source.accountant_name && !source.tcl_contador ? row.accountant_name : ""),
+                    (v) => nestedChange("tcl_contador", "cli_ctd_nome", v),
+                  )}
+                  {input(
+                    "Contador responsável",
+                    source.accountant_name ||
+                      nestedValue("tcl_contador", "cli_ctd_res") ||
+                      (!source.tcl_contador ? row.accountant_name : ""),
+                    (v) => {
+                      update("accountant_name", v);
+                      nestedChange("tcl_contador", "cli_ctd_res", v);
+                      setSource((s) => ({ ...s, accountant_name: v }));
+                    },
+                  )}
+                  {input(
+                    "Telefone do contador",
+                    nestedValue("tcl_contador", "cli_ctd_tel") || row.accountant_phone,
+                    (v) => {
+                      update("accountant_phone", v);
+                      nestedChange("tcl_contador", "cli_ctd_tel", v);
+                    },
+                    "tel",
+                  )}
+                  {input(
+                    "E-mail do contador",
+                    nestedValue("tcl_contador", "cli_ctd_email") || row.accountant_email,
+                    (v) => {
+                      update("accountant_email", v);
+                      nestedChange("tcl_contador", "cli_ctd_email", v);
+                    },
+                    "email",
+                  )}
+                </div>,
+              )}
+              {section(
+                "Aplicações web",
+                <div className="flex flex-wrap gap-4">
+                  {(data?.applications?.length ? data.applications : applications).map((app) => (
+                    <label key={app.type} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={webApps.includes(app.type)}
+                        onChange={(e) =>
+                          setWebApps((list) =>
+                            e.target.checked
+                              ? [...list, app.type]
+                              : list.filter((type) => type !== app.type),
+                          )
+                        }
+                      />
+                      {app.name}
+                    </label>
                   ))}
-                </div>
+                </div>,
+              )}
+            </>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {input("Nome (apelido)", row.name, (v) => update("name", v, "nome"))}
+                {select(
+                  "Status do cliente",
+                  source.cli_status ?? (row.active ? "1" : "0"),
+                  [
+                    ["1", "Ativo"],
+                    ["2", "Pendente"],
+                    ["9", "Bloqueado"],
+                    ["0", "Inativo"],
+                  ],
+                  (v) => {
+                    update("active", v !== "0");
+                    setSource((s) => ({ ...s, cli_status: v }));
+                  },
+                )}
+                {input("Sigla do grupo", row.group_acronym, (v) =>
+                  update("group_acronym", v.toUpperCase(), "sigla_grupo"),
+                )}
+                {input("Aviso do cliente", source.cli_aviso, (v) =>
+                  setSource((s) => ({ ...s, cli_aviso: v })),
+                )}
+                {input("Mensagem do Hádron", source.cli_msg_hadron, (v) =>
+                  setSource((s) => ({ ...s, cli_msg_hadron: v })),
+                )}
+                {input("Razão social", row.legal_name, (v) =>
+                  update("legal_name", v, "razao_social"),
+                )}
+              </div>
+              {section(
+                "Unidade de atendimento",
+                <div className="flex flex-wrap gap-4">
+                  {units.map(([value, label]) => (
+                    <label key={value} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="client-service-unit"
+                        checked={String(source.empresa_id_emp ?? "") === value}
+                        onChange={() => setSource((s) => ({ ...s, empresa_id_emp: value }))}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>,
+              )}
+              {section(
+                "Atividades",
+                <textarea
+                  aria-label="Atividades"
+                  rows={4}
+                  className="w-full rounded-md border bg-background p-3 text-sm"
+                  value={String(source.cli_obs ?? "").replace(/<[^>]*>/g, "")}
+                  onChange={(e) => setSource((s) => ({ ...s, cli_obs: e.target.value }))}
+                />,
+              )}
+              {section(
+                "Contatos",
+                <div className="grid gap-5 lg:grid-cols-2">
+                  {contactSection("phone")}
+                  {contactSection("email")}
+                </div>,
               )}
             </>
           )}
         </div>
         <div className="grid shrink-0 grid-cols-2 gap-3 border-t p-4 sm:flex sm:justify-end">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={save} disabled={!row || saving || !allowed}>
+          <Button type="button" onClick={save} disabled={!row || saving || !allowed}>
             {saving ? "Salvando..." : "Salvar alterações"}
           </Button>
         </div>

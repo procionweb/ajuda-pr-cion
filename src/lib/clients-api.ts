@@ -566,14 +566,16 @@ export async function getClientDetail(acronym: string): Promise<ClientDetail | n
     const regimeCode = String(company.tax_regime ?? payload.tcl_regime ?? "").trim();
     return {
       id: String(company.id || ""),
-      clientAcronym: String(company.client_acronym || ""),
+      clientAcronym: String(company.client_acronym || payload.tcl_cli_sigla || acronym || ""),
       groupPosition: String(company.group_position || ""),
       companyNumber: typeof company.company_number === "number" ? company.company_number : null,
       legalName: String(company.legal_name || ""),
       tradeName: String(company.trade_name || ""),
       document: formatCnpj(company.document),
       stateRegistration: String(company.state_registration || payload.tcl_ie || ""),
-      municipalRegistration: String(payload.tcl_im || ""),
+      municipalRegistration: String(
+        company.municipal_registration || payload.tcl_insc_municipal || payload.tcl_im || "",
+      ),
       cnae: String(company.cnae || payload.tcl_cnae || ""),
       industry: labelFromCode(company.industry ?? payload.tcl_setor, industryLabels),
       size: labelFromCode(company.size ?? payload.tcl_porte, sizeLabels),

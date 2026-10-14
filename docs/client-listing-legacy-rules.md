@@ -18,3 +18,13 @@ A regra foi conferida no `TabClientesController.php`, no elemento `tables/table-
 `node --env-file=.env.local scripts/test-client-listing-edit.mjs`: autorização, edição independente de cliente/empresa, preservação de campos, auditoria e rollback. `--apply` aplica a migração depois das verificações; a execução normal não deixa registros de teste.
 
 `tests/crm-bot/client-listing.spec.ts`: filtros com a conta configurada e modais com respostas simuladas no navegador, em desktop/tablet/mobile. Todas as requisições de gravação são bloqueadas. As permissões do banco continuam reais e são verificadas no teste transacional.
+
+## Formulários conforme as referências de edição
+
+O editar da listagem e do cabeçalho abre somente o formulário do cliente: nome/apelido, status, grupo, aviso, mensagem Hádron, razão social, unidade de atendimento, atividades e telefones/e-mails com inclusão e remoção por canal.
+
+O lápis em Dados da empresa e o editar da empresa vinculada abrem somente o cadastro empresarial: CNPJ e consulta, razão social, fantasia, inscrições, CNAE, ANTT, site, ramo, porte, regime, endereço, responsável/endereço, contador e aplicações web. Não há seletor para misturar os dois cadastros. Módulos, boletos e outros campos técnicos permanecem preservados no banco, mas não aparecem nesses formulários.
+
+Aplicações web seguem o contrato da sigla do cliente, como no legado. A interface mostra apenas os tipos selecionados e o catálogo de aplicações; não expõe chaves do contrato. A gravação mantém a autorização de edição e utiliza a tabela estrangeira privada do contrato.
+
+`node --env-file=.env.local scripts/test-separate-client-forms.mjs` testa os contatos, os campos separados, preservação, permissões e aplicações com uma tabela local substituindo a escrita MySQL durante a transação. Não altera contratos remotos no teste. `--apply` aplica somente a migração após as verificações.
