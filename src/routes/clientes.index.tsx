@@ -1,3 +1,4 @@
+import { DetailModalHeader } from "@/components/portal/DetailModalHeader";
 import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { z } from "zod";
@@ -3230,10 +3231,7 @@ function ModuleColumn({ items }: { items: ClientModule[] }) {
               )}
             />
             <span
-              className={cn(
-                "min-w-0 flex-1 truncate text-sm",
-                item.contracted ? "text-foreground" : "text-red-600 dark:text-red-400",
-              )}
+              className={cn("min-w-0 flex-1 truncate text-sm", "text-foreground")}
               title={item.name}
             >
               {item.name}
@@ -3911,7 +3909,7 @@ export function ClientDevicesTab({
     <SortableDataTable<DeviceRow>
       rows={rows}
       dense
-      minWidthClass="min-w-[900px]"
+      minWidthClass="min-w-[1400px]"
       initialSort={{ key: "added", dir: "desc" }}
       columns={[
         {
@@ -4018,16 +4016,75 @@ export function ClientDevicesTab({
         }
       >
         {devices.length ? (
-          renderTable(devices)
+          <ul className="divide-y divide-border">
+            {[...devices]
+              .sort(
+                (a, b) => parseBrDateValue(b.createdAt || "") - parseBrDateValue(a.createdAt || ""),
+              )
+              .map((d) => (
+                <li
+                  key={d.id}
+                  className="flex min-w-0 flex-wrap items-center justify-between gap-3 py-3 text-[13px]"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-primary">{d.user || "Utilizador não informado"}</p>
+                    <p className="mt-0.5 break-all text-[11px] text-muted-foreground">
+                      {d.deviceUuid || "UUID não informado"} · REP: {d.representativeCode || "-"}
+                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock3 className="h-3.5 w-3.5" />
+                        {d.lastCheckedAt || "Não verificado"}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Smartphone className="h-3.5 w-3.5" />
+                        {[d.system, deviceTypeLabel[d.type] || d.type].filter(Boolean).join(" · ")}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        {d.buildVersion || "-"}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Database className="h-3.5 w-3.5" />
+                        {d.dbVersion || "-"}
+                      </span>
+                      <span>Adicionado em: {d.createdAt || "Não informado"}</span>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={
+                      d.status === "1"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+                        : d.status === "0"
+                          ? "border-amber-500/30 bg-amber-500/10 text-amber-600"
+                          : "border-red-500/30 bg-red-500/10 text-red-600"
+                    }
+                  >
+                    {statusLabel(d)}
+                  </Badge>
+                </li>
+              ))}
+          </ul>
         ) : (
           <EmptyState text="Nenhum dispositivo vinculado aos contratos ativos." />
         )}
       </Section>
       <Dialog open={allOpen} onOpenChange={setAllOpen}>
-        <ClientDetailDialogContent className="max-w-6xl max-h-[85vh]">
-          <DialogHeader>
-            <DialogTitle>Dispositivos Mobile</DialogTitle>
-          </DialogHeader>
+        <ClientDetailDialogContent
+          className="max-w-[1600px] max-h-[85vh]"
+          header={
+            <>
+              <DialogTitle className="sr-only">Dispositivos Mobile</DialogTitle>
+              <DetailModalHeader
+                icon={Smartphone}
+                title="Dispositivos Mobile"
+                protocol={client?.acronym}
+                meta={`${allDevices.length} dispositivos cadastrados`}
+              />
+            </>
+          }
+        >
           {allDevices.length ? (
             renderTable(allDevices)
           ) : (

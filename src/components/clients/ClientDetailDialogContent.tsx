@@ -8,11 +8,13 @@ export function ClientDetailDialogContent({
   className,
   bodyClassName,
   footer,
+  header,
 }: {
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
   footer?: ReactNode;
+  header?: ReactNode;
 }) {
   return (
     <DialogContent
@@ -22,6 +24,7 @@ export function ClientDetailDialogContent({
         "flex flex-col gap-0 overflow-hidden p-0 sm:p-0 text-[13px] [&_.text-sm]:text-[13px] [&_.text-base]:text-[13px] [&_.text-lg]:text-[14px] [&_.text-xl]:text-[14px] [&_.font-medium]:font-normal [&_.font-semibold]:font-normal [&_input]:text-[13px] [&_textarea]:text-[13px]",
       )}
     >
+      {header}
       <div
         className={cn(
           "flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-5",

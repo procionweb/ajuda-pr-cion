@@ -600,11 +600,11 @@ test("Clientes: resumo separado, unidade, empresas e tipos de agendamento", asyn
     await expect(columns.nth(i).locator('[aria-label="Não contratado"]')).toHaveCount(5);
   }
   await page.getByRole("tab", { name: "Dispositivos", exact: true }).click();
-  const deviceTable = page.getByRole("tabpanel").getByRole("table");
+  const deviceTable = page.getByRole("tabpanel").getByRole("list");
   await expect(deviceTable.getByText("Bloqueado", { exact: true })).toBeVisible();
   await expect(deviceTable.getByText("Tablet", { exact: true })).toBeVisible();
   await expect(deviceTable.getByText("Celular", { exact: true })).toBeVisible();
-  await expect(deviceTable.locator("tbody tr").first()).toContainText("Mais novo");
+  await expect(deviceTable.locator("li").first()).toContainText("Mais novo");
   await page.getByRole("tabpanel").getByRole("button", { name: "Ver todos", exact: true }).click();
   const full = page.getByRole("dialog", { name: "Dispositivos Mobile", exact: true });
   await expect(full.getByText("Inativo histórico", { exact: true })).toBeVisible();
